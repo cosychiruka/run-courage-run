@@ -1,0 +1,225 @@
+BUILD PLAN DRAFT 1 - ChatGPT Drafted
+
+a structured, detailed requirement list that you can use to develop the entire system. Here's what we're trying to build:
+
+    Telegram Bot Integrated with OpenAI: Users can interact via text or voice commands to manage meme token investments, using various intents and triggers to perform functions like buying, selling, monitoring, and analyzing meme tokens.
+    MongoDB Integration: All user interactions, orders, swap records, trending data, etc., will be saved in MongoDB for persistent data storage.
+    APIs and Functions: External APIs like DexTools, DexScreener, and custom functions will be used for market analysis, token scanning, and managing buy/sell actions.
+
+Requirement List and System Design Plan
+1. Folder and File Structure
+
+    commands/ (Holds command handlers)
+        index.js - Entry point to manage all Telegram commands.
+        start.js - Manages the /start command.
+        openai.js - Handles the integration with OpenAI for various prompts, intents, and follow-ups.
+
+    services/ (Service modules for different purposes)
+        openaiService.js - Communicates with OpenAI API to generate responses.
+        voiceService.js - Converts text to voice or vice versa.
+        apiService.js - Interfaces with APIs like DexTools, DexScreener, etc.
+        orderService.js - Handles buy/sell orders for meme tokens.
+        userService.js - Manages user interactions, registration, and profile updates.
+
+    utils/ (Utility files for general use)
+        userState.js - Handles user states during interactions (e.g., awaiting confirmation).
+        errorHandler.js - Handles errors in the system.
+        db.js - Establishes connection to MongoDB and manages database-related operations.
+        canvasHelper.js - Manages canvas drawing for certificates.
+
+    assets/ (Holds external assets)
+        images/ - Project images like logos.
+        fonts/ - Custom fonts like SF_Toontime_Bold.ttf.
+
+2. Database Structure
+MongoDB Collections:
+
+    usersCollection
+        Fields:
+            telegramId (String, unique)
+            username (String)
+            wallets
+                ethereum (Array of objects with address, encryptedPrivateKey, createdAt)
+                base (Array of objects with address, encryptedPrivateKey, createdAt)
+                solana (Array of objects with address, encryptedPrivateKey, createdAt)
+            settings
+                defaultNetwork (String)
+                notifications
+                    showInChat (Boolean)
+            registeredAt (Date)
+
+    TrendingRecords
+        Fields:
+            date (Date, unique)
+            tokens (Array of token objects with symbol, address, chain)
+
+    userTodaysTrending
+        Fields:
+            userId (String, foreign key to usersCollection)
+            date (Date)
+            tokens (Array of token objects with symbol, address, chain)
+
+    swapRecords
+        Fields:
+            userId (String, foreign key to usersCollection)
+            action (String, either buy or sell)
+            tokenSymbol (String)
+            tokenAddress (String)
+            amount (Number)
+            price (Number)
+            timestamp (Date)
+            profitability (Number, calculated when selling)
+
+    autonomousOrdersRecords
+        Fields:
+            userId (String, foreign key to usersCollection)
+            action (String, either buy or sell)
+            tokenSymbol (String)
+            tokenAddress (String)
+            amount (Number)
+            price (Number)
+            triggerTime (Date)
+            status (String, pending or executed)
+
+    todaysTrending
+        Fields:
+            date (Date, unique)
+            tokens (Array of token objects with symbol, address, chain)
+
+3. Intents and Functions
+Intent and Corresponding Functionality:
+
+    FIND_MEME_GEMS
+        Intent Trigger: "Find which meme coins are hot on the market today."
+        Functionality:
+            findMemeGems()
+                Uses APIs (DexTools, DexScreener, PumpFun, Moonshot) to get trending tokens.
+                Saves results in userTodaysTrending and todaysTrending collections.
+                Formats the results for the user via OpenAI.
+
+    BUY_MEME_COIN
+        Intent Trigger: "Buy this token."
+        Functionality:
+            buyMemeCoin()
+                Gets the user's confirmation for token, amount, and address.
+                Uses wallet data from usersCollection to make a purchase (Alchemy/Solana APIs).
+                Stores transaction data in swapRecords.
+                Generates a transaction certificate using Canvas.
+
+    SELL_MEME_COIN
+        Intent Trigger: "Sell this token."
+        Functionality:
+            sellMemeCoin()
+                Similar to buyMemeCoin() but for selling.
+                Saves transaction details in swapRecords.
+
+    MONITOR_POSITIONS
+        Intent Trigger: "Review my positions."
+        Functionality:
+            monitorPositions()
+                Retrieves all active orders and swap history for the user.
+                Presents an overview of user positions.
+
+    ANALYZE_TOKEN
+        Intent Trigger: "Analyze token."
+        Functionality:
+            analyzeToken()
+                Fetches metrics like volume, price history, community size, holder growth.
+                Scans security aspects (liquidity, bundling).
+                Provides a comprehensive report for each token.
+
+    SCAN_TOKEN
+        Intent Trigger: "Scan this token."
+        Functionality:
+            Similar to analyzeToken().
+            More focused on the security aspects of the token.
+
+    SUGGEST_TOKENS
+        Intent Trigger: "Suggest some meme tokens."
+        Functionality:
+            suggestTokens()
+                Uses swapRecords to check user's trading history.
+                Compares with todaysTrending and TrendingRecords to find overlap.
+                Suggests trending tokens based on analysis.
+
+    AUTONOMOUS_ORDER_EXECUTOR
+        Functionality:
+            autonomousOrderExecutor()
+                Executes pending buy/sell orders in autonomousOrdersRecords.
+                Runs every minute to check and execute orders.
+
+    CREATE_POSITION
+        Functionality:
+            createPosition()
+                Allows users to create an order to buy or sell at a specific time.
+
+4. OpenAI Integration
+
+    User Interaction Flow:
+        Triggered by keywords or phrases like "Hey Katz" or specific intents (e.g., "buy", "sell").
+        Input Types:
+            Text: Typed by users.
+            Voice: Recognized and converted to text.
+        OpenAI processes user requests and identifies appropriate intents.
+
+    Intents Handling:
+        After OpenAI processes input, relevant intents (BUY_MEME_COIN, SELL_MEME_COIN, etc.) are identified.
+        Functions associated with each intent are triggered.
+        OpenAI also formats responses for a user-friendly experience.
+
+5. User Prompts
+
+    General Prompts:
+        "Hey Katz, what should we do today?"
+        "Buy [Token] now."
+        "Sell my [Token]."
+        "What's trending today?"
+        "Analyze [Token]."
+        "Review my current positions."
+        "Suggest some hot meme tokens."
+
+    Follow-up Prompts (handled by OpenAI):
+        "Do you want to proceed with this purchase?"
+        "Would you like to sell now?"
+        "Would you like to explore trending meme coins?"
+
+6. Canvas Certificate Generation
+
+    Certificates:
+        After buy/sell actions, a certificate is generated.
+        Uses canvasHelper.js to draw on the canvas and format a personalized transaction certificate.
+        Sent to OpenAI for formatting before delivering to users.
+
+7. Voice Interaction
+
+    Voice Integration:
+        Users can speak commands.
+        Convert using voiceService.js.
+        OpenAI processes the converted text to derive intents.
+
+8. Cron Jobs and Background Processes
+
+    Autonomous Order Executor:
+        Uses a cron job to check for pending orders in autonomousOrdersRecords.
+        Executes any order that meets its criteria.
+
+Summary: Full Requirement List
+
+    Folder Structure - Organized by commands, services, and utils.
+    Database Design - MongoDB collections: users, trends, swap records, autonomous orders.
+    Functions and Intents:
+        findMemeGems()
+        buyMemeCoin()
+        sellMemeCoin()
+        monitorPositions()
+        analyzeToken()
+        scanToken()
+        suggestTokens()
+        createPosition()
+        autonomousOrderExecutor()
+    OpenAI Integration - For interpreting user inputs and triggering intents.
+    Voice and Text Triggers - Allow users to use either medium.
+    Certificates and Canvas - Create personalized certificates for transactions.
+    Prompts and User Interaction - Predefined prompts to help guide users.
+
+This comprehensive requirement list provides a solid foundation for building a fully functional Telegram bot that seamlessly integrates with OpenAI for managing meme token investments. You can use this to prompt an AI to generate the full codebase by defining the folder structure first and then implementing each module

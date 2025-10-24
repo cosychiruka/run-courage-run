@@ -1,0 +1,75 @@
+.solana-balance-display {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  color: #fff;
+  max-width: 400px;
+  width: 100%;
+}
+
+.solana-balance-display .balance-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.solana-balance-display .balance-row:last-child {
+  margin-bottom: 0;
+}
+
+.solana-balance-display .balance-icon {
+  margin-right: 10px;
+  font-size: 1.2rem;
+  color: #eb57c1; /* Courage's pink color */
+}
+
+.solana-balance-display .balance-amount {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.solana-balance-display .usd {
+  color: #9fe29f;
+}
+
+.solana-balance-display.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
+.solana-balance-display.error {
+  background-color: rgba(255, 0, 0, 0.2);
+  color: #ff6b6b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
+.fa-spin {
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Styles for the wallet balance section in WalletPage */
+.wallet-balance-section {
+  margin-bottom: 30px;
+}
+
+.wallet-balance-section .balance-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 15px;
+}
+
+.balance-display {
+  min-width: 250px;
+}

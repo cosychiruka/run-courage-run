@@ -1,0 +1,131 @@
+Token score usage for Dextools API>>>>>>
+
+curl -X GET "https://public-api.dextools.io/trial/v2/token/ether/0xfb7b4564402e5500db5bb6d63ae671302777c75a/score" \
+ -H "accept: application/json" \
+
+
+
+RESPONSE
+
+{
+  "dextScore": {
+    "information": 0,
+    "pool": 0,
+    "holders": 0,
+    "transactions": 0,
+    "creation": 0,
+    "total": 0
+  },
+  "votes": {
+    "upvotes": 0,
+    "downvotes": 0
+  }
+}
+
+=================================
+
+
+Token Audit usage for Dextools API>>>>>>>>
+
+curl -X GET "https://public-api.dextools.io/trial/v2/token/ether/0xfb7b4564402e5500db5bb6d63ae671302777c75a/audit" \
+ -H "accept: application/json" \
+
+
+RESPONCE
+
+{
+  "isOpenSource": "string",
+  "isHoneypot": "string",
+  "isMintable": "string",
+  "isProxy": "string",
+  "slippageModifiable": "string",
+  "isBlacklisted": "string",
+  "sellTax": {
+    "min": 0,
+    "max": 0,
+    "status": "string"
+  },
+  "buyTax": {
+    "min": 0,
+    "max": 0,
+    "status": "string"
+  },
+  "isContractRenounced": "string",
+  "isPotentiallyScam": "string",
+  "updatedAt": "1970-01-01T00:00:00.000Z"
+}
+
+
+
+=======================================
+
+
+Token Price and Pool volume usage for Dextools API>>>>>>>>
+Get token pool first. 
+Then use token pool address to query both price of token and the volume combined in one call
+
+curl -X GET "https://public-api.dextools.io/trial/v2/pool/ether/0xa29fe6ef9592b5d408cca961d0fb9b1faf497d6d/price" \
+ -H "accept: application/json" \
+
+
+responce
+
+{
+  "price": 0,
+  "priceChain": 0,
+  "price5m": 0,
+  "priceChain5m": 0,
+  "volume5m": 0,
+  "sells5m": 0,
+  "buys5m": 0,
+  "sellVolume5m": 0,
+  "buyVolume5m": 0,
+  "variation5m": 0,
+  "variationChain5m": 0,
+  "price1h": 0,
+  "priceChain1h": 0,
+  "volume1h": 0,
+  "sells1h": 0,
+  "buys1h": 0,
+  "sellVolume1h": 0,
+  "buyVolume1h": 0,
+  "variation1h": 0,
+  "variationChain1h": 0,
+  "price6h": 0,
+  "priceChain6h": 0,
+  "volume6h": 0,
+  "sells6h": 0,
+  "buys6h": 0,
+  "sellVolume6h": 0,
+  "buyVolume6h": 0,
+  "variation6h": 0,
+  "variationChain6h": 0,
+  "price24h": 0,
+  "priceChain24h": 0,
+  "volume24h": 0,
+  "sells24h": 0,
+  "buys24h": 0,
+  "sellVolume24h": 0,
+  "buyVolume24h": 0,
+  "variation24h": 0,
+  "variationChain24h": 0
+}
+
+
+
+==================================================
+
+
+LP Size or value in main token and side token (solana)
+
+curl -X GET "https://public-api.dextools.io/trial/v2/pool/ether/0xa29fe6ef9592b5d408cca961d0fb9b1faf497d6d/liquidity" \
+ -H "accept: application/json" \
+
+
+{
+  "reserves": {
+    "mainToken": 0,
+    "sideToken": 0
+  },
+  "liquidity": 0
+}

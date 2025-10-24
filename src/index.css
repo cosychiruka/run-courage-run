@@ -1,0 +1,118 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+body {
+  font-family: 'Comic Sans MS', sans-serif;
+  background-color: #1c1c1c;
+  color: #333;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+nav {
+  background-color: #ff69b4;
+  padding: 1em 2em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+nav #wallet-status {
+  font-size: 1.2em;
+  font-weight: bold;
+  text-shadow: 2px 2px 0px #333;
+}
+
+h1 {
+  text-align: center;
+  font-size: 3em;
+  color: #ff69b4;
+  text-shadow: 4px 4px 0px #333;
+  margin-top: 1em;
+}
+
+/* Loading Screen Styling */
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #1c1c1c; /* Charcoal background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  z-index: 1000;
+  font-family: 'Comic Sans MS', sans-serif;
+}
+
+/* Floating Bone Styling */
+.floating-bone {
+  font-size: 3em;
+  color: #ffffff; /* White bone color */
+  margin-bottom: 10px;
+  animation: boneBounce 2s infinite ease-in-out; /* Bouncing effect */
+}
+
+@keyframes boneBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px); /* Move bone up by 20px */
+  }
+}
+
+/* Loader and Progress Bar Styling */
+.loader {
+  width: 80%;
+  max-width: 500px;
+  background-color: #333; /* Dark background for the loader track */
+  border-radius: 15px; /* Rounded edges for cartoonish effect */
+  padding: 5px;
+  margin-bottom: 15px;
+  box-shadow: 0px 0px 15px #000;
+  border: 2px dashed #eb57c1; /* Dashed border for cartoonish look */
+}
+
+.progress-bar {
+  width: 0%; /* Initial progress */
+  height: 25px; /* Progress bar height */
+  background-color: #eb57c1; /* Courage pink */
+  border-radius: 10px;
+  position: relative;
+  transition: width 0.3s ease-in-out;
+}
+
+/* Cartoonish Text Below the Loader */
+.loading-screen p {
+  margin-top: 10px;
+  color: #ffffff;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 1.2em;
+  animation: textWobble 1.5s ease-in-out infinite; /* Wobble effect for the text */
+}
+
+/* Wobble Text Animation */
+@keyframes textWobble {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+  75% {
+    transform: translateX(-5px);
+  }
+}

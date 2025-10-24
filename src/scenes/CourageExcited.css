@@ -1,0 +1,670 @@
+:root {
+    --pink: #e99cca;
+    --dark-pink: #e369c3;
+    --black: #010100;
+    --light: #b03702;
+    --cian: #51bbb7;
+    --bg-1: #8b45f7;
+    --bg-2: #3333;
+  }
+  #courageCharacter {
+    position: absolute;
+    bottom: 10%;
+    left: 10%;
+  }
+  .courage {
+    width: 89px;
+    height: 190px;
+    filter: drop-shadow(5px 5px 2px #1118);
+    transition: transform 1.3s;
+  }
+  .courage:hover {
+    transform: scale(1.2);
+  }
+  .courage .head {
+    width: 89px;
+    height: 105px;
+    background-color: var(--pink);
+    position: absolute;
+    top: 0;
+    border-radius: 50% 50% 0% 0%/72% 72% 0% 0%;
+    border: 2px solid var(--black);
+    box-sizing: border-box;
+    z-index: 2;
+  }
+  .courage .head .ear {
+    position: absolute;
+  }
+  .courage .head .ear.left {
+    width: 16px;
+    height: 68px;
+    top: -73px;
+    left: 7px;
+    transform-origin: bottom center;
+    transform: rotate(-60deg);
+  }
+  .courage .head .ear.left::before {
+    content: "";
+    width: 7px;
+    height: 17px;
+    position: absolute;
+    bottom: 0;
+    right: 1px;
+    background-color: var(--black);
+    -webkit-clip-path: polygon(0 0, 100% 0, 100% 100%, 25% 100%);
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 25% 100%);
+  }
+  .courage .head .ear.left::after {
+    content: "";
+    width: 16px;
+    height: 52px;
+    position: absolute;
+    top: 0;
+    background-color: var(--black);
+    background-image: radial-gradient(7px 44px at 10px center, var(--light) 38%, transparent 42%);
+    border-radius: 68% 32% 10% 54%/65% 42% 58% 35%;
+  }
+  .courage .head .ear.right {
+    width: 77px;
+    height: 31px;
+    top: -25px;
+    left: 70px;
+  }
+  .courage .head .ear.right::before {
+    content: "";
+    width: 7px;
+    height: 36px;
+    position: absolute;
+    top: -19px;
+    left: -4px;
+    background-color: var(--black);
+    border-radius: 3px;
+    transform-origin: bottom center;
+    transform: rotate(70deg);
+  }
+  .courage .head .ear.right::after {
+    content: "";
+    width: 16px;
+    height: 52px;
+    position: absolute;
+    top: -11px;
+    right: 17px;
+    transform: rotate(115deg);
+    background-color: var(--black);
+    background-image: radial-gradient(5px 50px at 5px center, var(--light) 38%, transparent 42%);
+    box-shadow: inset 2px 2px var(--black);
+    border-radius: 68% 32% 40% 54%/65% 42% 58% 35%;
+  }
+  .courage .head .eye-container {
+    position: relative;
+  }
+  .courage .head .eye-container::after {
+    content: "";
+    width: 46px;
+    height: 30px;
+    position: absolute;
+    top: -36px;
+    left: -18px;
+    box-shadow: 7px 8px 0 -3px var(--black);
+    -webkit-clip-path: polygon(9% 50%, 150% 70%, 200% 200%, 22% 200%, -50% 200%, -15% 80%);
+            clip-path: polygon(9% 50%, 150% 70%, 200% 200%, 22% 200%, -50% 200%, -15% 80%);
+    rotate: -15deg;
+    border-radius: 50%;
+    -webkit-clip-path: polygon(-50% 70%, 91% 50%, 115% 80%, 200% 200%, -50% 200%, -50% 200%);
+            clip-path: polygon(-50% 70%, 91% 50%, 115% 80%, 200% 200%, -50% 200%, -50% 200%);
+  }
+  .courage .head .eye-container.right::after {
+    left: 70%;
+    box-shadow: -7px 8px 0 -3px var(--black);
+    rotate: 18deg;
+    -webkit-clip-path: polygon(9% 50%, 150% 70%, 200% 200%, 22% 200%, -50% 200%, -15% 80%);
+            clip-path: polygon(9% 50%, 150% 70%, 200% 200%, 22% 200%, -50% 200%, -15% 80%);
+  }
+  .courage .head .eye-container::before {
+    content: "";
+    width: 46px;
+    height: 95px;
+    position: absolute;
+    border-radius: 50%;
+    z-index: 1;
+    top: -19px;
+    left: -9px;
+    box-shadow: 1px 5px 0 -3px var(--black);
+  }
+  .courage .head .eye-container.right::before {
+    left: 48px;
+    box-shadow: -1px 5px 0 -3px var(--black);
+  }
+  .courage .head .eye-container .eye {
+    width: 46px;
+    height: 95px;
+    background-color: #fff;
+    position: absolute;
+    top: -20px;
+    border: 2px solid var(--black);
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .courage .head .eye-container .eye::before {
+    content: "";
+    width: 9px;
+    height: 17px;
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(at 65% 35%, #fff 20%, var(--black) 25%);
+    top: 30%;
+    left: 50%;
+    -webkit-animation: move 0.2s infinite ease-in-out;
+            animation: move 0.2s infinite ease-in-out;
+  }
+  .courage .head .eye-container .eye::after {
+    content: "";
+    width: 100%;
+    height: 30%;
+    position: absolute;
+    top: 0;
+    background-color: var(--dark-pink);
+    -webkit-clip-path: polygon(0% 0%, 100% 0%, 100% 60%, 0% 100%);
+            clip-path: polygon(0% 0%, 100% 0%, 100% 60%, 0% 100%);
+    -webkit-animation: blink 8s infinite ease-in-out;
+            animation: blink 8s infinite ease-in-out;
+  }
+  .courage .head .eye-container .eye .blood-vessel {
+    position: absolute;
+    background-color: var(--cian);
+  }
+  .courage .head .eye-container .eye.left {
+    left: -6px;
+    border-radius: 60% 40% 50% 50%/50% 30% 70% 50%;
+    -webkit-clip-path: polygon(0 21%, 0 40%, 0 100%, 100% 100%, 100% 0, 115% 0);
+            clip-path: polygon(0 21%, 0 40%, 0 100%, 100% 100%, 100% 0, 115% 0);
+  }
+  .courage .head .eye-container .eye.left .blood-vessel:nth-child(1) {
+    width: 9px;
+    height: 24px;
+    bottom: 5px;
+    right: 8px;
+    -webkit-clip-path: polygon(42% 100%, 34% 88%, 37% 80%, 48% 70%, 53% 64%, 42% 57%, 26% 52%, 26% 45%, 40% 50%, 53% 55%, 62% 58%, 74% 53%, 78% 45%, 75% 35%, 74% 28%, 88% 34%, 91% 44%, 91% 50%, 84% 59%, 75% 65%, 65% 72%, 57% 79%, 55% 86%, 64% 100%);
+            clip-path: polygon(42% 100%, 34% 88%, 37% 80%, 48% 70%, 53% 64%, 42% 57%, 26% 52%, 26% 45%, 40% 50%, 53% 55%, 62% 58%, 74% 53%, 78% 45%, 75% 35%, 74% 28%, 88% 34%, 91% 44%, 91% 50%, 84% 59%, 75% 65%, 65% 72%, 57% 79%, 55% 86%, 64% 100%);
+  }
+  .courage .head .eye-container .eye.left .blood-vessel:nth-child(2) {
+    width: 9px;
+    height: 9px;
+    top: 55px;
+    right: 2px;
+    -webkit-clip-path: polygon(100% 31%, 78% 27%, 53% 28%, 38% 31%, 66% 40%, 86% 46%, 100% 55%);
+            clip-path: polygon(100% 31%, 78% 27%, 53% 28%, 38% 31%, 66% 40%, 86% 46%, 100% 55%);
+  }
+  .courage .head .eye-container .eye.left .blood-vessel:nth-child(3) {
+    width: 9px;
+    height: 9px;
+    top: 30px;
+    right: -2px;
+    -webkit-clip-path: polygon(100% 31%, 78% 27%, 53% 28%, 38% 31%, 66% 40%, 86% 46%, 100% 55%);
+            clip-path: polygon(100% 31%, 78% 27%, 53% 28%, 38% 31%, 66% 40%, 86% 46%, 100% 55%);
+  }
+  .courage .head .eye-container .eye.left .blood-vessel:nth-child(4) {
+    width: 9px;
+    height: 9px;
+    top: 10px;
+    right: 2px;
+    -webkit-clip-path: polygon(81% 1%, 52% 13%, 41% 25%, 29% 39%, 28% 52%, 26% 63%, 27% 71%, 35% 49%, 45% 39%, 56% 33%, 68% 30%, 81% 29%, 88% 28%, 100% 29%, 100% 0%);
+            clip-path: polygon(81% 1%, 52% 13%, 41% 25%, 29% 39%, 28% 52%, 26% 63%, 27% 71%, 35% 49%, 45% 39%, 56% 33%, 68% 30%, 81% 29%, 88% 28%, 100% 29%, 100% 0%);
+  }
+  .courage .head .eye-container .eye.left .blood-vessel:nth-child(5) {
+    width: 9px;
+    height: 9px;
+    bottom: 6px;
+    left: 10px;
+    -webkit-clip-path: polygon(0 100%, 11% 89%, 18% 81%, 28% 68%, 31% 60%, 37% 50%, 42% 40%, 47% 30%, 46% 40%, 43% 50%, 40% 58%, 38% 66%, 34% 73%, 31% 79%, 27% 85%, 22% 91%, 17% 95%, 13% 100%);
+            clip-path: polygon(0 100%, 11% 89%, 18% 81%, 28% 68%, 31% 60%, 37% 50%, 42% 40%, 47% 30%, 46% 40%, 43% 50%, 40% 58%, 38% 66%, 34% 73%, 31% 79%, 27% 85%, 22% 91%, 17% 95%, 13% 100%);
+  }
+  .courage .head .eye-container .eye.left .blood-vessel:nth-child(6) {
+    width: 14px;
+    height: 14px;
+    bottom: 16px;
+    left: 3px;
+    -webkit-clip-path: polygon(0% 80%, 9% 66%, 16% 52%, 25% 48%, 39% 46%, 48% 35%, 48% 24%, 51% 15%, 52% 23%, 51% 30%, 54% 39%, 51% 44%, 55% 47%, 61% 49%, 66% 46%, 71% 44%, 77% 46%, 80% 54%, 75% 52%, 66% 52%, 62% 56%, 55% 58%, 49% 54%, 44% 53%, 29% 57%, 25% 62%, 19% 70%, 16% 76%, 8% 88%, 0% 100%);
+            clip-path: polygon(0% 80%, 9% 66%, 16% 52%, 25% 48%, 39% 46%, 48% 35%, 48% 24%, 51% 15%, 52% 23%, 51% 30%, 54% 39%, 51% 44%, 55% 47%, 61% 49%, 66% 46%, 71% 44%, 77% 46%, 80% 54%, 75% 52%, 66% 52%, 62% 56%, 55% 58%, 49% 54%, 44% 53%, 29% 57%, 25% 62%, 19% 70%, 16% 76%, 8% 88%, 0% 100%);
+  }
+  .courage .head .eye-container .eye.left .blood-vessel:nth-child(7) {
+    width: 9px;
+    height: 9px;
+    bottom: 46px;
+    left: 0;
+    -webkit-clip-path: polygon(0% 66%, 8% 52%, 18% 45%, 29% 43%, 37% 45%, 41% 51%, 45% 58%, 53% 58%, 61% 52%, 65% 46%, 67% 53%, 64% 61%, 58% 66%, 50% 70%, 41% 70%, 33% 63%, 26% 63%, 15% 70%, 9% 83%, 0% 89%);
+            clip-path: polygon(0% 66%, 8% 52%, 18% 45%, 29% 43%, 37% 45%, 41% 51%, 45% 58%, 53% 58%, 61% 52%, 65% 46%, 67% 53%, 64% 61%, 58% 66%, 50% 70%, 41% 70%, 33% 63%, 26% 63%, 15% 70%, 9% 83%, 0% 89%);
+  }
+  .courage .head .eye-container .eye.left .blood-vessel:nth-child(8) {
+    width: 9px;
+    height: 9px;
+    bottom: 66px;
+    left: 4px;
+    -webkit-clip-path: polygon(1% 61%, 15% 49%, 36% 41%, 46% 46%, 60% 48%, 48% 53%, 36% 53%, 24% 55%, 15% 64%, 0 80%);
+            clip-path: polygon(1% 61%, 15% 49%, 36% 41%, 46% 46%, 60% 48%, 48% 53%, 36% 53%, 24% 55%, 15% 64%, 0 80%);
+  }
+  .courage .head .eye-container .eye.right {
+    right: -6px;
+    border-radius: 40% 60% 50% 50%/30% 50% 50% 70%;
+    -webkit-clip-path: polygon(0 0, 0 100%, 100% 100%, 100% 22%, 10% 0);
+            clip-path: polygon(0 0, 0 100%, 100% 100%, 100% 22%, 10% 0);
+  }
+  .courage .head .eye-container .eye.right::before {
+    top: 25%;
+    left: 20%;
+    animation: move 0.2s infinite ease-in-out reverse;
+  }
+  .courage .head .eye-container .eye.right::after {
+    -webkit-clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 60%);
+            clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 60%);
+  }
+  .courage .head .eye-container .eye.right .blood-vessel:nth-child(1) {
+    width: 9px;
+    height: 24px;
+    bottom: 5px;
+    left: 12px;
+    -webkit-clip-path: polygon(1% 98%, 5% 86%, 15% 76%, 28% 66%, 34% 58%, 27% 46%, 26% 38%, 28% 31%, 31% 36%, 32% 46%, 38% 51%, 43% 54%, 52% 51%, 59% 47%, 68% 41%, 74% 32%, 77% 24%, 77% 35%, 76% 41%, 67% 50%, 61% 54%, 53% 58%, 43% 63%, 36% 68%, 30% 75%, 24% 82%, 17% 89%, 10% 100%, 0 100%);
+            clip-path: polygon(1% 98%, 5% 86%, 15% 76%, 28% 66%, 34% 58%, 27% 46%, 26% 38%, 28% 31%, 31% 36%, 32% 46%, 38% 51%, 43% 54%, 52% 51%, 59% 47%, 68% 41%, 74% 32%, 77% 24%, 77% 35%, 76% 41%, 67% 50%, 61% 54%, 53% 58%, 43% 63%, 36% 68%, 30% 75%, 24% 82%, 17% 89%, 10% 100%, 0 100%);
+  }
+  .courage .head .eye-container .eye.right .blood-vessel:nth-child(2) {
+    width: 9px;
+    height: 24px;
+    bottom: 1px;
+    right: 5px;
+    -webkit-clip-path: polygon(96% 100%, 96% 81%, 88% 58%, 68% 39%, 59% 30%, 53% 21%, 51% 28%, 54% 36%, 60% 42%, 67% 50%, 73% 62%, 78% 70%, 80% 81%, 81% 91%, 80% 100%);
+            clip-path: polygon(96% 100%, 96% 81%, 88% 58%, 68% 39%, 59% 30%, 53% 21%, 51% 28%, 54% 36%, 60% 42%, 67% 50%, 73% 62%, 78% 70%, 80% 81%, 81% 91%, 80% 100%);
+  }
+  .courage .head .eye-container .eye.right .blood-vessel:nth-child(3) {
+    width: 9px;
+    height: 9px;
+    bottom: 25px;
+    left: 4px;
+    -webkit-clip-path: polygon(0% 60%, 12% 45%, 30% 29%, 44% 24%, 56% 21%, 48% 29%, 32% 37%, 23% 45%, 16% 55%, 10% 64%, 12% 75%, 26% 84%, 39% 85%, 51% 82%, 49% 88%, 36% 93%, 26% 94%, 15% 92%, 7% 88%, 0% 82%);
+            clip-path: polygon(0% 60%, 12% 45%, 30% 29%, 44% 24%, 56% 21%, 48% 29%, 32% 37%, 23% 45%, 16% 55%, 10% 64%, 12% 75%, 26% 84%, 39% 85%, 51% 82%, 49% 88%, 36% 93%, 26% 94%, 15% 92%, 7% 88%, 0% 82%);
+  }
+  .courage .head .eye-container .eye.right .blood-vessel:nth-child(4) {
+    width: 9px;
+    height: 9px;
+    bottom: 40px;
+    left: 1px;
+    -webkit-clip-path: polygon(0 69%, 12% 68%, 26% 65%, 30% 53%, 33% 42%, 34% 31%, 34% 26%, 38% 37%, 38% 52%, 38% 62%, 38% 71%, 34% 76%, 23% 79%, 11% 83%, 0 86%);
+            clip-path: polygon(0 69%, 12% 68%, 26% 65%, 30% 53%, 33% 42%, 34% 31%, 34% 26%, 38% 37%, 38% 52%, 38% 62%, 38% 71%, 34% 76%, 23% 79%, 11% 83%, 0 86%);
+  }
+  .courage .head .eye-container .eye.right .blood-vessel:nth-child(5) {
+    width: 9px;
+    height: 9px;
+    bottom: 70px;
+    left: 1px;
+    -webkit-clip-path: polygon(0 0, 12% 20%, 24% 29%, 46% 43%, 59% 50%, 40% 47%, 28% 44%, 16% 39%, 8% 33%, 0% 27%);
+            clip-path: polygon(0 0, 12% 20%, 24% 29%, 46% 43%, 59% 50%, 40% 47%, 28% 44%, 16% 39%, 8% 33%, 0% 27%);
+  }
+  .courage .head .eye-container .eye.right .blood-vessel:nth-child(6) {
+    width: 10px;
+    height: 10px;
+    bottom: 30px;
+    right: 1px;
+    -webkit-clip-path: polygon(100% 65%, 93% 59%, 80% 55%, 76% 36%, 66% 25%, 57% 18%, 39% 9%, 29% 5%, 31% 14%, 41% 20%, 47% 23%, 54% 28%, 60% 37%, 64% 46%, 66% 53%, 57% 57%, 44% 56%, 35% 55%, 30% 48%, 32% 58%, 35% 64%, 44% 67%, 56% 67%, 65% 67%, 72% 67%, 82% 69%, 89% 73%, 100% 79%);
+            clip-path: polygon(100% 65%, 93% 59%, 80% 55%, 76% 36%, 66% 25%, 57% 18%, 39% 9%, 29% 5%, 31% 14%, 41% 20%, 47% 23%, 54% 28%, 60% 37%, 64% 46%, 66% 53%, 57% 57%, 44% 56%, 35% 55%, 30% 48%, 32% 58%, 35% 64%, 44% 67%, 56% 67%, 65% 67%, 72% 67%, 82% 69%, 89% 73%, 100% 79%);
+  }
+  .courage .head .eye-container .eye.right .blood-vessel:nth-child(7) {
+    width: 9px;
+    height: 9px;
+    top: 35px;
+    right: -2px;
+    -webkit-clip-path: polygon(100% 31%, 78% 27%, 53% 28%, 38% 31%, 66% 40%, 86% 46%, 100% 55%);
+            clip-path: polygon(100% 31%, 78% 27%, 53% 28%, 38% 31%, 66% 40%, 86% 46%, 100% 55%);
+  }
+  .courage .head .eye-container .eye.right .blood-vessel:nth-child(8) {
+    width: 9px;
+    height: 9px;
+    top: 20px;
+    right: 1px;
+    -webkit-clip-path: polygon(100% 31%, 78% 27%, 53% 28%, 38% 31%, 66% 40%, 86% 46%, 100% 55%);
+            clip-path: polygon(100% 31%, 78% 27%, 53% 28%, 38% 31%, 66% 40%, 86% 46%, 100% 55%);
+  }
+  .courage .head .cheek {
+    width: 54px;
+    height: 36px;
+    border-radius: 50%;
+    position: absolute;
+    background-color: var(--pink);
+    border: 2px solid var(--black);
+    box-sizing: border-box;
+    bottom: -12px;
+    right: -20px;
+  }
+  .courage .head .cheek.right::after {
+    content: "";
+    width: 85px;
+    height: 8px;
+    border-radius: 3px;
+    position: absolute;
+    background-color: var(--pink);
+    top: -3px;
+    left: -53px;
+  }
+  .courage .head .cheek.right .mustache {
+    -webkit-clip-path: polygon(69% -2%, 100% -2%, 100% 40%, 69% 12%);
+            clip-path: polygon(69% -2%, 100% -2%, 100% 40%, 69% 12%);
+    box-shadow: -1px -2px 0 var(--black);
+    left: 9px;
+    top: 16px;
+    height: 20px;
+  }
+  .courage .head .cheek .mustache {
+    width: 54px;
+    height: 32px;
+    left: -11px;
+    top: 22px;
+    box-shadow: 1px -2px 0 var(--black);
+    -webkit-clip-path: polygon(0% 1%, 34% 0%, 50% 100%, 0% 100%);
+            clip-path: polygon(0% 1%, 34% 0%, 50% 100%, 0% 100%);
+    border-radius: 50%;
+    position: absolute;
+  }
+  .courage .head .cheek.left {
+    left: -20px;
+  }
+  .courage .head .cheek.left .mustache {
+    width: 54px;
+    height: 32px;
+    left: -11px;
+    top: 22px;
+    box-shadow: 1px -2px 0 var(--black);
+    -webkit-clip-path: polygon(0% 1%, 34% 0%, 50% 100%, 0% 100%);
+            clip-path: polygon(0% 1%, 34% 0%, 50% 100%, 0% 100%);
+    border-radius: 50%;
+    position: absolute;
+  }
+  .courage .head .cheek.left .mustache:nth-child(2) {
+    top: 15px;
+    left: -32px;
+    -webkit-clip-path: polygon(40% -2%, 67% -3%, 50% 50%, 0% 50%);
+            clip-path: polygon(40% -2%, 67% -3%, 50% 50%, 0% 50%);
+  }
+  .courage .head .cheek .dot {
+    width: 4px;
+    height: 4px;
+    background-color: var(--black);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 40%;
+  }
+  .courage .head .cheek.right .dot {
+    top: 30%;
+    left: 55%;
+  }
+  .courage .head .cheek.right .dot:nth-child(2) {
+    top: 65%;
+    left: 45%;
+  }
+  .courage .head .cheek.right .dot:nth-child(3) {
+    top: 55%;
+    left: 70%;
+  }
+  .courage .head .nouse {
+    width: 65px;
+    height: 36px;
+    position: absolute;
+    bottom: -12px;
+    left: 12px;
+    background-color: var(--black);
+    border: 2px solid var(--black);
+    box-sizing: border-box;
+    border-radius: 50% 50% 50% 50%/30% 30% 70% 70%;
+    -webkit-clip-path: polygon(0 0, 100% 0, 100% 35%, 97% 43%, 60% 97%, 56% 100%, 44% 100%, 40% 97%, 3% 43%, 0 35%);
+            clip-path: polygon(0 0, 100% 0, 100% 35%, 97% 43%, 60% 97%, 56% 100%, 44% 100%, 40% 97%, 3% 43%, 0 35%);
+    background-image: radial-gradient(65px 20px at center -3px, #b03702 65%, transparent 68%), radial-gradient(37px 26px at 15px 2px, var(--black) 60%, transparent 63%), radial-gradient(55px 40px at center -4px, #b03702 62%, transparent 65%);
+  }
+  .courage .body {
+    width: 100%;
+    height: 83px;
+    position: absolute;
+    border-radius: 100% 0% 67% 55%/100% 0% 100% 28%;
+    background: var(--pink);
+    bottom: 0;
+    border: 2px solid var(--black);
+    box-sizing: border-box;
+  }
+  .courage .body::before {
+    content: "";
+    width: 46px;
+    height: 91px;
+    position: absolute;
+    top: -26px;
+    left: -40px;
+    border-radius: 50%;
+    box-shadow: 2px 0 0 var(--black), 40px 0 0 var(--pink);
+    -webkit-clip-path: polygon(300% 26%, 300% 90%, 52% 65%, 50% 28%);
+            clip-path: polygon(300% 26%, 300% 90%, 52% 65%, 50% 28%);
+  }
+  .courage .body .leg.top {
+    width: 15px;
+    height: 32px;
+    position: absolute;
+    z-index: 3;
+    top: 5px;
+  }
+  .courage .body .leg.top::after {
+    content: "";
+    width: 20px;
+    height: 10px;
+    background-color: var(--pink);
+    position: absolute;
+    bottom: -2px;
+  }
+  .courage .body .leg.top.left {
+    left: 25px;
+    border-radius: 100% 0% 0% 0%/100% 100% 0% 0%;
+    box-shadow: -2px 0 0 var(--black), -6px 0 0 var(--pink), -8px 0 0 var(--black);
+    -webkit-animation: tremble 0.2s infinite ease-in-out;
+            animation: tremble 0.2s infinite ease-in-out;
+    transform-origin: bottom left;
+  }
+  .courage .body .leg.top.left::after {
+    right: 5px;
+    transform: rotate(-30deg);
+  }
+  .courage .body .leg.top.right {
+    left: 50px;
+    border-radius: 0% 100% 0% 0%/0% 100% 0% 0%;
+    box-shadow: 2px 0 0 var(--black), 6px 0 0 var(--pink), 8px 0 0 var(--black);
+    animation: tremble 0.2s infinite ease-in-out reverse;
+    transform-origin: bottom right;
+  }
+  .courage .body .leg.top.right::after {
+    left: 5px;
+    transform: rotate(30deg);
+  }
+  .courage .body .leg.top .paw {
+    width: 16px;
+    height: 13px;
+    position: absolute;
+    top: -10px;
+    left: -2px;
+  }
+  .courage .body .leg.top .paw::after {
+    content: "";
+    width: 5px;
+    height: 7px;
+    background-color: var(--pink);
+    position: absolute;
+    bottom: -2px;
+    left: 5px;
+    border-radius: 50%;
+  }
+  .courage .body .leg.top .paw .finger {
+    width: 8px;
+    height: 10px;
+    border-radius: 4px 4px 0 0;
+    position: absolute;
+    background-color: var(--pink);
+    border: 2px solid var(--black);
+    box-sizing: border-box;
+    border-bottom-color: transparent;
+    left: 4px;
+    top: -2px;
+  }
+  .courage .body .leg.top .paw .finger:nth-child(1) {
+    transform: rotate(-90deg);
+    top: 5px;
+    left: -1px;
+  }
+  .courage .body .leg.top .paw .finger:nth-child(2) {
+    transform: rotate(90deg);
+    top: 5px;
+    left: 9px;
+  }
+  .courage .body .leg.top.left .paw {
+    transform: rotate(35deg);
+    left: 2px;
+  }
+  .courage .body .leg.top.right .paw {
+    transform: rotate(-37deg);
+    right: 2px;
+  }
+  .courage .body .leg.bottom {
+    width: 19px;
+    height: 35px;
+    position: absolute;
+    border-radius: 50%;
+    top: 66px;
+    left: 10px;
+    z-index: 1;
+    box-shadow: -4px 0 0 -2px var(--black), -8px 0 0 -2px var(--pink), -10px 0 0 -2px var(--black);
+  }
+  .courage .body .leg.bottom::after {
+    content: "";
+    width: 16px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--pink);
+    position: absolute;
+    left: -5px;
+    top: -1px;
+  }
+  .courage .body .leg.bottom.left {
+    -webkit-animation: tremble 0.2s infinite ease-in-out;
+            animation: tremble 0.2s infinite ease-in-out;
+    transform-origin: top left;
+  }
+  .courage .body .leg.bottom.right {
+    left: 36px;
+    box-shadow: 4px 0 0 -2px var(--black), 8px 0 0 -2px var(--pink), 10px 0 0 -2px var(--black);
+    animation: tremble 0.2s infinite ease-in-out reverse;
+    transform-origin: top right;
+  }
+  .courage .body .leg.bottom.right::after {
+    left: 9px;
+    top: 0px;
+  }
+  .courage .body .leg.bottom .paw {
+    width: 16px;
+    height: 13px;
+    position: absolute;
+    bottom: -10px;
+    left: -2px;
+  }
+  .courage .body .leg.bottom .paw::after {
+    content: "";
+    width: 5px;
+    height: 7px;
+    background-color: var(--pink);
+    position: absolute;
+    bottom: -2px;
+    left: 5px;
+    border-radius: 50%;
+  }
+  .courage .body .leg.bottom .paw .finger {
+    width: 8px;
+    height: 10px;
+    border-radius: 4px 4px 0 0;
+    position: absolute;
+    background-color: var(--pink);
+    border: 2px solid var(--black);
+    box-sizing: border-box;
+    border-bottom-color: transparent;
+    left: 4px;
+    top: -2px;
+  }
+  .courage .body .leg.bottom .paw .finger:nth-child(1) {
+    transform: rotate(-90deg);
+    top: 5px;
+    left: -1px;
+  }
+  .courage .body .leg.bottom .paw .finger:nth-child(2) {
+    transform: rotate(90deg);
+    top: 5px;
+    left: 9px;
+  }
+  .courage .body .leg.bottom.left .paw {
+    transform: rotate(160deg);
+    left: -6px;
+  }
+  .courage .body .leg.bottom.right .paw {
+    transform: rotate(-150deg);
+    left: 7px;
+    bottom: -8px;
+  }
+  .courage .body::after {
+    content: "";
+    width: 130%;
+    height: 25px;
+    position: absolute;
+    background-color: #0006;
+    border-radius: 50%;
+    bottom: -40px;
+    left: -15px;
+    box-shadow: 0 0 10px #000;
+  }
+  
+  @-webkit-keyframes tremble {
+    from {
+      transform: rotate(-2deg);
+    }
+    to {
+      transform: rotate(2deg);
+    }
+  }
+  
+  @keyframes tremble {
+    from {
+      transform: rotate(-2deg);
+    }
+    to {
+      transform: rotate(2deg);
+    }
+  }
+  @-webkit-keyframes blink {
+    0%, 70%, 100% {
+      transform: translate(0px, -100%);
+    }
+    75%, 95% {
+      transform: translate(0, 0);
+    }
+  }
+  @keyframes blink {
+    0%, 70%, 100% {
+      transform: translate(0px, -100%);
+    }
+    75%, 95% {
+      transform: translate(0, 0);
+    }
+  }
+  @-webkit-keyframes move {
+    from {
+      transform: translate(0px, -1px);
+    }
+    to {
+      transform: translate(0px, 1px);
+    }
+  }
+  @keyframes move {
+    from {
+      transform: translate(0px, -1px);
+    }
+    to {
+      transform: translate(0px, 1px);
+    }
+  }

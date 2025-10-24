@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Courage the Cowardly Dog - Meme Lending</title>
+    
+    <!-- Main CSS (styles.css) should load immediately to support loading screen and basic styles -->
+    <link rel="stylesheet" href="./src/index.css">
+</head>
+<body>
+    <!-- Loading Screen (to be hidden after main content loads) -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="floating-bone">
+            <i class="fas fa-bone"></i>
+        </div>
+        <div class="loader">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <p>Courage Loading, please wait...</p>
+    </div>
+
+    <!-- Trending Tokens Strip -->
+    <div id="trending-strip-container"></div>    
+
+    <!-- Main App Content -->
+    <div id="root" style="display: none;"></div>
+
+    <!-- Main JavaScript -->
+    <script type="module" src="./src/main.jsx"></script>
+
+    <!-- Font Awesome CSS Deferred -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"></noscript>
+</body>
+</html>

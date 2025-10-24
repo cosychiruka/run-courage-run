@@ -1,0 +1,108 @@
+
+body {
+    font-family: 'Comic Sans MS', sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    background-color: pink;
+    color: #FFF;
+}
+h1 {
+    color: #ff69b4;
+}
+      
+
+nav {
+    background-color: #ff69b4;
+    padding: 1em 2em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+nav #wallet-status {
+    font-size: 1.2em;
+    font-weight: bold;
+    text-shadow: 2px 2px 0px #fff;
+}
+
+h1 {
+    text-align: center;
+    font-size: 3.5em;
+    color: #ff69b4;
+    text-shadow: 4px 4px 0px #fff;
+    margin-top: 1em;
+}
+
+section {
+    padding: 2em;
+    background: linear-gradient(to bottom right, #ff69b4, #8b00ff);
+    margin: 2em auto;
+    border-radius: 20px;
+    max-width: 600px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+label {
+    font-size: 15px;
+    color: #333;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+input[type="number"],
+input[type="text"] {
+    padding: 0.5em;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    margin-bottom: 1em;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+button {
+    background-color: #333;
+    color: #fff;
+    padding: 0.5em 1em;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #555;
+}
+
+/* Custom Swal Styles for basic alerts */
+
+.swal-custom-popup {
+    border-radius: 10px !important;
+    padding: 20px !important;
+    background-color: #000 !important;
+  }
+  
+  .swal-confirm-button {
+    background-color: #1e3b4f !important;
+    color: #fff !important;
+    border-radius: 5px !important;
+    padding: 10px 20px !important;
+  }
+  
+  .swal-cancel-button {
+    background-color: #333 !important;
+    color: #ccc !important;
+    border-radius: 5px !important;
+    padding: 10px 20px !important;
+  }
+  
+  .swal-confirm-button:hover {
+    background-color: #2b4e63 !important;
+  }
+  
+  .swal-cancel-button:hover {
+    background-color: #444 !important;
+  }
+  
