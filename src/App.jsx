@@ -27,6 +27,7 @@ import Newspaper from './components/Newspaper';
 import Trenchbot from './components/Trenchbot';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdminSection from './components/AdminSection';
+import Footer from './components/Footer';
 
 // APIs
 import { getProgramAccounts, getSolanaConnection } from './services/quicknodeService';
@@ -2159,6 +2160,9 @@ export function AppKit() {
           <Trenchbot />
         </div>
       )}
+      
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };
