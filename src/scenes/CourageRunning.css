@@ -22,6 +22,24 @@
   }
 }
 
+/* Mobile: scale the runner down by baking scale() into a new keyframe set.
+   We CANNOT just set transform:scale() because the animation overrides it.
+   Keyframe order: scale first (rightmost = applied first), then flip, then translate. */
+@media (max-width: 500px) {
+  .runnercourage {
+    bottom: 8%;
+    transform-origin: bottom left;
+    animation-name: runLoopMobile;
+  }
+}
+
+@keyframes runLoopMobile {
+  0%   { transform: translateX(5vw)  rotateY(0deg)   scale(0.65); }
+  50%  { transform: translateX(60vw) rotateY(0deg)   scale(0.65); }
+  51%  { transform: translateX(60vw) rotateY(180deg) scale(0.65); }
+  100% { transform: translateX(5vw)  rotateY(180deg) scale(0.65); }
+}
+
 .runnercourage-head {
   width: 180px;
   height: 95px;
@@ -674,4 +692,87 @@
   bottom: 3px;
   left: 55px;
   transform: rotate(-20deg);
+}
+
+/* ── Voice: brake + talk ──────────────────────────────────────────────────── */
+
+/* Slam the brakes — settle at center-left, slight overshoot wobble */
+.runnercourage.is-talking {
+  animation: runBrake 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+}
+
+@keyframes runBrake {
+  0%   { transform: translateX(38vw) rotateY(0deg); }
+  55%  { transform: translateX(42vw) rotateY(0deg); }
+  75%  { transform: translateX(36vw) rotateY(0deg); }
+  100% { transform: translateX(39vw) rotateY(0deg); }
+}
+
+/* Dust puff at feet */
+.runnercourage.is-talking::before {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  left: 20px;
+  width: 54px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(200,170,120,0.55) 0%, transparent 70%);
+  pointer-events: none;
+  animation: dustPuff 0.9s ease-out forwards !important;
+}
+
+@keyframes dustPuff {
+  0%   { opacity: 0;   transform: scale(0.4) translateX(0px);   }
+  25%  { opacity: 0.9; transform: scale(1.3) translateX(-18px); }
+  100% { opacity: 0;   transform: scale(2.2) translateX(-38px); }
+}
+
+/* Freeze all limb animations */
+.runnercourage.is-talking .runnercourage-head,
+.runnercourage.is-talking .runnercourage-ear-left,
+.runnercourage.is-talking .runnercourage-ear-left::after,
+.runnercourage.is-talking .runnercourage-ear-right,
+.runnercourage.is-talking .runnercourage-ear-right::after,
+.runnercourage.is-talking .runnercourage-body,
+.runnercourage.is-talking .runnercourage-leg-back,
+.runnercourage.is-talking .runnercourage-leg-front,
+.runnercourage.is-talking .runnercourage-arm-front,
+.runnercourage.is-talking .runnercourage-arm-back,
+.runnercourage.is-talking .runnercourage-eye-front::before,
+.runnercourage.is-talking .runnercourage-eye-rear::before,
+.runnercourage.is-talking .runnercourage-mouth {
+  animation: none !important;
+}
+
+/* Mouth mostly closed while listening */
+.runnercourage.is-talking .runnercourage-mouth {
+  transform-origin: top center;
+  transform: scaleY(0.22);
+}
+
+/* Mouth opens and talks while speaking (overrides above) */
+.runnercourage.is-speaking .runnercourage-mouth {
+  transform-origin: top center;
+  animation: runnerTalk 0.36s ease-in-out infinite !important;
+}
+
+@keyframes runnerTalk {
+  0%   { transform: scaleY(0.22); }
+  40%  { transform: scaleY(1.0);  }
+  60%  { transform: scaleY(1.0);  }
+  100% { transform: scaleY(0.22); }
+}
+
+/* Mobile brake (preserve scale) */
+@media (max-width: 500px) {
+  .runnercourage.is-talking {
+    animation: runBrakeMobile 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+  }
+  @keyframes runBrakeMobile {
+    0%   { transform: translateX(28vw) rotateY(0deg) scale(0.65); }
+    55%  { transform: translateX(32vw) rotateY(0deg) scale(0.65); }
+    75%  { transform: translateX(26vw) rotateY(0deg) scale(0.65); }
+    100% { transform: translateX(29vw) rotateY(0deg) scale(0.65); }
+  }
 }

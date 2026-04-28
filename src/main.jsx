@@ -1,6 +1,5 @@
-import { StrictMode, useEffect, useState } from 'react';
+import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import './assets/css/lending.css';
 import { AppKit as App } from './App.jsx';
 import Swal from 'sweetalert2';
 
@@ -31,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
       rootElement.style.display = 'block';
       createRoot(rootElement).render(
         <StrictMode>
-          <App /> {/* Directly rendering the App component, which already includes AppKitProvider */}
+          <App />
         </StrictMode>
       );
     }, 500);

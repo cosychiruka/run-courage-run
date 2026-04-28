@@ -1,0 +1,28 @@
+fastapi
+uvicorn[standard]
+httpx
+redis
+python-dotenv
+apscheduler
+pydantic
+
+# Voice pipeline
+faster-whisper
+kokoro-onnx
+soundfile
+numpy
+
+# Twitter / X
+tweepy>=4.14
+
+# News article full-text fetching
+httpx[http2]
+
+# Screenshot for tweet image generation
+playwright
+
+# Multipart uploads
+python-multipart
+
+# SQLite async wrapper
+aiosqlite

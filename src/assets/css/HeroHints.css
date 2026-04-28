@@ -1,0 +1,94 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   HERO HINTS — typewriter scene tips
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.hero-hint-banner {
+  position: fixed;
+  bottom: 7.5rem;      /* above the sticky action bar */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  pointer-events: none;
+  white-space: nowrap;
+
+  /* Gamey retro panel */
+  background: rgba(8, 6, 20, 0.82);
+  border: 2px solid rgba(200, 100, 255, 0.75);
+  border-radius: 6px;
+  padding: 8px 18px 8px 14px;
+  box-shadow:
+    0 0 12px rgba(160, 60, 255, 0.45),
+    inset 0 0 20px rgba(100, 0, 200, 0.12);
+
+  font-family: 'Courier New', monospace;
+  font-size: 0.88rem;
+  color: #e8d4ff;
+  letter-spacing: 0.04em;
+
+  animation: hintSlideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hero-hint-banner.fading {
+  animation: hintSlideOut 0.55s ease-out forwards;
+}
+
+/* Little arrow / indicator on left */
+.hero-hint-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #c050ff;
+  box-shadow: 0 0 6px #c050ff;
+  margin-right: 8px;
+  vertical-align: middle;
+  animation: cursorPulse 1s ease-in-out infinite;
+}
+
+.hero-hint-text {
+  vertical-align: middle;
+}
+
+.hero-hint-caret {
+  color: #c050ff;
+  opacity: 0;
+  vertical-align: middle;
+  margin-left: 1px;
+}
+.hero-hint-caret.blink {
+  animation: caretBlink 0.7s step-end infinite;
+}
+
+@keyframes caretBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+@keyframes cursorPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px #c050ff; }
+  50%       { opacity: 0.5; box-shadow: 0 0 14px #c050ff, 0 0 28px rgba(192,80,255,0.4); }
+}
+
+@keyframes hintSlideIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(18px) scale(0.9); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0)    scale(1); }
+}
+
+@keyframes hintSlideOut {
+  from { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1); }
+  to   { opacity: 0; transform: translateX(-50%) translateY(-12px) scale(0.95); }
+}
+
+/* Mobile: tighter text, more clearance above action bar */
+@media (max-width: 540px) {
+  .hero-hint-banner {
+    /* Push higher — action bar can wrap to 2 rows on small screens */
+    bottom: 9.5rem;
+    font-size: 0.72rem;
+    padding: 7px 14px 7px 10px;
+    max-width: 86vw;
+    white-space: normal;
+    /* Reduce glow on mobile for perf */
+    box-shadow: 0 0 8px rgba(160, 60, 255, 0.35);
+  }
+}

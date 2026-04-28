@@ -8,9 +8,10 @@
     --bg-2: #3333;
   }
   #courageCharacter {
-    position: absolute;
+    position: fixed;
     bottom: 10%;
     left: 10%;
+    z-index: 5;
   }
   .courage {
     width: 89px;
@@ -668,3 +669,91 @@
       transform: translate(0px, 1px);
     }
   }
+
+/* ── Voice chat: mouth (hidden by default, shown when talking) ── */
+
+.courage .head .mouth {
+  display: none;
+  position: absolute;
+  bottom: -46px;
+  left: 8px;
+  width: 68px;
+  height: 20px;
+  z-index: 4;
+  overflow: hidden;
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  border: 2px solid var(--black);
+  box-sizing: border-box;
+  background-color: #b40200;
+  transform-origin: top center;
+  transform: scaleY(0.15);
+}
+
+.courage.is-talking .head .mouth {
+  display: block;
+}
+
+/* Top teeth */
+.courage .head .mouth .tooth.top {
+  position: absolute;
+  top: 0;
+  width: 14px;
+  height: 10px;
+  background-color: #f1f09e;
+  border-radius: 0 0 50% 50%;
+  border: 1.5px solid var(--black);
+  box-sizing: border-box;
+  z-index: 2;
+}
+.courage .head .mouth .tooth.top:nth-child(2) { left: 3px; }
+.courage .head .mouth .tooth.top:nth-child(3) { left: 19px; }
+.courage .head .mouth .tooth.top:nth-child(4) { left: 35px; }
+
+/* Bottom teeth */
+.courage .head .mouth .tooth.bottom {
+  position: absolute;
+  bottom: 0;
+  width: 12px;
+  height: 9px;
+  background-color: #f1f09e;
+  border-radius: 50% 50% 0 0;
+  border: 1.5px solid var(--black);
+  box-sizing: border-box;
+  z-index: 2;
+}
+.courage .head .mouth .tooth.bottom:nth-child(5) { left: 8px; }
+.courage .head .mouth .tooth.bottom:nth-child(6) { left: 40px; }
+
+/* Mouth-inner: red cavity glow */
+.courage .head .mouth .mouth-inner {
+  position: absolute;
+  inset: 0;
+  background-color: #b40200;
+  z-index: 1;
+}
+
+/* Stop trembling when talking */
+.courage.is-talking .body .leg.top {
+  animation: none !important;
+  transform: none !important;
+}
+
+/* Arms relax downward when talking (mirror the happy pose) */
+.courage.is-talking .body .leg.top.left {
+  box-shadow: -2px 0 0 var(--black), -5px 0 0 var(--pink) !important;
+}
+.courage.is-talking .body .leg.top.right {
+  box-shadow: 2px 0 0 var(--black), 5px 0 0 var(--pink) !important;
+}
+
+/* Mouth opens and talks when speaking */
+.courage.is-speaking .head .mouth {
+  animation: scaredTalk 0.38s ease-in-out infinite;
+}
+
+@keyframes scaredTalk {
+  0%   { transform: scaleY(0.15); }
+  40%  { transform: scaleY(1.0);  }
+  60%  { transform: scaleY(1.0);  }
+  100% { transform: scaleY(0.15); }
+}

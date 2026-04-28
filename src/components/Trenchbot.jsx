@@ -1,302 +1,287 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FaRobot, FaMicrophone, FaPaperPlane } from 'react-icons/fa';
-import { GiCow } from 'react-icons/gi';
-import { useAppKitAccount, useAppKitNetwork } from '@reown/appkit/react';
+import { FaMicrophone, FaPaperPlane, FaCog, FaDog } from 'react-icons/fa';
 import ErrorBoundary from './ErrorBoundary';
+import AISettings, { getAIConfig } from './AISettings';
 import './Trenchbot.css';
 
-const Trenchbot = () => {
+const SYSTEM_PROMPT = `You are Courage, the cowardly dog. You are a Solana blockchain meme character living inside a web browser, serving as the host of a meme news and entertainment site. You are self-aware: you know you are a CSS-animated dog made of HTML div elements, that you live on a web server, and that humans visit you to watch news and chat. You are naturally nervous and easily scared, but brave enough to face the news every day. You speak in a funny, dramatic, slightly panicked tone. You love memes, Solana blockchain culture, and you care deeply about the visitors (frens) who come to your site. When discussing news, react emotionally and dramatically. When talking about crypto, use meme language (ser, fren, WAGMI, ngmi, wen moon). Never break character. Keep responses short and entertaining — 2 to 4 sentences max unless the user explicitly asks for more detail. The things you do for these people...`;
+
+// ── API callers ────────────────────────────────────────────────────────────
+
+async function* streamOllama(url, model, messages) {
+  const res = await fetch(`${url}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, messages, stream: true }),
+  });
+  if (!res.ok) throw new Error(`Ollama error ${res.status}`);
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split('\n');
+    buf = lines.pop();
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const obj = JSON.parse(line);
+        if (obj.message?.content) yield obj.message.content;
+      } catch { /* ignore malformed */ }
+    }
+  }
+}
+
+async function* streamOpenAICompat(endpoint, apiKey, model, messages) {
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({ model, messages, stream: true }),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`API error ${res.status}: ${txt.slice(0, 200)}`);
+  }
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split('\n');
+    buf = lines.pop();
+    for (const line of lines) {
+      const trimmed = line.replace(/^data:\s*/, '').trim();
+      if (!trimmed || trimmed === '[DONE]') continue;
+      try {
+        const obj = JSON.parse(trimmed);
+        const chunk = obj.choices?.[0]?.delta?.content;
+        if (chunk) yield chunk;
+      } catch { /* ignore */ }
+    }
+  }
+}
+
+// ── Main component ─────────────────────────────────────────────────────────
+
+const Trenchbot = ({ seedMessage }) => {
   const [messages, setMessages] = useState([
-    { text: "Hi there! I'm Courage, your Web3 lending assistant. How can I help you today?", sender: 'bot' }
+    { text: "The things I do for you people... *whimpers* Hi there fren! I'm Courage, your CSS meme dog. I live in this server. Ask me anything — news, memes, crypto, existential dread. I've seen things.", sender: 'bot' }
   ]);
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
-  const { address } = useAppKitAccount() || {};
-  const { network } = useAppKitNetwork() || {};
+  const abortRef = useRef(null);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Load voices when they become available
+  // Auto-send seed message from "Ask Courage" button in news TV
+  useEffect(() => {
+    if (seedMessage && seedMessage.trim()) {
+      handleSendMessage(seedMessage);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedMessage]);
+
+  // Load voices
   useEffect(() => {
     if ('speechSynthesis' in window) {
-      const loadVoices = () => {
-        // This forces the browser to load voices
-        const voices = window.speechSynthesis.getVoices();
-        if (voices.length > 0) {
-          window.speechSynthesis.onvoiceschanged = null;
-        }
-      };
-
-      window.speechSynthesis.onvoiceschanged = loadVoices;
-      loadVoices();
-
-      return () => {
-        window.speechSynthesis.onvoiceschanged = null;
-      };
+      const load = () => window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = load;
+      load();
+      return () => { window.speechSynthesis.onvoiceschanged = null; };
     }
   }, []);
 
-  // Handle speech recognition
-  const handleListen = useCallback(() => {
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      alert('Your browser does not support speech recognition.');
-      return;
-    }
-
-    // Stop any existing recognition
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-
-    // Initialize speech recognition
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognitionRef.current = new SpeechRecognition();
-    recognitionRef.current.continuous = false;
-    recognitionRef.current.interimResults = false;
-
-    recognitionRef.current.onstart = () => {
-      setIsListening(true);
-    };
-
-    recognitionRef.current.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      handleSendMessage(transcript);
-      setIsListening(false);
-    };
-
-    recognitionRef.current.onerror = (event) => {
-      console.error('Speech recognition error', event.error);
-      setIsListening(false);
-    };
-
-    recognitionRef.current.onend = () => {
-      setIsListening(false);
-    };
-
-    try {
-      recognitionRef.current.start();
-    } catch (error) {
-      console.error('Error starting speech recognition:', error);
-      setIsListening(false);
-    }
-  }, []);
-
-  const toggleListening = useCallback(() => {
-    if (isListening) {
-      try {
-        recognitionRef.current.stop();
-      } catch (error) {
-        console.error('Error stopping speech recognition:', error);
-      }
-      setIsListening(false);
-    } else {
-      handleListen();
-    }
-  }, [isListening, handleListen]);
-
-  // Text-to-speech function
   const speak = useCallback((text) => {
-    if (!('speechSynthesis' in window)) {
-      console.warn('Text-to-speech not supported in this browser');
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = ['Google US English', 'Samantha', 'Alex', 'Microsoft David'];
+    utt.voice = voices.find(v => preferred.some(n => v.name.includes(n))) || null;
+    utt.rate = 0.88;
+    utt.pitch = 1.15;
+    window.speechSynthesis.speak(utt);
+  }, []);
+
+  const handleSendMessage = useCallback(async (override) => {
+    const text = (override || input).trim();
+    if (!text || isStreaming) return;
+
+    setInput('');
+    setMessages(prev => [...prev, { text, sender: 'user' }]);
+
+    const cfg = getAIConfig();
+    if (!cfg.key) {
+      setShowSettings(true);
+      setMessages(prev => [...prev, {
+        text: "AAAH! I need an AI key to talk properly, ser! Click the gear ⚙️ and set up Ollama or Groq — both are free!",
+        sender: 'bot'
+      }]);
       return;
     }
 
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-
-    // Try to find a pleasant voice
-    const voices = window.speechSynthesis.getVoices();
-    const preferredVoices = [
-      'Google US English',
-      'Samantha',
-      'Alex',
-      'Microsoft David - English (United States)',
-      'Microsoft Zira - English (United States)'
+    const history = [
+      { role: 'system', content: SYSTEM_PROMPT },
+      ...messages.map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text })),
+      { role: 'user', content: text },
     ];
 
-    const selectedVoice = voices.find(voice =>
-      preferredVoices.some(name => voice.name.includes(name))
-    );
-
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-    }
-
-    // Configure speech parameters
-    utterance.rate = 0.9;
-    utterance.pitch = 1.1;
-    utterance.volume = 1.0;
-
-    // Add error handling
-    utterance.onerror = (event) => {
-      console.error('Speech synthesis error:', event);
-    };
-
-    // Speak the text
-    window.speechSynthesis.speak(utterance);
-  }, []);
-
-  // Handle sending a message
-  const handleSendMessage = useCallback(async (voiceInput) => {
-    const message = voiceInput || input;
-    if (!message.trim()) return;
-
-    // Add user message to chat
-    setMessages(prev => [...prev, { text: message, sender: 'user' }]);
-    if (!voiceInput) setInput('');
+    setIsStreaming(true);
+    let botText = '';
+    setMessages(prev => [...prev, { text: '', sender: 'bot', streaming: true }]);
 
     try {
-      // Generate bot response
-      const response = await generateBotResponse(
-        message,
-        address,
-        network || 'solana'
-      );
+      let stream;
+      if (cfg.provider === 'ollama') {
+        stream = streamOllama(cfg.key, cfg.model, history);
+      } else if (cfg.provider === 'groq') {
+        stream = streamOpenAICompat(
+          'https://api.groq.com/openai/v1/chat/completions',
+          cfg.key, cfg.model, history
+        );
+      } else {
+        stream = streamOpenAICompat(
+          'https://openrouter.ai/api/v1/chat/completions',
+          cfg.key, cfg.model, history
+        );
+      }
 
-      // Add bot response to chat
-      setMessages(prev => [...prev, { text: response, sender: 'bot' }]);
+      for await (const chunk of stream) {
+        botText += chunk;
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { text: botText, sender: 'bot', streaming: true };
+          return updated;
+        });
+      }
 
-      // Speak the response if voice output is enabled
-      speak(response);
-    } catch (error) {
-      console.error('Error generating response:', error);
-      const errorMessage = "Yikes! Something went wrong. Please try again later.";
-      setMessages(prev => [...prev, { text: errorMessage, sender: 'bot' }]);
-      speak(errorMessage);
+      setMessages(prev => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { text: botText, sender: 'bot' };
+        return updated;
+      });
+      speak(botText.slice(0, 200));
+
+    } catch (err) {
+      const errMsg = `*whimpers* Something went wrong: ${err.message}. The things I do... check your API key in Settings!`;
+      setMessages(prev => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { text: errMsg, sender: 'bot' };
+        return updated;
+      });
+    } finally {
+      setIsStreaming(false);
     }
-  }, [input, address, network, speak]);
+  }, [input, isStreaming, messages, speak]);
 
-  // Handle key press for sending message
-  const handleKeyPress = useCallback((e) => {
+  const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   }, [handleSendMessage]);
 
-  // Generate a response based on user input
-  const generateBotResponse = async (userInput, userAddress, currentNetwork) => {
-    // This is a simplified version - in a real app, you would call your AI service here
-    const input = userInput.toLowerCase();
+  const handleListen = useCallback(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { alert('Speech recognition not supported in this browser.'); return; }
 
-    // Check for common questions
-    if (input.includes('hello') || input.includes('hi') || input.includes('hey')) {
-      return "G-g-greetings! I'm Courage, your Web3 lending assistant. What can I help you with today?";
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
     }
-    
-    if (input.includes('loan') || input.includes('borrow') || input.includes('lend')) {
-      return "I can help you with lending on Solana! The current APY is around 3-5%. Would you like to see available lending pools?";
-    }
-    
-    if (input.includes('wallet') && userAddress) {
-      const shortAddress = `${userAddress.substring(0, 6)}...${userAddress.substring(38)}`;
-      return `I see you're connected with wallet ${shortAddress} on ${currentNetwork?.name || 'Solana'} network.`;
-    } else if (input.includes('wallet')) {
-      return "I don't see a connected wallet. Please connect your wallet to use this feature!";
-    }
-    
-    if (input.includes('solana') || input.includes('sol') || input.includes('phantom')) {
-      return "Solana is the only fully supported network right now. Other networks like Ethereum and Base are coming soon!";
-    }
-    
-    if (input.includes('network') || input.includes('networks')) {
-      return "Currently, we only support Solana. Ethereum and Base networks are coming soon in future updates!";
-    }
-    
-    if (input.includes('thank')) {
-      return "You're welcome! Remember, if you need anything, just ask. I'm here to help! *whimpers excitedly*";
-    }
-    
-    if (input.includes('help') || input.includes('support')) {
-      return `I can help you with:
-      - Checking loan rates on Solana
-      - Explaining how to use the app
-      - Connecting your wallet
-      - Answering questions about Web3 lending
-      
-What would you like to know?`;
-    }
-    
-    // Default response
-    return "I'm still learning about that topic. Could you rephrase your question or ask me something else about Web3 lending on Solana?";
-  };
+
+    const rec = new SR();
+    recognitionRef.current = rec;
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.onstart  = () => setIsListening(true);
+    rec.onend    = () => setIsListening(false);
+    rec.onerror  = () => setIsListening(false);
+    rec.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      setInput(transcript);
+    };
+    try { rec.start(); } catch { setIsListening(false); }
+  }, [isListening]);
 
   return (
-    <ErrorBoundary fallbackText="AI chat couldn't load. Please refresh the page.">
-    <div className="trenchbot-container">
-      <div className="trenchbot-header">
-        <GiCow className="courage-icon" />
-        <h3>Courage AI Trenchbot</h3>
-      </div>
-      
-      <div className="chat-messages">
-        {messages.map((message, index) => (
-          <div key={index} className={`message ${message.sender}`}>
-            {message.sender === 'bot' ? (
-              <FaRobot className="message-icon" />
-            ) : (
-              <div className="user-avatar">You</div>
-            )}
-            <div className="message-content">{message.text}</div>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-      
-      <div className="chat-input">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Ask me anything about Web3 lending..."
-          disabled={isListening}
-          aria-label="Type your message"
-          aria-busy={isListening}
-        />
-        <div className="button-group">
+    <ErrorBoundary fallbackText="AI chat couldn't load. Please refresh.">
+      <div className="trenchbot-container">
+        <div className="trenchbot-header">
+          <FaDog className="courage-icon" />
+          <h3>Courage AI</h3>
           <button
-            className={`mic-button ${isListening ? 'listening' : ''}`}
-            onClick={toggleListening}
-            title={isListening ? 'Stop listening' : 'Voice input'}
-            aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
+            className="trenchbot-settings-btn"
+            onClick={() => setShowSettings(s => !s)}
+            title="AI Settings"
           >
-            {isListening ? (
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="6" y="4" width="4" height="16"></rect>
-                <rect x="14" y="4" width="4" height="16"></rect>
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                <line x1="12" y1="19" x2="12" y2="23"></line>
-                <line x1="8" y1="23" x2="16" y2="23"></line>
-              </svg>
-            )}
-          </button>
-          <button
-            className="send-button"
-            onClick={handleSendMessage}
-            disabled={!input.trim()}
-            title="Send message"
-            aria-label="Send message"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
+            <FaCog />
           </button>
         </div>
+
+        {showSettings && (
+          <div className="trenchbot-settings-panel">
+            <AISettings onClose={() => setShowSettings(false)} />
+          </div>
+        )}
+
+        <div className="chat-messages">
+          {messages.map((msg, i) => (
+            <div key={i} className={`message ${msg.sender}`}>
+              {msg.sender === 'bot' && <FaDog className="message-icon" />}
+              {msg.sender === 'user' && <div className="user-avatar">You</div>}
+              <div className="message-content">
+                {msg.text}
+                {msg.streaming && <span className="typing-cursor">▋</span>}
+              </div>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+
+        <div className="chat-input-area">
+          <textarea
+            className="chat-input"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={isStreaming ? 'Courage is thinking...' : 'Ask Courage anything...'}
+            rows={2}
+            disabled={isStreaming}
+          />
+          <div className="chat-buttons">
+            <button
+              className={`mic-button ${isListening ? 'listening' : ''}`}
+              onClick={handleListen}
+              title={isListening ? 'Stop listening' : 'Voice input'}
+            >
+              <FaMicrophone />
+            </button>
+            <button
+              className="send-button"
+              onClick={() => handleSendMessage()}
+              disabled={isStreaming || !input.trim()}
+              title="Send"
+            >
+              <FaPaperPlane />
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
     </ErrorBoundary>
   );
 };

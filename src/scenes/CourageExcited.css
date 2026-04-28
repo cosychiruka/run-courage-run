@@ -8,9 +8,10 @@
     --bg-2: #3333;
   }
   #courageCharacter {
-    position: absolute;
+    position: fixed;
     bottom: 10%;
     left: 10%;
+    z-index: 5;
   }
   .courage {
     width: 89px;

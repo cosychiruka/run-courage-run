@@ -1,0 +1,220 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   COURAGE HAPPY — relaxed / noon / good-news state
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Hide blood vessels ── */
+.courage.happy .blood-vessel { display: none !important; }
+
+/* ── Eyes: shorter than the huge 95px scared variant ── */
+.courage.happy .eye {
+  height: 65px;
+  overflow: hidden;
+}
+
+/* ── Eyelid — full height so it can travel to fully-closed ──────────────────
+   The base .eye::after uses a polygon clip-path that cuts the eyelid at an
+   angle, making it appear narrower on one side. Clear it here so the lid is
+   a clean rectangle spanning the full eye width.
+
+   Position logic (eyelid height = 100% of eye = 65px, top: 0):
+     translateY(  0%)  → eyelid at top, covers full eye  = CLOSED
+     translateY(-45%)  → eyelid lifts 29px, covers top 55% = droopy squint
+     translateY(-100%) → eyelid completely above eye = OPEN
+
+   Sequence: squinting (default) → close fully → open → squint             */
+.courage.happy .eye::after {
+  height: 100% !important;
+  width:  100% !important;
+  top:    0    !important;
+  left:   0    !important;
+  clip-path: none !important;
+  -webkit-clip-path: none !important;
+  animation: happyBlink 5s ease-in-out infinite !important;
+}
+
+/* Clear the per-eye angled clip-paths from the base scared CSS */
+.courage.happy .eye.left::after,
+.courage.happy .eye.right::after {
+  clip-path: none !important;
+  -webkit-clip-path: none !important;
+}
+
+@keyframes happyBlink {
+  /* Droopy squint — covering top 55% of eye */
+  0%,   55%, 100% { transform: translateY(-45%); }
+  /* Slide down to fully closed */
+  58%             { transform: translateY(0%);    }
+  /* Snap open fully */
+  62%,  88%       { transform: translateY(-100%); }
+  /* Glide back to squint */
+  92%             { transform: translateY(-45%);  }
+}
+
+/* Eye-container outer shadow: match shorter height */
+.courage.happy .eye-container::before { height: 65px; }
+
+/* ── Calm centred pupil — no darting ── */
+.courage.happy .eye::before {
+  animation: none !important;
+  top:  62%;
+  left: 50%;
+  transform: translate(-50%, -50%) !important;
+}
+
+/* ── No trembling on any limb ── */
+.courage.happy .leg {
+  animation: none !important;
+  transform: none !important;
+}
+
+/* ── Arms hang at sides ──
+   Arms stay at shoulder height (top:5px).
+   Paws move to bottom:-12px so they hang at waist level.               */
+.courage.happy .leg.top {
+  top: 5px;
+  border-radius: 50% 50% 40% 40% !important;
+}
+
+/* Hide the angled connector filler — wrong angle for hanging arms */
+.courage.happy .leg.top::after { display: none; }
+
+/* Left arm */
+.courage.happy .leg.top.left {
+  box-shadow: -2px 0 0 var(--black), -5px 0 0 var(--pink);
+  transform-origin: bottom left !important;
+}
+.courage.happy .leg.top.left .paw {
+  top: auto !important;
+  bottom: -12px !important;
+  left: 1px;
+  transform: rotate(10deg);
+}
+
+/* Right arm */
+.courage.happy .leg.top.right {
+  box-shadow: 2px 0 0 var(--black), 5px 0 0 var(--pink);
+  transform-origin: bottom right !important;
+}
+.courage.happy .leg.top.right .paw {
+  top: auto !important;
+  bottom: -12px !important;
+  right: 1px;
+  left: auto;
+  transform: rotate(-10deg);
+}
+
+/* ── Feet — strip outermost black box-shadow artifact ── */
+.courage.happy .leg.bottom {
+  box-shadow: -3px 0 0 -1px var(--black), -5px 0 0 -1px var(--pink);
+}
+.courage.happy .leg.bottom.right {
+  box-shadow: 3px 0 0 -1px var(--black), 5px 0 0 -1px var(--pink);
+}
+
+/* ── Relaxed body sway ── */
+.courage.happy .body {
+  border-radius: 55% 55% 38% 38% / 65% 65% 35% 35%;
+  animation: happyBodySway 3.2s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+@keyframes happyBodySway {
+  0%, 100% { transform: rotate(-1.5deg) translateX(-1px); }
+  50%       { transform: rotate(1.5deg)  translateX(1px);  }
+}
+
+/* ── Petted: golden sparkle ── */
+.courage.happy.petted .head { animation: happyPet 1.6s ease-out; }
+@keyframes happyPet {
+  0%   { box-shadow: 0 0 0  rgba(255,215,0,0); }
+  25%  { box-shadow: 0 0 24px 8px #ffd700, 0 0 48px 14px #ffaa00; }
+  60%  { box-shadow: 0 0 12px 4px #ffd700; }
+  100% { box-shadow: 0 0 0  rgba(255,215,0,0); }
+}
+
+/* ── Poked: sideways flinch ── */
+.courage.happy.poked { animation: happyPoke 0.4s ease-out !important; }
+@keyframes happyPoke {
+  0%, 100% { transform: translateX(0); }
+  30%      { transform: translateX(12px) rotate(3deg); }
+  60%      { transform: translateX(-7px) rotate(-2deg); }
+}
+
+/* ── Arm shadow cleanup: ensure no dark third shadow bleeds through ── */
+.courage.happy .leg.top.left {
+  box-shadow: -2px 0 0 var(--black), -5px 0 0 var(--pink) !important;
+}
+.courage.happy .leg.top.right {
+  box-shadow: 2px 0 0 var(--black), 5px 0 0 var(--pink) !important;
+}
+
+/* ── Voice chat: mouth — same structure as scared, same positioning ── */
+
+.courage.happy .head .mouth {
+  display: none;
+  position: absolute;
+  bottom: -46px;
+  left: 8px;
+  width: 68px;
+  height: 20px;
+  z-index: 4;
+  overflow: hidden;
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  border: 2px solid var(--black);
+  box-sizing: border-box;
+  background-color: #b40200;
+  transform-origin: top center;
+  transform: scaleY(0.15);
+}
+
+.courage.happy.is-talking .head .mouth {
+  display: block;
+}
+
+.courage.happy .head .mouth .tooth.top {
+  position: absolute;
+  top: 0;
+  width: 14px;
+  height: 10px;
+  background-color: #f1f09e;
+  border-radius: 0 0 50% 50%;
+  border: 1.5px solid var(--black);
+  box-sizing: border-box;
+  z-index: 2;
+}
+.courage.happy .head .mouth .tooth.top:nth-child(2) { left: 3px; }
+.courage.happy .head .mouth .tooth.top:nth-child(3) { left: 19px; }
+.courage.happy .head .mouth .tooth.top:nth-child(4) { left: 35px; }
+
+.courage.happy .head .mouth .tooth.bottom {
+  position: absolute;
+  bottom: 0;
+  width: 12px;
+  height: 9px;
+  background-color: #f1f09e;
+  border-radius: 50% 50% 0 0;
+  border: 1.5px solid var(--black);
+  box-sizing: border-box;
+  z-index: 2;
+}
+.courage.happy .head .mouth .tooth.bottom:nth-child(5) { left: 8px; }
+.courage.happy .head .mouth .tooth.bottom:nth-child(6) { left: 40px; }
+
+.courage.happy .head .mouth .mouth-inner {
+  position: absolute;
+  inset: 0;
+  background-color: #b40200;
+  z-index: 1;
+}
+
+/* Mouth opens and talks when speaking */
+.courage.happy.is-speaking .head .mouth {
+  animation: happyTalk 0.38s ease-in-out infinite;
+}
+
+@keyframes happyTalk {
+  0%   { transform: scaleY(0.15); }
+  40%  { transform: scaleY(1.0);  }
+  60%  { transform: scaleY(1.0);  }
+  100% { transform: scaleY(0.15); }
+}

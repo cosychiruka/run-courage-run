@@ -356,16 +356,9 @@ h1 {
   */
 
 
-/* SINK - full class */
+/* content-area is no longer used as a fixed overlay */
 .content-area {
-  position: fixed;
-  top: 150px;
-  left: 0;
-  right: 0;
-  width: 70%;
-  margin-left: auto;
-  margin-right: auto;
-  border-radius: 20px;
+  display: none;
 }
 
 section {
@@ -379,14 +372,10 @@ section {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  gap: 1em 4em;
   width: 100%;
   height: auto;
-  position: relative;
   overflow: visible !important;
-  max-width: none !important;
   box-sizing: border-box !important;
-  background: rgba(0, 0, 0, 0.2);
 }
 
 #loan-list-section,
@@ -430,8 +419,10 @@ section {
   margin-bottom: 1.5em;
 }
 
-#helper-section {  
-  flex: 3;
+#helper-section {
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
   height: auto;
   padding: 1em;
   box-sizing: border-box;
@@ -983,7 +974,8 @@ wui-button{
 .tips-content {
   box-shadow: 0 5px 16px #eb57c180;
   background: transparent;
-  padding: 0;
+  padding: 10px;
+  box-sizing: border-box;
   border: unset;
 }
 
@@ -1649,6 +1641,31 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 	display: none !important;
 }
 
+/* ── TV channel label overlay ─────────────────────────────────────────── */
+.channel-label {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.72);
+  color: #ffd700;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.65em;
+  padding: 3px 10px;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  white-space: nowrap;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 10;
+}
+.channel-label.show {
+  opacity: 1;
+}
+
 @keyframes glow {
 	from, to {box-shadow: 0 0 1em 0 #ff0 }
 	50% { box-shadow: 0 0 3em 0 #ff0 }
@@ -1677,8 +1694,10 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 /* Responsive stacking layout for smaller screens */
 @media (max-width: 650px) {
   body {
-    background-size: auto !important;
-    background-attachment: fixed !important;
+    /* cover fills the viewport properly on portrait mobile; kill the zoom animation */
+    background-size: cover !important;
+    background-attachment: scroll !important; /* 'fixed' causes iOS scroll glitch */
+    animation: none !important;
   }
   #root {
     padding: 1rem 1rem;
@@ -1798,5 +1817,1141 @@ div:where(.swal2-container) div:where(.swal2-popup) {
     max-height: unset;
     box-sizing: border-box;
     overflow: visible;
+  }
+}
+/* ── News ticker bar ─────────────────────────────────────────────────────── */
+.news-ticker-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 22px;
+  background: #000;
+  border-bottom: 1px solid #eb57c1;
+  overflow: hidden;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+}
+
+.news-ticker-track {
+  display: inline-block;
+  white-space: nowrap;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.65rem;
+  color: #eb57c1;
+  letter-spacing: 1px;
+  animation: tickerScroll 35s linear infinite;
+}
+
+@keyframes tickerScroll {
+  from { transform: translateX(100vw); }
+  to   { transform: translateX(-100%); }
+}
+
+/* Push nav down so it clears the ticker */
+.bone-nav {
+  top: 28px !important;
+}
+
+/* Scene toggle button inside bone-nav */
+.scene-toggle-btn {
+  position: absolute;
+  right: 1.2rem;
+  background: rgba(0,0,0,0.3);
+  border: 2px solid rgba(255,255,255,0.4);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, transform 0.15s;
+  z-index: 5;
+  padding: 0;
+}
+.scene-toggle-btn:hover {
+  background: rgba(255,255,255,0.2);
+  transform: scale(1.15);
+}
+
+/* Push content area down to clear nav + ticker */
+.content-area {
+  padding-top: 100px;
+}
+
+/* ── Courage emotion transition ─────────────────────────────────────────── */
+#courageCharacter {
+  transition: opacity 0.4s ease, left 2s ease-in-out;
+}
+
+/* ── Repulse energy pulse — whitish-gold + pink, radiates from Courage ── */
+#courageCharacter.pulsing::before {
+  content: '';
+  position: absolute;
+  inset: -15px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 220, 0.98) 0%,
+    rgba(255, 210, 80,  0.80) 25%,
+    rgba(255, 80,  200, 0.60) 55%,
+    transparent 75%
+  );
+  animation: repulsePulse 0.9s ease-out forwards;
+  pointer-events: none;
+  z-index: 20;
+}
+@keyframes repulsePulse {
+  0%   { transform: scale(0.3); opacity: 1; }
+  60%  { opacity: 0.7; }
+  100% { transform: scale(7); opacity: 0; }
+}
+
+/* Second ring — gold */
+#courageCharacter.pulsing::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 235, 100, 0.95);
+  box-shadow: 0 0 12px rgba(255, 210, 50, 0.7);
+  animation: repulsePulse2 0.9s 0.08s ease-out forwards;
+  pointer-events: none;
+  z-index: 20;
+}
+@keyframes repulsePulse2 {
+  0%   { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(9);   opacity: 0; }
+}
+
+/* ── Midnight: nav ghost turns goldish and glows ── */
+.midnight .typo {
+  filter: sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.6);
+  animation: float 3.5s ease-in-out infinite, ghostGoldGlow 2s ease-in-out infinite;
+}
+@keyframes ghostGoldGlow {
+  0%, 100% { filter: sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.6) drop-shadow(0 0 6px rgba(255,200,50,0.8)); }
+  50%       { filter: sepia(1) saturate(5) hue-rotate(-10deg) brightness(2.0) drop-shadow(0 0 18px rgba(255,220,80,1)); }
+}
+.midnight .bone-nav {
+  box-shadow: 0 0 24px rgba(255, 200, 50, 0.25), 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* ── Courage scene wrapper (holds character + emotion chip) ─────────────── */
+.courage-scene-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* ── Emotion chip ───────────────────────────────────────────────────────── */
+.emotion-chip {
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.72rem;
+  font-weight: bold;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: chipFadeIn 0.4s ease-out;
+  z-index: 10;
+}
+
+.emotion-chip--happy  { background: #14F195; color: #000; }
+.emotion-chip--scared { background: #ff4545; color: #fff; }
+.emotion-chip--neutral { background: #eb57c1; color: #000; }
+
+@keyframes chipFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LAYOUT — app container
+   ══════════════════════════════════════════════════════════════════════════ */
+.app-container {
+  position: relative;
+  min-height: 100vh;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HERO SECTION
+   ══════════════════════════════════════════════════════════════════════════ */
+.hero-section {
+  position: relative;
+  min-height: 100vh;
+  padding-top: 90px; /* clears ticker (22px) + nav (~68px) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: hidden;
+  box-sizing: border-box;
+  box-shadow: none !important;
+}
+
+/* ── Hero center — upper-center text block ── */
+.hero-center {
+  position: relative;
+  z-index: 5;
+  text-align: center;
+  width: 100%;
+  max-width: 780px;
+  padding: clamp(2.5rem, 8vh, 6rem) 1.5rem 0;
+  pointer-events: auto;
+}
+
+/* Subtle purple glow halo behind the text */
+.hero-center::before {
+  content: '';
+  position: absolute;
+  top: 55%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 640px;
+  height: 320px;
+  background: radial-gradient(ellipse at center, rgba(153, 69, 255, 0.13) 0%, transparent 68%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Live-on-Solana pill */
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 14px;
+  border: 1.5px solid rgba(20, 241, 149, 0.5);
+  border-radius: 20px;
+  background: rgba(20, 241, 149, 0.08);
+  color: #14F195;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 0.8rem;
+}
+
+.hero-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #14F195;
+  flex-shrink: 0;
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(20, 241, 149, 0.6); }
+  50%       { box-shadow: 0 0 0 6px rgba(20, 241, 149, 0); }
+}
+
+/* Big title */
+.hero-title {
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: clamp(3.2rem, 10vw, 6.5rem);
+  font-weight: 900;
+  line-height: 1.05;
+  margin: 0 0 0.45rem;
+  background: linear-gradient(135deg, #eb57c1 0%, #9945FF 45%, #14F195 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(2px 4px 0 rgba(0,0,0,0.85)) drop-shadow(0 0 40px rgba(153,69,255,0.5));
+  letter-spacing: -0.01em;
+}
+
+/* Tagline under the big title */
+/* Tagline IS the hero headline now — big gradient text */
+.hero-tagline {
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: clamp(2.2rem, 8vw, 5.2rem);
+  font-weight: 900;
+  line-height: 1.1;
+  margin: 0 0 1.1rem;
+  background: linear-gradient(135deg, #eb57c1 0%, #9945FF 50%, #14F195 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(2px 4px 0 rgba(0,0,0,0.9)) drop-shadow(0 0 50px rgba(153,69,255,0.35));
+}
+
+.hero-sub {
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.85rem;
+  color: #fff;
+  margin: 0;
+}
+
+/* CTA row */
+.hero-cta-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 0 0 0.9rem;
+}
+
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 26px;
+  border-radius: 30px;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.9rem;
+  font-weight: bold;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.hero-cta--chart {
+  background: rgba(22, 25, 33, 0.88);
+  border-color: #9945FF;
+  color: #fff;
+}
+.hero-cta--chart:hover {
+  background: #9945FF;
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(153,69,255,0.5);
+  transform: translateY(-2px);
+}
+
+.hero-cta--buy {
+  background: linear-gradient(135deg, #9945FF, #14F195);
+  color: #000;
+}
+.hero-cta--buy:hover {
+  filter: brightness(1.12);
+  box-shadow: 0 6px 20px rgba(20,241,149,0.45);
+  transform: translateY(-2px);
+}
+
+/* Tagline + quote fade wrapper */
+.hero-text-block {
+  transition: opacity 1.4s ease, transform 1.4s ease;
+}
+.hero-text-block--hidden {
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+}
+
+/* ── "He's alive" one-shot message ── */
+.hero-alive-text {
+  margin-top: 0.6rem;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: clamp(0.85rem, 2.2vw, 1.1rem);
+  color: #14F195;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 12px #14F19588, 0 0 28px #14F19533;
+  animation: aliveTextIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both,
+             aliveTextOut 0.7s ease 4.3s forwards;
+}
+@keyframes aliveTextIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+@keyframes aliveTextOut {
+  to { opacity: 0; transform: translateY(-6px); }
+}
+
+/* ── Scene thought bubble ── */
+/* Lives inside .bone-nav (position:fixed), so 'absolute' anchors to it.
+   Button is right:1.2rem, width:34px → center from nav right = 1.2rem + 17px.
+   left:calc(100% - 1.2rem - 17px) pins the element's LEFT EDGE at button center.
+   translateX(-50%) then centres the bubble over that point.              */
+.scene-thought-bubble {
+  position: absolute;
+  top: calc(100% + 8px);             /* 8px below the nav bottom edge */
+  left: calc(100% - 1.2rem - 17px); /* button center from nav left */
+  transform: translateX(-50%);      /* centre bubble over button */
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  animation: thoughtBubbleLifecycle 4.5s ease forwards;
+}
+
+@keyframes thoughtBubbleLifecycle {
+  0%   { opacity: 0; transform: translateX(-50%) scale(0.4) translateY(-8px); }
+  8%   { opacity: 1; transform: translateX(-50%) scale(1)   translateY(0);    }
+  78%  { opacity: 1; transform: translateX(-50%) scale(1)   translateY(0);    }
+  100% { opacity: 0; transform: translateX(-50%) scale(0.9) translateY(-5px); }
+}
+
+/* Ascending dot trail pointing up toward the clock button */
+.thought-trail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 5px;
+}
+.thought-trail span {
+  display: block;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.thought-trail span:nth-child(1) { width: 4px;  height: 4px;  }
+.thought-trail span:nth-child(2) { width: 6px;  height: 6px;  }
+.thought-trail span:nth-child(3) { width: 9px;  height: 9px;  }
+
+/* Balloon */
+.thought-balloon {
+  background: rgba(255, 255, 255, 0.94);
+  color: #1a1a2e;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.78rem;
+  font-weight: bold;
+  padding: 7px 13px;
+  border-radius: 16px;
+  border: 2px solid rgba(153, 69, 255, 0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25), 0 0 20px rgba(153,69,255,0.1);
+  white-space: nowrap;
+}
+
+/* Scene clock button pulse while tip is showing */
+.scene-toggle-btn.scene-tip-flash {
+  animation: sceneIconFlash 0.7s ease-in-out infinite;
+}
+@keyframes sceneIconFlash {
+  0%, 100% { box-shadow: 0 0 0 0   rgba(153,69,255,0);    }
+  50%       { box-shadow: 0 0 0 8px rgba(153,69,255,0.55); }
+}
+
+/* Quote line */
+.hero-quote {
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: clamp(0.85rem, 2vw, 1rem);
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
+  margin: 0;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+}
+
+/* ── Character stage — fills the hero so Courage is absolutely positioned ── */
+.character-stage {
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* clicks fall through to app-background */
+}
+
+/* Let Courage itself receive clicks */
+.character-stage #courageCharacter {
+  pointer-events: all;
+}
+
+/* Emotion chip: sits just below the character's feet */
+.character-stage .emotion-chip {
+  bottom: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* ── Mic entry button — appears above the character, invites voice chat ── */
+.voice-entry-btn {
+  position: absolute;
+  bottom: 52%;
+  left: calc(10% + 44px);  /* aligns over CourageScared's fixed position */
+  font-size: 1.3rem;
+  background: rgba(20, 241, 149, 0.1);
+  border: 1.5px solid rgba(20, 241, 149, 0.4);
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, transform 0.15s;
+  z-index: 20;
+  animation: entryBtnPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.voice-entry-btn:hover {
+  background: rgba(20, 241, 149, 0.22);
+  transform: scale(1.12);
+}
+@keyframes entryBtnPop {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* ── Exit voice chat button — top-right of the character stage ── */
+.voice-exit-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+  z-index: 25;
+}
+.voice-exit-btn:hover {
+  background: rgba(255, 69, 69, 0.2);
+  color: #ff6464;
+  border-color: rgba(255, 69, 69, 0.4);
+}
+
+/* ── Sticky action bar — fixed at bottom of viewport, always visible ── */
+.sticky-actions {
+  position: fixed;
+  bottom: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  z-index: 150;
+  padding: 8px 14px;
+  /* background: rgba(10, 10, 14, 0.85); */
+  border: 1.5px solid #eb57c140;
+  border-radius: 40px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: rgba(34, 37, 45, 0.88);
+  border: 2px solid #eb57c1;
+  border-radius: 12px;
+  color: #fff;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-inline: 0;
+}
+
+.hero-btn:hover {
+  background: #eb57c1;
+  color: #000;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px #eb57c166;
+}
+
+.hero-btn--news {
+  border-color: #14F195;
+}
+
+.hero-btn--news:hover {
+  background: #14F195;
+  color: #000;
+  box-shadow: 0 6px 18px #14F19566;
+}
+
+.hero-btn--explode {
+  border-color: #ff4545;
+}
+
+.hero-btn--explode:hover:not(:disabled) {
+  background: #ff4545;
+  color: #fff;
+  box-shadow: 0 6px 18px #ff454566;
+}
+
+.hero-btn--explode:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Divider pipe in sticky bar */
+.sticky-divider {
+  width: 1px;
+  height: 26px;
+  background: rgba(255,255,255,0.15);
+  align-self: center;
+  border-radius: 1px;
+}
+
+/* Chart + Buy links in sticky bar */
+.hero-btn--chart {
+  border-color: #9945FF;
+  text-decoration: none;
+}
+.hero-btn--chart:hover {
+  background: #9945FF;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(153,69,255,0.5);
+}
+
+.hero-btn--buy {
+  background: linear-gradient(135deg, #9945FF, #14F195);
+  border-color: transparent;
+  color: #000 !important;
+  font-weight: 900;
+  text-decoration: none;
+}
+.hero-btn--buy:hover {
+  filter: brightness(1.12);
+  box-shadow: 0 6px 18px rgba(20,241,149,0.45);
+  color: #000 !important;
+}
+
+/* ── Archive video play overlay ── */
+.archive-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.2s;
+  border-radius: 4px;
+  gap: 0.4em;
+}
+.archive-play-overlay:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+.archive-play-overlay.hide {
+  display: none;
+}
+.archive-play-icon {
+  font-size: 3.5em;
+  color: #eb57c1;
+  filter: drop-shadow(0 0 16px #eb57c1cc);
+  line-height: 1;
+}
+.archive-play-label {
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.9em;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-shadow: 1px 1px 3px #000;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TV OVERLAY MODAL  (fixed popup, same pattern as NewsTV)
+   ══════════════════════════════════════════════════════════════════════════ */
+.tv-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.82);
+  backdrop-filter: blur(5px);
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.tv-overlay-inner {
+  position: relative;
+  animation: cartoonPop 0.5s ease-out;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Force #helper-section visible inside the TV overlay */
+.tv-overlay-inner #helper-section {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  position: relative !important;
+  flex: none !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  animation: none !important;
+}
+
+.tv-overlay-close {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  background: #eb57c1;
+  border: 2px solid #000;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  line-height: 1;
+  transition: background 0.2s, transform 0.15s;
+}
+.tv-overlay-close:hover {
+  background: #ff4545;
+  color: #fff;
+  transform: scale(1.15);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LANDING CONTENT
+   ══════════════════════════════════════════════════════════════════════════ */
+.landing-wrapper {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem 1.2rem 8rem; /* extra bottom: clear sticky action bar */
+}
+
+.landing-section {
+  margin-bottom: 3rem;
+}
+
+.section-title {
+  text-align: center;
+  margin-bottom: 1.5rem !important;
+}
+
+.landing-heading {
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 1.3rem;
+  color: #eb57c1;
+  margin: 0 0 0.75rem;
+}
+
+.landing-card {
+  background: rgba(22, 25, 33, 0.82);
+  border: 1px solid #eb57c140;
+  border-radius: 16px;
+  padding: 1.4rem 1.6rem;
+  margin-bottom: 1rem;
+  backdrop-filter: blur(8px);
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: #fff;
+}
+
+.landing-card p { margin: 0; }
+.landing-card strong { color: #eb57c1; }
+.landing-card a { color: #14F195; text-decoration: none; }
+.landing-card a:hover { text-decoration: underline; }
+
+/* About: side-by-side */
+.about-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Tokenomics grid */
+.token-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.token-card {
+  background: rgba(22, 25, 33, 0.82);
+  border: 1px solid #eb57c140;
+  border-radius: 14px;
+  padding: 1.2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  backdrop-filter: blur(8px);
+  transition: transform 0.2s;
+  font-family: 'Comic Sans MS', sans-serif;
+}
+
+.token-card:hover { transform: translateY(-4px); }
+.token-icon { font-size: 2rem; }
+.token-label { font-size: 0.7rem; color: #ccc; }
+.token-value { font-size: 1rem; font-weight: bold; color: #14F195; }
+
+/* How to buy */
+.how-to-buy {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: rgba(22, 25, 33, 0.82);
+  border: 1px solid #eb57c140;
+  border-radius: 14px;
+  padding: 1rem 1.2rem;
+  backdrop-filter: blur(8px);
+  font-family: 'Comic Sans MS', sans-serif;
+}
+
+.step-num {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #9945FF, #eb57c1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+.step-item div strong {
+  display: block;
+  color: #eb57c1;
+  margin-bottom: 3px;
+  font-size: 0.9rem;
+}
+
+.step-item div p {
+  margin: 0;
+  color: #e0e0e0;
+  font-size: 0.8rem;
+}
+
+/* Community */
+.community-sub {
+  text-align: center;
+  color: #ddd;
+  margin-bottom: 1.4rem;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.85rem;
+}
+
+.community-links {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.community-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 18px;
+  background: rgba(22, 25, 33, 0.82);
+  border: 2px solid #9945FF;
+  border-radius: 12px;
+  color: #fff;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.82rem;
+  text-decoration: none;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+}
+
+.community-btn:hover {
+  background: #9945FF;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px #9945FF66;
+}
+
+/* ── Buy $RCR CTA section ── */
+.buy-cta-section {
+  text-align: center;
+}
+
+.buy-cta-sub {
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.65);
+  margin: -0.5rem 0 1.4rem;
+}
+
+.buy-cta-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.buy-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 13px 28px;
+  border-radius: 30px;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.92rem;
+  font-weight: bold;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  line-height: 1;
+}
+
+.buy-cta-btn--chart {
+  background: rgba(22, 25, 33, 0.85);
+  border-color: #9945FF;
+  color: #fff;
+}
+.buy-cta-btn--chart:hover {
+  background: #9945FF;
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(153,69,255,0.5);
+  transform: translateY(-2px);
+}
+
+.buy-cta-btn--dex {
+  background: rgba(22, 25, 33, 0.85);
+  border-color: #eb57c1;
+  color: #fff;
+}
+.buy-cta-btn--dex:hover {
+  background: #eb57c1;
+  color: #000;
+  box-shadow: 0 6px 20px rgba(235,87,193,0.45);
+  transform: translateY(-2px);
+}
+
+.buy-cta-btn--buy {
+  background: linear-gradient(135deg, #9945FF, #14F195);
+  color: #000;
+  font-weight: 900;
+}
+.buy-cta-btn--buy:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 6px 20px rgba(20,241,149,0.45);
+  transform: translateY(-2px);
+  color: #000;
+}
+
+/* ── Sticky "i" info button ── */
+.sticky-info-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.7);
+  font-family: Georgia, serif;
+  font-size: 0.85rem;
+  font-style: italic;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  align-self: center;
+}
+.sticky-info-btn:hover {
+  border-color: #eb57c1;
+  color: #eb57c1;
+  background: rgba(235,87,193,0.12);
+  transform: scale(1.1);
+}
+
+/* ── Responsive ── */
+@media (max-width: 620px) {
+  .about-section       { grid-template-columns: 1fr; }
+  .token-grid          { grid-template-columns: 1fr; }
+  .hero-tagline        { font-size: 1.15rem; }
+  .sticky-actions      { gap: 5px; padding: 6px 10px; bottom: 0.5rem; border-radius: 28px; }
+  .hero-btn            { padding: 7px 11px; font-size: 0.76rem; gap: 5px; }
+  /* Nav shrinks on mobile — bubble gets cramped, just hide it */
+  .scene-thought-bubble { display: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MOBILE TV OVERLAY — no scroll, TV scales to fill width
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 500px) {
+  /* Overlay: edge-to-edge, anchored at top so close btn is reachable */
+  .tv-overlay {
+    padding: 0;
+    align-items: flex-start;
+  }
+
+  .tv-overlay-inner {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100dvh;
+    overflow: hidden; /* NO scroll — TV is scaled to fit */
+    padding: 0;
+    border-radius: 0;
+  }
+
+  /* Close button stays in top-right corner */
+  .tv-overlay-close {
+    top: 8px;
+    right: 8px;
+    position: fixed;
+    z-index: 500;
+  }
+
+  /* Force helper section to fill the width */
+  .tv-overlay-inner #helper-section {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Scale the TV by shrinking its base font-size so all em-units scale down.
+     Target: screen-container (40em) fills 100vw → font = vw/40           */
+  .tips-content main {
+    font-size: clamp(6.5px, 2.5vw, 9px);
+  }
+
+  /* Wooden panel spans full viewport width */
+  .tv-body {
+    width: 100%;
+    box-sizing: border-box;
+    padding-inline: 17px;
+  }
+
+  /* Screen + controls: clamp to viewport */
+  .screen-container,
+  .controls {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Legs: allow slight overflow — decorative */
+  .legs {
+    max-width: 100%;
+    overflow: hidden;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MOBILE CHARACTER — scale Courage down slightly
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 500px) {
+  /* Scared / Happy character (fixed, anchored bottom-left) */
+  #courageCharacter {
+    transform: scale(0.78);
+    transform-origin: bottom left;
+    bottom: 8% !important;
+    left: 2% !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MIC DROP — descends to Courage's head level when voice chat is active
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.mic-drop-wrap {
+  position: fixed;
+  /* horizontally: center over where Courage brakes (~39vw, character is 200px wide) */
+  left: 38vw;
+  /* vertically: Courage is bottom:10%, character height 230px, head near top → ~185px above floor */
+  bottom: calc(10% + 185px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  z-index: 30;
+  animation: micDescend 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  user-select: none;
+}
+
+@keyframes micDescend {
+  from { transform: translateY(-150px); opacity: 0; }
+  to   { transform: translateY(0);      opacity: 1; }
+}
+
+/* Cord — rendered first with flex order, fades in from top */
+.mic-drop-cord {
+  order: -1;
+  width: 2px;
+  height: 58px;
+  background: linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.45) 100%);
+  border-radius: 1px;
+}
+
+.mic-drop-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+  transition: filter 0.25s;
+}
+
+.mic-drop-label {
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.62rem;
+  color: rgba(255,255,255,0.88);
+  text-align: center;
+  text-shadow: 0 1px 5px rgba(0,0,0,0.95);
+  white-space: nowrap;
+  margin-top: 3px;
+}
+
+/* State-based icon glow */
+.mic-drop-wrap--idle .mic-drop-icon {
+  filter: drop-shadow(0 0 8px rgba(20, 241, 149, 0.8));
+}
+.mic-drop-wrap--listening .mic-drop-icon {
+  filter: drop-shadow(0 0 14px rgba(255, 69, 69, 0.95));
+}
+.mic-drop-wrap--thinking .mic-drop-icon {
+  filter: drop-shadow(0 0 10px rgba(153, 69, 255, 0.9));
+}
+.mic-drop-wrap--speaking .mic-drop-icon {
+  filter: drop-shadow(0 0 14px rgba(20, 241, 149, 1));
+}
+
+/* Listening: cord pulses red */
+.mic-drop-wrap--listening .mic-drop-cord {
+  background: linear-gradient(to bottom, transparent 0%, rgba(255, 69, 69, 0.6) 100%);
+  animation: cordPulse 1s ease-in-out infinite;
+}
+
+@keyframes cordPulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1;   }
+}
+
+/* Exit btn: pin to viewport top-right, always accessible */
+.mic-drop-wrap .voice-exit-btn {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  bottom: auto;
+  left: auto;
+  z-index: 35;
+}
+
+/* Mobile: Courage brakes to ~29vw, character bottom 8% */
+@media (max-width: 500px) {
+  .mic-drop-wrap {
+    left: 23vw;
+    bottom: calc(8% + 145px);
   }
 }

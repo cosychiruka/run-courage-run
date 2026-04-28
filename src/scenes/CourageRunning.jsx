@@ -1,10 +1,11 @@
-// src/scenes/CourageRunning.js
-import React from 'react';
-import './CourageRunning.css';  // Import CSS for this scene
+import './CourageRunning.css';
 
-const CourageRunning = () => {
+const CourageRunning = ({ voiceState = null }) => {
+  const isTalking  = voiceState !== null;
+  const isSpeaking = voiceState === 'speaking';
+
   return (
-    <div className='runnercourage'>
+    <div className={`runnercourage${isTalking ? ' is-talking' : ''}${isSpeaking ? ' is-speaking' : ''}`}>
       <div className='runnercourage-head'>
         <div className='runnercourage-ear-left'></div>
         <div className='runnercourage-head-rear'></div>
@@ -38,7 +39,6 @@ const CourageRunning = () => {
         <div className='runnercourage-leg-front'></div>
       </div>
     </div>
-
   );
 };
 

@@ -1,8 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import './CourageExcited.css';
+import './CourageScared.css';
+import './CourageHappy.css';
 import './CourageExplosion.css';
 
-const CourageExcited = () => {
+const CourageHappy = ({ explosionPhase, onFrightened, voiceState = null }) => {
+  const isTalking  = voiceState !== null;
+  const isSpeaking = voiceState === 'speaking';
   const [interaction, setInteraction] = useState(null);
 
   const applyInteraction = useCallback((cls, duration = 600) => {
@@ -11,21 +14,26 @@ const CourageExcited = () => {
   }, []);
 
   const handleCharacterClick = useCallback((e) => {
-    if (e.target.closest('.head')) {
+    if (explosionPhase) return;
+    const target = e.target.closest('.head');
+    if (target) {
       applyInteraction('petted', 1600);
       e.stopPropagation();
       return;
     }
-    if (e.target.closest('.body')) {
+    const body = e.target.closest('.body');
+    if (body) {
       applyInteraction('poked', 400);
       e.stopPropagation();
     }
-  }, [applyInteraction]);
+  }, [applyInteraction, explosionPhase]);
+
+  const phase = explosionPhase || interaction || '';
 
   return (
     <div
       id="courageCharacter"
-      className={`courage ${interaction || ''}`}
+      className={`courage happy ${phase}${isTalking ? ' is-talking' : ''}${isSpeaking ? ' is-speaking' : ''}`}
       onClick={handleCharacterClick}
       style={{ cursor: 'pointer' }}
     >
@@ -68,6 +76,14 @@ const CourageExcited = () => {
           <div className="mustache"></div>
         </div>
         <div className="nouse"></div>
+        <div className="mouth">
+          <div className="mouth-inner" />
+          <div className="tooth top" />
+          <div className="tooth top" />
+          <div className="tooth top" />
+          <div className="tooth bottom" />
+          <div className="tooth bottom" />
+        </div>
       </div>
       <div className="body">
         <div className="leg top left">
@@ -103,4 +119,4 @@ const CourageExcited = () => {
   );
 };
 
-export default CourageExcited;
+export default CourageHappy;
