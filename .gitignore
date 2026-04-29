@@ -23,6 +23,5 @@ dist-ssr
 *.sln
 *.sw?
 .env
-.env.example
 KATZ service provider list.txt
 sensitive-data.txt
