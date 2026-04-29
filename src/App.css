@@ -58,6 +58,24 @@ body {
   background: url('./assets/images/homestead-sunrise.webp');
 }
 
+/* Mobile backgrounds for all scenes except midnight */
+@media (max-width: 768px) {
+  .noon {
+    background-image: url('./assets/images/mobile-homestead-noon.png');
+    background-attachment: fixed !important;
+  }
+  
+  .evening {
+    background-image: url('./assets/images/mobile-homestead-evening.png');
+    background-attachment: fixed !important;
+  }
+  
+  .sunrise {
+    background-image: url('./assets/images/mobile-homestead-sunrise.png');
+    background-attachment: fixed !important;
+  }
+}
+
 /* Bone-Shaped Navigation Bar */
 .bone-nav {
   position: relative;
