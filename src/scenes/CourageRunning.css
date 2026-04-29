@@ -18,16 +18,16 @@
 
 @keyframes runLoop {
   0% {
-    transform: translateX(10vw) rotateY(0deg);
+    transform: translateX(15vw) rotateY(0deg); /* Start further right on mobile */
   }
   50% {
-    transform: translateX(70vw) rotateY(0deg); /* Move just close to the right end */
+    transform: translateX(75vw) rotateY(0deg); /* Move further right on mobile */
   }
   51% {
-    transform: translateX(70vw) rotateY(180deg); /* Rotate at the right end */
+    transform: translateX(75vw) rotateY(180deg); /* Rotate at the right end */
   }
   100% {
-    transform: translateX(10vw) rotateY(180deg); /* Return to the start */
+    transform: translateX(15vw) rotateY(180deg); /* Return to start - further right */
   }
 }
 
