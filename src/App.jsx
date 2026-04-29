@@ -632,8 +632,8 @@ export default function App() {
       <div className="landing-wrapper">
 
         {/* About */}
-        <section className="landing-section about-section">
-          <div className="landing-card">
+        <section className="landing-section container glass-panel">
+          <div className="landing-card" style={{ background: 'transparent', boxShadow: 'none', border: 'none' }}>
             <div className="comic-banner">
               <h2 className="landing-heading">🐕 Who is $RCR?</h2>
             </div>
@@ -668,7 +668,7 @@ export default function App() {
         </section>
 
         {/* Tokenomics */}
-        <section className="landing-section tokenomics-section">
+        <section className="landing-section container glass-panel">
           <div className="comic-banner">
             <h2 className="landing-heading section-title">📊 Tokenomics</h2>
           </div>
@@ -697,7 +697,7 @@ export default function App() {
         </section>
 
         {/* Buy $RCR CTA */}
-        <section className="landing-section buy-cta-section">
+        <section className="landing-section container glass-panel">
           <div className="comic-banner comic-banner--pink">
             <h2 className="landing-heading section-title">🐾 Get $RCR</h2>
           </div>
@@ -709,7 +709,7 @@ export default function App() {
         </section>
 
         {/* How to buy */}
-        <section className="landing-section howtobuy-section container">
+        <section className="landing-section howtobuy-section container glass-panel">
           <div className="comic-banner wiggle">
             <h2 className="landing-heading section-title">🛒 How to Get $RCR</h2>
           </div>
@@ -746,7 +746,7 @@ export default function App() {
         </section>
 
         {/* Community */}
-        <section className="landing-section community-section">
+        <section className="landing-section container glass-panel">
           <div className="comic-banner comic-banner--purple">
             <h2 className="landing-heading section-title">🌐 Join the Pack</h2>
           </div>
