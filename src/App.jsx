@@ -655,8 +655,8 @@ export function AppKit() {
                 Internet Archive
               </a>
               . Follow his dispatches on{' '}
-              <a href="https://x.com/runrouragerun" target="_blank" rel="noopener noreferrer">
-                @runrouragerun
+              <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer">
+                @runcouragerun
               </a>
               . Just a scared dog doing his best.
             </p>
@@ -740,7 +740,7 @@ export function AppKit() {
           <h2 className="landing-heading section-title">🌐 Join the Pack</h2>
           <p className="community-sub">The most anxious community in crypto</p>
           <div className="community-links">
-            <a href="https://x.com/runrouragerun" target="_blank" rel="noopener noreferrer" className="community-btn">𝕏 Twitter</a>
+            <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer" className="community-btn">𝕏 Twitter</a>
             <a href="#" className="community-btn">✈️ Telegram</a>
           </div>
         </section>

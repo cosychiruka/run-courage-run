@@ -143,7 +143,7 @@ export function downloadArticleCard(article, emotion = 'neutral') {
   // Site watermark center
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(153,69,255,0.55)';
-  ctx.fillText('x.com/runrouragerun', CARD_W / 2, footY);
+  ctx.fillText('x.com/runcouragerun', CARD_W / 2, footY);
 
   // ── Trigger download ──────────────────────────────────────────────────────
   canvas.toBlob(blob => {

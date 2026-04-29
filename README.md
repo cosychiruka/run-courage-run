@@ -176,7 +176,7 @@ This project is a loving tribute to Courage the Cowardly Dog. All original chara
 <div align="center">
 
 **Follow Courage's adventures:**
-- 🐦 **Twitter**: [@runrouragerun](https://x.com/runrouragerun)
+- 🐦 **Twitter**: [@runcouragerun](https://x.com/runcouragerun)
 - 🌐 **Website**: [run-courage-run](https://vmbbz.github.io/run-courage-run/)
 - 💬 **Discord**: [Join the Community](link)
 
