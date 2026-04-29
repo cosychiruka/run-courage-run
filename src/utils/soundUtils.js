@@ -3,7 +3,11 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 let _ctx = null;
+let _gestured = false;
+// Only create AudioContext after a real user gesture (browser policy)
+document.addEventListener('click', () => { _gestured = true; }, { once: true, capture: true });
 const ac = () => {
+  if (!_gestured) return null;
   if (!_ctx) _ctx = new (window.AudioContext || window.webkitAudioContext)();
   if (_ctx.state === 'suspended') _ctx.resume();
   return _ctx;

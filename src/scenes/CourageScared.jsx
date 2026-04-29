@@ -4,8 +4,10 @@ import './CourageExplosion.css';
 import { playRepulsePulse } from '../utils/soundUtils';
 
 const CourageScared = ({ explosionPhase, onFrightened, style, voiceState = null }) => {
-  const isTalking  = voiceState !== null;
-  const isSpeaking = voiceState === 'speaking';
+  const isTalking   = voiceState !== null;
+  const isListening = voiceState === 'listening';
+  const isThinking  = voiceState === 'thinking';
+  const isSpeaking  = voiceState === 'speaking';
   const [interaction, setInteraction] = useState(null);
   const [pulsing, setPulsing] = useState(false);
 
@@ -41,7 +43,7 @@ const CourageScared = ({ explosionPhase, onFrightened, style, voiceState = null 
   return (
     <div
       id="courageCharacter"
-      className={`courage ${phase}${pulsing ? ' pulsing' : ''}${isTalking ? ' is-talking' : ''}${isSpeaking ? ' is-speaking' : ''}`}
+      className={`courage ${phase}${pulsing ? ' pulsing' : ''}${isTalking ? ' is-talking' : ''}${isListening ? ' is-listening' : ''}${isThinking ? ' is-thinking' : ''}${isSpeaking ? ' is-speaking' : ''}`}
       onClick={handleCharacterClick}
       style={{ cursor: 'pointer', ...style }}
     >

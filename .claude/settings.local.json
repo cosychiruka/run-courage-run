@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -f src/services/solanaLendingService.js src/services/walletService.js src/services/alchemyService.js src/services/quicknodeService.js src/services/adminService.js src/services/moralisService.js)",
+      "Bash(rm -rf src/services/dexscreener src/services/coingecko)",
+      "Bash(rm -f \"src/assets/ABI/P2PLendingContract.js\" src/utils/solanaProgramUtils.js \"src/utils/wallet-keypair.json\" src/config/contractData.js)",
+      "Bash(grep -rn \"from ''uuid''\\\\|from \"\"uuid\"\"\\\\|import uuid\" src/ --include=\"*.js\" --include=\"*.jsx\")",
+      "WebFetch(domain:archive.org)",
+      "Bash(\"c:\\\\Users\\\\cosyc\\\\CourageTheCowardlyDog\\\\.env.example\")",
+      "Bash(printf \"# Backend WebSocket URL \\(voice chat\\)\\\\nVITE_BACKEND_WS=ws://localhost:8000/ws/voice\\\\n\")",
+      "Bash(\"c:/Users/cosyc/CourageTheCowardlyDog/.env.example\")"
+    ]
+  }
+}

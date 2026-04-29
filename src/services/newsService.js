@@ -1,34 +1,50 @@
 /**
- * News Service — GNews API with localStorage caching
- * Free tier: 100 requests/day. User provides their own API key.
- * Sign up free at: https://gnews.io
+ * News Service — multi-source with localStorage caching and rate-limit protection.
  *
- * Fallback: The Guardian API (unlimited free, requires key from open-platform.theguardian.com)
+ * Source priority (browser):
+ *   1. Backend proxy  GET /api/news  (all 3 APIs behind it, Redis-cached)
+ *   2. Guardian direct               (5 000/day, generous, no CORS issue)
+ *   3. Stale localStorage cache      (always prefer stale over nothing)
+ *   ✗  GNews direct                  (NOT called from browser — shared 100/day budget
+ *                                     with the backend; protect it)
+ *   ✗  NewsAPI direct                (CORS blocked on developer plan — server-side only)
+ *
+ * Cache TTL:
+ *   - Backend results: 30 min  (matches server Redis TTL)
+ *   - Guardian direct: 30 min
+ *   - Stale cache is served indefinitely on fetch failure (better than empty)
  */
 
-const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
-const GNEWS_BASE = 'https://gnews.io/api/v4';
+// ── Config ────────────────────────────────────────────────────────────────────
+
+// Set VITE_BACKEND_URL in your .env to point at the running server.
+// Falls back to localhost dev URL. Users can also set it via AISettings.
+const DEFAULT_BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+
+export function getBackendUrl() {
+  return localStorage.getItem('courage_backend_url') || DEFAULT_BACKEND;
+}
+
+const CACHE_TTL_MS  = 30 * 60 * 1000;  // 30 minutes — matches server Redis TTL
 const GUARDIAN_BASE = 'https://content.guardianapis.com';
 
-const GNEWS_COUNTRIES = {
+// ── Country / category metadata ───────────────────────────────────────────────
+
+export const NEWS_COUNTRIES = {
   us: 'United States', gb: 'United Kingdom', au: 'Australia',
-  ca: 'Canada', de: 'Germany', fr: 'France', jp: 'Japan',
-  br: 'Brazil', in: 'India', za: 'South Africa',
+  ca: 'Canada',        de: 'Germany',         fr: 'France',
+  jp: 'Japan',         br: 'Brazil',          in: 'India',
+  za: 'South Africa',  sg: 'Singapore',       nl: 'Netherlands',
 };
 
-const GNEWS_CATEGORIES = [
-  'general', 'world', 'nation', 'business', 'technology',
-  'entertainment', 'sports', 'science', 'health',
+export const NEWS_CATEGORIES = [
+  'general', 'technology', 'business', 'science',
+  'health', 'sports', 'entertainment',
 ];
 
-export const NEWS_COUNTRIES = GNEWS_COUNTRIES;
-export const NEWS_CATEGORIES = GNEWS_CATEGORIES;
+// ── localStorage cache helpers ────────────────────────────────────────────────
 
-// ── Storage helpers ──────────────────────────────────────────────────────────
-
-function cacheKey(tag) {
-  return `courage_news_${tag}`;
-}
+function cacheKey(tag) { return `courage_news_${tag}`; }
 
 function readCache(tag) {
   try {
@@ -40,27 +56,29 @@ function readCache(tag) {
       return null;
     }
     return data;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
+}
+
+/** Read cache regardless of TTL — used as last-resort stale fallback. */
+function readStaleCache(tag) {
+  try {
+    const raw = localStorage.getItem(cacheKey(tag));
+    if (!raw) return null;
+    return JSON.parse(raw).data;
+  } catch { return null; }
 }
 
 function writeCache(tag, data) {
   try {
     localStorage.setItem(cacheKey(tag), JSON.stringify({ ts: Date.now(), data }));
-  } catch {
-    // storage full — silently skip
-  }
+  } catch { /* storage full — skip silently */ }
 }
 
-// ── API key helpers ──────────────────────────────────────────────────────────
+// ── API key / config helpers ──────────────────────────────────────────────────
 
 export function getStoredKeys() {
-  try {
-    return JSON.parse(localStorage.getItem('courage_api_keys') || '{}');
-  } catch {
-    return {};
-  }
+  try { return JSON.parse(localStorage.getItem('courage_api_keys') || '{}'); }
+  catch { return {}; }
 }
 
 export function saveApiKey(provider, key) {
@@ -73,172 +91,172 @@ export function getApiKey(provider) {
   return getStoredKeys()[provider] || '';
 }
 
-// ── Normalise articles to a common shape ─────────────────────────────────────
-
-function normaliseGNews(article) {
-  return {
-    title: article.title || '',
-    description: article.description || '',
-    content: article.content || article.description || '',
-    url: article.url || '',
-    image: article.image || null,
-    publishedAt: article.publishedAt || new Date().toISOString(),
-    source: {
-      name: article.source?.name || 'Unknown',
-      url: article.source?.url || '',
-    },
-  };
+export function saveBackendUrl(url) {
+  localStorage.setItem('courage_backend_url', url.replace(/\/$/, ''));
 }
+
+// ── Article normalisation ─────────────────────────────────────────────────────
 
 function normaliseGuardian(result) {
   return {
-    title: result.webTitle || '',
+    title:       result.webTitle || '',
     description: result.fields?.trailText || '',
-    content: result.fields?.bodyText || result.fields?.trailText || '',
-    url: result.webUrl || '',
-    image: result.fields?.thumbnail || null,
+    content:     result.fields?.bodyText || result.fields?.trailText || '',
+    url:         result.webUrl || '',
+    image:       result.fields?.thumbnail || null,
     publishedAt: result.webPublicationDate || new Date().toISOString(),
-    source: { name: 'The Guardian', url: 'https://www.theguardian.com' },
+    source:      { name: 'The Guardian', url: 'https://www.theguardian.com' },
+    provider:    'guardian',
   };
 }
 
-// ── GNews fetch ──────────────────────────────────────────────────────────────
+/** Backend returns already-normalised articles — pass through. */
+function normaliseBackend(article) { return article; }
 
-async function fetchFromGNews(apiKey, { country = 'us', category = 'general', max = 10 } = {}) {
-  const tag = `gnews_${country}_${category}`;
+// ── Backend proxy fetch ───────────────────────────────────────────────────────
+
+let _backendAvailable = null;   // null = untested, true/false = tested
+
+async function checkBackend() {
+  if (_backendAvailable !== null) return _backendAvailable;
+  try {
+    const res = await fetch(`${getBackendUrl()}/health`, { signal: AbortSignal.timeout(2000) });
+    _backendAvailable = res.ok;
+  } catch {
+    _backendAvailable = false;
+  }
+  // Re-check every 5 minutes
+  setTimeout(() => { _backendAvailable = null; }, 5 * 60 * 1000);
+  return _backendAvailable;
+}
+
+async function fetchFromBackend({ country = 'us', category = 'general', max = 10 } = {}) {
+  const tag = `backend_${country}_${category}`;
   const cached = readCache(tag);
   if (cached) return cached;
 
-  const params = new URLSearchParams({
-    token: apiKey,
-    lang: 'en',
-    country,
-    topic: category === 'general' ? 'breaking-news' : category,
-    max,
-  });
+  if (!(await checkBackend())) throw new Error('Backend unavailable');
 
-  const res = await fetch(`${GNEWS_BASE}/top-headlines?${params}`);
-  if (!res.ok) throw new Error(`GNews error ${res.status}: ${await res.text()}`);
+  const url = `${getBackendUrl()}/api/news?country=${country}&category=${category}&limit=${max}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error(`Backend /api/news ${res.status}`);
 
-  const json = await res.json();
-  const articles = (json.articles || []).map(normaliseGNews);
-  writeCache(tag, articles);
+  const articles = (await res.json()).map(normaliseBackend);
+  if (articles.length) writeCache(tag, articles);
   return articles;
 }
 
-// ── Guardian fetch ───────────────────────────────────────────────────────────
+export async function searchViaBackend(query) {
+  if (!(await checkBackend())) return [];
+  try {
+    const res = await fetch(
+      `${getBackendUrl()}/api/news/search?q=${encodeURIComponent(query)}`,
+      { signal: AbortSignal.timeout(10000) }
+    );
+    if (!res.ok) return [];
+    return (await res.json()).map(normaliseBackend);
+  } catch { return []; }
+}
 
-async function fetchFromGuardian(apiKey, { category = 'news', max = 10 } = {}) {
+// ── Guardian direct fetch (browser-safe, generous limits) ────────────────────
+
+async function fetchFromGuardian({ category = 'general', max = 10 } = {}) {
   const section = category === 'general' ? 'news' : category;
   const tag = `guardian_${section}`;
   const cached = readCache(tag);
   if (cached) return cached;
 
+  const guardianKey = getApiKey('guardian');
   const params = new URLSearchParams({
-    'api-key': apiKey || 'test', // 'test' key works for low-volume dev use
+    'api-key':     guardianKey || 'test',
     section,
-    'page-size': max,
+    'page-size':   max,
     'show-fields': 'trailText,thumbnail,bodyText',
-    'order-by': 'newest',
+    'order-by':    'newest',
   });
 
-  const res = await fetch(`${GUARDIAN_BASE}/search?${params}`);
-  if (!res.ok) throw new Error(`Guardian error ${res.status}`);
+  const res = await fetch(`${GUARDIAN_BASE}/search?${params}`, { signal: AbortSignal.timeout(10000) });
+  if (!res.ok) throw new Error(`Guardian ${res.status}`);
 
-  const json = await res.json();
-  const articles = (json.response?.results || []).map(normaliseGuardian);
-  writeCache(tag, articles);
+  const articles = (await res.json()).response?.results?.map(normaliseGuardian) || [];
+  if (articles.length) writeCache(tag, articles);
   return articles;
 }
 
-// ── Public API ───────────────────────────────────────────────────────────────
+// ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * Fetch top news articles.
- * Tries GNews first (if key present), falls back to Guardian.
+ * Fetch top news for a country/category.
+ *
+ * Priority:
+ *   1. Backend proxy (Redis-cached, all 3 APIs, budget-managed)
+ *   2. Guardian direct (browser-safe, 5000/day)
+ *   3. Stale localStorage cache (any age — better than empty)
+ *   4. Sample placeholder articles
  */
 export async function fetchTopNews({ country = 'us', category = 'general', max = 10 } = {}) {
-  const gnewsKey = getApiKey('gnews');
-  const guardianKey = getApiKey('guardian');
+  const staleTag = `backend_${country}_${category}`;
 
-  if (gnewsKey) {
-    try {
-      return await fetchFromGNews(gnewsKey, { country, category, max });
-    } catch (err) {
-      console.warn('[NewsService] GNews failed, trying Guardian:', err.message);
-    }
+  // 1. Backend proxy
+  try {
+    const articles = await fetchFromBackend({ country, category, max });
+    if (articles.length) return articles;
+  } catch (err) {
+    console.info('[NewsService] Backend unavailable, trying Guardian:', err.message);
   }
 
-  // Guardian fallback (also works with 'test' key for low-volume)
+  // 2. Guardian direct
   try {
-    return await fetchFromGuardian(guardianKey, { category, max });
+    const articles = await fetchFromGuardian({ category, max });
+    if (articles.length) return articles;
   } catch (err) {
     console.warn('[NewsService] Guardian failed:', err.message);
-    return getSampleArticles();
   }
+
+  // 3. Stale cache (any age)
+  const stale = readStaleCache(staleTag) || readStaleCache(`guardian_${category === 'general' ? 'news' : category}`);
+  if (stale?.length) {
+    console.info('[NewsService] Serving stale cache');
+    return stale;
+  }
+
+  // 4. Sample placeholder
+  return getSampleArticles();
 }
 
 /**
- * Search news by keyword.
+ * Keyword search — routes through backend (which uses NewsAPI + GNews).
+ * If backend is down, returns empty (no direct browser fallback for search).
  */
 export async function searchNews(query) {
-  const gnewsKey = getApiKey('gnews');
-  if (!gnewsKey) return getSampleArticles();
-
-  const tag = `gnews_search_${query.slice(0, 30)}`;
-  const cached = readCache(tag);
-  if (cached) return cached;
-
-  const params = new URLSearchParams({
-    token: gnewsKey,
-    lang: 'en',
-    q: query,
-    max: 10,
-  });
-
-  try {
-    const res = await fetch(`${GNEWS_BASE}/search?${params}`);
-    if (!res.ok) throw new Error(`GNews search error ${res.status}`);
-    const json = await res.json();
-    const articles = (json.articles || []).map(normaliseGNews);
-    writeCache(tag, articles);
-    return articles;
-  } catch (err) {
-    console.warn('[NewsService] Search failed:', err.message);
-    return [];
-  }
+  const results = await searchViaBackend(query);
+  return results.length ? results : [];
 }
 
-// ── Sample articles (shown before API key is configured) ─────────────────────
+// ── Sample articles ───────────────────────────────────────────────────────────
 
 export function getSampleArticles() {
   return [
     {
-      title: "Courage Checks The Trenches: No API Key Yet, Ser",
-      description: "Configure your free GNews or Guardian API key to get real news. It takes 30 seconds and it's completely free.",
-      content: "Go to gnews.io or open-platform.theguardian.com, grab a free key, and paste it in the Settings panel. Courage will start reacting to REAL news immediately after!",
-      url: '#',
-      image: null,
-      publishedAt: new Date().toISOString(),
-      source: { name: '$COURAGE News Network', url: '#' },
+      title: 'Courage Checks The Trenches: No News Yet, Ser',
+      description: 'The backend is starting up or no API keys are configured. Real news incoming shortly.',
+      content: 'Add your Guardian API key in Settings, or start the backend server to get live news from all 3 sources.',
+      url: '#', image: null, publishedAt: new Date().toISOString(),
+      source: { name: '$COURAGE News Network', url: '#' }, provider: 'sample',
     },
     {
-      title: "Courage Spotted Living In A Browser, Witnesses Confirm",
-      description: "The cowardly dog has been seen trembling at world events, unable to look away from the TV.",
-      content: "Sources close to Courage report he has been living in a web server since early 2024, surviving on a diet of memes and news headlines. He is doing his best.",
-      url: '#',
-      image: null,
-      publishedAt: new Date().toISOString(),
-      source: { name: '$COURAGE News Network', url: '#' },
+      title: 'Courage Spotted Living In A Browser, Witnesses Confirm',
+      description: 'The cowardly dog has been seen trembling at world events, unable to look away from the TV.',
+      content: 'Sources close to Courage report he has been living in a web server since early 2024, surviving on a diet of memes and news headlines.',
+      url: '#', image: null, publishedAt: new Date().toISOString(),
+      source: { name: '$COURAGE News Network', url: '#' }, provider: 'sample',
     },
     {
-      title: "Solana Meme Dog Refuses To Leave TV, Demands Snacks",
-      description: "Local dog continues to watch the news 24/7. Experts say this is normal behaviour for a Solana blockchain mascot.",
-      content: "Courage, the self-aware CSS dog, has reportedly not moved from his TV spot in weeks. When asked for comment, he said: 'The things I do for you people...'",
-      url: '#',
-      image: null,
-      publishedAt: new Date().toISOString(),
-      source: { name: '$COURAGE News Network', url: '#' },
+      title: 'Solana Meme Dog Refuses To Leave TV, Demands Snacks',
+      description: 'Local dog continues to watch the news 24/7. Experts say this is normal behaviour.',
+      content: "Courage, the self-aware CSS dog, has reportedly not moved from his TV spot in weeks. 'The things I do for you people...'",
+      url: '#', image: null, publishedAt: new Date().toISOString(),
+      source: { name: '$COURAGE News Network', url: '#' }, provider: 'sample',
     },
   ];
 }

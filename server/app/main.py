@@ -18,7 +18,11 @@ from fastapi.responses import JSONResponse, Response
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.config import FRONTEND_ORIGIN
-from app.news_cache import init_db, discovery_round, get_all_recent
+from app.news_cache import (
+    init_db, discovery_round, get_all_recent, get_recent_articles,
+    get_cached_articles, fetch_pair, search_newsapi, search_gnews,
+    get_budget_status,
+)
 from app.voice import load_models, transcribe, synthesise
 from app.agent import run_agent
 from app.x_client import make_x_client
@@ -47,8 +51,10 @@ async def lifespan(app: FastAPI):
     # X client (optional — graceful if keys missing)
     x_client = make_x_client()
 
-    # Background jobs
-    scheduler.add_job(discovery_round, "interval", minutes=10, id="discovery")
+    # Background jobs — 30 min interval:
+    # Guardian 5000/day ÷ 48 rounds × 4 pairs = 192 calls → well within limit
+    # GNews/NewsAPI budgets only consumed when Guardian fails
+    scheduler.add_job(discovery_round, "interval", minutes=30, id="discovery")
     scheduler.start()
 
     # First discovery immediately (non-blocking)
@@ -75,13 +81,54 @@ app.add_middleware(
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "x_enabled": x_client is not None}
+    budget = await get_budget_status()
+    return {"status": "ok", "x_enabled": x_client is not None, "budget": budget}
 
 
 @app.get("/api/news")
-async def get_news(limit: int = 10):
-    articles = await get_all_recent(limit=limit)
+async def get_news(
+    country: str = "us",
+    category: str = "general",
+    limit: int = 10,
+    fresh: bool = False,   # ?fresh=true skips cache and fetches live (costs a request)
+):
+    """
+    Returns cached news for a given country/category.
+    Flow: Redis hot cache → SQLite → live fetch (only if cache miss or fresh=true).
+    """
+    if not fresh:
+        # 1. Redis hot cache (30-min TTL)
+        cached = await get_cached_articles(country, category)
+        if cached:
+            return JSONResponse(cached[:limit])
+
+        # 2. SQLite durable store
+        stored = await get_recent_articles(limit, country, category)
+        if stored:
+            return JSONResponse(stored)
+
+    # 3. Live fetch — Guardian → NewsAPI → GNews with budget tracking
+    articles = await fetch_pair(country, category, limit)
     return JSONResponse(articles)
+
+
+@app.get("/api/news/search")
+async def search_news(q: str, limit: int = 10):
+    """
+    Keyword search across NewsAPI (primary) and GNews (fallback), both budgeted.
+    Results are NOT cached — search is on-demand only.
+    """
+    # Try NewsAPI first (higher quality search)
+    results = await search_newsapi(q, limit)
+    if not results:
+        results = await search_gnews(q, limit)
+    return JSONResponse(results)
+
+
+@app.get("/api/news/budget")
+async def news_budget():
+    """Returns today's API usage counters for monitoring."""
+    return JSONResponse(await get_budget_status())
 
 
 @app.post("/api/render_card")

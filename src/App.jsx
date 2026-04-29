@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, startTransition } from "react";
 import "./App.css";
 import { FaTv, FaNewspaper } from "react-icons/fa";
 import HomePage from "./components/HomePage";
@@ -15,6 +15,8 @@ import WelcomeTour from './components/WelcomeTour';
 import { fetchTopNews } from './services/newsService';
 import { analyzeSentiment } from './utils/sentimentUtils';
 import { createVoiceService } from './services/voiceService';
+
+const EveningWorld3D = React.lazy(() => import('./components/3d/EveningWorld3D'));
 
 export function AppKit() {
   const [scene, setScene] = useState('');
@@ -90,6 +92,13 @@ export function AppKit() {
   const [voiceState, setVoiceState] = useState(null);
   const voiceSvcRef = useRef(null);
 
+  // Midnight refusal speech bubble (shown briefly, then auto-switches scene)
+  const [midnightMsg, setMidnightMsg] = useState(false);
+  const midnightTimerRef = useRef(null);
+  // world3DMounted = scene is rendering in background; world3DVisible = user can see it
+  const [world3DMounted, setWorld3DMounted] = useState(false);
+  const [world3DVisible, setWorld3DVisible] = useState(false);
+
   const handleVoiceClick = useCallback(async () => {
     // Enter voice mode if not already in it
     if (voiceState === null) {
@@ -151,6 +160,27 @@ export function AppKit() {
   const SCENE_CYCLE = ['sunrise', 'noon', 'evening', 'midnight', null];
   const SCENE_LABELS = { sunrise: '☀️', noon: '🌤', evening: '🌆', midnight: '🌙', null: '🕐' };
   const [sceneOverride, setSceneOverride] = useState(null);
+
+  // Entry point for mic button — blocks midnight with a speech bubble then auto-switches scene
+  // Declared after sceneOverride to avoid TDZ in the dependency array
+  const handleVoiceEntry = useCallback(() => {
+    const activeScene = sceneOverride || scene;
+    if (activeScene === 'midnight') {
+      if (midnightTimerRef.current) clearTimeout(midnightTimerRef.current);
+      setMidnightMsg(true);
+      midnightTimerRef.current = setTimeout(() => {
+        midnightTimerRef.current = null;
+        // startTransition batches both updates together, reducing DOM reconciliation conflicts
+        startTransition(() => {
+          setMidnightMsg(false);
+          setSceneOverride('sunrise');
+        });
+      }, 2200);
+      return;
+    }
+    setVoiceState('idle');
+  }, [sceneOverride, scene]);
+
   const cycleScene = useCallback(() => {
     setSceneOverride(prev => {
       const idx = SCENE_CYCLE.indexOf(prev);
@@ -503,8 +533,8 @@ export function AppKit() {
             Live on Solana
           </div>
           <div className={`hero-text-block${heroTextVisible ? '' : ' hero-text-block--hidden'}`}>
-            <p className="hero-tagline">News Runner Meme on Solana</p>
-            <p className="hero-quote">"He faced every monster. He tracks every headline. Then runs!"</p>
+            <p className="hero-tagline">Self-Aware Living Meme on Solana</p>
+            <p className="hero-quote">"He knows his a meme. He breaks the 4th wall. He's a runner!"</p>
           </div>
           {aliveTextVisible && (
             <div className="hero-alive-text" aria-live="polite">
@@ -523,39 +553,58 @@ export function AppKit() {
               {newsEmotion === 'neutral' && "🐕 chillin'"}
             </div>
           )}
-          {/* Mic entry button — always visible, invites voice chat */}
-          {voiceState === null && (
-            <button
-              className="voice-entry-btn"
-              onClick={() => setVoiceState('idle')}
-              title="Talk to Courage"
-              aria-label="Start voice chat with Courage"
-            >
-              🎙️
-            </button>
-          )}
-
-          {/* Mic drop — animates down to Courage's head when voice is active */}
-          {voiceState !== null && (
-            <div className={`mic-drop-wrap mic-drop-wrap--${voiceState}`} onClick={handleVoiceClick} role="button" aria-label="Voice chat control">
-              <div className="mic-drop-icon">
-                {voiceState === 'idle'      && '🎙️'}
-                {voiceState === 'listening' && '🔴'}
-                {voiceState === 'thinking'  && '⏳'}
-                {voiceState === 'speaking'  && '🔊'}
-              </div>
-              <div className="mic-drop-label">
-                {voiceState === 'idle'      && 'Tap to speak'}
-                {voiceState === 'listening' && 'Listening…'}
-                {voiceState === 'thinking'  && 'Thinking…'}
-                {voiceState === 'speaking'  && 'Tap to stop'}
-              </div>
-              <div className="mic-drop-cord" />
-              {/* Close button */}
-              <button className="voice-exit-btn" onClick={(e) => { e.stopPropagation(); handleVoiceClose(); }} title="Exit voice chat" aria-label="Exit voice chat">✕</button>
-            </div>
-          )}
         </div>
+
+        {/* Voice controls — OUTSIDE character-stage so pointer-events:none doesn't block them */}
+        {voiceState === null && (
+          <button
+            className="voice-entry-btn"
+            onClick={handleVoiceEntry}
+            title="Talk to Courage"
+            aria-label="Start voice chat with Courage"
+          >
+            🎙️
+          </button>
+        )}
+
+        {/* Enter 3D World — evening scene only; shows loading state while scene warms up */}
+        {_active === 'evening' && voiceState === null && !world3DVisible && (
+          <button
+            className={`enter-3d-btn${world3DMounted ? ' enter-3d-btn--loading' : ''}`}
+            onClick={() => { if (!world3DMounted) setWorld3DMounted(true); }}
+            aria-label="Enter 3D evening world"
+          >
+            {world3DMounted ? '⏳ Loading 3D World…' : '🌆 Enter 3D World'}
+          </button>
+        )}
+
+        {/* Midnight refusal bubble */}
+        {midnightMsg && (
+          <div className="midnight-refuse-bubble" aria-live="assertive">
+            I&apos;m TOO SCARED!! Get me OUT of here!!
+          </div>
+        )}
+
+        {/* Mic drop — OUTSIDE character-stage so pointer-events:none doesn't block it */}
+        {voiceState !== null && (
+          <div className={`mic-drop-wrap mic-drop-wrap--${voiceState}`} onClick={handleVoiceClick} role="button" aria-label="Voice chat control">
+            <div className="mic-drop-icon">
+              {voiceState === 'idle'      && '🎙️'}
+              {voiceState === 'listening' && '🔴'}
+              {voiceState === 'thinking'  && '⏳'}
+              {voiceState === 'speaking'  && '🔊'}
+            </div>
+            <div className="mic-drop-label">
+              {voiceState === 'idle'      && 'Tap to speak'}
+              {voiceState === 'listening' && 'Listening…'}
+              {voiceState === 'thinking'  && 'Thinking…'}
+              {voiceState === 'speaking'  && 'Tap to stop'}
+            </div>
+            <div className="mic-drop-cord" />
+            {/* Close button */}
+            <button className="voice-exit-btn" onClick={(e) => { e.stopPropagation(); handleVoiceClose(); }} title="Exit voice chat" aria-label="Exit voice chat">✕</button>
+          </div>
+        )}
 
         {explosionReady && !explosionPhase && (
           <button className="explosion-trigger-btn" onClick={triggerExplosion}>
@@ -588,9 +637,8 @@ export function AppKit() {
             <h2 className="landing-heading">🐕 Who is $RCR?</h2>
             <p>
               Tribute to Courage the Cowardly Dog — Cartoon Network 1999–2002. Always watching the TV and reading Newspapers. He faced
-              every monster for Muriel, and he&rsquo;d face them all again. Re-animated, he lives entirely
-              inside your browser: a CSS-animated dog that reacts to the time of day, chases ghosts
-              at midnight, squints happily at noon, and panics by evening. No Unity. Just vibes and{' '}
+              every monster for Muriel, and he&rsquo;d face them all again. We re-animated Courage to life making him self-aware in a interactable 3D world. He lives entirely
+              inside your browser.{' '}
               <code>border-radius</code>.{' '}
               <a href="https://courage.fandom.com/wiki/Courage_the_Cowardly_Dog" target="_blank" rel="noopener noreferrer">
                 Read his lore &rarr;
@@ -743,6 +791,17 @@ export function AppKit() {
       </div>
 
       <Footer />
+
+      {/* ── 3D Evening World portal — mounts silently in background, fades in when ready ── */}
+      {world3DMounted && (
+        <React.Suspense fallback={null}>
+          <EveningWorld3D
+            visible={world3DVisible}
+            onReady={() => setWorld3DVisible(true)}
+            onClose={() => { setWorld3DMounted(false); setWorld3DVisible(false); }}
+          />
+        </React.Suspense>
+      )}
 
       {/* ── First-time visitor welcome tour ── */}
       <WelcomeTour

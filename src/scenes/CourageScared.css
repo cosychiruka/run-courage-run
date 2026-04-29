@@ -670,6 +670,133 @@
     }
   }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   VOICE CHAT — walk to mic, eye expressions, gesture animations
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Smooth slide to mic position ── */
+#courageCharacter {
+  transition: left 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+/* Slide from default left:10% to center-left where mic drops */
+#courageCharacter.is-talking {
+  left: 33% !important;
+}
+
+/* ── Brief walking steps during the slide (legs do 3 quick strides) ── */
+.courage.is-talking .body .leg.bottom.left {
+  animation: walkTalkStep 0.85s ease-out forwards !important;
+}
+.courage.is-talking .body .leg.bottom.right {
+  animation: walkTalkStep 0.85s ease-out forwards 0.12s !important;
+  transform: rotate(-30deg);
+}
+@keyframes walkTalkStep {
+  0%   { transform: rotate( 32deg); }
+  22%  { transform: rotate(-28deg); }
+  44%  { transform: rotate( 22deg); }
+  66%  { transform: rotate(-12deg); }
+  84%  { transform: rotate(  5deg); }
+  100% { transform: rotate(  0deg); }
+}
+
+/* ── Eye states ─────────────────────────────────────────────────────────── */
+
+/* LISTENING: eyes wide open, pupils scan left/right (attentive) */
+.courage.is-listening .head .eye-container .eye::after {
+  animation: none !important;
+  transform: translateY(-88%) !important;   /* lids fully raised = wide awake */
+}
+.courage.is-listening .head .eye-container .eye::before {
+  animation: eyeScanListen 2.4s ease-in-out infinite !important;
+}
+@keyframes eyeScanListen {
+  0%, 100% { transform: translate(0px,   0px); }
+  25%      { transform: translate( 5px, -3px); } /* look left */
+  55%      { transform: translate(-4px, -2px); } /* look right */
+  80%      { transform: translate( 1px, -4px); } /* look up center */
+}
+
+/* THINKING: eyes rolled up-right, lids half drooped (processing...) */
+.courage.is-thinking .head .eye-container .eye::after {
+  animation: none !important;
+  transform: translateY(-52%) !important;   /* half-lidded */
+}
+.courage.is-thinking .head .eye-container .eye::before {
+  animation: eyeThink 2.8s ease-in-out infinite !important;
+}
+@keyframes eyeThink {
+  0%, 100% { transform: translate( 7px, -7px); } /* up-right */
+  45%      { transform: translate( 4px, -9px); }
+  75%      { transform: translate(10px, -5px); }
+}
+
+/* SPEAKING: eyes lively, small rhythm blink in sync with speech */
+.courage.is-speaking .head .eye-container .eye::before {
+  animation: eyeSpeak 0.88s ease-in-out infinite !important;
+}
+@keyframes eyeSpeak {
+  0%, 100% { transform: translate(0px, 0px); }
+  50%      { transform: translate(2px, 2px); }
+}
+
+/* ── Gesture animations while SPEAKING ─────────────────────────────────── */
+
+/* Arms gesture — left and right with offset timing for natural feel */
+.courage.is-speaking .body .leg.top.left {
+  animation: scaredSpeakL 1.32s ease-in-out infinite !important;
+  transform-origin: bottom left !important;
+}
+.courage.is-speaking .body .leg.top.right {
+  animation: scaredSpeakR 1.06s ease-in-out infinite 0.22s !important;
+  transform-origin: bottom right !important;
+}
+@keyframes scaredSpeakL {
+  0%, 100% { transform: rotate( -2deg); }
+  22%      { transform: rotate(-30deg) translateY( -8px); }
+  46%      { transform: rotate( -8deg) translateY( -2px); }
+  70%      { transform: rotate(-25deg) translateY( -6px); }
+  90%      { transform: rotate( -5deg); }
+}
+@keyframes scaredSpeakR {
+  0%, 100% { transform: rotate(  2deg); }
+  18%      { transform: rotate( 20deg) translateY( -5px); }
+  42%      { transform: rotate( 36deg) translateY(-11px); }
+  64%      { transform: rotate( 13deg) translateY( -3px); }
+  84%      { transform: rotate( 30deg) translateY( -8px); }
+}
+
+/* Head nod — slightly behind the mouth rhythm for realism */
+.courage.is-speaking .head {
+  animation: speakHeadBob 0.9s ease-in-out infinite !important;
+}
+@keyframes speakHeadBob {
+  0%, 100% { transform: translateY(0px)  rotate(-0.5deg); }
+  35%      { transform: translateY(-5px) rotate( 2.5deg); }
+  68%      { transform: translateY(-1px) rotate(-1.5deg); }
+}
+
+/* Ear wiggle — ears flap when speaking */
+.courage.is-speaking .head .ear.left {
+  animation: speakEarL 0.66s ease-in-out infinite 0.08s !important;
+}
+@keyframes speakEarL {
+  0%, 100% { transform: rotate(-60deg); }
+  42%      { transform: rotate(-43deg); }
+  74%      { transform: rotate(-75deg); }
+}
+
+/* Body micro-bounce — makes it feel alive */
+.courage.is-speaking .body {
+  animation: speakBodyBounce 0.9s ease-in-out infinite !important;
+  transform-origin: bottom center;
+}
+@keyframes speakBodyBounce {
+  0%, 100% { transform: rotate(-2deg) translateY(  0px); }
+  40%      { transform: rotate(-1deg) translateY( -3px); }
+  75%      { transform: rotate(-3deg) translateY( -1px); }
+}
+
 /* ── Voice chat: mouth (hidden by default, shown when talking) ── */
 
 .courage .head .mouth {

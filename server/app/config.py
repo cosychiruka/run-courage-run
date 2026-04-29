@@ -9,8 +9,9 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5-coder:7b")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 DB_PATH   = os.getenv("DB_PATH",   "./data/courage.db")
 
-GNEWS_API_KEY    = os.getenv("GNEWS_API_KEY",    "")
-GUARDIAN_API_KEY = os.getenv("GUARDIAN_API_KEY", "test")
+GNEWS_API_KEY     = os.getenv("GNEWS_API_KEY",    "")
+GUARDIAN_API_KEY  = os.getenv("GUARDIAN_API_KEY", "test")
+NEWSAPI_KEY       = os.getenv("NEWSAPI_KEY",       "")   # newsapi.org — server-side ONLY (CORS blocked in browser)
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
 
 X_CONSUMER_KEY        = os.getenv("X_CONSUMER_KEY",        "")
@@ -23,3 +24,10 @@ FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
 
 WHISPER_MODEL = "base.en"   # fast, accurate, 150MB
 KOKORO_VOICE  = "am_michael"  # warm male voice; try 'af_heart' for female
+
+# ── Daily API budgets (leave 20% buffer below hard limits) ────────────────────
+# GNews:   100 req/day free tier  → stop at 80
+# NewsAPI: 100 req/day dev tier   → stop at 80
+# Guardian: 5000/day              → effectively unlimited, no counter needed
+GNEWS_DAILY_BUDGET   = int(os.getenv("GNEWS_DAILY_BUDGET",   "80"))
+NEWSAPI_DAILY_BUDGET = int(os.getenv("NEWSAPI_DAILY_BUDGET", "80"))

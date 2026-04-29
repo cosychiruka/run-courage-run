@@ -4,8 +4,10 @@ import './CourageHappy.css';
 import './CourageExplosion.css';
 
 const CourageHappy = ({ explosionPhase, onFrightened, voiceState = null }) => {
-  const isTalking  = voiceState !== null;
-  const isSpeaking = voiceState === 'speaking';
+  const isTalking   = voiceState !== null;
+  const isListening = voiceState === 'listening';
+  const isThinking  = voiceState === 'thinking';
+  const isSpeaking  = voiceState === 'speaking';
   const [interaction, setInteraction] = useState(null);
 
   const applyInteraction = useCallback((cls, duration = 600) => {
@@ -33,7 +35,7 @@ const CourageHappy = ({ explosionPhase, onFrightened, voiceState = null }) => {
   return (
     <div
       id="courageCharacter"
-      className={`courage happy ${phase}${isTalking ? ' is-talking' : ''}${isSpeaking ? ' is-speaking' : ''}`}
+      className={`courage happy ${phase}${isTalking ? ' is-talking' : ''}${isListening ? ' is-listening' : ''}${isThinking ? ' is-thinking' : ''}${isSpeaking ? ' is-speaking' : ''}`}
       onClick={handleCharacterClick}
       style={{ cursor: 'pointer' }}
     >

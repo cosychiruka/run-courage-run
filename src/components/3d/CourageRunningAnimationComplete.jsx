@@ -1,6 +1,6 @@
-import './CourageRunning.css';
+import './CourageRunningAnimationComplete.css';
 
-const CourageRunning = ({ voiceState = null }) => {
+const CourageRunningAnimationComplete = ({ voiceState = null }) => {
   const isTalking   = voiceState !== null;
   const isListening = voiceState === 'listening';
   const isThinking  = voiceState === 'thinking';
@@ -44,4 +44,4 @@ const CourageRunning = ({ voiceState = null }) => {
   );
 };
 
-export default CourageRunning;
+export default CourageRunningAnimationComplete;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { saveApiKey, getApiKey } from '../services/newsService';
+import { saveApiKey, getApiKey, saveBackendUrl, getBackendUrl } from '../services/newsService';
 
 const PROVIDERS = {
   ollama: {
@@ -51,6 +51,8 @@ const AISettings = ({ onClose }) => {
   const [value, setValue] = useState(saved.key);
   const [model, setModel] = useState(saved.model);
   const [saved_, setSaved] = useState(false);
+  const [backendUrl, setBackendUrl] = useState(getBackendUrl());
+  const [guardianKey, setGuardianKey] = useState(getApiKey('guardian'));
 
   const pInfo = PROVIDERS[provider];
 
@@ -73,6 +75,8 @@ const AISettings = ({ onClose }) => {
     } else {
       saveApiKey(provider, value);
     }
+    saveApiKey('guardian', guardianKey);
+    saveBackendUrl(backendUrl);
     setSaved(true);
     setTimeout(() => { setSaved(false); onClose && onClose(); }, 800);
   };
@@ -127,20 +131,64 @@ const AISettings = ({ onClose }) => {
         ))}
       </select>
 
-      {/* Also GNews key */}
-      <label style={{ ...labelStyle, marginTop: '12px' }}>
-        GNews API Key{' '}
-        <a href="https://gnews.io" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195', fontSize: '0.6rem' }}>
-          (free at gnews.io)
-        </a>
-      </label>
-      <input
-        type="password"
-        defaultValue={getApiKey('gnews')}
-        onBlur={e => saveApiKey('gnews', e.target.value)}
-        placeholder="Paste free GNews key for real news..."
-        style={inputStyle}
-      />
+      {/* ── News sources ── */}
+      <div style={{ borderTop: '1px solid #333', margin: '12px 0 10px', paddingTop: '10px' }}>
+        <p style={{ margin: '0 0 8px', fontSize: '0.65rem', color: '#888', fontFamily: 'Comic Sans MS' }}>
+          NEWS SOURCES
+        </p>
+
+        {/* Backend URL */}
+        <label style={labelStyle}>
+          Backend Server URL{' '}
+          <span style={{ color: '#9945FF', fontSize: '0.6rem' }}>
+            (runs all 3 news APIs + voice)
+          </span>
+        </label>
+        <input
+          type="text"
+          value={backendUrl}
+          onChange={e => setBackendUrl(e.target.value)}
+          placeholder="http://localhost:8000"
+          style={inputStyle}
+        />
+
+        {/* Guardian key */}
+        <label style={labelStyle}>
+          Guardian API Key{' '}
+          <a href="https://open-platform.theguardian.com/access/" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195', fontSize: '0.6rem' }}>
+            (free — 5 000 req/day)
+          </a>
+        </label>
+        <input
+          type="password"
+          value={guardianKey}
+          onChange={e => setGuardianKey(e.target.value)}
+          placeholder="Paste Guardian key (or leave blank for test key)..."
+          style={inputStyle}
+        />
+
+        {/* GNews key */}
+        <label style={labelStyle}>
+          GNews API Key{' '}
+          <a href="https://gnews.io" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195', fontSize: '0.6rem' }}>
+            (free — 100 req/day)
+          </a>
+        </label>
+        <input
+          type="password"
+          defaultValue={getApiKey('gnews')}
+          onBlur={e => saveApiKey('gnews', e.target.value)}
+          placeholder="GNews key — used by backend, NOT browser..."
+          style={inputStyle}
+        />
+
+        {/* NewsAPI notice */}
+        <p style={{ margin: '0 0 6px', fontSize: '0.6rem', color: '#666', fontFamily: 'Comic Sans MS', lineHeight: 1.4 }}>
+          NewsAPI key goes in <code style={{ color: '#eb57c1' }}>server/.env</code> as{' '}
+          <code style={{ color: '#eb57c1' }}>NEWSAPI_KEY</code> — browser CORS is blocked
+          on the developer plan, so it runs server-side only.
+        </p>
+      </div>
 
       <button onClick={handleSave} style={saveBtnStyle}>
         {saved_ ? '✓ Saved!' : 'Save Settings'}

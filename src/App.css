@@ -403,7 +403,7 @@ section {
   border-radius: 10px;
   box-shadow: 0 4px 8px #333;
   margin-bottom: 1.2em;
-  margin-inline: 1e,;
+  margin-inline: 1em;
   font-size: 15px;
   color: #333;
 }
@@ -2260,11 +2260,12 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   transform: translateX(-50%);
 }
 
-/* ── Mic entry button — appears above the character, invites voice chat ── */
+/* ── Mic entry button — floats above Courage's head, fixed so it tracks the character ── */
 .voice-entry-btn {
-  position: absolute;
-  bottom: 52%;
-  left: calc(10% + 44px);  /* aligns over CourageScared's fixed position */
+  position: fixed;
+  /* Desktop: Scared/Happy fixed at bottom:10% + character height ~185px = head level */
+  bottom: calc(10% + 190px);
+  left: calc(10% + 52px);
   font-size: 1.3rem;
   background: rgba(20, 241, 149, 0.1);
   border: 1.5px solid rgba(20, 241, 149, 0.4);
@@ -2851,15 +2852,23 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   MOBILE CHARACTER — scale Courage down slightly
+   MOBILE CHARACTER — scale Courage down, raise above sticky action bar
    ══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 500px) {
-  /* Scared / Happy character (fixed, anchored bottom-left) */
+  /* Scared / Happy character (fixed, anchored bottom-left)
+     110px clears the sticky bar even when it wraps to 2 rows (~90px + gap) */
   #courageCharacter {
     transform: scale(0.78);
     transform-origin: bottom left;
-    bottom: 8% !important;
+    bottom: 110px !important;
     left: 2% !important;
+  }
+
+  /* Entry mic button: align with character head on mobile
+     Character floor = 110px, scaled height ~179px, head at ~135px above floor */
+  .voice-entry-btn {
+    bottom: calc(110px + 135px);
+    left: calc(2% + 42px);
   }
 }
 
@@ -2948,10 +2957,190 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   z-index: 35;
 }
 
-/* Mobile: Courage brakes to ~29vw, character bottom 8% */
+/* Mobile: Courage brakes to ~29vw, character floor 110px (above sticky bar) */
 @media (max-width: 500px) {
   .mic-drop-wrap {
     left: 23vw;
-    bottom: calc(8% + 145px);
+    bottom: calc(110px + 135px); /* floor 110px + scaled head height 135px */
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MIDNIGHT REFUSE BUBBLE — Courage rejects voice chat at midnight
+   ══════════════════════════════════════════════════════════════════════════ */
+.midnight-refuse-bubble {
+  position: fixed;
+  /* Pin just above where CourageScared sits at midnight */
+  bottom: calc(10% + 240px);
+  left: calc(10% + 20px);
+  background: rgba(10, 8, 20, 0.92);
+  border: 2px solid rgba(153, 69, 255, 0.7);
+  border-radius: 16px;
+  padding: 10px 16px;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.82rem;
+  color: #fff;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 40;
+  box-shadow: 0 0 20px rgba(153, 69, 255, 0.4), 0 4px 16px rgba(0,0,0,0.7);
+  animation: refuseBubbleIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) both,
+             refuseBubbleOut 0.4s ease 1.8s forwards;
+}
+/* Tail pointing down toward Courage's head */
+.midnight-refuse-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 28px;
+  border: 6px solid transparent;
+  border-top-color: rgba(153, 69, 255, 0.7);
+}
+@keyframes refuseBubbleIn {
+  from { opacity: 0; transform: scale(0.7) translateY(-6px); }
+  to   { opacity: 1; transform: scale(1)   translateY(0);    }
+}
+@keyframes refuseBubbleOut {
+  to { opacity: 0; transform: translateY(-8px); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ENTER 3D WORLD BUTTON — evening scene only
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.enter-3d-btn {
+  position: fixed;
+  bottom: calc(10% + 270px);
+  left: calc(10% + 22px);
+  background: linear-gradient(135deg, #240046, #b90082, #ff1a9c);
+  color: #fff;
+  border: 1px solid rgba(255, 26, 156, 0.7);
+  border-radius: 22px;
+  padding: 9px 18px;
+  font-family: 'Comic Sans MS', cursive;
+  font-size: 0.82rem;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 25;
+  letter-spacing: 0.02em;
+  animation: enter3dPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both,
+             enter3dPulse 3s ease-in-out infinite 0.6s;
+  box-shadow: 0 0 22px rgba(185, 0, 130, 0.55), 0 2px 8px rgba(0,0,0,0.4);
+  transition: transform 0.15s ease;
+}
+.enter-3d-btn:hover {
+  transform: scale(1.07);
+  box-shadow: 0 0 38px rgba(255, 26, 156, 0.9), 0 2px 8px rgba(0,0,0,0.4);
+}
+.enter-3d-btn--loading {
+  animation: none;
+  background: linear-gradient(135deg, #1a0033, #6b0049, #b0006e);
+  cursor: default;
+  opacity: 0.75;
+  letter-spacing: 0.03em;
+}
+.enter-3d-btn--loading:hover {
+  transform: none;
+  box-shadow: 0 0 22px rgba(185, 0, 130, 0.55), 0 2px 8px rgba(0,0,0,0.4);
+}
+
+@keyframes enter3dPop {
+  from { opacity: 0; transform: scale(0.5) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes enter3dPulse {
+  0%,100% { box-shadow: 0 0 22px rgba(185, 0, 130, 0.55), 0 2px 8px rgba(0,0,0,0.4); }
+  50%     { box-shadow: 0 0 46px rgba(255, 26, 156, 0.95), 0 2px 8px rgba(0,0,0,0.4); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   3D WORLD OVERLAY — full-screen WebGL portal
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.world3d-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: #050014;
+  /* opacity + transition are driven by inline styles from EveningWorld3D */
+}
+
+.world3d-close {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 510;
+  background: rgba(5, 0, 20, 0.82);
+  color: #fff;
+  border: 1px solid rgba(255, 26, 156, 0.7);
+  border-radius: 22px;
+  padding: 7px 16px;
+  cursor: pointer;
+  font-family: 'Comic Sans MS', cursive;
+  font-size: 0.8rem;
+  backdrop-filter: blur(6px);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.world3d-close:hover {
+  background: rgba(185, 0, 130, 0.5);
+  box-shadow: 0 0 18px rgba(255, 26, 156, 0.7);
+}
+
+.world3d-hint {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 510;
+  color: rgba(255, 26, 156, 0.55);
+  font-family: 'Comic Sans MS', cursive;
+  font-size: 0.68rem;
+  pointer-events: none;
+  animation: enter3dPop 2s ease forwards;
+}
+
+.world3d-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: #050014;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff1a9c;
+  font-family: 'Comic Sans MS', cursive;
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
+}
+
+/* ── 3D World CSS isolation ──────────────────────────────────────────────────
+   CourageRunning.css defines .runnercourage { position:fixed; animation:runLoop }
+   globally. Inside the 3D world the character is positioned by Three.js / drei
+   <Html transform>, so we must neutralise the main-app overrides. */
+.world3d-overlay .runnercourage {
+  position: relative !important;
+  animation: none !important;
+  left: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+}
+
+/* Mobile */
+@media (max-width: 500px) {
+  .enter-3d-btn {
+    bottom: calc(110px + 290px);
+    left: 50%;
+    transform: translateX(-50%);
+    animation: enter3dPulse 3s ease-in-out infinite 0.6s;
+  }
+}
+
+@media (max-width: 500px) {
+  .midnight-refuse-bubble {
+    bottom: calc(110px + 200px);
+    left: calc(2% + 10px);
+    font-size: 0.72rem;
+    white-space: normal;
+    max-width: 200px;
   }
 }
