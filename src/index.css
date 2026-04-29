@@ -18,6 +18,12 @@ body {
   overflow-x: hidden;
 }
 
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
 /* ── Glassmorphism ── */
 .glass-panel {
   background: rgba(255, 255, 255, 0.1);
@@ -42,41 +48,37 @@ body {
   transition: transform 0.2s ease;
 }
 
-.brutal-card:hover {
+/* ── STANDARD ROUND BRUTALIST BUTTON ── */
+.brutal-btn, .hero-btn {
+  display: inline-block !important;
+  padding: 0.6rem 1.5rem !important;
+  font-family: 'Bangers', cursive !important;
+  font-size: 1.2rem !important;
+  text-transform: uppercase !important;
+  text-decoration: none !important;
+  border: var(--brutal-border) !important;
+  box-shadow: 4px 4px 0px var(--brutal-black) !important;
+  border-radius: 50px !important; /* THE CHOICE: ROUND EVERYWHERE */
+  cursor: pointer !important;
+  transition: all 0.1s ease !important;
+  letter-spacing: 1px !important;
+}
+
+.brutal-btn:hover, .hero-btn:hover {
   transform: translate(-2px, -2px);
-  box-shadow: 10px 10px 0px var(--brutal-black);
+  box-shadow: 6px 6px 0px var(--brutal-black) !important;
 }
 
-.brutal-btn {
-  display: inline-block;
-  padding: 0.6rem 1.5rem;
-  font-family: 'Bangers', cursive;
-  font-size: 1.2rem;
-  text-transform: uppercase;
-  text-decoration: none;
-  border: var(--brutal-border);
-  box-shadow: 4px 4px 0px var(--brutal-black);
-  cursor: pointer;
-  transition: all 0.1s ease;
-  letter-spacing: 1px;
-  border-radius: 50px; /* Standardizing to ROUND Brutalist */
-}
-
-.brutal-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0px var(--brutal-black);
-}
-
-.brutal-btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 0px 0px 0px var(--brutal-black);
-}
+.brutal-btn--pink { background: var(--courage-pink); color: white; }
+.brutal-btn--blue { background: #1DA1F2; color: white; }
+.brutal-btn--dark { background: #333; color: white; }
 
 /* ── Comic Banners (Standardized) ── */
 .comic-banner {
   display: inline-block;
   padding: 0.6rem 2rem;
   background: white;
+  color: var(--brutal-black) !important; /* FIX: NO WHITE ON WHITE */
   border: var(--brutal-border);
   position: relative;
   transform: rotate(-1deg);
@@ -95,17 +97,21 @@ body {
   font-family: 'Bangers', cursive !important;
   margin: 0;
   letter-spacing: 2px;
-  color: inherit !important; /* Ensure text inherits from banner color */
+  color: inherit !important;
 }
 
-/* ── Standardized Buttons ── */
-.brutal-btn--round {
-  border-radius: 50px;
+/* ── Scroll-based Fading ── */
+.hero-section, .sticky-actions {
+  transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease;
+  opacity: 1;
 }
 
-.brutal-btn--pink { background: var(--courage-pink); color: white; }
-.brutal-btn--blue { background: #1DA1F2; color: white; }
-.brutal-btn--dark { background: #333; color: white; }
+.hero-section--hidden, .sticky-actions--hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(20px);
+}
 
 .wiggle {
   animation: wiggle 4s infinite ease-in-out;
@@ -116,7 +122,6 @@ body {
   50% { transform: rotate(1.5deg) scale(1.02); }
 }
 
-/* ── Sticky Action Bar ── */
 .sticky-actions {
   position: fixed;
   bottom: 2rem;
@@ -130,30 +135,4 @@ body {
   backdrop-filter: blur(10px);
   border: 2px solid rgba(255,255,255,0.2);
   border-radius: 50px;
-}
-
-.hero-btn {
-  background: white;
-  border: 2px solid black;
-  box-shadow: 3px 3px 0px black;
-  font-family: 'Bangers', cursive;
-  padding: 0.8rem 1.5rem;
-  font-size: 1.2rem;
-  cursor: pointer;
-}
-
-.hero-btn:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0px black;
-}
-/* -- Hero Fade -- */
-.hero-section {
-  transition: opacity 0.4s ease, visibility 0.4s ease;
-  opacity: 1;
-}
-
-.hero-section--hidden {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
 }

@@ -207,13 +207,13 @@ export default function App() {
     return () => clearInterval(id);
   }, [updateScene]);
 
-  // ── Scroll visibility for Hero ───────────────────────────────────────────
+  // ── Scroll visibility ────────────────────────────────────────────────────
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -789,7 +789,7 @@ export default function App() {
       )}
 
       {/* ── Sticky action bar (always visible at bottom of viewport) ── */}
-      <div className="sticky-actions">
+      <div className={`sticky-actions${scrolled ? ' sticky-actions--hidden' : ''}`}>
         <button className="hero-btn" onClick={toggleHelperSection}>
           <FaTv /> {helperVisible ? 'Hide TV' : 'Watch TV'}
         </button>
