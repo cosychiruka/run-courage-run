@@ -139,6 +139,19 @@ body {
   }
 }
 
+/* Override scene-specific character positioning on mobile */
+@media (max-width: 768px) {
+  body #courageCharacter {
+    bottom: 15% !important;
+    left: 5% !important;
+  }
+  
+  body .courageCharacter.is-talking {
+    bottom: 20% !important;
+    left: 5% !important;
+  }
+}
+
 /* Circles for Bone Lobes */
 .bone-nav .circle {
   position: absolute;
