@@ -1,0 +1,9 @@
+node_modules
+dist
+.git
+.env
+.claude
+server/venv
+server/__pycache__
+server/data
+*.log
