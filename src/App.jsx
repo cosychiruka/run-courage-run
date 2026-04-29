@@ -209,6 +209,7 @@ export default function App() {
 
   // ── Scroll visibility ────────────────────────────────────────────────────
   const [scrolled, setScrolled] = useState(false);
+  const [controlsExpanded, setControlsExpanded] = useState(false);
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
@@ -776,29 +777,40 @@ export default function App() {
       )}
 
       {/* ── Sticky action bar (always visible at bottom of viewport) ── */}
-      <div className={`sticky-actions${scrolled ? ' sticky-actions--hidden' : ''}`}>
-        <button className="hero-btn" onClick={toggleHelperSection}>
-          <FaTv /> {helperVisible ? 'Hide TV' : 'Watch TV'}
-        </button>
-        <button className="hero-btn hero-btn--news" onClick={handleOpenNews}>
-          <FaNewspaper /> Read News
-        </button>
-        <button
-          className="hero-btn hero-btn--explode"
-          onClick={triggerExplosion}
-          disabled={explodeDisabled}
-          title={explodeDisabled ? 'Switch to night scene or open news first' : 'Boom!'}
+      <div className={`sticky-actions${scrolled ? ' sticky-actions--hidden' : ''}${controlsExpanded ? ' sticky-actions--expanded' : ''}`}>
+        {/* Mobile Toggle Button */}
+        <button 
+          className="hero-btn mobile-only-toggle" 
+          onClick={() => setControlsExpanded(!controlsExpanded)}
+          aria-label={controlsExpanded ? "Collapse menu" : "Expand menu"}
         >
-          💥 Explode!
+          {controlsExpanded ? '✕' : '☰'}
         </button>
-        <button
-          className="sticky-info-btn"
-          onClick={() => setTourOpen(true)}
-          title="How to play"
-          aria-label="Open demo guide"
-        >
-          i
-        </button>
+
+        <div className="sticky-actions-inner">
+          <button className="hero-btn" onClick={toggleHelperSection}>
+            <FaTv /> {helperVisible ? 'Hide TV' : 'Watch TV'}
+          </button>
+          <button className="hero-btn hero-btn--news" onClick={handleOpenNews}>
+            <FaNewspaper /> Read News
+          </button>
+          <button
+            className="hero-btn hero-btn--explode"
+            onClick={triggerExplosion}
+            disabled={explodeDisabled}
+            title={explodeDisabled ? 'Switch to night scene or open news first' : 'Boom!'}
+          >
+            💥 Explode!
+          </button>
+          <button
+            className="sticky-info-btn"
+            onClick={() => setTourOpen(true)}
+            title="How to play"
+            aria-label="Open demo guide"
+          >
+            i
+          </button>
+        </div>
       </div>
 
       <Footer />
