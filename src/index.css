@@ -1,151 +1,137 @@
-@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Outfit:wght@400;700;900&display=swap');
-
-:root {
-  --courage-pink: #F1A7C1;
-  --courage-purple: #2D1B4B;
-  --nowhere-yellow: #E5D352;
-  --shadow-color: #2D1B4B;
-  --bg-color: #F8F1FF;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: 'Outfit', sans-serif;
-  background-color: var(--bg-color);
-  color: var(--courage-purple);
-  overflow-x: hidden;
-  background-image: radial-gradient(var(--courage-pink) 0.5px, transparent 0.5px);
-  background-size: 20px 20px; /* Subtle dot grid pattern */
-}
-
-h1, h2, h3 {
-  font-family: 'Bangers', cursive;
-  letter-spacing: 2px;
-}
-
-/* ── Neubrutalist Utilities ────────────────────────────────────────────────── */
-
-.brutal-card {
-  background: white;
-  border: 4px solid var(--courage-purple);
-  box-shadow: 8px 8px 0px var(--shadow-color);
-  padding: 2rem;
-  border-radius: 4px;
-  transition: transform 0.2s;
-}
-
-.brutal-btn {
-  font-family: 'Bangers', cursive;
-  font-size: 1.5rem;
-  padding: 0.8rem 2rem;
-  background: var(--nowhere-yellow);
-  border: 4px solid var(--courage-purple);
-  box-shadow: 6px 6px 0px var(--shadow-color);
-  cursor: pointer;
-  transition: all 0.1s;
-  display: inline-block;
-  text-decoration: none;
-  color: var(--courage-purple);
-}
-
-.brutal-btn:active {
-  transform: translate(4px, 4px);
-  box-shadow: 0px 0px 0px var(--shadow-color);
-}
-
-.brutal-btn:hover {
-  background: #f1df5c;
-}
-
-/* ── Cartoon Banners ────────────────────────────────────────────────────────── */
-
-.comic-banner {
-  background: var(--courage-pink);
-  border: 4px solid var(--courage-purple);
-  padding: 1rem 3rem;
-  display: inline-block;
-  transform: rotate(-2deg);
-  margin: 2rem 0;
-  position: relative;
-  box-shadow: 10px 10px 0px var(--shadow-color);
-}
-
-.comic-banner::before {
-  content: '';
-  position: absolute;
-  top: -10px;
-  left: -10px;
-  right: -10px;
-  bottom: -10px;
-  border: 2px dashed var(--courage-purple);
-  z-index: -1;
-  opacity: 0.3;
-}
-
-/* ── Layout ─────────────────────────────────────────────────────────────────── */
-
-.container {
-  max-width: 1200px;
+#root {
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 2rem;
   text-align: center;
 }
 
-.hero-section {
-  padding: 4rem 0;
-  background: #FFF;
-  border-bottom: 8px solid var(--courage-purple);
+body {
+  font-family: 'Comic Sans MS', sans-serif;
+  background-color: #1c1c1c;
+  color: #333;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
 
-.section-title {
-  font-size: 4rem;
-  margin-bottom: 2rem;
-  -webkit-text-stroke: 1px var(--courage-purple);
-  color: white;
-  text-shadow: 6px 6px 0px var(--courage-purple);
+nav {
+  background-color: #ff69b4;
+  padding: 1em 2em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* ── Animations ─────────────────────────────────────────────────────────────── */
-
-@keyframes wiggle {
-  0%, 100% { transform: rotate(-2deg); }
-  50% { transform: rotate(2deg); }
+nav #wallet-status {
+  font-size: 1.2em;
+  font-weight: bold;
+  text-shadow: 2px 2px 0px #333;
 }
 
-.wiggle {
-  animation: wiggle 0.5s ease-in-out infinite;
+h1 {
+  text-align: center;
+  font-size: 3em;
+  color: #ff69b4;
+  text-shadow: 4px 4px 0px #333;
+  margin-top: 1em;
 }
 
-/* ── Legacy Loading Support (Modified for new theme) ────────────────────────── */
-
+/* Loading Screen Styling */
 .loading-screen {
   position: fixed;
-  inset: 0;
-  background: var(--courage-purple);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #1c1c1c;
+  /* Charcoal background */
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
-  z-index: 9999;
-  color: white;
+  flex-direction: column;
+  z-index: 1000;
+  font-family: 'Comic Sans MS', sans-serif;
 }
 
+/* Floating Bone Styling */
+.floating-bone {
+  font-size: 3em;
+  color: #ffffff;
+  /* White bone color */
+  margin-bottom: 10px;
+  animation: boneBounce 2s infinite ease-in-out;
+  /* Bouncing effect */
+}
+
+@keyframes boneBounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-20px);
+    /* Move bone up by 20px */
+  }
+}
+
+/* Loader and Progress Bar Styling */
 .loader {
-  width: 300px;
-  height: 40px;
-  border: 4px solid white;
-  background: #333;
-  box-shadow: 8px 8px 0px rgba(0,0,0,0.5);
-  overflow: hidden;
+  width: 80%;
+  max-width: 500px;
+  background-color: #333;
+  /* Dark background for the loader track */
+  border-radius: 15px;
+  /* Rounded edges for cartoonish effect */
+  padding: 5px;
+  margin-bottom: 15px;
+  box-shadow: 0px 0px 15px #000;
+  border: 2px dashed #eb57c1;
+  /* Dashed border for cartoonish look */
 }
 
 .progress-bar {
-  height: 100%;
-  background: var(--courage-pink);
-  transition: width 0.3s;
+  width: 0%;
+  /* Initial progress */
+  height: 25px;
+  /* Progress bar height */
+  background-color: #eb57c1;
+  /* Courage pink */
+  border-radius: 10px;
+  position: relative;
+  transition: width 0.3s ease-in-out;
+}
+
+/* Cartoonish Text Below the Loader */
+.loading-screen p {
+  margin-top: 10px;
+  color: #ffffff;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 1.2em;
+  animation: textWobble 1.5s ease-in-out infinite;
+  /* Wobble effect for the text */
+}
+
+/* Wobble Text Animation */
+@keyframes textWobble {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-5px);
+  }
+
+  50% {
+    transform: translateX(5px);
+  }
+
+  75% {
+    transform: translateX(-5px);
+  }
 }
