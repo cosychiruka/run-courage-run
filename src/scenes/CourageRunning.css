@@ -7,6 +7,15 @@
   animation: runLoop 8s linear infinite; /* 8s per loop: 4s each way */
 }
 
+/* Mobile running adjustments */
+@media (max-width: 768px) {
+  .runnercourage {
+    bottom: 15%; /* Position higher on mobile */
+    height: 180px; /* Scale down proportionally */
+    width: 160px;
+  }
+}
+
 @keyframes runLoop {
   0% {
     transform: translateX(10vw) rotateY(0deg);

@@ -13,6 +13,29 @@
     left: 10%;
     z-index: 5;
   }
+
+  /* Mobile character positioning with grounding */
+  @media (max-width: 768px) {
+    #courageCharacter {
+      bottom: 15%; /* Position higher on mobile */
+      left: 5%;
+    }
+    
+    /* Add subtle grounding shadow effect */
+    #courageCharacter::after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      height: 8px;
+      background: radial-gradient(ellipse, rgba(0,0,0,0.2) 0%, transparent 70%);
+      border-radius: 50%;
+      filter: blur(3px);
+    }
+  }
+
   .courage {
     width: 89px;
     height: 190px;

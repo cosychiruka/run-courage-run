@@ -186,12 +186,20 @@
   font-size: 0.75rem;
   font-weight: 700;
   padding: 7px 14px;
-  border-radius: 22px;
+  border-radius: 20px;
   cursor: pointer;
-  white-space: nowrap;
-  backdrop-filter: blur(6px);
-  transition: background 0.2s, border-color 0.2s, transform 0.15s;
   z-index: 20;
+  transition: all 0.3s ease;
+}
+
+/* Mobile mic positioning */
+@media (max-width: 768px) {
+  .voice-chat-btn {
+    top: -45px;
+    font-size: 0.65rem;
+    padding: 5px 10px;
+    border-radius: 15px;
+  }
 }
 
 .voice-chat-btn:hover {

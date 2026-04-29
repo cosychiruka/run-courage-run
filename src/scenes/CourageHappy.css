@@ -2,6 +2,28 @@
    COURAGE HAPPY — relaxed / noon / good-news state
    ══════════════════════════════════════════════════════════════════════════ */
 
+/* Mobile character positioning with grounding */
+@media (max-width: 768px) {
+  #courageCharacter {
+    bottom: 15%; /* Position higher on mobile */
+    left: 5%;
+  }
+  
+  /* Add subtle grounding shadow effect */
+  #courageCharacter::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    height: 8px;
+    background: radial-gradient(ellipse, rgba(0,255,0,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+    filter: blur(3px);
+  }
+}
+
 /* ── Hide blood vessels ── */
 .courage.happy .blood-vessel { display: none !important; }
 

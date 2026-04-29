@@ -69,9 +69,14 @@ body {
     background-image: url('./assets/images/mobile-homestead-evening.png');
     background-attachment: fixed !important;
   }
+
+  .midnight {
+    background-image: url('./assets/images/mobile-homestead-midnight.png');
+    background-attachment: fixed !important;
+  }
   
   .sunrise {
-    background-image: url('./assets/images/mobile-homestead-sunrise.png');
+    background-image: url('./assets/images/mobile-homestead-sunrise2.png');
     background-attachment: fixed !important;
   }
 }
@@ -100,6 +105,38 @@ body {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   color: #fff !important;
   z-index: 100;
+}
+
+/* Mobile Menu Adjustments */
+@media (max-width: 768px) {
+  .bone-nav {
+    width: 90%;
+    height: 16px;
+    top: 1em;
+    padding: 0.6em 1em;
+    margin: 1em auto;
+  }
+  
+  .bone-nav .circle {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .bone-nav .circle.left {
+    left: -20px;
+  }
+  
+  .bone-nav .circle.right {
+    right: -20px;
+  }
+  
+  .bone-nav .circle.top {
+    top: -15px;
+  }
+  
+  .bone-nav .circle.bottom {
+    bottom: -15px;
+  }
 }
 
 /* Circles for Bone Lobes */
