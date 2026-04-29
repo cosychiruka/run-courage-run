@@ -141,12 +141,15 @@ body {
 
 /* Override scene-specific character positioning on mobile */
 @media (max-width: 768px) {
-  body #courageCharacter {
+  body #courageCharacter,
+  body .courageCharacter.is-talking,
+  body .courageCharacter.is-thinking,
+  body .courageCharacter.is-speaking {
     bottom: 15% !important;
     left: 5% !important;
   }
   
-  body .courageCharacter.is-talking {
+  body #courageCharacter.is-talking {
     bottom: 20% !important;
     left: 5% !important;
   }
