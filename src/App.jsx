@@ -15,8 +15,6 @@ import WelcomeTour from './components/WelcomeTour';
 import { fetchTopNews } from './services/newsService';
 import { analyzeSentiment } from './utils/sentimentUtils';
 import { createVoiceService } from './services/voiceService';
-import Roadmap from './components/ui/Roadmap';
-import TeaserGrid from './components/ui/TeaserGrid';
 
 const EveningWorld3D = React.lazy(() => import('./components/3d/EveningWorld3D'));
 
@@ -527,15 +525,6 @@ export default function App() {
         )}
       </nav>
 
-      {/* ── NEW: Hero Title ── */}
-      <div className="container" style={{ marginTop: '6rem', textAlign: 'center' }}>
-        <div className="comic-banner wiggle" style={{ background: 'white' }}>
-          <h1 style={{ fontSize: '4.5rem', color: 'white', WebkitTextStroke: '3px var(--courage-purple)', filter: 'drop-shadow(4px 4px 0 black)' }}>
-            RUN COURAGE RUN
-          </h1>
-        </div>
-      </div>
-
       {/* ── Hero section ── */}
       <section className="hero-section">
         <div className="hero-center">
@@ -581,11 +570,12 @@ export default function App() {
         {/* Enter 3D World — evening scene only; shows loading state while scene warms up */}
         {_active === 'evening' && voiceState === null && !world3DVisible && (
           <button
-            className={`enter-3d-btn${world3DMounted ? ' enter-3d-btn--loading' : ''}`}
+            className={`enter-3d-btn brutal-btn${world3DMounted ? ' enter-3d-btn--loading' : ''}`}
             onClick={() => { if (!world3DMounted) setWorld3DMounted(true); }}
             aria-label="Enter 3D evening world"
+            style={{ borderRadius: '50px', background: 'var(--courage-pink)', color: 'white' }}
           >
-            {world3DMounted ? '⏳ Loading 3D World…' : '🌆 Enter 3D World'}
+            {world3DMounted ? '⏳ Loading…' : '🌆 Enter 3D World'}
           </button>
         )}
 
@@ -640,104 +630,131 @@ export default function App() {
       )}
 
       {/* ── Landing content ── */}
-      <div className="landing-wrapper container" style={{ marginTop: '4rem' }}>
+      <div className="landing-wrapper">
 
         {/* About */}
-        <section className="landing-section about-section" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-          <div className="brutal-card" style={{ transform: 'rotate(-1deg)' }}>
-            <div className="comic-banner wiggle" style={{ background: 'white', marginBottom: '1.5rem', transform: 'rotate(-2deg)' }}>
-              <h2 className="landing-heading" style={{ margin: 0, fontSize: '2rem' }}>🐕 Who is $RCR?</h2>
+        <section className="landing-section about-section">
+          <div className="landing-card">
+            <div className="comic-banner" style={{ background: 'white', marginBottom: '1.5rem' }}>
+              <h2 className="landing-heading" style={{ margin: 0 }}>🐕 Who is $RCR?</h2>
             </div>
-            <p style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
+            <p>
               Tribute to Courage the Cowardly Dog — Cartoon Network 1999–2002. Always watching the TV and reading Newspapers. He faced
               every monster for Muriel, and he&rsquo;d face them all again. We re-animated Courage to life making him self-aware in a interactable 3D world. He lives entirely
               inside your browser.{' '}
-              <a href="https://courage.fandom.com/wiki/Courage_the_Cowardly_Dog" target="_blank" rel="noopener noreferrer" style={{ fontWeight: 'bold', color: 'var(--courage-pink)' }}>
+              <code>border-radius</code>.{' '}
+              <a href="https://courage.fandom.com/wiki/Courage_the_Cowardly_Dog" target="_blank" rel="noopener noreferrer">
                 Read his lore &rarr;
               </a>
             </p>
           </div>
-          <div className="brutal-card" style={{ transform: 'rotate(1deg)' }}>
-            <div className="comic-banner wiggle" style={{ background: 'var(--nowhere-yellow)', marginBottom: '1.5rem', transform: 'rotate(2deg)' }}>
-              <h2 className="landing-heading" style={{ margin: 0, fontSize: '2rem' }}>📺 What does he do?</h2>
+          <div className="landing-card">
+            <div className="comic-banner" style={{ background: 'var(--nowhere-yellow)', marginBottom: '1.5rem' }}>
+              <h2 className="landing-heading" style={{ margin: 0 }}>📺 What does he do?</h2>
             </div>
-            <p style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
+            <p>
               Treat this as his mini browser world. Tap him to trigger reactions. Change scenes in menubar. Courage fetches real news every hour — good headlines make him wag, bad ones make him
-              literally <strong>explode from fear</strong>. He hosts meme TV
-              channels and streams old Courage toons. Just a scared dog doing his best.
+              literally <strong>explode from fear</strong> then reassemble. He hosts meme TV
+              channels and streams old Courage toons via the{' '}
+              <a href="https://archive.org/details/courage-the-cowardly-dog-1080p-ai-upscale" target="_blank" rel="noopener noreferrer">
+                Internet Archive
+              </a>
+              . Follow his dispatches on{' '}
+              <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer">
+                @runcouragerun
+              </a>
+              . Just a scared dog doing his best.
             </p>
           </div>
         </section>
 
-        {/* Roadmap & Modules */}
-        <Roadmap />
-        <TeaserGrid />
-
         {/* Tokenomics */}
-        <section className="landing-section tokenomics-section" style={{ marginTop: '6rem' }}>
-          <div className="comic-banner wiggle" style={{ background: 'white', marginBottom: '3rem', transform: 'rotate(-1deg)' }}>
-            <h2 className="landing-heading section-title" style={{ margin: 0, fontSize: '3rem' }}>📊 Tokenomics</h2>
+        <section className="landing-section tokenomics-section">
+          <div className="comic-banner" style={{ background: 'white', marginBottom: '2rem' }}>
+            <h2 className="landing-heading section-title" style={{ margin: 0 }}>📊 Tokenomics</h2>
           </div>
-          <div className="token-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem' }}>
-            <div className="brutal-card" style={{ background: 'var(--nowhere-yellow)' }}>
-              <span style={{ fontSize: '3rem' }}>💊</span>
-              <h3 style={{ margin: '1rem 0' }}>Total Supply</h3>
-              <p style={{ fontWeight: '900', fontSize: '1.5rem' }}>1B $RCR</p>
+          <div className="token-grid">
+            <div className="token-card">
+              <span className="token-icon">💊</span>
+              <span className="token-label">Total Supply</span>
+              <span className="token-value">1,000,000,000</span>
             </div>
-            <div className="brutal-card" style={{ background: 'var(--courage-pink)', color: 'white' }}>
-              <span style={{ fontSize: '3rem' }}>🔥</span>
-              <h3 style={{ margin: '1rem 0' }}>Liquidity</h3>
-              <p style={{ fontWeight: '900', fontSize: '1.5rem' }}>LOCKED</p>
+            <div className="token-card">
+              <span className="token-icon">🔥</span>
+              <span className="token-label">Liquidity</span>
+              <span className="token-value">Locked</span>
             </div>
-            <div className="brutal-card" style={{ background: '#333', color: 'white' }}>
-              <span style={{ fontSize: '3rem' }}>📈</span>
-              <h3 style={{ margin: '1rem 0' }}>Tax</h3>
-              <p style={{ fontWeight: '900', fontSize: '1.5rem' }}>0%</p>
+            <div className="token-card">
+              <span className="token-icon">📈</span>
+              <span className="token-label">Tax</span>
+              <span className="token-value">0.5%</span>
+            </div>
+            <div className="token-card">
+              <span className="token-icon">🐕</span>
+              <span className="token-label">Dev Wallet</span>
+              <span className="token-value">0% (he's a dog)</span>
             </div>
           </div>
         </section>
 
         {/* Buy $RCR CTA */}
-        <section className="landing-section buy-cta-section" style={{ marginTop: '6rem', textAlign: 'center' }}>
-          <div className="comic-banner wiggle" style={{ background: 'var(--courage-pink)', marginBottom: '2rem', transform: 'rotate(1deg)' }}>
-            <h2 className="landing-heading section-title" style={{ margin: 0, color: 'white', fontSize: '3rem' }}>🐾 Get $RCR</h2>
+        <section className="landing-section buy-cta-section">
+          <div className="comic-banner" style={{ background: 'var(--courage-pink)', marginBottom: '1.5rem' }}>
+            <h2 className="landing-heading section-title" style={{ margin: 0, color: 'white' }}>🐾 Get $RCR</h2>
           </div>
-          <div className="buy-cta-row" style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginTop: '2rem' }}>
-            <a href="#" className="brutal-btn" style={{ background: '#333', color: 'white' }}>🔭 DexScreener</a>
-            <a href="#" className="brutal-btn" style={{ background: 'var(--courage-pink)', color: 'white' }}>🐾 Buy $RCR</a>
+          <p className="buy-cta-sub">Trade on Solana — Ser.</p>
+          <div className="buy-cta-row">
+            <a href="#" className="buy-cta-btn brutal-btn" style={{ background: '#333', color: 'white' }}>🔭 DexScreener</a>
+            <a href="#" className="buy-cta-btn brutal-btn" style={{ background: 'var(--courage-pink)', color: 'white' }}>🐾 Buy $RCR</a>
           </div>
         </section>
 
         {/* How to buy */}
-        <section className="landing-section howtobuy-section" style={{ marginTop: '6rem' }}>
-          <div className="comic-banner wiggle" style={{ background: 'white', marginBottom: '3rem', transform: 'rotate(-1deg)' }}>
-            <h2 className="landing-heading section-title" style={{ margin: 0, fontSize: '3rem' }}>🛒 How to Get $RCR</h2>
+        <section className="landing-section howtobuy-section container">
+          <div className="comic-banner wiggle" style={{ background: 'white', marginBottom: '3rem' }}>
+            <h2 className="landing-heading section-title" style={{ margin: 0 }}>🛒 How to Get $RCR</h2>
           </div>
-          <div className="brutal-card" style={{ background: 'var(--nowhere-yellow)' }}>
-            <div className="steps-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem' }}>
-              {[
-                { n: "1", t: "Wallet", d: "Get Phantom" },
-                { n: "2", t: "SOL", d: "Get some SOL" },
-                { n: "3", t: "Swap", d: "Swap on Jup" },
-                { n: "4", t: "WAGMI", d: "Join the pack" }
-              ].map(s => (
-                <div key={s.n} style={{ borderLeft: '4px solid black', paddingLeft: '1rem' }}>
-                  <h4 style={{ margin: 0, fontSize: '1.5rem' }}>{s.n}. {s.t}</h4>
-                  <p>{s.d}</p>
-                </div>
-              ))}
+          <div className="steps-list">
+            <div className="step-item">
+              <span className="step-num">1</span>
+              <div>
+                <strong>Get a Solana Wallet</strong>
+                <p>Download Phantom or Backpack — free and takes 2 minutes</p>
+              </div>
+            </div>
+            <div className="step-item">
+              <span className="step-num">2</span>
+              <div>
+                <strong>Buy SOL</strong>
+                <p>Get SOL from any exchange (Coinbase, Kraken, Binance)</p>
+              </div>
+            </div>
+            <div className="step-item">
+              <span className="step-num">3</span>
+              <div>
+                <strong>Swap for $RCR</strong>
+                <p>Head to Jupiter.ag or Raydium and paste the $RCR contract address</p>
+              </div>
+            </div>
+            <div className="step-item">
+              <span className="step-num">4</span>
+              <div>
+                <strong>WAGMI, ser</strong>
+                <p>You're now part of the pack. The things we do for you people...</p>
+              </div>
             </div>
           </div>
         </section>
 
         {/* Community */}
-        <section className="landing-section community-section" style={{ marginTop: '6rem', marginBottom: '6rem' }}>
-          <div className="comic-banner wiggle" style={{ background: 'var(--courage-purple)', marginBottom: '2.5rem', transform: 'rotate(1.5deg)' }}>
-            <h2 className="landing-heading section-title" style={{ margin: 0, color: 'white', fontSize: '3.5rem' }}>🌐 Join the Pack</h2>
+        <section className="landing-section community-section">
+          <div className="comic-banner" style={{ background: 'var(--courage-purple)', marginBottom: '1.5rem' }}>
+            <h2 className="landing-heading section-title" style={{ margin: 0, color: 'white' }}>🌐 Join the Pack</h2>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '3rem' }}>
-            <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer" className="brutal-btn" style={{ background: '#1DA1F2', color: 'white' }}>𝕏 Twitter</a>
-            <a href="#" className="brutal-btn" style={{ background: '#24A1DE', color: 'white' }}>✈️ Telegram</a>
+          <p className="community-sub">The most anxious community in crypto</p>
+          <div className="community-links" style={{ display: 'flex', justifyContent: 'center', gap: '2rem' }}>
+            <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer" className="brutal-btn" style={{ background: '#1DA1F2', color: 'white', borderRadius: '50px' }}>𝕏 Twitter</a>
+            <a href="#" className="brutal-btn" style={{ background: '#24A1DE', color: 'white', borderRadius: '50px' }}>✈️ Telegram</a>
           </div>
         </section>
       </div>
