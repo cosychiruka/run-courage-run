@@ -570,10 +570,9 @@ export default function App() {
         {/* Enter 3D World — evening scene only; shows loading state while scene warms up */}
         {_active === 'evening' && voiceState === null && !world3DVisible && (
           <button
-            className={`enter-3d-btn brutal-btn${world3DMounted ? ' enter-3d-btn--loading' : ''}`}
+            className={`enter-3d-btn brutal-btn brutal-btn--round brutal-btn--pink${world3DMounted ? ' enter-3d-btn--loading' : ''}`}
             onClick={() => { if (!world3DMounted) setWorld3DMounted(true); }}
             aria-label="Enter 3D evening world"
-            style={{ borderRadius: '50px', background: 'var(--courage-pink)', color: 'white' }}
           >
             {world3DMounted ? '⏳ Loading…' : '🌆 Enter 3D World'}
           </button>
@@ -635,8 +634,8 @@ export default function App() {
         {/* About */}
         <section className="landing-section about-section">
           <div className="landing-card">
-            <div className="comic-banner" style={{ background: 'white', marginBottom: '1.5rem' }}>
-              <h2 className="landing-heading" style={{ margin: 0 }}>🐕 Who is $RCR?</h2>
+            <div className="comic-banner">
+              <h2 className="landing-heading">🐕 Who is $RCR?</h2>
             </div>
             <p>
               Tribute to Courage the Cowardly Dog — Cartoon Network 1999–2002. Always watching the TV and reading Newspapers. He faced
@@ -649,8 +648,8 @@ export default function App() {
             </p>
           </div>
           <div className="landing-card">
-            <div className="comic-banner" style={{ background: 'var(--nowhere-yellow)', marginBottom: '1.5rem' }}>
-              <h2 className="landing-heading" style={{ margin: 0 }}>📺 What does he do?</h2>
+            <div className="comic-banner comic-banner--yellow">
+              <h2 className="landing-heading">📺 What does he do?</h2>
             </div>
             <p>
               Treat this as his mini browser world. Tap him to trigger reactions. Change scenes in menubar. Courage fetches real news every hour — good headlines make him wag, bad ones make him
@@ -670,8 +669,8 @@ export default function App() {
 
         {/* Tokenomics */}
         <section className="landing-section tokenomics-section">
-          <div className="comic-banner" style={{ background: 'white', marginBottom: '2rem' }}>
-            <h2 className="landing-heading section-title" style={{ margin: 0 }}>📊 Tokenomics</h2>
+          <div className="comic-banner">
+            <h2 className="landing-heading section-title">📊 Tokenomics</h2>
           </div>
           <div className="token-grid">
             <div className="token-card">
@@ -699,20 +698,20 @@ export default function App() {
 
         {/* Buy $RCR CTA */}
         <section className="landing-section buy-cta-section">
-          <div className="comic-banner" style={{ background: 'var(--courage-pink)', marginBottom: '1.5rem' }}>
-            <h2 className="landing-heading section-title" style={{ margin: 0, color: 'white' }}>🐾 Get $RCR</h2>
+          <div className="comic-banner comic-banner--pink">
+            <h2 className="landing-heading section-title">🐾 Get $RCR</h2>
           </div>
           <p className="buy-cta-sub">Trade on Solana — Ser.</p>
           <div className="buy-cta-row">
-            <a href="#" className="buy-cta-btn brutal-btn" style={{ background: '#333', color: 'white' }}>🔭 DexScreener</a>
-            <a href="#" className="buy-cta-btn brutal-btn" style={{ background: 'var(--courage-pink)', color: 'white' }}>🐾 Buy $RCR</a>
+            <a href="#" className="brutal-btn brutal-btn--dark">🔭 DexScreener</a>
+            <a href="#" className="brutal-btn brutal-btn--pink">🐾 Buy $RCR</a>
           </div>
         </section>
 
         {/* How to buy */}
         <section className="landing-section howtobuy-section container">
-          <div className="comic-banner wiggle" style={{ background: 'white', marginBottom: '3rem' }}>
-            <h2 className="landing-heading section-title" style={{ margin: 0 }}>🛒 How to Get $RCR</h2>
+          <div className="comic-banner wiggle">
+            <h2 className="landing-heading section-title">🛒 How to Get $RCR</h2>
           </div>
           <div className="steps-list">
             <div className="step-item">
@@ -748,13 +747,13 @@ export default function App() {
 
         {/* Community */}
         <section className="landing-section community-section">
-          <div className="comic-banner" style={{ background: 'var(--courage-purple)', marginBottom: '1.5rem' }}>
-            <h2 className="landing-heading section-title" style={{ margin: 0, color: 'white' }}>🌐 Join the Pack</h2>
+          <div className="comic-banner comic-banner--purple">
+            <h2 className="landing-heading section-title">🌐 Join the Pack</h2>
           </div>
           <p className="community-sub">The most anxious community in crypto</p>
           <div className="community-links" style={{ display: 'flex', justifyContent: 'center', gap: '2rem' }}>
-            <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer" className="brutal-btn" style={{ background: '#1DA1F2', color: 'white', borderRadius: '50px' }}>𝕏 Twitter</a>
-            <a href="#" className="brutal-btn" style={{ background: '#24A1DE', color: 'white', borderRadius: '50px' }}>✈️ Telegram</a>
+            <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer" className="brutal-btn brutal-btn--round brutal-btn--blue">𝕏 Twitter</a>
+            <a href="#" className="brutal-btn brutal-btn--round" style={{ background: '#24A1DE', color: 'white' }}>✈️ Telegram</a>
           </div>
         </section>
       </div>

@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Outfit:wght@400;700;900&display=swap');
 
 :root {
-  --courage-pink: #FF69B4;
-  --courage-purple: #2D1B4B;
+  --courage-pink: #eb57c1;
+  --courage-purple: #c247ff;
   --nowhere-yellow: #E5D352;
   --brutal-black: #000000;
   --brutal-shadow: 4px 4px 0px #000000;
@@ -62,7 +62,7 @@ body {
   box-shadow: 0px 0px 0px var(--brutal-black);
 }
 
-/* ── Comic Banners (Hoppo Style) ── */
+/* ── Comic Banners (Standardized) ── */
 .comic-banner {
   display: inline-block;
   padding: 1.5rem 4rem;
@@ -74,14 +74,27 @@ body {
     2% 5%, 95% 2%, 100% 15%, 98% 85%, 95% 98%, 5% 95%, 0% 80%, 2% 20%
   );
   box-shadow: 10px 10px 0px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
 }
+
+.comic-banner--pink { background: var(--courage-pink); color: white; }
+.comic-banner--yellow { background: var(--nowhere-yellow); }
+.comic-banner--purple { background: var(--courage-purple); color: white; }
 
 .comic-banner h2, .comic-banner h1 {
   font-family: 'Bangers', cursive;
   margin: 0;
   letter-spacing: 2px;
-  text-shadow: none;
 }
+
+/* ── Standardized Buttons ── */
+.brutal-btn--round {
+  border-radius: 50px;
+}
+
+.brutal-btn--pink { background: var(--courage-pink); color: white; }
+.brutal-btn--blue { background: #1DA1F2; color: white; }
+.brutal-btn--dark { background: #333; color: white; }
 
 .wiggle {
   animation: wiggle 4s infinite ease-in-out;
