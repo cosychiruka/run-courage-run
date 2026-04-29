@@ -15,8 +15,6 @@ import WelcomeTour from './components/WelcomeTour';
 import { fetchTopNews } from './services/newsService';
 import { analyzeSentiment } from './utils/sentimentUtils';
 import { createVoiceService } from './services/voiceService';
-import Roadmap from "./components/ui/Roadmap";
-import TeaserGrid from "./components/ui/TeaserGrid";
 
 const EveningWorld3D = React.lazy(() => import('./components/3d/EveningWorld3D'));
 
@@ -527,15 +525,6 @@ export default function App() {
         )}
       </nav>
 
-      {/* ── NEW: Hero Title ── */}
-      <div className="container" style={{ marginTop: '6rem' }}>
-        <div className="comic-banner wiggle">
-          <h1 style={{ fontSize: '3.5rem', color: 'white', WebkitTextStroke: '2px var(--courage-purple)' }}>
-            RUN COURAGE RUN
-          </h1>
-        </div>
-      </div>
-
       {/* ── Hero section ── */}
       <section className="hero-section">
         <div className="hero-center">
@@ -643,56 +632,79 @@ export default function App() {
       <div className="landing-wrapper">
 
         {/* About */}
-        <section className="landing-section about-section container" style={{ display: 'grid', gap: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', background: 'transparent', boxShadow: 'none' }}>
-          <div className="brutal-card" style={{ background: 'white' }}>
-            <h2 className="landing-heading" style={{ fontSize: '2rem', marginBottom: '1rem' }}>🐕 Who is $RCR?</h2>
-            <p style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
+        <section className="landing-section about-section">
+          <div className="landing-card">
+            <div className="comic-banner" style={{ background: 'white', marginBottom: '1.5rem' }}>
+              <h2 className="landing-heading" style={{ margin: 0 }}>🐕 Who is $RCR?</h2>
+            </div>
+            <p>
               Tribute to Courage the Cowardly Dog — Cartoon Network 1999–2002. Always watching the TV and reading Newspapers. He faced
               every monster for Muriel, and he&rsquo;d face them all again. We re-animated Courage to life making him self-aware in a interactable 3D world. He lives entirely
               inside your browser.{' '}
-              <a href="https://courage.fandom.com/wiki/Courage_the_Cowardly_Dog" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--courage-pink)', fontWeight: 'bold' }}>
+              <code>border-radius</code>.{' '}
+              <a href="https://courage.fandom.com/wiki/Courage_the_Cowardly_Dog" target="_blank" rel="noopener noreferrer">
                 Read his lore &rarr;
               </a>
             </p>
           </div>
-          <div className="brutal-card" style={{ background: 'var(--nowhere-yellow)' }}>
-            <h2 className="landing-heading" style={{ fontSize: '2rem', marginBottom: '1rem' }}>📺 What does he do?</h2>
-            <p style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
+          <div className="landing-card">
+            <div className="comic-banner" style={{ background: 'var(--nowhere-yellow)', marginBottom: '1.5rem' }}>
+              <h2 className="landing-heading" style={{ margin: 0 }}>📺 What does he do?</h2>
+            </div>
+            <p>
               Treat this as his mini browser world. Tap him to trigger reactions. Change scenes in menubar. Courage fetches real news every hour — good headlines make him wag, bad ones make him
               literally <strong>explode from fear</strong> then reassemble. He hosts meme TV
-              channels and streams old Courage toons. Just a scared dog doing his best.
+              channels and streams old Courage toons via the{' '}
+              <a href="https://archive.org/details/courage-the-cowardly-dog-1080p-ai-upscale" target="_blank" rel="noopener noreferrer">
+                Internet Archive
+              </a>
+              . Follow his dispatches on{' '}
+              <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer">
+                @runcouragerun
+              </a>
+              . Just a scared dog doing his best.
             </p>
           </div>
         </section>
 
         {/* Tokenomics */}
-        <section className="landing-section tokenomics-section container" style={{ background: 'transparent', boxShadow: 'none' }}>
-          <div className="comic-banner" style={{ background: 'white', transform: 'rotate(1deg)' }}>
-            <h2 className="landing-heading section-title" style={{ fontSize: '3rem', margin: 0 }}>📊 Tokenomics</h2>
+        <section className="landing-section tokenomics-section">
+          <div className="comic-banner" style={{ background: 'white', marginBottom: '2rem' }}>
+            <h2 className="landing-heading section-title" style={{ margin: 0 }}>📊 Tokenomics</h2>
           </div>
-          <div className="token-grid" style={{ marginTop: '3rem' }}>
-            {[
-              { icon: '💊', label: 'Total Supply', val: '1,000,000,000' },
-              { icon: '🔥', label: 'Liquidity', val: 'Locked' },
-              { icon: '📈', label: 'Tax', val: '0.5%' },
-              { icon: '🐕', label: 'Dev Wallet', val: '0% (he\'s a dog)' }
-            ].map((t, i) => (
-              <div key={i} className="brutal-card" style={{ background: i % 2 === 0 ? 'var(--courage-pink)' : 'white' }}>
-                <span style={{ fontSize: '3rem' }}>{t.icon}</span>
-                <h4 style={{ margin: '1rem 0 0.5rem', opacity: 0.7 }}>{t.label}</h4>
-                <p style={{ fontSize: '1.5rem', fontWeight: '900' }}>{t.val}</p>
-              </div>
-            ))}
+          <div className="token-grid">
+            <div className="token-card">
+              <span className="token-icon">💊</span>
+              <span className="token-label">Total Supply</span>
+              <span className="token-value">1,000,000,000</span>
+            </div>
+            <div className="token-card">
+              <span className="token-icon">🔥</span>
+              <span className="token-label">Liquidity</span>
+              <span className="token-value">Locked</span>
+            </div>
+            <div className="token-card">
+              <span className="token-icon">📈</span>
+              <span className="token-label">Tax</span>
+              <span className="token-value">0.5%</span>
+            </div>
+            <div className="token-card">
+              <span className="token-icon">🐕</span>
+              <span className="token-label">Dev Wallet</span>
+              <span className="token-value">0% (he's a dog)</span>
+            </div>
           </div>
         </section>
 
         {/* Buy $RCR CTA */}
         <section className="landing-section buy-cta-section">
-          <h2 className="landing-heading section-title">🐾 Get $RCR</h2>
+          <div className="comic-banner" style={{ background: 'var(--courage-pink)', marginBottom: '1.5rem' }}>
+            <h2 className="landing-heading section-title" style={{ margin: 0, color: 'white' }}>🐾 Get $RCR</h2>
+          </div>
           <p className="buy-cta-sub">Trade on Solana — Ser.</p>
           <div className="buy-cta-row">
-            <a href="#" className="buy-cta-btn buy-cta-btn--dex">🔭 DexScreener</a>
-            <a href="#" className="buy-cta-btn buy-cta-btn--buy">🐾 Buy $RCR</a>
+            <a href="#" className="buy-cta-btn brutal-btn" style={{ background: '#333', color: 'white' }}>🔭 DexScreener</a>
+            <a href="#" className="buy-cta-btn brutal-btn" style={{ background: 'var(--courage-pink)', color: 'white' }}>🐾 Buy $RCR</a>
           </div>
         </section>
 
@@ -732,19 +744,17 @@ export default function App() {
         </section>
 
         {/* Community */}
-        <section className="landing-section community-section container" style={{ background: 'var(--courage-purple)', color: 'white', padding: '4rem 2rem', border: '4px solid black' }}>
-          <h2 className="landing-heading section-title" style={{ color: 'white', WebkitTextStroke: '0' }}>🌐 Join the Pack</h2>
-          <p className="community-sub" style={{ fontSize: '1.5rem', marginBottom: '2rem', opacity: 0.8 }}>The most anxious community in crypto</p>
-          <div className="community-links" style={{ display: 'flex', justifyContent: 'center', gap: '2rem' }}>
-            <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer" className="brutal-btn" style={{ background: '#1DA1F2', color: 'white' }}>𝕏 Twitter</a>
-            <a href="#" className="brutal-btn" style={{ background: '#24A1DE', color: 'white' }}>✈️ Telegram</a>
+        <section className="landing-section community-section">
+          <div className="comic-banner" style={{ background: 'var(--courage-purple)', marginBottom: '1.5rem' }}>
+            <h2 className="landing-heading section-title" style={{ margin: 0, color: 'white' }}>🌐 Join the Pack</h2>
+          </div>
+          <p className="community-sub">The most anxious community in crypto</p>
+          <div className="community-links">
+            <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer" className="community-btn brutal-btn" style={{ background: '#1DA1F2', color: 'white' }}>𝕏 Twitter</a>
+            <a href="#" className="community-btn brutal-btn" style={{ background: '#24A1DE', color: 'white' }}>✈️ Telegram</a>
           </div>
         </section>
       </div>
-
-      {/* ── NEW: Roadmap & Teasers ── */}
-      <Roadmap />
-      <TeaserGrid />
 
       {/* ── NewsTV overlay ── */}
       {newsOpen && (
