@@ -1,6 +1,13 @@
-FROM python:3.11-slim
+# Stage 1: Build the React frontend
+FROM node:18-alpine as build-stage
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
 
-# System deps for faster-whisper + kokoro-onnx + playwright
+# Stage 2: Final Python environment
+FROM python:3.11-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libsndfile1 \
@@ -9,20 +16,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+# Install Python deps
 COPY server/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download Whisper base.en model at build time
+# Pre-download models
 RUN python -c "from faster_whisper import WhisperModel; WhisperModel('base.en', device='cpu', compute_type='int8')"
-
-# Pre-download Kokoro TTS models (v1.0)
 RUN wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
 RUN wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
 
-# Install Playwright Chromium for news-card screenshot (tweet images)
+# Playwright for card rendering
 RUN playwright install chromium --with-deps
 
+# Copy backend code
 COPY server/ .
+
+# Copy built frontend assets from Stage 1
+COPY --from=build-stage /app/dist /app/static
 
 # Data directory for SQLite DB
 RUN mkdir -p /app/data

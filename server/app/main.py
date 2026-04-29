@@ -14,8 +14,10 @@ import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, FileResponse
+from fastapi.staticfiles import StaticFiles
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import os
 
 from app.config import FRONTEND_ORIGIN, OLLAMA_HOST, REDIS_URL
 from app.news_cache import (
@@ -257,3 +259,27 @@ async def voice_ws(ws: WebSocket):
             await ws.send_text(json.dumps({"type": "error", "message": str(e)}))
         except Exception:
             pass
+
+# ── Static Files (Frontend) ──────────────────────────────────────────────────
+# Mount the built React app. Serve index.html for any unknown paths (SPA)
+
+if os.path.exists("/app/static"):
+    app.mount("/static", StaticFiles(directory="/app/static"), name="static")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        # Skip if it's an API or WS route
+        if full_path.startswith("api") or full_path.startswith("ws") or full_path.startswith("health"):
+            return Response(status_code=404)
+            
+        # Check if the file exists in static folder
+        file_path = os.path.join("/app/static", full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+            
+        # Otherwise serve index.html for SPA routing
+        return FileResponse("/app/static/index.html")
+else:
+    @app.get("/")
+    async def root_fallback():
+        return {"message": "Courage Backend is running. Frontend assets not found in /app/static. Build issue?"}
