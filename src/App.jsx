@@ -538,7 +538,7 @@ export default function App() {
       {/* ── Hero section ── */}
       <section className={`hero-section${scrolled ? ' hero-section--hidden' : ''}`}>
         <div className="hero-center">
-          <div className="hero-badge">
+          <div className={`hero-badge${scrolled ? ' hero-badge--hidden' : ''}`}>
             <span className="hero-badge-dot" />
             Live on Solana
           </div>
@@ -745,14 +745,14 @@ export default function App() {
         </section>
 
         {/* Community */}
-        <section className="landing-section container glass-panel">
-          <div className="comic-banner comic-banner--purple">
-            <h2 className="landing-heading section-title">🌐 Join the Pack</h2>
+        <section className="landing-section container glass-panel" style={{ padding: '2rem' }}>
+          <div className="comic-banner comic-banner--pink">
+            <h2 className="landing-heading">🌐 Join the Pack</h2>
           </div>
           <p className="community-sub">The most anxious community in crypto</p>
           <div className="community-links" style={{ display: 'flex', justifyContent: 'center', gap: '2rem' }}>
             <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer" className="brutal-btn brutal-btn--blue">𝕏 Twitter</a>
-            <a href="#" className="brutal-btn" style={{ background: '#24A1DE', color: 'white' }}>✈️ Telegram</a>
+            <a href="#" className="brutal-btn brutal-btn--pink">✈️ Telegram</a>
           </div>
         </section>
       </div>

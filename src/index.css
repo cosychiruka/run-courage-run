@@ -58,7 +58,7 @@ body {
   text-decoration: none !important;
   border: var(--brutal-border) !important;
   box-shadow: 4px 4px 0px var(--brutal-black) !important;
-  border-radius: 50px !important; /* THE CHOICE: ROUND EVERYWHERE */
+  border-radius: 50px !important;
   cursor: pointer !important;
   transition: all 0.1s ease !important;
   letter-spacing: 1px !important;
@@ -78,7 +78,7 @@ body {
   display: inline-block;
   padding: 0.6rem 2rem;
   background: white;
-  color: var(--brutal-black) !important; /* FIX: NO WHITE ON WHITE */
+  color: var(--brutal-black) !important;
   border: var(--brutal-border);
   position: relative;
   transform: rotate(-1deg);
@@ -89,9 +89,9 @@ body {
   margin-bottom: 2rem;
 }
 
-.comic-banner--pink { background: var(--courage-pink); color: white !important; }
-.comic-banner--yellow { background: var(--nowhere-yellow); color: var(--brutal-black) !important; }
-.comic-banner--purple { background: var(--courage-purple); color: white !important; }
+.comic-banner--pink { background: var(--courage-pink) !important; color: white !important; }
+.comic-banner--yellow { background: var(--nowhere-yellow) !important; color: var(--brutal-black) !important; }
+.comic-banner--purple { background: var(--courage-purple) !important; color: white !important; }
 
 .comic-banner h2, .comic-banner h1, .comic-banner .landing-heading {
   font-family: 'Bangers', cursive !important;
@@ -101,43 +101,19 @@ body {
 }
 
 /* ── Scroll-based Fading ── */
-.hero-section, .sticky-actions {
+.hero-section, .sticky-actions, .hero-badge {
   transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease;
   opacity: 1;
 }
 
-.hero-section--hidden, .sticky-actions--hidden {
+.hero-section--hidden, .sticky-actions--hidden, .hero-badge--hidden {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transform: translateY(20px);
 }
 
-.wiggle {
-  animation: wiggle 4s infinite ease-in-out;
-}
-
-@keyframes wiggle {
-  0%, 100% { transform: rotate(-1deg) scale(1); }
-  50% { transform: rotate(1.5deg) scale(1.02); }
-}
-
-.sticky-actions {
-  position: fixed;
-  bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 1rem;
-  z-index: 100;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255,255,255,0.2);
-  border-radius: 50px;
-}
-
-/* -- Restoration of Side-by-Side Layout -- */
+/* ── Restoration of Side-by-Side Layout ── */
 .about-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -156,4 +132,75 @@ body {
   text-align: left;
   border: var(--brutal-border);
   box-shadow: 8px 8px 0px rgba(0,0,0,0.2);
+}
+
+/* ── Modern Modals (NewsTV & WelcomeTour) ── */
+.news-tv-wrapper, .tour-card {
+  background: rgba(20, 20, 20, 0.8) !important;
+  backdrop-filter: blur(20px) !important;
+  border: var(--brutal-border) !important;
+  border-radius: 30px !important;
+  box-shadow: 0 0 50px rgba(0,0,0,0.5) !important;
+  color: white !important;
+}
+
+.news-tv-brand, .tour-title {
+  font-family: 'Bangers', cursive !important;
+  color: var(--courage-pink) !important;
+  letter-spacing: 2px;
+}
+
+/* ── How to Buy List ── */
+.steps-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.step-item {
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px);
+  border: var(--brutal-border) !important;
+  border-radius: 25px !important;
+  padding: 1.5rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  transition: transform 0.2s ease;
+}
+
+.step-item:hover {
+  transform: translateY(-5px);
+}
+
+.step-num {
+  background: var(--courage-pink) !important;
+  color: white !important;
+  font-family: 'Bangers', cursive !important;
+  font-size: 1.5rem !important;
+  width: 50px !important;
+  height: 50px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-bottom: 1rem !important;
+  border: 3px solid black !important;
+}
+
+.sticky-actions {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1rem;
+  z-index: 100;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 50px;
 }
