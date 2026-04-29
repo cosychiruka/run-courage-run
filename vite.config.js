@@ -9,6 +9,17 @@ config();
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  base: './', // For serving from subdirectory on Sliplane
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
   resolve: {
     alias: {
       '@images': path.resolve(__dirname, './src/assets/images'),
