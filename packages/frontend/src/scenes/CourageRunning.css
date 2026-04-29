@@ -1,0 +1,881 @@
+.runnercourage {
+  position: fixed;
+  bottom: 18%; /* RAISED HIGHER - better ground positioning */
+  height: 230px;
+  width: 200px;
+  left: 0; /* Start from the very left */
+  animation: runLoop 8s linear infinite; /* 8s per loop: 4s each way */
+}
+
+/* Mobile running adjustments */
+@media (max-width: 768px) {
+  .runnercourage {
+    bottom: 35%; /* Position higher on mobile */
+    height: 160px; /* Scale down proportionally */
+    width: 140px;
+  }
+}
+
+@keyframes runLoop {
+  0% {
+    transform: translateX(10vw) rotateY(0deg);
+  }
+  50% {
+    transform: translateX(70vw) rotateY(0deg); /* Move just close to the right end */
+  }
+  51% {
+    transform: translateX(70vw) rotateY(180deg); /* Rotate at the right end */
+  }
+  100% {
+    transform: translateX(10vw) rotateY(180deg); /* Return to the start */
+  }
+}
+
+/* Mobile: scale the runner down by baking scale() into a new keyframe set.
+   We CANNOT just set transform:scale() because the animation overrides it.
+   Keyframe order: scale first (rightmost = applied first), then flip, then translate. */
+@media (max-width: 500px) {
+  .runnercourage {
+    transform-origin: bottom left;
+    animation-name: runLoopMobile;
+  }
+}
+
+@keyframes runLoopMobile {
+  0%   { transform: translateX(20vw)  rotateY(0deg)   scale(0.65); }
+  50%  { transform: translateX(70vw) rotateY(0deg)   scale(0.65); }
+  51%  { transform: translateX(70vw) rotateY(180deg) scale(0.65); }
+  100% { transform: translateX(20vw)  rotateY(180deg) scale(0.65); }
+}
+
+.runnercourage-head {
+  width: 180px;
+  height: 95px;
+  position: relative;
+  z-index: 3;
+  -webkit-animation: head 150ms steps(5) infinite alternate;
+          animation: head 150ms steps(5) infinite alternate;
+}
+
+@-webkit-keyframes head {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(10%);
+  }
+}
+
+@keyframes head {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(10%);
+  }
+}
+.runnercourage-head-rear {
+  width: 85px;
+  height: 60px;
+  position: absolute;
+  top: 15px;
+  left: 8px;
+  border-radius: 50% 50% 0 0%;
+  background-color: #f09dd1;
+  transform: rotate(-5deg);
+  box-shadow: 3px -5px 0 -3px black, -5px -2px 0 -3px black, -5px 2px 0 -3px black;
+}
+
+.runnercourage-head-nose {
+  width: 125px;
+  height: 50px;
+  position: absolute;
+  right: 20%;
+  bottom: 5%;
+  background-color: #f09dd1;
+  border-radius: 70%;
+  transform: rotate(10deg);
+  box-shadow: 3px -5px 0 -3px black, 4px 18px 0 -16px black;
+}
+
+@-webkit-keyframes ear {
+  0% {
+    transform: rotate(-22deg);
+  }
+  100% {
+    transform: rotate(-30deg);
+  }
+}
+
+@keyframes ear {
+  0% {
+    transform: rotate(-22deg);
+  }
+  100% {
+    transform: rotate(-30deg);
+  }
+}
+.runnercourage-ear-left, .runnercourage-ear-right {
+  position: absolute;
+  width: 9px;
+  height: 34px;
+  border-radius: 0 50% 50% 50%;
+  background-color: black;
+  transform-origin: bottom center;
+  transform: rotate(-25deg);
+  -webkit-animation: ear 150ms steps(5) infinite alternate;
+          animation: ear 150ms steps(5) infinite alternate;
+}
+.runnercourage-ear-left:after, .runnercourage-ear-right:after {
+  content: " ";
+  display: block;
+  width: 14px;
+  height: 60px;
+  border-radius: 50% 20% 0 50%;
+  background-color: black;
+  position: absolute;
+  bottom: 29px;
+  right: 2px;
+  transform-origin: bottom center;
+  transform: rotate(-45deg);
+}
+
+.runnercourage-ear-left {
+  left: 16px;
+  bottom: 67px;
+}
+.runnercourage-ear-left:after {
+  -webkit-animation: ear-left-after 150ms steps(5) infinite alternate;
+          animation: ear-left-after 150ms steps(5) infinite alternate;
+}
+
+@-webkit-keyframes ear-left-after {
+  0% {
+    transform: rotate(-40deg);
+  }
+  100% {
+    transform: rotate(-50deg);
+  }
+}
+
+@keyframes ear-left-after {
+  0% {
+    transform: rotate(-40deg);
+  }
+  100% {
+    transform: rotate(-50deg);
+  }
+}
+.runnercourage-ear-right {
+  left: 52px;
+  bottom: 77px;
+}
+.runnercourage-ear-right:after {
+  transform: rotate(-35deg);
+  -webkit-animation: ear-right-after 150ms steps(5) infinite alternate;
+          animation: ear-right-after 150ms steps(5) infinite alternate;
+}
+
+@-webkit-keyframes ear-right-after {
+  0% {
+    transform: rotate(-30deg);
+  }
+  100% {
+    transform: rotate(-45deg);
+  }
+}
+
+@keyframes ear-right-after {
+  0% {
+    transform: rotate(-30deg);
+  }
+  100% {
+    transform: rotate(-45deg);
+  }
+}
+.runnercourage-eye-front, .runnercourage-eye-rear {
+  width: 42px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: white;
+  position: absolute;
+  top: 0;
+  transform: rotate(-10deg);
+  box-shadow: inset 0 -1px 0 3px black;
+}
+.runnercourage-eye-front:before, .runnercourage-eye-rear:before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 20px;
+  left: 10px;
+  width: 6px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: black;
+  -webkit-animation: eye-pupil-front 7500ms ease-in-out infinite alternate;
+          animation: eye-pupil-front 7500ms ease-in-out infinite alternate;
+}
+.runnercourage-eye-front:after, .runnercourage-eye-rear:after {
+  content: " ";
+  display: block;
+  position: absolute;
+  width: 70%;
+  padding-top: 70%;
+}
+
+.runnercourage-eye-front {
+  left: 53px;
+}
+.runnercourage-eye-front:after {
+  bottom: 68%;
+  left: 53%;
+  border-radius: 0% 0 0 100%;
+  box-shadow: inset 16px 0px 0 -8px black;
+  transform: rotate(-25deg) skewX(6deg) scaleY(1.1);
+}
+
+@-webkit-keyframes eye-pupil-front {
+  0% {
+    transform: translateX(0);
+  }
+  40% {
+    transform: translateX(0);
+  }
+  60% {
+    transform: translate(20px, 5px);
+  }
+  100% {
+    transform: translate(20px, 5px);
+  }
+}
+
+@keyframes eye-pupil-front {
+  0% {
+    transform: translateX(0);
+  }
+  40% {
+    transform: translateX(0);
+  }
+  60% {
+    transform: translate(20px, 5px);
+  }
+  100% {
+    transform: translate(20px, 5px);
+  }
+}
+.runnercourage-eye-rear {
+  top: 12px;
+  left: 17px;
+}
+.runnercourage-eye-rear:after {
+  bottom: 68%;
+  right: 55%;
+  border-radius: 0% 0 100% 0;
+  box-shadow: inset -16px 0px 0 -8px black;
+  transform: rotate(20deg);
+}
+
+.runnercourage-nose {
+  width: 130px;
+  height: 30px;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  transform: rotate(-10deg);
+}
+
+.runnercourage-nose-cheek-left,
+.runnercourage-nose-cheek-right {
+  width: 40%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  background-color: #f09dd1;
+  border-radius: 50%;
+}
+
+.runnercourage-nose-cheek-left {
+  left: 0;
+  box-shadow: 3px 6px 0 -3px black, -3px 6px 0 -3px black, -6px 2px 0 -3px black;
+}
+
+.runnercourage-nose-cheek-right {
+  right: 0;
+  box-shadow: inset 0 0 0 3px black;
+}
+
+.runnercourage-nose-tip {
+  width: 80px;
+  height: 30px;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  z-index: 1;
+  background-color: black;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scaleY(0.8);
+}
+.runnercourage-nose-tip:after, .runnercourage-nose-tip:before {
+  content: " ";
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: black;
+}
+.runnercourage-nose-tip:after {
+  transform-origin: 10% 45%;
+  transform: rotate(45deg) scaleX(0.8);
+}
+.runnercourage-nose-tip:before {
+  transform-origin: 90% 45%;
+  transform: rotate(-45deg) scaleX(0.8);
+}
+
+.runnercourage-nose-shadow {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: #995111;
+  transform-origin: center;
+  transform: scaleX(0.9) scaleY(0.9) translateY(8%);
+}
+.runnercourage-nose-shadow:after {
+  content: " ";
+  display: block;
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 15px -12px 0 -10px black;
+  border-radius: 50%;
+  transform-origin: center left;
+  transform: translateY(5%) rotate(-11deg);
+}
+
+.runnercourage-mouth-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 75px;
+  border-radius: 50%;
+  box-shadow: inset 95px 0 0 -20px #b40200;
+}
+
+.runnercourage-mouth {
+  position: absolute;
+  top: 70px;
+  left: -7px;
+  width: 100px;
+  height: 75px;
+  border-radius: 50%;
+  box-shadow: -5px -5px 0 -5px black, -7px 0px 0 -5px black, -3px 5px 0 -4px black, 0px 5px 0 -4px black;
+  z-index: 2;
+  -webkit-animation: head 150ms steps(5) infinite alternate;
+          animation: head 150ms steps(5) infinite alternate;
+}
+.runnercourage-mouth:before {
+  content: " ";
+  display: block;
+  position: absolute;
+  bottom: 9px;
+  right: 10px;
+  width: 25px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #f09dd1;
+  box-shadow: inset 0 0 0 1px;
+}
+.runnercourage-mouth:after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 75px;
+  border-radius: 50%;
+  z-index: 2;
+  box-shadow: inset 3px 3px 0px 0px #f09dd1, inset 3px -3px 0px 0px #f09dd1, inset 4px 0 0px 0px #f09dd1, inset 6px 1px 0px 0px black, inset 5px -4px 0px 0px black, inset 2px 6px 0px 0px black;
+}
+
+.runnercourage-body {
+  position: absolute;
+  width: 70px;
+  height: 100px;
+  transform: rotate(-10deg);
+  border-radius: 50%;
+  z-index: 1;
+  left: 6px;
+  -webkit-animation: body 150ms steps(5) infinite alternate;
+          animation: body 150ms steps(5) infinite alternate;
+}
+.runnercourage-body:before {
+  content: " ";
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: #f09dd1;
+  box-shadow: 4px 3px 0 -3px black, -4px 1px 0 -2px black, -1px 2px 0 0px black;
+}
+.runnercourage-body:after {
+  content: " ";
+  display: block;
+  width: 10px;
+  height: 20px;
+  background-color: black;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  border-radius: 0 50% 50% 30%;
+}
+
+@-webkit-keyframes body {
+  0% {
+    transform: rotate(-5deg);
+  }
+  100% {
+    transform: rotate(-15deg);
+  }
+}
+
+@keyframes body {
+  0% {
+    transform: rotate(-5deg);
+  }
+  100% {
+    transform: rotate(-15deg);
+  }
+}
+.runnercourage-leg-back, .runnercourage-leg-front {
+  position: absolute;
+  border-radius: 0 0 50% 50%;
+  width: 8px;
+  height: 40px;
+  background-color: #f09dd1;
+  transform-origin: center top;
+  box-shadow: inset 0px 0px 0 2px;
+  z-index: -1;
+}
+.runnercourage-leg-back:after, .runnercourage-leg-back:before, .runnercourage-leg-front:after, .runnercourage-leg-front:before {
+  content: " ";
+  display: block;
+  width: 90%;
+  padding-top: 80%;
+  background-color: #f09dd1;
+  border-radius: 50%;
+  position: absolute;
+  bottom: 0%;
+  transform: translateY(-60%);
+}
+.runnercourage-leg-back:after, .runnercourage-leg-front:after {
+  right: 50%;
+  box-shadow: inset 3px 0px 0 -2px, inset 3px 2px 0 -2px, inset 3px -2px 0 -2px;
+}
+.runnercourage-leg-back:before, .runnercourage-leg-front:before {
+  left: 50%;
+  box-shadow: inset -3px 0px 0 -2px, inset -3px 2px 0 -2px, inset -3px -2px 0 -2px;
+}
+
+.runnercourage-leg-back {
+  left: 25%;
+  top: 85%;
+  transform: rotate(20deg);
+  z-index: 1;
+  box-shadow: inset 0px 7px #f09dd1, inset 0px 0px 0 2px;
+  -webkit-animation: leg-back 150ms steps(5) infinite alternate;
+          animation: leg-back 150ms steps(5) infinite alternate;
+}
+
+@-webkit-keyframes leg-back {
+  0% {
+    transform: rotate(70deg);
+  }
+  100% {
+    transform: rotate(-30deg);
+  }
+}
+
+@keyframes leg-back {
+  0% {
+    transform: rotate(70deg);
+  }
+  100% {
+    transform: rotate(-30deg);
+  }
+}
+.runnercourage-leg-front {
+  top: 85%;
+  left: 55%;
+  box-shadow: inset 0px 0px 0 2px, inset 0px 21px 0 -3px;
+  -webkit-animation: leg-front 150ms steps(5) infinite alternate;
+          animation: leg-front 150ms steps(5) infinite alternate;
+}
+
+@-webkit-keyframes leg-front {
+  0% {
+    transform: rotate(-50deg);
+  }
+  100% {
+    transform: rotate(50deg);
+  }
+}
+
+@keyframes leg-front {
+  0% {
+    transform: rotate(-50deg);
+  }
+  100% {
+    transform: rotate(50deg);
+  }
+}
+.runnercourage-arm-front, .runnercourage-arm-back {
+  position: absolute;
+  border-radius: 0 0 50% 50%;
+  width: 8px;
+  height: 50px;
+  background-color: #f09dd1;
+  transform-origin: center top;
+  box-shadow: inset 0px 0px 0 2px;
+  z-index: 1;
+}
+.runnercourage-arm-front:after, .runnercourage-arm-front:before, .runnercourage-arm-back:after, .runnercourage-arm-back:before {
+  content: " ";
+  display: block;
+  width: 90%;
+  padding-top: 80%;
+  background-color: #f09dd1;
+  border-radius: 50%;
+  position: absolute;
+  bottom: 0%;
+  transform: translateY(-60%);
+}
+.runnercourage-arm-front:after, .runnercourage-arm-back:after {
+  right: 50%;
+  box-shadow: inset 3px 0px 0 -2px, inset 3px 2px 0 -2px, inset 3px -2px 0 -2px;
+}
+.runnercourage-arm-front:before, .runnercourage-arm-back:before {
+  left: 50%;
+  box-shadow: inset -3px 0px 0 -2px, inset -3px 2px 0 -2px, inset -3px -2px 0 -2px;
+}
+
+.runnercourage-arm-front {
+  top: -40%;
+  left: 140%;
+  transform: rotate(-130deg);
+  -webkit-animation: arm-front 150ms steps(5) infinite alternate;
+          animation: arm-front 150ms steps(5) infinite alternate;
+}
+
+@-webkit-keyframes arm-front {
+  0% {
+    transform: rotate(-90deg);
+  }
+  100% {
+    transform: rotate(-170deg);
+  }
+}
+
+@keyframes arm-front {
+  0% {
+    transform: rotate(-90deg);
+  }
+  100% {
+    transform: rotate(-170deg);
+  }
+}
+.runnercourage-arm-back {
+  transform: rotate(110deg);
+  top: 5px;
+  right: 100%;
+  -webkit-animation: arm-back 150ms steps(5) infinite alternate;
+          animation: arm-back 150ms steps(5) infinite alternate;
+}
+
+@-webkit-keyframes arm-back {
+  0% {
+    transform: rotate(150deg);
+  }
+  100% {
+    transform: rotate(70deg);
+  }
+}
+
+@keyframes arm-back {
+  0% {
+    transform: rotate(150deg);
+  }
+  100% {
+    transform: rotate(70deg);
+  }
+}
+.runnercourage-tail, .runnercourage-tail-black {
+  position: absolute;
+  top: 70%;
+  right: 84%;
+  border: 10px solid transparent;
+  border-right: 20px solid #f09dd1;
+  transform: rotate(-17deg);
+  z-index: -1;
+}
+.runnercourage-tail:before, .runnercourage-tail:after, .runnercourage-tail-black:before, .runnercourage-tail-black:after {
+  content: " ";
+  display: block;
+  border: 10px solid transparent;
+  position: absolute;
+}
+.runnercourage-tail:before, .runnercourage-tail-black:before {
+  border-top: 10px solid #f09dd1;
+  bottom: -14px;
+  left: 0;
+  transform: rotate(20deg);
+}
+.runnercourage-tail:after, .runnercourage-tail-black:after {
+  border-bottom: 10px solid #f09dd1;
+  top: -14px;
+  left: 0;
+  transform: rotate(-20deg);
+}
+
+.runnercourage-tail-black {
+  border-right: 22px solid black;
+}
+.runnercourage-tail-black:after {
+  border-bottom: 12px solid black;
+}
+.runnercourage-tail-black:before {
+  border-top: 12px solid black;
+}
+
+.runnercourage-tooth-top, .runnercourage-tooth-bottom {
+  background-color: #f1f09e;
+  border-radius: 20% 20% 40% 40%;
+  width: 20px;
+  height: 30px;
+  box-shadow: inset 0 0 0 1px;
+  position: absolute;
+  z-index: 1;
+}
+
+.runnercourage-tooth-top {
+  top: 5px;
+  left: 16px;
+  transform-origin: top center;
+  transform: rotate(-10deg);
+}
+
+.runnercourage-tooth-top:nth-child(2) {
+  top: 10px;
+  left: 50px;
+  transform: rotate(20deg);
+}
+
+.runnercourage-tooth-top:nth-child(3) {
+  top: 20px;
+  left: 75px;
+  transform: rotate(15deg);
+}
+
+.runnercourage-tooth-top:nth-child(4) {
+  top: 5px;
+  left: 125px;
+  transform: rotate(-20deg);
+}
+
+.runnercourage-tooth-bottom {
+  border-radius: 40% 40% 20% 20%;
+  transform-origin: bottom center;
+  bottom: 7px;
+  left: 16px;
+  transform: rotate(10deg);
+}
+
+.runnercourage-tooth-bottom:nth-child(6) {
+  bottom: 3px;
+  left: 55px;
+  transform: rotate(-20deg);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   VOICE: brake + talk + gesture
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Slam the brakes — settle at center-left, slight overshoot wobble */
+.runnercourage.is-talking {
+  animation: runBrake 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+}
+
+@keyframes runBrake {
+  0%   { transform: translateX(38vw) rotateY(0deg); }
+  55%  { transform: translateX(42vw) rotateY(0deg); }
+  75%  { transform: translateX(36vw) rotateY(0deg); }
+  100% { transform: translateX(39vw) rotateY(0deg); }
+}
+
+/* Dust puff at feet */
+.runnercourage.is-talking::before {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  left: 20px;
+  width: 54px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(200,170,120,0.55) 0%, transparent 70%);
+  pointer-events: none;
+  animation: dustPuff 0.9s ease-out forwards !important;
+}
+
+@keyframes dustPuff {
+  0%   { opacity: 0;   transform: scale(0.4) translateX(0px);   }
+  25%  { opacity: 0.9; transform: scale(1.3) translateX(-18px); }
+  100% { opacity: 0;   transform: scale(2.2) translateX(-38px); }
+}
+
+/* Freeze all limb animations */
+.runnercourage.is-talking .runnercourage-head,
+.runnercourage.is-talking .runnercourage-ear-left,
+.runnercourage.is-talking .runnercourage-ear-left::after,
+.runnercourage.is-talking .runnercourage-ear-right,
+.runnercourage.is-talking .runnercourage-ear-right::after,
+.runnercourage.is-talking .runnercourage-body,
+.runnercourage.is-talking .runnercourage-leg-back,
+.runnercourage.is-talking .runnercourage-leg-front,
+.runnercourage.is-talking .runnercourage-arm-front,
+.runnercourage.is-talking .runnercourage-arm-back,
+.runnercourage.is-talking .runnercourage-eye-front::before,
+.runnercourage.is-talking .runnercourage-eye-rear::before,
+.runnercourage.is-talking .runnercourage-mouth {
+  animation: none !important;
+}
+
+/* Mouth mostly closed while listening */
+.runnercourage.is-talking .runnercourage-mouth {
+  transform-origin: top center;
+  transform: scaleY(0.22);
+}
+
+/* Mouth opens and talks while speaking (overrides above) */
+.runnercourage.is-speaking .runnercourage-mouth {
+  transform-origin: top center;
+  animation: runnerTalk 0.36s ease-in-out infinite !important;
+}
+
+@keyframes runnerTalk {
+  0%   { transform: scaleY(0.22); }
+  40%  { transform: scaleY(1.0);  }
+  60%  { transform: scaleY(1.0);  }
+  100% { transform: scaleY(0.22); }
+}
+
+/* Mobile brake (preserve scale) */
+@media (max-width: 500px) {
+  .runnercourage.is-talking {
+    animation: runBrakeMobile 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+  }
+  @keyframes runBrakeMobile {
+    0%   { transform: translateX(28vw) rotateY(0deg) scale(0.65); }
+    55%  { transform: translateX(32vw) rotateY(0deg) scale(0.65); }
+    75%  { transform: translateX(26vw) rotateY(0deg) scale(0.65); }
+    100% { transform: translateX(29vw) rotateY(0deg) scale(0.65); }
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BRAKED IDLE — gestures while standing still at the mic
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Arm-front waves upward toward the descending mic cord */
+.runnercourage.is-talking .runnercourage-arm-front {
+  animation: brakedArmWave 2.6s ease-in-out infinite !important;
+  transform-origin: top center !important;
+}
+@keyframes brakedArmWave {
+  0%, 100% { transform: rotate(-130deg); }
+  35%       { transform: rotate( -78deg); }
+  65%       { transform: rotate(-112deg); }
+}
+
+/* Arm-back: lazy sympathetic swing */
+.runnercourage.is-talking .runnercourage-arm-back {
+  animation: brakedArmBack 3.1s ease-in-out infinite 0.7s !important;
+}
+@keyframes brakedArmBack {
+  0%, 100% { transform: rotate(0deg); }
+  40%       { transform: rotate(-14deg); }
+  70%       { transform: rotate(  6deg); }
+}
+
+/* ── LISTENING: eyes track up-right toward mic ── */
+.runnercourage.is-listening .runnercourage-eye-front::before {
+  animation: none !important;
+  transform: translate(14px, -6px) !important;
+}
+.runnercourage.is-listening .runnercourage-eye-rear::before {
+  animation: none !important;
+  transform: translate(8px, -6px) !important;
+}
+
+/* ── THINKING: eyes drift up-right searching for thoughts ── */
+.runnercourage.is-thinking .runnercourage-eye-front::before {
+  animation: runnerThinkEye 2.5s ease-in-out infinite !important;
+}
+@keyframes runnerThinkEye {
+  0%, 100% { transform: translate(12px, -4px); }
+  50%       { transform: translate(16px, -9px); }
+}
+
+/* ── SPEAKING: arm pump, head nod, body bounce, ear flap ── */
+.runnercourage.is-speaking .runnercourage-arm-front {
+  animation: runnerSpeakArm 0.58s ease-in-out infinite !important;
+  transform-origin: top center !important;
+}
+@keyframes runnerSpeakArm {
+  0%, 100% { transform: rotate(-130deg); }
+  28%       { transform: rotate( -70deg); }
+  62%       { transform: rotate(-118deg); }
+}
+
+.runnercourage.is-speaking .runnercourage-arm-back {
+  animation: runnerSpeakArmBack 0.71s ease-in-out infinite 0.18s !important;
+}
+@keyframes runnerSpeakArmBack {
+  0%, 100% { transform: rotate(  0deg); }
+  35%       { transform: rotate(-22deg); }
+  68%       { transform: rotate(  8deg); }
+}
+
+.runnercourage.is-speaking .runnercourage-head {
+  animation: runnerSpeakNod 0.72s ease-in-out infinite !important;
+  transform-origin: bottom center;
+}
+@keyframes runnerSpeakNod {
+  0%, 100% { transform: translateY(  0px) rotate(-1deg); }
+  38%       { transform: translateY(-6px) rotate( 2.5deg); }
+  72%       { transform: translateY(-2px) rotate(-0.5deg); }
+}
+
+.runnercourage.is-speaking .runnercourage-body {
+  animation: runnerSpeakBounce 0.72s ease-in-out infinite !important;
+  transform-origin: bottom center;
+}
+@keyframes runnerSpeakBounce {
+  0%, 100% { transform: scaleY(1.00) scaleX(1.00) translateY(  0px); }
+  35%       { transform: scaleY(1.04) scaleX(0.97) translateY(-3px); }
+  68%       { transform: scaleY(0.97) scaleX(1.02) translateY( 1px); }
+}
+
+.runnercourage.is-speaking .runnercourage-ear-left {
+  animation: runnerSpeakEar 0.55s ease-in-out infinite 0.08s !important;
+}
+@keyframes runnerSpeakEar {
+  0%, 100% { transform: rotate(  0deg); }
+  40%       { transform: rotate(-14deg) translateY(-5px); }
+  75%       { transform: rotate(  7deg); }
+}

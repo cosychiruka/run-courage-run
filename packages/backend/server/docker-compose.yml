@@ -1,0 +1,62 @@
+version: '3.9'
+
+services:
+  # ── Local LLM (qwen2.5-coder:7b — best tool-caller on Ollama) ──────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: courage_ollama
+    volumes:
+      - ollama_models:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+
+  # ── Pull model on first run ────────────────────────────────────────────────
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: courage_ollama_pull
+    volumes:
+      - ollama_models:/root/.ollama
+    entrypoint: >
+      sh -c "sleep 8 && ollama pull ${OLLAMA_MODEL:-qwen2.5-coder:7b}"
+    depends_on:
+      - ollama
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    restart: on-failure
+
+  # ── Redis (rate limits + news cache TTL) ───────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: courage_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # ── FastAPI backend ─────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    container_name: courage_backend
+    ports:
+      - "8000:8000"
+    env_file: ../.env
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - ollama
+      - redis
+    volumes:
+      - ./app:/app/app          # hot-reload in dev
+      - courage_db:/app/data    # SQLite persistence
+    restart: unless-stopped
+
+volumes:
+  ollama_models:
+  redis_data:
+  courage_db:

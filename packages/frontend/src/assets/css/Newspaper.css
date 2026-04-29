@@ -1,0 +1,440 @@
+#newspaper-container {
+    overflow: hidden;
+}
+
+.swal-newspaper-popup {
+    width: 100%;
+    max-width: 1200px;
+    height: 100%;
+    max-height: 650px;
+    border-radius: 10px;
+    padding: 0;
+    overflow: hidden;
+
+    background: #22252d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+    text-align: center;
+    color: #040404;
+    font-size: 12px;
+    animation: zoomIn 0.6s ease-out;
+  }
+
+  @keyframes zoomIn {
+    0% {
+      transform: scale(0.5); /* Start small */
+      opacity: 0; /* Start with transparency */
+    }
+    100% {
+      transform: scale(1); /* End at the normal size */
+      opacity: 1; /* Full opacity */
+    }
+  }
+  
+  .swal2-close {
+    color: white; /* Close button color */
+  }
+
+  .swal-newspaper-popup #swal2-html-container {
+    padding: 0;
+  }
+
+  .swal-newspaper-popup h2.swal2-title {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    padding: 0;
+  }
+
+.newspaper-paper {
+    background: #a7a7a7;
+    width: 90%;
+    padding: 0 15px 16px;
+    box-sizing: border-box;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+    overflow: visible;
+    animation: newspaper-paper-appear 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards;
+    margin: 8px auto;
+    text-align: center;
+  }
+  
+  .newspaper-banner {
+    display: flex;
+    justify-content: space-between;
+    color: #ca0302;
+    border-bottom: 2px solid #040404;
+    margin-bottom: 15px;
+  }
+  
+  .newspaper-heading {
+    display: grid;
+    grid-template-columns: 1fr 4fr 1fr;
+    grid-gap: 15px;
+    border-bottom: 2px solid #040404;
+  }
+  
+  .newspaper-title {
+    margin: 0;
+    color: #222;
+    font-size: 2.5em;
+    font-weight: 900;
+  }
+  
+  .newspaper-body {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-gap: 0.5em;
+    color: #222;
+    font-size: 1.125em;
+  }
+
+  .newspaper-col_1 h3{
+    margin-bottom: 0;
+  }
+
+  .newspaper-col_2 figure {
+    margin-inline: 10px;
+  }
+
+  .newspaper-col_2 p {
+    margin-top: 0;
+    padding-left: 15px;
+    box-sizing: border-box;
+    text-align: left;
+  }
+
+  .newspaper-col_2 h3 {
+    line-break: anywhere;
+    margin-bottom: 0;
+  }
+  
+  .newspaper-col_3 {
+    grid-column: span 2;
+  }
+
+  .newspaper-col_3 h3{
+    margin: 1em 0 0;
+  }
+  
+  .newspaper-cols_2 {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    grid-gap: 10px;
+  }
+  
+  .newspaper-al_l {
+    text-align: left;
+  }
+  
+  .newspaper-p_t {
+    height: 100%;
+  }
+  
+  .newspaper-p_l {
+    padding-left: 15px;
+  }
+  
+  .newspaper-p_r {
+    padding-right: 15px;
+  }
+  
+  .newspaper-p_b {
+    padding-bottom: 15px;
+  }
+  
+  .newspaper-indent {
+    text-indent: 15px;
+  }
+  
+  .newspaper-b_t {
+    border-top: 2px solid #040404;
+  }
+  
+  .newspaper-b_r {
+    border-right: 2px solid #040404;
+  }
+  
+  .newspaper-b_b {
+    border-bottom: 2px solid #040404;
+  }
+  
+  .newspaper-b_l {
+    border-left: 2px solid #040404;
+  }
+  
+  .newspaper-paper img {
+    width: 100%;
+    display: block;
+    margin: 0;
+  }
+  
+  @keyframes newspaper-paper-appear {
+    0%   { opacity: 0;   transform: scale(0.15) rotate(0deg) translateY(-80px); }
+    55%  { opacity: 1;   transform: scale(1.04) rotate(1078deg) translateY(8px); }
+    75%  { transform: scale(0.97) rotate(1436deg) translateY(-4px); }
+    100% { opacity: 1;   transform: scale(1) rotate(1440deg) translateY(0); }
+  }
+
+  /* Targeting h2 elements inside the newspaper-banner */
+.newspaper-banner h2 {
+    font-size: 2rem;
+    line-height: 3rem;
+    margin: 0;
+    color: #ca0302; /* Color for banner h2 elements */
+  }
+  
+  /* Targeting the specific h1 inside the newspaper-heading */
+  .newspaper-heading h1 {
+    font-size: 4.25rem;
+    margin: 10px 0;
+    border-bottom: 2px solid #040404;
+    color: #040404;
+  }
+  
+  /* Targeting the h3 element inside the newspaper-heading */
+  .newspaper-heading h3 {
+    font-size: 1.5rem;
+    line-height: 2.5rem;
+    margin: 0 0 10px;
+    color: #040404;
+  }
+  
+  /* Targeting the h2 elements inside the newspaper-banner */
+  .newspaper-banner h2 {
+    font-size: 2.5rem;
+    line-height: 4rem;
+    margin: 0;
+    color: #ca0302; /* Color for banner h2 elements */
+  }
+  
+  /* Specific styling for 'Game' and 'Over' repeating h2 elements in the banner */
+  .newspaper-banner h2:nth-child(odd) {
+    font-weight: bold;
+  }
+  
+  .newspaper-banner h2:nth-child(even) {
+    font-style: italic;
+  }
+  
+  /* Specific styling for the title_right h2 (Morning Final) */
+  .newspaper-title_right {
+    font-size: 1.85rem;
+    color: #040404;
+    margin-top: 15px;
+    text-transform: uppercase;
+  }
+  
+  /* Specific styling for the title_center h1 */
+  .newspaper-title_center h1 {
+    font-size: 2.65rem;
+    color: #040404;
+    border-bottom: 2px solid #040404;
+  }
+  
+  /* Styling for the title_center h3 */
+  .newspaper-title_center h3 {
+    font-size: 1.2rem;
+    line-height: 2rem;
+    color: #040404;
+  }
+
+/* ── Real-news controls — sticky at top of scroll area ──────────── */
+.newspaper-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #1a1a1a;
+  border-bottom: 1px solid #eb57c1;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  flex-shrink: 0;
+}
+
+.newspaper-controls select {
+  background: #111;
+  color: #eb57c1;
+  border: 1px solid #eb57c1;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+
+.newspaper-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.newspaper-nav button {
+  background: #222;
+  color: #eb57c1;
+  border: 1px solid #eb57c1;
+  border-radius: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: background 0.15s;
+}
+.newspaper-nav button:hover:not(:disabled) { background: #eb57c1; color: #000; }
+.newspaper-nav button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.newspaper-nav span {
+  color: #aaa;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.65rem;
+  white-space: nowrap;
+}
+
+/* ── In-newspaper action buttons ──────────────────────────────────── */
+.newspaper-ask-btn {
+  display: block;
+  width: calc(100% - 15px);
+  margin: 8px 0 6px 15px;
+  padding: 5px 0;
+  background: linear-gradient(135deg, #9945FF, #eb57c1);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.65rem;
+  cursor: pointer;
+  text-align: center;
+}
+.newspaper-ask-btn:hover { filter: brightness(1.15); }
+
+.newspaper-full-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: center;
+  margin: 0 0 0 15px;
+  padding: 4px 0;
+  color: #14F195;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.6rem;
+  text-decoration: none;
+}
+.newspaper-full-btn:hover { text-decoration: underline; }
+
+.newspaper-download-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: center;
+  margin: 6px 0 0 15px;
+  padding: 3px 8px;
+  background: none;
+  border: 1px solid rgba(153, 69, 255, 0.5);
+  border-radius: 3px;
+  color: #9945FF;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.6rem;
+  cursor: pointer;
+}
+.newspaper-download-btn:hover { background: rgba(153,69,255,0.12); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MOBILE — readable single-column newspaper layout
+   ══════════════════════════════════════════════════════════════════════════ */
+@keyframes newspaper-paper-appear-mobile {
+  0%   { opacity: 0; transform: scale(0.88) translateY(12px); }
+  100% { opacity: 1; transform: scale(1)    translateY(0);    }
+}
+
+@media (max-width: 600px) {
+  /* Controls: stack country + category on one row, nav below */
+  .newspaper-controls {
+    gap: 5px;
+    padding: 5px 8px;
+  }
+  .newspaper-controls select {
+    font-size: 0.6rem;
+    padding: 3px 4px;
+  }
+  .newspaper-nav {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+  }
+  .newspaper-nav span { font-size: 0.6rem; }
+
+  /* Paper: full width, tighter padding, simple fade-in instead of 1440° spin */
+  .newspaper-paper {
+    width: 100%;
+    padding: 0 8px 10px;
+    margin: 4px auto;
+    animation: newspaper-paper-appear-mobile 0.35s ease-out forwards !important;
+  }
+
+  /* Banner: shrink and tighten */
+  .newspaper-banner h2 {
+    font-size: 0.78rem;
+    line-height: 1.4rem;
+  }
+
+  /* Masthead heading */
+  .newspaper-heading {
+    grid-gap: 6px;
+  }
+  .newspaper-heading h1,
+  .newspaper-title_center h1 {
+    font-size: 1.5rem;
+    margin: 6px 0;
+  }
+  .newspaper-heading h3,
+  .newspaper-title_center h3 {
+    font-size: 0.7rem;
+    line-height: 1.3rem;
+    margin: 0 0 5px;
+  }
+  .newspaper-title_right {
+    font-size: 0.8rem;
+    margin-top: 8px;
+  }
+
+  /* Article headline */
+  .newspaper-title {
+    font-size: 1.15em;
+    margin: 4px 0;
+  }
+
+  /* Body: single column stacked */
+  .newspaper-body {
+    grid-template-columns: 1fr;
+    grid-gap: 0.3em;
+    font-size: 0.85em;
+  }
+  .newspaper-col_3 {
+    grid-column: span 1;
+  }
+
+  /* Image: constrain height so it doesn't dominate */
+  .newspaper-col_2 figure {
+    margin-inline: 0;
+  }
+  .newspaper-paper img {
+    height: 140px;
+    object-fit: cover;
+  }
+
+  /* Action buttons full-width in single column */
+  .newspaper-ask-btn {
+    width: 100%;
+    margin: 6px 0;
+    font-size: 0.7rem;
+  }
+  .newspaper-full-btn,
+  .newspaper-download-btn {
+    margin-left: 0;
+    justify-content: flex-start;
+    font-size: 0.65rem;
+  }
+}

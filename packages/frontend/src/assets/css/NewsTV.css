@@ -1,0 +1,195 @@
+/* ── News TV Full-Screen Overlay ───────────────────────────────────────── */
+
+.news-tv-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+  animation: newsOverlayIn 0.25s ease-out;
+}
+
+@keyframes newsOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.news-tv-wrapper {
+  position: relative;
+  width: min(580px, 92vw);
+  display: flex;
+  flex-direction: column;
+  background: #1a1a1a;
+  border-radius: 18px 18px 6px 6px;
+  border: 3px solid #eb57c1;
+  box-shadow: 0 0 40px #eb57c188, 0 0 80px #9945FF44;
+  animation: newsTvIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes newsTvIn {
+  from { transform: scale(0.7) translateY(30px); opacity: 0; }
+  to   { transform: scale(1) translateY(0);      opacity: 1; }
+}
+
+/* CRT scan lines */
+.news-tv-scanlines {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px 18px 6px 6px;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.06) 2px,
+    rgba(0, 0, 0, 0.06) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Top bar */
+.news-tv-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 8px;
+  border-bottom: 2px solid #eb57c1;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.news-tv-brand {
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.75rem;
+  color: #eb57c1;
+  letter-spacing: 2px;
+  font-weight: bold;
+  text-shadow: 0 0 8px #eb57c1;
+}
+
+.news-emotion-chip {
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  color: #000;
+  font-weight: bold;
+  transition: background 0.4s;
+}
+
+.news-tv-close {
+  background: rgba(0, 0, 0, 0.65);
+  border: 2px solid #eb57c1;
+  color: #fff;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+.news-tv-close svg { color: #fff; fill: #fff; }
+.news-tv-close:hover {
+  background: #ff4545;
+  border-color: #ff4545;
+  transform: scale(1.15);
+}
+.news-tv-close:hover svg { color: #fff; fill: #fff; }
+
+/* Main screen — scrollable so full articles can be read */
+.news-tv-screen-area {
+  padding: 0;
+  max-height: 72vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 2;
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #eb57c1 #111;
+}
+.news-tv-screen-area::-webkit-scrollbar { width: 5px; }
+.news-tv-screen-area::-webkit-scrollbar-track { background: #111; }
+.news-tv-screen-area::-webkit-scrollbar-thumb { background: #eb57c1; border-radius: 3px; }
+
+/* Loading */
+.news-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  gap: 16px;
+  color: #eb57c1;
+}
+
+.news-spinner {
+  font-size: 2rem;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* TV stand legs removed — clean modal, no decorative legs */
+
+/* ── Mobile: bottom-sheet style, no outer scroll ─────────────────────────── */
+@media (max-width: 600px) {
+  .news-tv-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .news-tv-wrapper {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    max-height: 92dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .news-tv-scanlines {
+    border-radius: 16px 16px 0 0;
+  }
+
+  .news-tv-topbar {
+    padding: 10px 10px 8px;
+    flex-shrink: 0;
+  }
+
+  .news-tv-brand {
+    font-size: 0.62rem;
+    letter-spacing: 1px;
+  }
+
+  .news-tv-close {
+    width: 28px;
+    height: 28px;
+    font-size: 0.85rem;
+  }
+
+  /* Screen area fills remaining height — internal scroll for articles only */
+  .news-tv-screen-area {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    padding: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}

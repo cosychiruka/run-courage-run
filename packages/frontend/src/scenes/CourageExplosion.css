@@ -1,0 +1,251 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   COURAGE EXPLOSION / REASSEMBLY MECHANIC
+   Three phases: exploding → heaping → reassembling
+   Applied as classes on #courageCharacter
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── BOOM flash text ──────────────────────────────────────────────────────── */
+#courageCharacter.exploding::before {
+  content: "💥 BOOM";
+  position: absolute;
+  top: -60px;
+  left: -20px;
+  font-size: 1.6rem;
+  font-family: 'Comic Sans MS', sans-serif;
+  color: #ff4545;
+  text-shadow: 0 0 12px #ff4545;
+  animation: boomFlash 0.8s ease-out forwards;
+  pointer-events: none;
+  z-index: 999;
+}
+
+@keyframes boomFlash {
+  0%   { transform: scale(0); opacity: 1; }
+  60%  { transform: scale(1.4); opacity: 1; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+/* ── EXPLODING: parts scatter outward ────────────────────────────────────── */
+#courageCharacter.exploding * {
+  transition: all 0.85s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  animation-play-state: paused !important;
+}
+
+#courageCharacter.exploding .head {
+  transform: translate(-160px, -280px) rotate(50deg) scale(0.85) !important;
+}
+#courageCharacter.exploding .ear.left {
+  transform: translate(-180px, -340px) rotate(-100deg) !important;
+  transition-delay: 0.06s !important;
+}
+#courageCharacter.exploding .ear.right {
+  transform: translate(200px, -220px) rotate(110deg) !important;
+  transition-delay: 0.04s !important;
+}
+#courageCharacter.exploding .eye-container:not(.right) {
+  transform: translate(-170px, -180px) rotate(-60deg) !important;
+  transition-delay: 0.08s !important;
+}
+#courageCharacter.exploding .eye-container.right {
+  transform: translate(160px, -250px) rotate(70deg) !important;
+  transition-delay: 0.1s !important;
+}
+#courageCharacter.exploding .cheek.left {
+  transform: translate(-240px, 60px) rotate(-40deg) !important;
+  transition-delay: 0.05s !important;
+}
+#courageCharacter.exploding .cheek.right {
+  transform: translate(220px, 80px) rotate(45deg) !important;
+  transition-delay: 0.07s !important;
+}
+#courageCharacter.exploding .nouse {
+  transform: translate(20px, 280px) rotate(30deg) !important;
+  transition-delay: 0.09s !important;
+}
+#courageCharacter.exploding .body {
+  transform: translate(0px, 200px) rotate(20deg) scale(0.9) !important;
+  transition-delay: 0.03s !important;
+}
+#courageCharacter.exploding .leg.top.left {
+  transform: translate(-260px, 180px) rotate(-80deg) !important;
+  transition-delay: 0.11s !important;
+}
+#courageCharacter.exploding .leg.top.right {
+  transform: translate(240px, 200px) rotate(90deg) !important;
+  transition-delay: 0.12s !important;
+}
+#courageCharacter.exploding .leg.bottom.left {
+  transform: translate(-200px, 260px) rotate(-70deg) !important;
+  transition-delay: 0.14s !important;
+}
+#courageCharacter.exploding .leg.bottom.right {
+  transform: translate(200px, 300px) rotate(80deg) !important;
+  transition-delay: 0.15s !important;
+}
+
+/* ── HEAPING: all parts converge toward character centre ─────────────────── */
+#courageCharacter.heaping * {
+  transition: all 0.55s ease-in !important;
+  animation-play-state: paused !important;
+}
+
+#courageCharacter.heaping .head,
+#courageCharacter.heaping .ear.left,
+#courageCharacter.heaping .ear.right,
+#courageCharacter.heaping .eye-container,
+#courageCharacter.heaping .eye-container.right,
+#courageCharacter.heaping .cheek.left,
+#courageCharacter.heaping .cheek.right,
+#courageCharacter.heaping .nouse,
+#courageCharacter.heaping .body,
+#courageCharacter.heaping .leg.top.left,
+#courageCharacter.heaping .leg.top.right,
+#courageCharacter.heaping .leg.bottom.left,
+#courageCharacter.heaping .leg.bottom.right {
+  transform: translate(8px, 55px) scale(0.75) !important;
+}
+
+/* ── REASSEMBLING: parts snap back in assembly order ─────────────────────── */
+#courageCharacter.reassembling * {
+  animation-play-state: paused !important;
+}
+
+/* Body is the foundation — goes first */
+#courageCharacter.reassembling .body {
+  transform: none !important;
+  transition: all 0.35s 0.0s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+/* Head attaches to body */
+#courageCharacter.reassembling .head {
+  transform: none !important;
+  transition: all 0.35s 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+/* Ears on head */
+#courageCharacter.reassembling .ear.left {
+  transform: none !important;
+  transition: all 0.3s 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+#courageCharacter.reassembling .ear.right {
+  transform: none !important;
+  transition: all 0.3s 0.24s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+/* Eyes slot in */
+#courageCharacter.reassembling .eye-container:not(.right) {
+  transform: none !important;
+  transition: all 0.3s 0.32s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+#courageCharacter.reassembling .eye-container.right {
+  transform: none !important;
+  transition: all 0.3s 0.36s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+/* Cheeks and nose */
+#courageCharacter.reassembling .cheek.left {
+  transform: none !important;
+  transition: all 0.28s 0.44s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+#courageCharacter.reassembling .cheek.right {
+  transform: none !important;
+  transition: all 0.28s 0.48s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+#courageCharacter.reassembling .nouse {
+  transform: none !important;
+  transition: all 0.28s 0.52s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+/* Legs — top then bottom */
+#courageCharacter.reassembling .leg.top.left {
+  transform: none !important;
+  transition: all 0.3s 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+#courageCharacter.reassembling .leg.top.right {
+  transform: none !important;
+  transition: all 0.3s 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+#courageCharacter.reassembling .leg.bottom.left {
+  transform: none !important;
+  transition: all 0.3s 0.72s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+#courageCharacter.reassembling .leg.bottom.right {
+  transform: none !important;
+  transition: all 0.3s 0.78s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+/* Final bounce pop once fully assembled */
+#courageCharacter.assembled {
+  animation: assembledPop 0.5s ease-out !important;
+}
+@keyframes assembledPop {
+  0%   { transform: scale(0.85); }
+  60%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* ── "GONNA BLOW" trigger button ─────────────────────────────────────────── */
+.explosion-trigger-btn {
+  position: fixed;
+  bottom: 22%;
+  left: 3%;
+  background: linear-gradient(135deg, #ff4545, #ff8800);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.75rem;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 500;
+  box-shadow: 0 0 14px #ff454588;
+  animation: triggerPulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes triggerPulse {
+  from { box-shadow: 0 0 8px  #ff454566; transform: scale(1);    }
+  to   { box-shadow: 0 0 24px #ff4545cc; transform: scale(1.06); }
+}
+
+/* ── Mouse interaction classes ────────────────────────────────────────────── */
+
+/* Petting (click head) — stars float up */
+#courageCharacter.petted .head {
+  animation: headPetted 0.5s ease-out !important;
+}
+@keyframes headPetted {
+  0%   { transform: rotate(0deg); }
+  25%  { transform: rotate(-8deg) scale(1.05); }
+  75%  { transform: rotate(8deg) scale(1.05); }
+  100% { transform: rotate(0deg); }
+}
+#courageCharacter.petted::after {
+  content: "⭐ ✨ ⭐";
+  position: absolute;
+  top: -80px;
+  left: -10px;
+  font-size: 1.2rem;
+  animation: starsFloat 1.5s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes starsFloat {
+  0%   { transform: translateY(0);    opacity: 1; }
+  100% { transform: translateY(-60px); opacity: 0; }
+}
+
+/* Poke (click body) — sideways flinch */
+#courageCharacter.poked {
+  animation: pokeFlinch 0.3s ease-out !important;
+}
+@keyframes pokeFlinch {
+  0%   { transform: translateX(0); }
+  30%  { transform: translateX(12px); }
+  70%  { transform: translateX(-8px); }
+  100% { transform: translateX(0); }
+}
+
+/* Background click — jump fright */
+#courageCharacter.frightened {
+  animation: frightJump 0.4s ease-out !important;
+}
+@keyframes frightJump {
+  0%   { transform: translateY(0); }
+  40%  { transform: translateY(-20px); }
+  100% { transform: translateY(0); }
+}

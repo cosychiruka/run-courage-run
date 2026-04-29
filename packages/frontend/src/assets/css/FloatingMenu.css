@@ -1,0 +1,26 @@
+.floating-menu {
+    position: fixed;
+    top: 20%;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    background-color: #eb57c1;
+    padding: 1em;
+    border-radius: 0 10px 10px 0;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+  }
+  
+  .floating-menu button {
+    background: none;
+    color: #fff;
+    border: none;
+    padding: 1em;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  
+  .floating-menu button:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
