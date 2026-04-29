@@ -31,11 +31,20 @@ from app.config import (
 
 # ── Redis connection ───────────────────────────────────────────────────────────
 _redis: Optional[aioredis.Redis] = None
+_redis_available: bool = True
 
-async def get_redis() -> aioredis.Redis:
-    global _redis
-    if _redis is None:
-        _redis = aioredis.from_url(REDIS_URL, decode_responses=True)
+async def get_redis() -> Optional[aioredis.Redis]:
+    global _redis, _redis_available
+    if _redis is None and _redis_available:
+        try:
+            _redis = aioredis.from_url(REDIS_URL, decode_responses=True)
+            # Short-circuit check: ping to see if host exists
+            await asyncio.wait_for(_redis.ping(), timeout=1.0)
+            print(f"[REDIS] Connected successfully to {REDIS_URL}")
+        except Exception as e:
+            print(f"[REDIS] Warning: Could not connect to {REDIS_URL}. Hot-cache disabled. Error: {e}")
+            _redis = None
+            _redis_available = False
     return _redis
 
 
@@ -77,25 +86,42 @@ def _budget_key(provider: str) -> str:
 
 async def budget_remaining(provider: str, daily_limit: int) -> int:
     r = await get_redis()
-    used = int(await r.get(_budget_key(provider)) or 0)
-    return max(0, daily_limit - used)
+    if not r: return daily_limit
+    try:
+        used = int(await r.get(_budget_key(provider)) or 0)
+        return max(0, daily_limit - used)
+    except Exception:
+        return daily_limit
 
 async def consume_budget(provider: str) -> bool:
     """Increment counter. Returns True if call is allowed, False if budget exhausted."""
     limit = GNEWS_DAILY_BUDGET if provider == "gnews" else NEWSAPI_DAILY_BUDGET
     r = await get_redis()
+    if not r: return True # allow if no redis
+    
     key = _budget_key(provider)
-    used = int(await r.get(key) or 0)
-    if used >= limit:
-        print(f"[BUDGET] {provider} daily limit reached ({used}/{limit}), skipping API call")
-        return False
-    await r.incr(key)
-    await r.expire(key, 86400)   # reset key TTL each increment (safety)
+    try:
+        used = int(await r.get(key) or 0)
+        if used >= limit:
+            print(f"[BUDGET] {provider} daily limit reached ({used}/{limit}), skipping API call")
+            return False
+        await r.incr(key)
+        await r.expire(key, 86400)
+    except Exception:
+        pass
     return True
 
 async def get_budget_status() -> dict:
-    gnews_used   = int(await (await get_redis()).get(_budget_key("gnews"))   or 0)
-    newsapi_used = int(await (await get_redis()).get(_budget_key("newsapi")) or 0)
+    r = await get_redis()
+    gnews_used = 0
+    newsapi_used = 0
+    if r:
+        try:
+            gnews_used   = int(await r.get(_budget_key("gnews"))   or 0)
+            newsapi_used = int(await r.get(_budget_key("newsapi")) or 0)
+        except Exception:
+            pass
+            
     return {
         "gnews":   {"used": gnews_used,   "limit": GNEWS_DAILY_BUDGET},
         "newsapi": {"used": newsapi_used, "limit": NEWSAPI_DAILY_BUDGET},
@@ -197,12 +223,20 @@ CACHE_TTL = 1800  # 30 minutes — up from 10 min to dramatically cut API calls
 
 async def cache_articles(articles: list[dict], country: str, category: str):
     r = await get_redis()
-    await r.set(f"news:{country}:{category}", json.dumps(articles), ex=CACHE_TTL)
+    if not r: return
+    try:
+        await r.set(f"news:{country}:{category}", json.dumps(articles), ex=CACHE_TTL)
+    except Exception:
+        pass
 
 async def get_cached_articles(country: str = "us", category: str = "general") -> Optional[list[dict]]:
     r = await get_redis()
-    raw = await r.get(f"news:{country}:{category}")
-    return json.loads(raw) if raw else None
+    if not r: return None
+    try:
+        raw = await r.get(f"news:{country}:{category}")
+        return json.loads(raw) if raw else None
+    except Exception:
+        return None
 
 
 # ── Guardian fetch (primary — 5000/day, no budget counter needed) ─────────────
