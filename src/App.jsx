@@ -568,15 +568,17 @@ export default function App() {
         )}
 
         {/* Enter 3D World — evening scene only; shows loading state while scene warms up */}
-        {_active === 'evening' && voiceState === null && !world3DVisible && (
-          <button
-            className={`enter-3d-btn brutal-btn brutal-btn--round brutal-btn--pink${world3DMounted ? ' enter-3d-btn--loading' : ''}`}
-            onClick={() => { if (!world3DMounted) setWorld3DMounted(true); }}
-            aria-label="Enter 3D evening world"
-          >
-            {world3DMounted ? '⏳ Loading…' : '🌆 Enter 3D World'}
-          </button>
-        )}
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
+          {_active === 'evening' && voiceState === null && !world3DVisible && (
+            <button
+              className={`enter-3d-btn brutal-btn brutal-btn--pink${world3DMounted ? ' enter-3d-btn--loading' : ''}`}
+              onClick={() => { if (!world3DMounted) setWorld3DMounted(true); }}
+              aria-label="Enter 3D evening world"
+            >
+              {world3DMounted ? '⏳ Loading…' : '🌆 Enter 3D World'}
+            </button>
+          )}
+        </div>
 
         {/* Midnight refusal bubble */}
         {midnightMsg && (
@@ -633,7 +635,7 @@ export default function App() {
 
         {/* About */}
         <section className="landing-section container glass-panel">
-          <div className="landing-card" style={{ background: 'transparent', boxShadow: 'none', border: 'none' }}>
+          <div className="landing-card" style={{ background: 'transparent', boxShadow: 'none', border: 'none', padding: 0 }}>
             <div className="comic-banner">
               <h2 className="landing-heading">🐕 Who is $RCR?</h2>
             </div>
@@ -697,9 +699,9 @@ export default function App() {
         </section>
 
         {/* Buy $RCR CTA */}
-        <section className="landing-section container glass-panel">
+        <section className="landing-section container glass-panel" style={{ textAlign: 'center' }}>
           <div className="comic-banner comic-banner--pink">
-            <h2 className="landing-heading section-title">🐾 Get $RCR</h2>
+            <h2 className="landing-heading">🐾 Get $RCR</h2>
           </div>
           <p className="buy-cta-sub">Trade on Solana — Ser.</p>
           <div className="buy-cta-row">
@@ -752,8 +754,8 @@ export default function App() {
           </div>
           <p className="community-sub">The most anxious community in crypto</p>
           <div className="community-links" style={{ display: 'flex', justifyContent: 'center', gap: '2rem' }}>
-            <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer" className="brutal-btn brutal-btn--round brutal-btn--blue">𝕏 Twitter</a>
-            <a href="#" className="brutal-btn brutal-btn--round" style={{ background: '#24A1DE', color: 'white' }}>✈️ Telegram</a>
+            <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer" className="brutal-btn brutal-btn--blue">𝕏 Twitter</a>
+            <a href="#" className="brutal-btn" style={{ background: '#24A1DE', color: 'white' }}>✈️ Telegram</a>
           </div>
         </section>
       </div>
