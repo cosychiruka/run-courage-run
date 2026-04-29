@@ -29,13 +29,14 @@ export function Terrain() {
 
   return (
     <mesh receiveShadow position={[0, -99.5, 0]}>
+      {/* Flattened large sphere to represent the curved horizon */}
       <sphereGeometry args={[100, 32, 32]} />
-      <meshStandardMaterial
-        color="#70129c"
-        roughness={1.0}
+      <meshStandardMaterial 
+        color="#70129c" 
+        roughness={1.0} 
         metalness={0.0}
-        bumpMap={noiseBumpMap}
-        bumpScale={0.12}
+        bumpMap={noiseBumpMap} 
+        bumpScale={0.12} 
       />
     </mesh>
   );

@@ -15,6 +15,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Pre-download Whisper base.en model at build time
 RUN python -c "from faster_whisper import WhisperModel; WhisperModel('base.en', device='cpu', compute_type='int8')"
 
+# Pre-download Kokoro TTS models (v1.0)
+RUN wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
+RUN wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
+
 # Install Playwright Chromium for news-card screenshot (tweet images)
 RUN playwright install chromium --with-deps
 
