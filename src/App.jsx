@@ -207,6 +207,16 @@ export default function App() {
     return () => clearInterval(id);
   }, [updateScene]);
 
+  // ── Scroll visibility for Hero ───────────────────────────────────────────
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // Apply body class for scene override (so background reflects the cycled scene)
   useEffect(() => {
     if (sceneOverride) {
@@ -526,7 +536,7 @@ export default function App() {
       </nav>
 
       {/* ── Hero section ── */}
-      <section className="hero-section">
+      <section className={`hero-section${scrolled ? ' hero-section--hidden' : ''}`}>
         <div className="hero-center">
           <div className="hero-badge">
             <span className="hero-badge-dot" />

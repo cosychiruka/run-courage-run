@@ -146,3 +146,14 @@ body {
   transform: translate(-1px, -1px);
   box-shadow: 4px 4px 0px black;
 }
+/* -- Hero Fade -- */
+.hero-section {
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+  opacity: 1;
+}
+
+.hero-section--hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
