@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { AppKit as App } from './App.jsx';
+import App from './App.jsx';
 import Swal from 'sweetalert2';
 
 const pawIconSvg = `
