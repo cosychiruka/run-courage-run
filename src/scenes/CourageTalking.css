@@ -174,6 +174,28 @@
 }
 
 /* ── Voice chat button — floats above the character ── */
+.voice-chat-btn {
+  position: absolute;
+  top: -56px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 241, 149, 0.12);
+  border: 1.5px solid rgba(20, 241, 149, 0.55);
+  color: #14F195;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  z-index: 20;
+  transition: all 0.3s ease;
+}
+
+.voice-chat-btn:hover {
+  background: rgba(20, 241, 149, 0.22);
+  border-color: #14F195;
+  transform: translateX(-50%) scale(1.05);
 }
 
 .voice-chat-btn.listening {

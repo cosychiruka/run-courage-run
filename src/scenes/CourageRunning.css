@@ -1,6 +1,6 @@
 .runnercourage {
   position: fixed;
-  bottom: 15%; /* RAISED HIGHER - better ground positioning */
+  bottom: 18%; /* RAISED HIGHER - better ground positioning */
   height: 230px;
   width: 200px;
   left: 0; /* Start from the very left */
@@ -10,9 +10,9 @@
 /* Mobile running adjustments */
 @media (max-width: 768px) {
   .runnercourage {
-    bottom: 15%; /* Position higher on mobile */
-    height: 180px; /* Scale down proportionally */
-    width: 160px;
+    bottom: 35%; /* Position higher on mobile */
+    height: 160px; /* Scale down proportionally */
+    width: 140px;
   }
 }
 
@@ -36,17 +36,16 @@
    Keyframe order: scale first (rightmost = applied first), then flip, then translate. */
 @media (max-width: 500px) {
   .runnercourage {
-    bottom: 8%;
     transform-origin: bottom left;
     animation-name: runLoopMobile;
   }
 }
 
 @keyframes runLoopMobile {
-  0%   { transform: translateX(5vw)  rotateY(0deg)   scale(0.65); }
-  50%  { transform: translateX(60vw) rotateY(0deg)   scale(0.65); }
-  51%  { transform: translateX(60vw) rotateY(180deg) scale(0.65); }
-  100% { transform: translateX(5vw)  rotateY(180deg) scale(0.65); }
+  0%   { transform: translateX(20vw)  rotateY(0deg)   scale(0.65); }
+  50%  { transform: translateX(70vw) rotateY(0deg)   scale(0.65); }
+  51%  { transform: translateX(70vw) rotateY(180deg) scale(0.65); }
+  100% { transform: translateX(20vw)  rotateY(180deg) scale(0.65); }
 }
 
 .runnercourage-head {

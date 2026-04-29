@@ -90,7 +90,7 @@ body {
   .courage.happy,
   .courage.scared,
   .courage.excited {
-    bottom: 18% !important; /* Higher positioning for better visibility */
+    bottom: 20% !important; /* Higher positioning for better visibility */
     left: 8% !important; /* More centered, not too far left */
   }
 }
@@ -2301,8 +2301,8 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 .voice-entry-btn {
   position: fixed;
   /* Desktop: Scared/Happy fixed at bottom:10% + character height ~185px = head level */
-  bottom: calc(10% + 190px);
-  left: calc(10% + 52px);
+  bottom: calc(25% + 190px);
+  left: calc(10%);
   font-size: 1.3rem;
   background: rgba(20, 241, 149, 0.1);
   border: 1.5px solid rgba(20, 241, 149, 0.4);
@@ -2552,6 +2552,8 @@ div:where(.swal2-container) div:where(.swal2-popup) {
    LANDING CONTENT
    ══════════════════════════════════════════════════════════════════════════ */
 .landing-wrapper {
+  position: relative;
+  z-index: 200;
   max-width: 860px;
   margin: 0 auto;
   padding: 2rem 1.2rem 8rem; /* extra bottom: clear sticky action bar */
@@ -2817,7 +2819,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   .about-section       { grid-template-columns: 1fr; }
   .token-grid          { grid-template-columns: 1fr; }
   .hero-tagline        { font-size: 1.15rem; }
-  .sticky-actions      { gap: 5px; padding: 6px 10px; bottom: 0.5rem; border-radius: 28px; }
+  .sticky-actions      { gap: 5px; padding: 5px 8px; bottom: 1.8rem; border-radius: 28px; }
   .hero-btn            { padding: 7px 11px; font-size: 0.76rem; gap: 5px; }
   /* Nav shrinks on mobile — bubble gets cramped, just hide it */
   .scene-thought-bubble { display: none; }
@@ -2897,15 +2899,16 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   #courageCharacter {
     transform: scale(0.78);
     transform-origin: bottom left;
-    bottom: 110px !important;
-    left: 2% !important;
   }
 
   /* Entry mic button: align with character head on mobile
      Character floor = 110px, scaled height ~179px, head at ~135px above floor */
   .voice-entry-btn {
-    bottom: calc(10% + 300px); /* FIXED: was 110px + 135px - TOO HIGH */
-    left: calc(10% + 52px); /* FIXED: was 2% + 42px - TOO FAR RIGHT */
+    bottom: calc(25% + 250px); /* FIXED: was 110px + 135px - TOO HIGH */
+    left: calc(5%); /* FIXED: was 2% + 42px - TOO FAR RIGHT */
+    width: 30px;
+    height: 30px;
+    padding: 0.5em;
   }
 }
 
@@ -2988,7 +2991,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 .mic-drop-wrap .voice-exit-btn {
   position: fixed;
   top: 14px;
-  right: 14px;
+  right: 20px;
   bottom: auto;
   left: auto;
   z-index: 35;
@@ -2997,8 +3000,8 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 /* Mobile: Courage brakes to ~29vw, character floor 110px (above sticky bar) */
 @media (max-width: 500px) {
   .mic-drop-wrap {
-    left: 23vw;
-    bottom: calc(110px + 135px); /* floor 110px + scaled head height 135px */
+    left: 15vw;
+    bottom: calc(20% + 135px); /* floor 110px + scaled head height 135px */
   }
 }
 
@@ -3047,13 +3050,13 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 
 .enter-3d-btn {
   position: fixed;
-  bottom: calc(10% + 270px);
-  left: calc(10% + 22px);
+  bottom: calc(30%);
+  left: calc(45%);
   background: linear-gradient(135deg, #240046, #b90082, #ff1a9c);
   color: #fff;
   border: 1px solid rgba(255, 26, 156, 0.7);
-  border-radius: 22px;
-  padding: 9px 18px;
+  border-radius: 17px;
+  padding: 9px;
   font-family: 'Comic Sans MS', cursive;
   font-size: 0.82rem;
   font-weight: bold;
@@ -3165,7 +3168,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 /* Mobile */
 @media (max-width: 500px) {
   .enter-3d-btn {
-    bottom: calc(110px + 290px);
+    bottom: calc(30%);
     left: 50%;
     transform: translateX(-50%);
     animation: enter3dPulse 3s ease-in-out infinite 0.6s;

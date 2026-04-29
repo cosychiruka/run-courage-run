@@ -16,10 +16,6 @@
 
   /* Mobile character positioning with grounding */
   @media (max-width: 768px) {
-    #courageCharacter {
-      bottom: 15%; /* Position higher on mobile */
-      left: 5%;
-    }
     
     /* Add subtle grounding shadow effect */
     #courageCharacter::after {
