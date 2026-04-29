@@ -5,8 +5,8 @@
   --courage-purple: #c247ff;
   --nowhere-yellow: #E5D352;
   --brutal-black: #000000;
-  --brutal-shadow: 8px 8px 0px #000000;
-  --brutal-border: 4px solid #000000;
+  --brutal-shadow: 4px 4px 0px #000000;
+  --brutal-border: 2px solid #000000; /* Refined from 4px */
 }
 
 body {
@@ -24,14 +24,14 @@ body {
   padding: 0 2rem;
 }
 
-/* ── Full Brutalist Panel (Replaces Glass) ── */
-.brutal-panel, .glass-panel {
-  background: white !important;
-  backdrop-filter: none !important;
-  border: var(--brutal-border) !important;
-  border-radius: 30px !important;
-  box-shadow: var(--brutal-shadow) !important;
-  color: var(--brutal-black) !important;
+/* ── Clean Premium Glass ── */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
 }
 
 .landing-section {
@@ -39,19 +39,10 @@ body {
   padding: 3rem 2rem;
 }
 
-/* ── Neubrutalist Elements ── */
-.brutal-card {
-  background: white;
-  border: var(--brutal-border);
-  box-shadow: var(--brutal-shadow);
-  padding: 2rem;
-  transition: transform 0.2s ease;
-}
-
-/* ── STANDARD ROUND BRUTALIST BUTTON ── */
+/* ── Refined Buttons ── */
 .brutal-btn, .hero-btn {
   display: inline-block !important;
-  padding: 0.6rem 1.5rem !important;
+  padding: 0.7rem 1.8rem !important;
   font-family: 'Bangers', cursive !important;
   font-size: 1.2rem !important;
   text-transform: uppercase !important;
@@ -60,7 +51,7 @@ body {
   box-shadow: 4px 4px 0px var(--brutal-black) !important;
   border-radius: 50px !important;
   cursor: pointer !important;
-  transition: all 0.1s ease !important;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
   letter-spacing: 1px !important;
 }
 
@@ -73,7 +64,7 @@ body {
 .brutal-btn--blue { background: #1DA1F2; color: white; }
 .brutal-btn--dark { background: #333; color: white; }
 
-/* ── Comic Banners (Standardized) ── */
+/* ── Comic Banners ── */
 .comic-banner {
   display: inline-block;
   padding: 0.6rem 2rem;
@@ -83,7 +74,7 @@ body {
   position: relative;
   transform: rotate(-1deg);
   clip-path: polygon(2% 5%, 95% 2%, 100% 15%, 98% 85%, 95% 98%, 5% 95%, 0% 80%, 2% 20%);
-  box-shadow: 6px 6px 0px rgba(0,0,0,0.1);
+  box-shadow: 4px 4px 0px rgba(0,0,0,0.1);
   margin-bottom: 2rem;
 }
 
@@ -97,92 +88,114 @@ body {
   color: inherit !important;
 }
 
-/* ── Scroll-based Fading ── */
+/* ── Scroll Fading ── */
 .hero-section, .sticky-actions, .hero-badge, .hero-hint-banner {
-  transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease;
+  transition: opacity 0.5s ease, visibility 0.5s ease, transform 0.5s ease;
 }
 
 .hero-section--hidden, .sticky-actions--hidden, .hero-badge--hidden, .hero-hint-banner--hidden {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
-  transform: translate(-50%, 20px) !important;
+  transform: translate(-50%, 30px) !important;
 }
 
-/* ── Restoration of Side-by-Side Layout ── */
+/* ── Side-by-Side Cards ── */
 .about-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  gap: 2.5rem;
 }
 
 @media (max-width: 768px) {
   .about-section { grid-template-columns: 1fr; }
 }
 
-.landing-card.brutal-panel {
+.landing-card.glass-panel {
+  padding: 2.5rem;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* ── TV Modal Cleanup (No Nested Containers) ── */
+.tv-modal-content {
+  position: relative;
   padding: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border-radius: 30px;
+  border: 1px solid rgba(255,255,255,0.1);
 }
 
-/* ── Modern Modals (Solid Brutalist) ── */
-.news-tv-wrapper, .tour-card, .tv-overlay-inner {
-  background: white !important;
-  border: var(--brutal-border) !important;
-  border-radius: 30px !important;
-  box-shadow: var(--brutal-shadow) !important;
-  color: var(--brutal-black) !important;
-  backdrop-filter: none !important;
+.tv-overlay-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: var(--courage-pink);
+  border: 2px solid black;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 3px 3px 0px black;
 }
 
-.news-tv-brand, .tour-title {
-  font-family: 'Bangers', cursive !important;
-  color: var(--courage-pink) !important;
-  letter-spacing: 2px;
-}
-
-/* ── Tokenomics ── */
-.token-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
-}
-
-.token-card {
-  background: #fdfdfd;
-  border: var(--brutal-border);
-  border-radius: 20px;
-  padding: 1.5rem;
-  text-align: center;
-  box-shadow: 4px 4px 0px black;
-}
-
-/* ── Sticky Actions ── */
+/* ── Sticky Actions Logic ── */
 .sticky-actions {
   position: fixed;
   bottom: 2rem;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  flex-direction: column;
+  flex-direction: row; /* Horizontal by default on desktop */
   align-items: center;
-  gap: 1rem;
+  gap: 1.2rem;
   z-index: 100;
-  padding: 0.8rem;
-  background: white;
-  border: var(--brutal-border);
-  border-radius: 50px;
-  box-shadow: 6px 6px 0px black;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.sticky-actions-inner {
-  display: flex;
-  gap: 1rem;
+  padding: 0.7rem 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 60px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
 }
 
 @media (max-width: 768px) {
-  .mobile-only-toggle { display: flex !important; width: 50px; height: 50px; align-items: center; justify-content: center; font-size: 1.5rem !important; }
-  .sticky-actions-inner { max-height: 0; opacity: 0; visibility: hidden; overflow: hidden; flex-direction: column; padding: 0; gap: 0.5rem; transition: all 0.3s ease; }
-  .sticky-actions--expanded .sticky-actions-inner { max-height: 400px; opacity: 1; visibility: visible; padding: 1rem 0; gap: 1rem; }
-  .sticky-actions--expanded { border-radius: 30px; bottom: 1rem; }
+  .sticky-actions {
+    flex-direction: column;
+    padding: 0.5rem;
+  }
+  .mobile-only-toggle { display: flex !important; width: 50px; height: 50px; align-items: center; justify-content: center; }
+  .sticky-actions-inner { max-height: 0; opacity: 0; visibility: hidden; overflow: hidden; flex-direction: column; padding: 0; gap: 0.6rem; transition: all 0.4s ease; }
+  .sticky-actions--expanded .sticky-actions-inner { max-height: 450px; opacity: 1; visibility: visible; padding: 1rem 0; }
+}
+
+/* ── Steps List ── */
+.step-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 1.8rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: background 0.3s ease;
+}
+
+.step-num {
+  background: var(--courage-pink);
+  color: white;
+  font-family: 'Bangers', cursive;
+  font-size: 1.6rem;
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 2px solid black;
 }

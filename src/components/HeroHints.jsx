@@ -31,7 +31,7 @@ const SHOW_DELAY_MIN = 18000; // 18s
 const SHOW_DELAY_MAX = 32000; // 32s
 const SHOW_DURATION  = 5500;  // visible time before typing out
 
-const HeroHints = ({ scene }) => {
+const HeroHints = ({ scene, scrolled }) => {
   const [visible,    setVisible]    = useState(false);
   const [typed,      setTyped]      = useState('');
   const [fullText,   setFullText]   = useState('');
@@ -93,7 +93,7 @@ const HeroHints = ({ scene }) => {
   if (!visible) return null;
 
   return (
-    <div className={`hero-hint-banner${fading ? ' fading' : ''}`}>
+    <div className={`hero-hint-banner${fading ? ' fading' : ''}${scrolled ? ' hero-hint-banner--hidden' : ''}`}>
       <span className="hero-hint-cursor" aria-hidden="true" />
       <span className="hero-hint-text">{typed}</span>
       <span className={`hero-hint-caret${typed.length === fullText.length ? ' blink' : ''}`}>|</span>
