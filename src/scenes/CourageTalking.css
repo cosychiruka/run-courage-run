@@ -192,10 +192,12 @@
   transition: all 0.3s ease;
 }
 
-/* Mobile mic positioning */
+/* Mobile mic positioning - centered and higher */
 @media (max-width: 768px) {
   .voice-chat-btn {
-    top: -45px;
+    top: -35px; /* Higher positioning */
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%); /* Ensure centering */
     font-size: 0.65rem;
     padding: 5px 10px;
     border-radius: 15px;
