@@ -5,7 +5,7 @@
   --courage-purple: #c247ff;
   --nowhere-yellow: #E5D352;
   --brutal-black: #000000;
-  --brutal-shadow: 4px 4px 0px #000000;
+  --brutal-shadow: 8px 8px 0px #000000;
   --brutal-border: 4px solid #000000;
 }
 
@@ -24,14 +24,14 @@ body {
   padding: 0 2rem;
 }
 
-/* ── Glassmorphism ── */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+/* ── Full Brutalist Panel (Replaces Glass) ── */
+.brutal-panel, .glass-panel {
+  background: white !important;
+  backdrop-filter: none !important;
+  border: var(--brutal-border) !important;
+  border-radius: 30px !important;
+  box-shadow: var(--brutal-shadow) !important;
+  color: var(--brutal-black) !important;
 }
 
 .landing-section {
@@ -43,7 +43,7 @@ body {
 .brutal-card {
   background: white;
   border: var(--brutal-border);
-  box-shadow: 8px 8px 0px var(--brutal-black);
+  box-shadow: var(--brutal-shadow);
   padding: 2rem;
   transition: transform 0.2s ease;
 }
@@ -82,18 +82,15 @@ body {
   border: var(--brutal-border);
   position: relative;
   transform: rotate(-1deg);
-  clip-path: polygon(
-    2% 5%, 95% 2%, 100% 15%, 98% 85%, 95% 98%, 5% 95%, 0% 80%, 2% 20%
-  );
+  clip-path: polygon(2% 5%, 95% 2%, 100% 15%, 98% 85%, 95% 98%, 5% 95%, 0% 80%, 2% 20%);
   box-shadow: 6px 6px 0px rgba(0,0,0,0.1);
   margin-bottom: 2rem;
 }
 
 .comic-banner--pink { background: var(--courage-pink) !important; color: white !important; }
 .comic-banner--yellow { background: var(--nowhere-yellow) !important; color: var(--brutal-black) !important; }
-.comic-banner--purple { background: var(--courage-purple) !important; color: white !important; }
 
-.comic-banner h2, .comic-banner h1, .comic-banner .landing-heading {
+.comic-banner h2, .comic-banner h1 {
   font-family: 'Bangers', cursive !important;
   margin: 0;
   letter-spacing: 2px;
@@ -101,16 +98,15 @@ body {
 }
 
 /* ── Scroll-based Fading ── */
-.hero-section, .sticky-actions, .hero-badge {
+.hero-section, .sticky-actions, .hero-badge, .hero-hint-banner {
   transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease;
-  opacity: 1;
 }
 
-.hero-section--hidden, .sticky-actions--hidden, .hero-badge--hidden {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translateY(20px);
+.hero-section--hidden, .sticky-actions--hidden, .hero-badge--hidden, .hero-hint-banner--hidden {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: translate(-50%, 20px) !important;
 }
 
 /* ── Restoration of Side-by-Side Layout ── */
@@ -121,27 +117,21 @@ body {
 }
 
 @media (max-width: 768px) {
-  .about-section {
-    grid-template-columns: 1fr;
-  }
+  .about-section { grid-template-columns: 1fr; }
 }
 
-.landing-card.glass-panel {
+.landing-card.brutal-panel {
   padding: 2rem;
-  color: white;
-  text-align: left;
-  border: var(--brutal-border);
-  box-shadow: 8px 8px 0px rgba(0,0,0,0.2);
 }
 
-/* ── Modern Modals (NewsTV & WelcomeTour) ── */
-.news-tv-wrapper, .tour-card {
-  background: rgba(20, 20, 20, 0.8) !important;
-  backdrop-filter: blur(20px) !important;
+/* ── Modern Modals (Solid Brutalist) ── */
+.news-tv-wrapper, .tour-card, .tv-overlay-inner {
+  background: white !important;
   border: var(--brutal-border) !important;
   border-radius: 30px !important;
-  box-shadow: 0 0 50px rgba(0,0,0,0.5) !important;
-  color: white !important;
+  box-shadow: var(--brutal-shadow) !important;
+  color: var(--brutal-black) !important;
+  backdrop-filter: none !important;
 }
 
 .news-tv-brand, .tour-title {
@@ -150,104 +140,49 @@ body {
   letter-spacing: 2px;
 }
 
-/* ── How to Buy List ── */
-.steps-list {
+/* ── Tokenomics ── */
+.token-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;
-  margin-top: 2rem;
 }
 
-.step-item {
-  background: rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(10px);
-  border: var(--brutal-border) !important;
-  border-radius: 25px !important;
-  padding: 1.5rem !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  text-align: center !important;
-  transition: transform 0.2s ease;
+.token-card {
+  background: #fdfdfd;
+  border: var(--brutal-border);
+  border-radius: 20px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 4px 4px 0px black;
 }
 
-.step-item:hover {
-  transform: translateY(-5px);
-}
-
-.step-num {
-  background: var(--courage-pink) !important;
-  color: white !important;
-  font-family: 'Bangers', cursive !important;
-  font-size: 1.5rem !important;
-  width: 50px !important;
-  height: 50px !important;
-  border-radius: 50% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin-bottom: 1rem !important;
-  border: 3px solid black !important;
-}
-
+/* ── Sticky Actions ── */
 .sticky-actions {
   position: fixed;
   bottom: 2rem;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  flex-direction: column; /* Allow upward expansion */
+  flex-direction: column;
   align-items: center;
   gap: 1rem;
   z-index: 100;
-  padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(15px);
-  border: 2px solid rgba(255,255,255,0.2);
+  padding: 0.8rem;
+  background: white;
+  border: var(--brutal-border);
   border-radius: 50px;
+  box-shadow: 6px 6px 0px black;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .sticky-actions-inner {
   display: flex;
   gap: 1rem;
-  transition: all 0.3s ease;
-}
-
-.mobile-only-toggle {
-  display: none !important; /* Hide on desktop */
 }
 
 @media (max-width: 768px) {
-  .mobile-only-toggle {
-    display: flex !important;
-    width: 50px;
-    height: 50px;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem !important;
-  }
-
-  .sticky-actions-inner {
-    max-height: 0;
-    opacity: 0;
-    visibility: hidden;
-    overflow: hidden;
-    flex-direction: column;
-    padding: 0;
-    gap: 0.5rem;
-  }
-
-  .sticky-actions--expanded .sticky-actions-inner {
-    max-height: 400px;
-    opacity: 1;
-    visibility: visible;
-    padding: 1rem 0;
-    gap: 1rem;
-  }
-
-  .sticky-actions--expanded {
-    border-radius: 30px;
-    bottom: 1rem;
-  }
+  .mobile-only-toggle { display: flex !important; width: 50px; height: 50px; align-items: center; justify-content: center; font-size: 1.5rem !important; }
+  .sticky-actions-inner { max-height: 0; opacity: 0; visibility: hidden; overflow: hidden; flex-direction: column; padding: 0; gap: 0.5rem; transition: all 0.3s ease; }
+  .sticky-actions--expanded .sticky-actions-inner { max-height: 400px; opacity: 1; visibility: visible; padding: 1rem 0; gap: 1rem; }
+  .sticky-actions--expanded { border-radius: 30px; bottom: 1rem; }
 }

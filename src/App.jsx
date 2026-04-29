@@ -41,11 +41,6 @@ export default function App() {
   const scaredTimerRef = useRef(null);
 
   // ── Hero text visibility ──────────────────────────────────────────────────
-  // • First visit: wait for WelcomeTour dismissal, then hide after 60s
-  // • Returning visit: start 60s timer immediately
-  // • After first hide: flash text back for 5s every 60s
-  // • Thought bubble fires once, right after the first hide
-  // • "Alive" message fires once, 500ms after first hide, for 5s
   const isFirstVisit = !localStorage.getItem('courage_toured');
   const [tourDismissed, setTourDismissed] = useState(!isFirstVisit);
   const [heroTextVisible, setHeroTextVisible] = useState(true);
@@ -56,16 +51,13 @@ export default function App() {
   const aliveShownRef = useRef(false);
 
   useEffect(() => {
-    if (!tourDismissed) return; // first-timers: wait until tour is dismissed
+    if (!tourDismissed) return;
 
     heroHideTimerRef.current = setTimeout(() => {
       setHeroTextVisible(false);
-
-      // Thought bubble appears once on first hide
       setShowSceneTip(true);
       setTimeout(() => setShowSceneTip(false), 4500);
 
-      // "He's alive" message appears once, 500ms after hero text fades
       if (!aliveShownRef.current) {
         aliveShownRef.current = true;
         setTimeout(() => {
@@ -74,7 +66,6 @@ export default function App() {
         }, 500);
       }
 
-      // Recurring: flash text back for 5s every 60s
       heroIntervalRef.current = setInterval(() => {
         setHeroTextVisible(true);
         setTimeout(() => setHeroTextVisible(false), 5000);
@@ -88,26 +79,19 @@ export default function App() {
   }, [tourDismissed]);
 
   // ── Voice chat state ──────────────────────────────────────────────────────
-  // 'idle' | 'listening' | 'thinking' | 'speaking' | null (normal scene)
   const [voiceState, setVoiceState] = useState(null);
   const voiceSvcRef = useRef(null);
-
-  // Midnight refusal speech bubble (shown briefly, then auto-switches scene)
   const [midnightMsg, setMidnightMsg] = useState(false);
   const midnightTimerRef = useRef(null);
-  // world3DMounted = scene is rendering in background; world3DVisible = user can see it
   const [world3DMounted, setWorld3DMounted] = useState(false);
   const [world3DVisible, setWorld3DVisible] = useState(false);
 
   const handleVoiceClick = useCallback(async () => {
-    // Enter voice mode if not already in it
     if (voiceState === null) {
       setVoiceState('idle');
       return;
     }
-
     if (voiceState === 'idle') {
-      // Start recording
       if (!voiceSvcRef.current) {
         voiceSvcRef.current = createVoiceService({
           onState: (s) => setVoiceState(s),
@@ -117,25 +101,12 @@ export default function App() {
           onError: (e) => { console.warn('[Voice]', e); setVoiceState('idle'); },
         });
       }
-      try {
-        await voiceSvcRef.current.start();
-      } catch (e) {
-        console.warn('[Voice] mic error:', e);
-        setVoiceState('idle');
-      }
+      try { await voiceSvcRef.current.start(); }
+      catch (e) { setVoiceState('idle'); }
       return;
     }
-
-    if (voiceState === 'listening') {
-      // Stop recording → send to backend
-      await voiceSvcRef.current?.stop();
-      return;
-    }
-
-    if (voiceState === 'speaking') {
-      // User wants to interrupt — reset to idle
-      setVoiceState('idle');
-    }
+    if (voiceState === 'listening') { await voiceSvcRef.current?.stop(); return; }
+    if (voiceState === 'speaking') { setVoiceState('idle'); }
   }, [voiceState]);
 
   const handleVoiceClose = useCallback(() => {
@@ -144,11 +115,8 @@ export default function App() {
     setVoiceState(null);
   }, []);
 
-  // ── Ghost repulse signal (incremented on Courage click at midnight) ────────
   const [repulseSignal, setRepulseSignal] = useState(0);
-
-  // ── Courage position — animated by ghost chase (midnight only) ───────────
-  const [courageX, setCourageX] = useState(10);   // % viewport
+  const [courageX, setCourageX] = useState(10);
   const [courageTrans, setCourageTrans] = useState('left 0s');
 
   const handleCourageMove = useCallback((x, trans = 'left 2s ease-in-out') => {
@@ -156,13 +124,10 @@ export default function App() {
     setCourageTrans(trans);
   }, []);
 
-  // ── Scene override (user-controlled cycle) ────────────────────────────────
   const SCENE_CYCLE = ['sunrise', 'noon', 'evening', 'midnight', null];
   const SCENE_LABELS = { sunrise: '☀️', noon: '🌤', evening: '🌆', midnight: '🌙', null: '🕐' };
   const [sceneOverride, setSceneOverride] = useState(null);
 
-  // Entry point for mic button — blocks midnight with a speech bubble then auto-switches scene
-  // Declared after sceneOverride to avoid TDZ in the dependency array
   const handleVoiceEntry = useCallback(() => {
     const activeScene = sceneOverride || scene;
     if (activeScene === 'midnight') {
@@ -170,7 +135,6 @@ export default function App() {
       setMidnightMsg(true);
       midnightTimerRef.current = setTimeout(() => {
         midnightTimerRef.current = null;
-        // startTransition batches both updates together, reducing DOM reconciliation conflicts
         startTransition(() => {
           setMidnightMsg(false);
           setSceneOverride('sunrise');
@@ -188,7 +152,6 @@ export default function App() {
     });
   }, []);
 
-  // ── Scene / time ───────────────────────────────────────────────────────────
   const updateScene = useCallback(() => {
     const h = new Date().getHours();
     const h1 = document.querySelector('h1.couragesign');
@@ -207,34 +170,21 @@ export default function App() {
     return () => clearInterval(id);
   }, [updateScene]);
 
-  // ── Scroll visibility ────────────────────────────────────────────────────
   const [scrolled, setScrolled] = useState(false);
   const [controlsExpanded, setControlsExpanded] = useState(false);
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
+    const handleScroll = () => { setScrolled(window.scrollY > 50); };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Apply body class for scene override (so background reflects the cycled scene)
   useEffect(() => {
-    if (sceneOverride) {
-      document.body.className = sceneOverride;
-    } else {
-      // Revert to time-based
-      updateScene();
-    }
-    // Reset Courage position when leaving midnight scene
+    if (sceneOverride) { document.body.className = sceneOverride; }
+    else { updateScene(); }
     const active = sceneOverride || scene;
-    if (active !== 'midnight') {
-      setCourageX(10);
-      setCourageTrans('left 0s');
-    }
+    if (active !== 'midnight') { setCourageX(10); setCourageTrans('left 0s'); }
   }, [sceneOverride, updateScene, scene]);
 
-  // ── Scared timer → explosion ready ────────────────────────────────────────
   useEffect(() => {
     const isCurrentlyScared = newsEmotion === 'scared' && newsOpen;
     clearTimeout(scaredTimerRef.current);
@@ -243,12 +193,10 @@ export default function App() {
     return () => clearTimeout(scaredTimerRef.current);
   }, [newsEmotion, newsOpen]);
 
-  // ── Explosion sequence ─────────────────────────────────────────────────────
   const triggerExplosion = useCallback(() => {
     if (explosionPhase) return;
     setExplosionReady(false);
     setNewsOpen(false);
-    // Scroll to hero so the character is visible during animation
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setExplosionPhase('exploding');
     setTimeout(() => setExplosionPhase('heaping'), 950);
@@ -257,13 +205,7 @@ export default function App() {
     setTimeout(() => setExplosionPhase(null), 4200);
   }, [explosionPhase]);
 
-  // ── Courage scene ──────────────────────────────────────────────────────────
-  //    Day  (sunrise / noon)    → CourageRunning (happy animated dog)
-  //    Night (evening/midnight) → CourageScared  (pieces dog, can explode)
-  //    News override still applies on top
-  const handleRepulse = useCallback(() => {
-    setRepulseSignal(s => s + 1);
-  }, []);
+  const handleRepulse = useCallback(() => { setRepulseSignal(s => s + 1); }, []);
 
   const renderCourageScene = useCallback(() => {
     const activeScene = sceneOverride || scene;
@@ -271,27 +213,16 @@ export default function App() {
     const isNoon = activeScene === 'noon';
     const isTalking = voiceState !== null;
 
-    // Always render the pieces character during an explosion (voice can't trigger this)
-    if (explosionPhase) {
-      return <CourageScared explosionPhase={explosionPhase} onFrightened={handleRepulse} />;
-    }
+    if (explosionPhase) { return <CourageScared explosionPhase={explosionPhase} onFrightened={handleRepulse} />; }
+    if (newsOpen && newsEmotion === 'scared') { return <CourageScared explosionPhase={null} onFrightened={handleRepulse} voiceState={isTalking ? voiceState : null} />; }
+    if (newsOpen && newsEmotion === 'happy') { return <CourageHappy explosionPhase={null} onFrightened={() => { }} voiceState={isTalking ? voiceState : null} />; }
 
-    // News emotion overrides time-based scene; voice state is passed through
-    if (newsOpen && newsEmotion === 'scared') {
-      return <CourageScared explosionPhase={null} onFrightened={handleRepulse} voiceState={isTalking ? voiceState : null} />;
-    }
-    if (newsOpen && newsEmotion === 'happy') {
-      return <CourageHappy explosionPhase={null} onFrightened={() => { }} voiceState={isTalking ? voiceState : null} />;
-    }
-
-    // Time-based scenes — each character receives voiceState so it can brake/talk in place
     const chaseStyle = { left: `${courageX}%`, transition: courageTrans };
     if (!newsOpen && isNight) return <CourageScared explosionPhase={null} onFrightened={handleRepulse} style={chaseStyle} voiceState={isTalking ? voiceState : null} />;
     if (!newsOpen && isNoon) return <CourageHappy explosionPhase={null} onFrightened={() => { }} voiceState={isTalking ? voiceState : null} />;
     return <CourageRunning voiceState={isTalking ? voiceState : null} />;
   }, [scene, sceneOverride, newsEmotion, newsOpen, explosionPhase, handleRepulse, courageX, courageTrans, voiceState]);
 
-  // ── News logic ─────────────────────────────────────────────────────────────
   const loadNews = useCallback(async (country = newsCountry, category = newsCategory) => {
     setNewsLoading(true);
     try {
@@ -299,11 +230,8 @@ export default function App() {
       setArticles(data);
       setArticleIndex(0);
       if (data.length > 0) setNewsEmotion(analyzeSentiment(data[0].title));
-    } catch (e) {
-      console.warn('[App] news load failed:', e.message);
-    } finally {
-      setNewsLoading(false);
-    }
+    } catch (e) { }
+    finally { setNewsLoading(false); }
   }, [newsCountry, newsCategory]);
 
   const handleOpenNews = useCallback(() => {
@@ -329,7 +257,6 @@ export default function App() {
     loadNews(c, cat);
   }, [newsCountry, newsCategory, loadNews]);
 
-  // ── TV animation ──────────────────────────────────────────────────────────
   const animation = useCallback(() => {
     const h1 = document.querySelector('.intro-text h1');
     if (!h1) return;
@@ -351,7 +278,6 @@ export default function App() {
     });
   }, []);
 
-  // ── Meme TV (canvas static + channel cycling) ─────────────────────────────
   const CryptoTv = useCallback(() => {
     const cnv = document.getElementById('static');
     const c = cnv?.getContext('2d');
@@ -378,7 +304,6 @@ export default function App() {
       { file: 'https://imgur.com/XhCBo5v.mp4', type: 'video', desc: 'Pie Eustas' },
       { file: 'https://imgur.com/M6UJsWs.jpeg', type: 'image', desc: 'Courage The Memish Dog' },
       { file: 'https://imgur.com/pfadmDi.gif', type: 'image', desc: 'CTO Courage' },
-      // ── Courage the Cowardly Dog — 1080p AI Upscale (archive.org) ──
       { file: ep('Courage the Cowardly Dog S01E01 A Night at the Katz Motel.mkv'), type: 'archive', desc: '📺 S1E01 – Katz Motel' },
       { file: ep('Courage the Cowardly Dog S01E02 Cajun Granny Stew.mkv'), type: 'archive', desc: '📺 S1E02 – Cajun Granny Stew' },
       { file: ep('Courage the Cowardly Dog S01E05 King Ramses\' Curse.mkv'), type: 'archive', desc: '📺 S1E05 – King Ramses\' Curse' },
@@ -419,18 +344,14 @@ export default function App() {
       cnv.classList.remove('hide');
       img.classList.add('hide'); vid.classList.add('hide'); txt.classList.add('hide');
       if (!isStatic) runStatic();
-      // Show channel label briefly
       const lbl = document.getElementById('channelLabel');
       if (lbl) { lbl.textContent = item.desc; lbl.classList.add('show'); setTimeout(() => lbl.classList.remove('show'), 2500); }
       setTimeout(() => {
         cnv.classList.add('hide');
-        if (item.type === 'image') {
-          img.src = item.file; img.alt = item.desc; img.classList.remove('hide');
-        } else if (item.type === 'archive') {
-          // Show play overlay — user must click to trigger iframe load (browser autoplay policy)
+        if (item.type === 'image') { img.src = item.file; img.alt = item.desc; img.classList.remove('hide'); }
+        else if (item.type === 'archive') {
           if (overlay) {
-            overlay.dataset.src = item.file;
-            overlay.dataset.desc = item.desc;
+            overlay.dataset.src = item.file; overlay.dataset.desc = item.desc;
             const label = overlay.querySelector('.archive-play-label');
             if (label) label.textContent = item.desc.replace('📺 ', '');
             overlay.classList.remove('hide');
@@ -446,42 +367,28 @@ export default function App() {
     const btn = document.getElementById('channel');
     if (btn) btn.addEventListener('click', changeChannel);
 
-    // Archive play overlay — loads iframe on user click (satisfies browser autoplay policy)
     const overlay = document.getElementById('archivePlayOverlay');
     if (overlay && !overlay._playListenerSet) {
       overlay._playListenerSet = true;
       overlay.addEventListener('click', () => {
         const fra = document.getElementById('displayedArchive');
         const url = overlay.dataset.src;
-        if (fra && url) {
-          fra.src = url;
-          fra.classList.remove('hide');
-        }
+        if (fra && url) { fra.src = url; fra.classList.remove('hide'); }
         overlay.classList.add('hide');
       });
     }
   }, [animation]);
 
-  // ── Tour modal (info button) ───────────────────────────────────────────────
   const [tourOpen, setTourOpen] = useState(false);
+  const toggleHelperSection = useCallback(() => { setHelperVisible(p => !p); }, []);
 
-  // ── TV toggle ──────────────────────────────────────────────────────────────
-  const toggleHelperSection = useCallback(() => {
-    setHelperVisible(p => !p);
-  }, []);
-
-  // ── Background click → Courage fright ────────────────────────────────────
   const handleBackgroundClick = useCallback((e) => {
     if (e.target.id === 'app-background' && !explosionPhase) {
       const el = document.getElementById('courageCharacter');
-      if (el) {
-        el.classList.add('frightened');
-        setTimeout(() => el.classList.remove('frightened'), 500);
-      }
+      if (el) { el.classList.add('frightened'); setTimeout(() => el.classList.remove('frightened'), 500); }
     }
   }, [explosionPhase]);
 
-  // ── Disable explode when CourageRunning is shown (no explosion div parts) ──
   const _active = sceneOverride || scene;
   const _isNight = _active === 'evening' || _active === 'midnight';
   const _isNoon = _active === 'noon';
@@ -491,14 +398,9 @@ export default function App() {
 
   return (
     <div className="app-container" id="app-background" onClick={handleBackgroundClick}>
-
-      {/* ── Scene ambient effects ── */}
       <SceneEffects scene={_active} repulseSignal={repulseSignal} onCourageMove={handleCourageMove} />
+      <HeroHints scene={_active} scrolled={scrolled} />
 
-      {/* ── Typewriter scene hints ── */}
-      <HeroHints scene={_active} />
-
-      {/* ── News ticker ── */}
       <div className="news-ticker-bar">
         <div className="news-ticker-track">
           RUN COURAGE RUN &nbsp;|&nbsp; $RCR — LIVING IN YOUR BROWSER, SER &nbsp;|&nbsp;
@@ -507,54 +409,30 @@ export default function App() {
         </div>
       </div>
 
-      {/* ── Navigation ── */}
       <nav className="bone-nav">
         <div className="circle left top" /><div className="circle left bottom" />
         <div className="halloctober__banner p-flex">
           <h1 className="couragesign shiny-glass">Run Courage Run</h1>
           <div className="fog p-circle" />
         </div>
-        <button
-          className={`scene-toggle-btn${showSceneTip ? ' scene-tip-flash' : ''}`}
-          onClick={cycleScene}
-          title={sceneOverride ? `Scene: ${sceneOverride}` : 'Scene: auto (time-based)'}
-        >
+        <button className={`scene-toggle-btn${showSceneTip ? ' scene-tip-flash' : ''}`} onClick={cycleScene}>
           {SCENE_LABELS[String(sceneOverride)] ?? '🕐'}
         </button>
         <div className="circle right top" /><div className="circle right bottom" />
-
-        {/* Thought bubble inside nav — absolutely anchored to the scene button */}
-        {showSceneTip && (
-          <div className="scene-thought-bubble" aria-hidden="true">
-            <div className="thought-trail">
-              <span /><span /><span />
-            </div>
-            <div className="thought-balloon">
-              Change scenes here..
-            </div>
-          </div>
-        )}
       </nav>
 
-      {/* ── Hero section ── */}
       <section className={`hero-section${scrolled ? ' hero-section--hidden' : ''}`}>
         <div className="hero-center">
-          <div className={`hero-badge${scrolled ? ' hero-badge--hidden' : ''}`}>
-            <span className="hero-badge-dot" />
-            Live on Solana
+          <div className="hero-badge">
+            <span className="hero-badge-dot" /> Live on Solana
           </div>
           <div className={`hero-text-block${heroTextVisible ? '' : ' hero-text-block--hidden'}`}>
             <p className="hero-tagline">Self-Aware Living Meme on Solana</p>
             <p className="hero-quote">"He knows his a meme. He breaks the 4th wall. He's a runner!"</p>
           </div>
-          {aliveTextVisible && (
-            <div className="hero-alive-text" aria-live="polite">
-              Animated Self Aware Meme &mdash; He&rsquo;s alive, Interact
-            </div>
-          )}
+          {aliveTextVisible && <div className="hero-alive-text">Animated Self Aware Meme &mdash; He&rsquo;s alive, Interact</div>}
         </div>
 
-        {/* Courage character — fills hero */}
         <div className="character-stage">
           {renderCourageScene()}
           {newsOpen && voiceState === null && (
@@ -566,191 +444,81 @@ export default function App() {
           )}
         </div>
 
-        {/* Voice controls — OUTSIDE character-stage so pointer-events:none doesn't block them */}
-        {voiceState === null && (
-          <button
-            className="voice-entry-btn"
-            onClick={handleVoiceEntry}
-            title="Talk to Courage"
-            aria-label="Start voice chat with Courage"
-          >
-            🎙️
-          </button>
-        )}
+        {voiceState === null && <button className="voice-entry-btn" onClick={handleVoiceEntry}>🎙️</button>}
 
-        {/* Enter 3D World — evening scene only; shows loading state while scene warms up */}
         <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
           {_active === 'evening' && voiceState === null && !world3DVisible && (
             <button
-              className={`enter-3d-btn brutal-btn brutal-btn--pink${world3DMounted ? ' enter-3d-btn--loading' : ''}`}
+              className={`brutal-btn brutal-btn--pink${world3DMounted ? ' enter-3d-btn--loading' : ''}`}
               onClick={() => { if (!world3DMounted) setWorld3DMounted(true); }}
-              aria-label="Enter 3D evening world"
             >
               {world3DMounted ? '⏳ Loading…' : '🌆 Enter 3D World'}
             </button>
           )}
         </div>
 
-        {/* Midnight refusal bubble */}
-        {midnightMsg && (
-          <div className="midnight-refuse-bubble" aria-live="assertive">
-            I&apos;m TOO SCARED!! Get me OUT of here!!
-          </div>
-        )}
+        {midnightMsg && <div className="midnight-refuse-bubble">I&apos;m TOO SCARED!! Get me OUT of here!!</div>}
 
-        {/* Mic drop — OUTSIDE character-stage so pointer-events:none doesn't block it */}
         {voiceState !== null && (
-          <div className={`mic-drop-wrap mic-drop-wrap--${voiceState}`} onClick={handleVoiceClick} role="button" aria-label="Voice chat control">
+          <div className={`mic-drop-wrap mic-drop-wrap--${voiceState}`} onClick={handleVoiceClick}>
             <div className="mic-drop-icon">
-              {voiceState === 'idle' && '🎙️'}
-              {voiceState === 'listening' && '🔴'}
-              {voiceState === 'thinking' && '⏳'}
-              {voiceState === 'speaking' && '🔊'}
+              {voiceState === 'idle' && '🎙️'} {voiceState === 'listening' && '🔴'}
+              {voiceState === 'thinking' && '⏳'} {voiceState === 'speaking' && '🔊'}
             </div>
             <div className="mic-drop-label">
-              {voiceState === 'idle' && 'Tap to speak'}
-              {voiceState === 'listening' && 'Listening…'}
-              {voiceState === 'thinking' && 'Thinking…'}
-              {voiceState === 'speaking' && 'Tap to stop'}
+              {voiceState === 'idle' && 'Tap to speak'} {voiceState === 'listening' && 'Listening…'}
+              {voiceState === 'thinking' && 'Thinking…'} {voiceState === 'speaking' && 'Tap to stop'}
             </div>
             <div className="mic-drop-cord" />
-            {/* Close button */}
-            <button className="voice-exit-btn" onClick={(e) => { e.stopPropagation(); handleVoiceClose(); }} title="Exit voice chat" aria-label="Exit voice chat">✕</button>
+            <button className="voice-exit-btn" onClick={(e) => { e.stopPropagation(); handleVoiceClose(); }}>✕</button>
           </div>
         )}
 
-        {explosionReady && !explosionPhase && (
-          <button className="explosion-trigger-btn" onClick={triggerExplosion}>
-            💥 HE'S GONNA BLOW
-          </button>
-        )}
+        {explosionReady && !explosionPhase && <button className="explosion-trigger-btn" onClick={triggerExplosion}>💥 HE'S GONNA BLOW</button>}
       </section>
 
-      {/* ── TV overlay modal — same pattern as NewsTV ── */}
       {helperVisible && (
         <div className="tv-overlay" onClick={toggleHelperSection}>
           <div className="tv-overlay-inner" onClick={e => e.stopPropagation()}>
             <button className="tv-overlay-close" onClick={toggleHelperSection}>✕</button>
             <ErrorBoundary fallbackText="TV crashed. Please refresh.">
-              <HomePage
-                CryptoTv={CryptoTv}
-                onNewsClick={() => { toggleHelperSection(); handleOpenNews(); }}
-              />
+              <HomePage CryptoTv={CryptoTv} onNewsClick={() => { toggleHelperSection(); handleOpenNews(); }} />
             </ErrorBoundary>
           </div>
         </div>
       )}
 
-      {/* ── Landing content ── */}
       <div className="landing-wrapper">
-
-        {/* About */}
         <section className="landing-section about-section container">
-          <div className="landing-card glass-panel">
-            <div className="comic-banner">
-              <h2 className="landing-heading">🐕 Who is $RCR?</h2>
-            </div>
-            <p>
-              Tribute to Courage the Cowardly Dog — Cartoon Network 1999–2002. Always watching the TV and reading Newspapers. He faced
-              every monster for Muriel, and he&rsquo;d face them all again. We re-animated Courage to life making him self-aware in a interactable 3D world. He lives entirely
-              inside your browser.
-            </p>
+          <div className="landing-card brutal-panel">
+            <div className="comic-banner"><h2 className="landing-heading">🐕 Who is $RCR?</h2></div>
+            <p>Tribute to Courage the Cowardly Dog — Cartoon Network 1999–2002. He faced every monster for Muriel. We re-animated him to life.</p>
           </div>
-          <div className="landing-card glass-panel">
-            <div className="comic-banner comic-banner--yellow">
-              <h2 className="landing-heading">📺 What does he do?</h2>
-            </div>
-            <p>
-              Treat this as his mini browser world. Tap him to trigger reactions. Change scenes in menubar. Courage fetches real news every hour — good headlines make him wag, bad ones make him
-              literally <strong>explode from fear</strong> then reassemble. Just a scared dog doing his best.
-            </p>
+          <div className="landing-card brutal-panel">
+            <div className="comic-banner comic-banner--yellow"><h2 className="landing-heading">📺 What does he do?</h2></div>
+            <p>Treat this as his mini browser world. Tap him to trigger reactions. Courage fetches real news every hour.</p>
           </div>
         </section>
 
-        {/* Tokenomics */}
-        <section className="landing-section container glass-panel" style={{ padding: '2rem' }}>
-          <div className="comic-banner">
-            <h2 className="landing-heading">📊 Tokenomics</h2>
-          </div>
+        <section className="landing-section container brutal-panel">
+          <div className="comic-banner"><h2 className="landing-heading">📊 Tokenomics</h2></div>
           <div className="token-grid">
-            <div className="token-card">
-              <span className="token-icon">💊</span>
-              <span className="token-label">Total Supply</span>
-              <span className="token-value">1,000,000,000</span>
-            </div>
-            <div className="token-card">
-              <span className="token-icon">🔥</span>
-              <span className="token-label">Liquidity</span>
-              <span className="token-value">Locked</span>
-            </div>
-            <div className="token-card">
-              <span className="token-icon">📈</span>
-              <span className="token-label">Tax</span>
-              <span className="token-value">0.5%</span>
-            </div>
-            <div className="token-card">
-              <span className="token-icon">🐕</span>
-              <span className="token-label">Dev Wallet</span>
-              <span className="token-value">0% (he's a dog)</span>
-            </div>
+            <div className="token-card"><span className="token-icon">💊</span><span className="token-label">Total Supply</span><span className="token-value">1,000,000,000</span></div>
+            <div className="token-card"><span className="token-icon">🔥</span><span className="token-label">Liquidity</span><span className="token-value">Locked</span></div>
+            <div className="token-card"><span className="token-icon">📈</span><span className="token-label">Tax</span><span className="token-value">0%</span></div>
           </div>
         </section>
 
-        {/* Buy $RCR CTA */}
-        <section className="landing-section container glass-panel" style={{ textAlign: 'center', padding: '2rem' }}>
-          <div className="comic-banner comic-banner--pink">
-            <h2 className="landing-heading">🐾 Get $RCR</h2>
-          </div>
-          <p className="buy-cta-sub">Trade on Solana — Ser.</p>
+        <section className="landing-section container brutal-panel" style={{ textAlign: 'center' }}>
+          <div className="comic-banner comic-banner--pink"><h2 className="landing-heading">🐾 Get $RCR</h2></div>
           <div className="buy-cta-row">
             <a href="#" className="brutal-btn brutal-btn--dark">🔭 DexScreener</a>
             <a href="#" className="brutal-btn brutal-btn--pink">🐾 Buy $RCR</a>
           </div>
         </section>
 
-        {/* How to buy */}
-        <section className="landing-section howtobuy-section container glass-panel">
-          <div className="comic-banner wiggle">
-            <h2 className="landing-heading section-title">🛒 How to Get $RCR</h2>
-          </div>
-          <div className="steps-list">
-            <div className="step-item">
-              <span className="step-num">1</span>
-              <div>
-                <strong>Get a Solana Wallet</strong>
-                <p>Download Phantom or Backpack — free and takes 2 minutes</p>
-              </div>
-            </div>
-            <div className="step-item">
-              <span className="step-num">2</span>
-              <div>
-                <strong>Buy SOL</strong>
-                <p>Get SOL from any exchange (Coinbase, Kraken, Binance)</p>
-              </div>
-            </div>
-            <div className="step-item">
-              <span className="step-num">3</span>
-              <div>
-                <strong>Swap for $RCR</strong>
-                <p>Head to Jupiter.ag or Raydium and paste the $RCR contract address</p>
-              </div>
-            </div>
-            <div className="step-item">
-              <span className="step-num">4</span>
-              <div>
-                <strong>WAGMI, ser</strong>
-                <p>You're now part of the pack. The things we do for you people...</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Community */}
-        <section className="landing-section container glass-panel" style={{ padding: '2rem' }}>
-          <div className="comic-banner comic-banner--pink">
-            <h2 className="landing-heading">🌐 Join the Pack</h2>
-          </div>
-          <p className="community-sub">The most anxious community in crypto</p>
+        <section className="landing-section container brutal-panel">
+          <div className="comic-banner comic-banner--pink"><h2 className="landing-heading">🌐 Join the Pack</h2></div>
           <div className="community-links" style={{ display: 'flex', justifyContent: 'center', gap: '2rem' }}>
             <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer" className="brutal-btn brutal-btn--blue">𝕏 Twitter</a>
             <a href="#" className="brutal-btn brutal-btn--pink">✈️ Telegram</a>
@@ -758,64 +526,31 @@ export default function App() {
         </section>
       </div>
 
-      {/* ── NewsTV overlay ── */}
       {newsOpen && (
         <NewsTV
-          articles={articles}
-          articleIndex={articleIndex}
+          articles={articles} articleIndex={articleIndex}
           onPrev={() => goToArticle(Math.max(0, articleIndex - 1))}
           onNext={() => goToArticle(Math.min(articles.length - 1, articleIndex + 1))}
-          onClose={handleCloseNews}
-          onFetch={handleFetchNews}
-          newsEmotion={newsEmotion}
-          loading={newsLoading}
-          country={newsCountry}
-          setCountry={setNewsCountry}
-          category={newsCategory}
-          setCategory={setNewsCategory}
+          onClose={handleCloseNews} onFetch={handleFetchNews}
+          newsEmotion={newsEmotion} loading={newsLoading}
+          country={newsCountry} setCountry={setNewsCountry}
+          category={newsCategory} setCategory={setNewsCategory}
         />
       )}
 
-      {/* ── Sticky action bar (always visible at bottom of viewport) ── */}
       <div className={`sticky-actions${scrolled ? ' sticky-actions--hidden' : ''}${controlsExpanded ? ' sticky-actions--expanded' : ''}`}>
-        {/* Mobile Toggle Button */}
-        <button 
-          className="hero-btn mobile-only-toggle" 
-          onClick={() => setControlsExpanded(!controlsExpanded)}
-          aria-label={controlsExpanded ? "Collapse menu" : "Expand menu"}
-        >
+        <button className="hero-btn mobile-only-toggle" onClick={() => setControlsExpanded(!controlsExpanded)}>
           {controlsExpanded ? '✕' : '☰'}
         </button>
-
         <div className="sticky-actions-inner">
-          <button className="hero-btn" onClick={toggleHelperSection}>
-            <FaTv /> {helperVisible ? 'Hide TV' : 'Watch TV'}
-          </button>
-          <button className="hero-btn hero-btn--news" onClick={handleOpenNews}>
-            <FaNewspaper /> Read News
-          </button>
-          <button
-            className="hero-btn hero-btn--explode"
-            onClick={triggerExplosion}
-            disabled={explodeDisabled}
-            title={explodeDisabled ? 'Switch to night scene or open news first' : 'Boom!'}
-          >
-            💥 Explode!
-          </button>
-          <button
-            className="sticky-info-btn"
-            onClick={() => setTourOpen(true)}
-            title="How to play"
-            aria-label="Open demo guide"
-          >
-            i
-          </button>
+          <button className="hero-btn" onClick={toggleHelperSection}><FaTv /> {helperVisible ? 'Hide TV' : 'Watch TV'}</button>
+          <button className="hero-btn hero-btn--news" onClick={handleOpenNews}><FaNewspaper /> Read News</button>
+          <button className="hero-btn hero-btn--explode" onClick={triggerExplosion} disabled={explodeDisabled}>💥 Explode!</button>
+          <button className="sticky-info-btn" onClick={() => setTourOpen(true)}>i</button>
         </div>
       </div>
 
       <Footer />
-
-      {/* ── 3D Evening World portal — mounts silently in background, fades in when ready ── */}
       {world3DMounted && (
         <React.Suspense fallback={null}>
           <EveningWorld3D
@@ -825,16 +560,7 @@ export default function App() {
           />
         </React.Suspense>
       )}
-
-      {/* ── First-time visitor welcome tour ── */}
-      <WelcomeTour
-        forceOpen={tourOpen}
-        onClose={() => {
-          setTourOpen(false);
-          setTourDismissed(true); // starts the 60s hero timer for first-timers
-        }}
-      />
+      <WelcomeTour forceOpen={tourOpen} onClose={() => { setTourOpen(false); setTourDismissed(true); }} />
     </div>
   );
 }
-
