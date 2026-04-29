@@ -10,7 +10,7 @@
 /* Mobile running adjustments */
 @media (max-width: 768px) {
   .runnercourage {
-    bottom: 20%; /* Position higher on mobile - fix grounding issue */
+    bottom: 25%; /* Position much higher on mobile - prevent grounding */
     height: 180px; /* Scale down proportionally */
     width: 160px;
   }
