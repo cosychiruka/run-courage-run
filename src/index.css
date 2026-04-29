@@ -136,3 +136,24 @@ body {
   border: 2px solid rgba(255,255,255,0.2);
   border-radius: 50px;
 }
+
+/* -- Restoration of Side-by-Side Layout -- */
+.about-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .about-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-card.glass-panel {
+  padding: 2rem;
+  color: white;
+  text-align: left;
+  border: var(--brutal-border);
+  box-shadow: 8px 8px 0px rgba(0,0,0,0.2);
+}

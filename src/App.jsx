@@ -644,45 +644,32 @@ export default function App() {
       <div className="landing-wrapper">
 
         {/* About */}
-        <section className="landing-section container glass-panel">
-          <div className="landing-card" style={{ background: 'transparent', boxShadow: 'none', border: 'none', padding: 0 }}>
+        <section className="landing-section about-section container">
+          <div className="landing-card glass-panel">
             <div className="comic-banner">
               <h2 className="landing-heading">🐕 Who is $RCR?</h2>
             </div>
             <p>
               Tribute to Courage the Cowardly Dog — Cartoon Network 1999–2002. Always watching the TV and reading Newspapers. He faced
               every monster for Muriel, and he&rsquo;d face them all again. We re-animated Courage to life making him self-aware in a interactable 3D world. He lives entirely
-              inside your browser.{' '}
-              <code>border-radius</code>.{' '}
-              <a href="https://courage.fandom.com/wiki/Courage_the_Cowardly_Dog" target="_blank" rel="noopener noreferrer">
-                Read his lore &rarr;
-              </a>
+              inside your browser.
             </p>
           </div>
-          <div className="landing-card">
+          <div className="landing-card glass-panel">
             <div className="comic-banner comic-banner--yellow">
               <h2 className="landing-heading">📺 What does he do?</h2>
             </div>
             <p>
               Treat this as his mini browser world. Tap him to trigger reactions. Change scenes in menubar. Courage fetches real news every hour — good headlines make him wag, bad ones make him
-              literally <strong>explode from fear</strong> then reassemble. He hosts meme TV
-              channels and streams old Courage toons via the{' '}
-              <a href="https://archive.org/details/courage-the-cowardly-dog-1080p-ai-upscale" target="_blank" rel="noopener noreferrer">
-                Internet Archive
-              </a>
-              . Follow his dispatches on{' '}
-              <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer">
-                @runcouragerun
-              </a>
-              . Just a scared dog doing his best.
+              literally <strong>explode from fear</strong> then reassemble. Just a scared dog doing his best.
             </p>
           </div>
         </section>
 
         {/* Tokenomics */}
-        <section className="landing-section container glass-panel">
+        <section className="landing-section container glass-panel" style={{ padding: '2rem' }}>
           <div className="comic-banner">
-            <h2 className="landing-heading section-title">📊 Tokenomics</h2>
+            <h2 className="landing-heading">📊 Tokenomics</h2>
           </div>
           <div className="token-grid">
             <div className="token-card">
@@ -709,7 +696,7 @@ export default function App() {
         </section>
 
         {/* Buy $RCR CTA */}
-        <section className="landing-section container glass-panel" style={{ textAlign: 'center' }}>
+        <section className="landing-section container glass-panel" style={{ textAlign: 'center', padding: '2rem' }}>
           <div className="comic-banner comic-banner--pink">
             <h2 className="landing-heading">🐾 Get $RCR</h2>
           </div>
