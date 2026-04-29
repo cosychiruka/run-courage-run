@@ -1,7 +1,7 @@
 # 🐕 Run Courage Run! 🏃‍♂️
 
 <div align="center">
-  <img src="src/assets/images/courage-happy.webp" alt="Courage the Cowardly Dog - Happy and Self-Aware" width="300" />
+  <img src="src/assets/images/Courage.gif" alt="Courage the Cowardly Dog - Animated and Self-Aware" width="300" />
   
   **Self-Aware Living Meme on Solana** 🌟
   
