@@ -36,24 +36,6 @@
     }
   }
 
-  /* Mobile mic positioning - centered and higher */
-  .voice-chat-btn {
-    top: -56px; /* Default positioning */
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  @media (max-width: 768px) {
-    .voice-chat-btn {
-      top: -35px; /* Higher positioning */
-      left: 50%; /* Center horizontally */
-      transform: translateX(-50%); /* Ensure centering */
-      font-size: 0.65rem;
-      padding: 5px 10px;
-      border-radius: 15px;
-    }
-  }
-
   .courage {
     width: 89px;
     height: 190px;

@@ -56,6 +56,7 @@ body {
 /* Sunrise Scene */
 .sunrise {
   background: url('./assets/images/homestead-sunrise.webp');
+  background-position: 60% 20%;
 }
 
 /* Mobile backgrounds for all scenes except midnight */
@@ -78,6 +79,19 @@ body {
   .sunrise {
     background-image: url('./assets/images/mobile-homestead-sunrise2.png');
     background-attachment: fixed !important;
+    background-position: 60% 20%;
+  }
+}
+
+/* Character positioning adjustments for all scenes */
+@media (max-width: 768px) {
+  /* Position characters higher and more centered on mobile */
+  #courageCharacter,
+  .courage.happy,
+  .courage.scared,
+  .courage.excited {
+    bottom: 18% !important; /* Higher positioning for better visibility */
+    left: 8% !important; /* More centered, not too far left */
   }
 }
 
@@ -105,54 +119,6 @@ body {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   color: #fff !important;
   z-index: 100;
-}
-
-/* Mobile Menu Adjustments */
-@media (max-width: 768px) {
-  .bone-nav {
-    width: 90%;
-    height: 16px;
-    top: 1em;
-    padding: 0.6em 1em;
-    margin: 1em auto;
-  }
-  
-  .bone-nav .circle {
-    width: 35px;
-    height: 35px;
-  }
-  
-  .bone-nav .circle.left {
-    left: -20px;
-  }
-  
-  .bone-nav .circle.right {
-    right: -20px;
-  }
-  
-  .bone-nav .circle.top {
-    top: -15px;
-  }
-  
-  .bone-nav .circle.bottom {
-    bottom: -15px;
-  }
-}
-
-/* Override scene-specific character positioning on mobile */
-@media (max-width: 768px) {
-  body #courageCharacter,
-  body .courageCharacter.is-talking,
-  body .courageCharacter.is-thinking,
-  body .courageCharacter.is-speaking {
-    bottom: 15% !important;
-    left: 5% !important;
-  }
-  
-  body #courageCharacter.is-talking {
-    bottom: 20% !important;
-    left: 5% !important;
-  }
 }
 
 /* Circles for Bone Lobes */
@@ -2938,8 +2904,8 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   /* Entry mic button: align with character head on mobile
      Character floor = 110px, scaled height ~179px, head at ~135px above floor */
   .voice-entry-btn {
-    bottom: calc(110px + 135px);
-    left: calc(2% + 42px);
+    bottom: calc(10% + 300px); /* FIXED: was 110px + 135px - TOO HIGH */
+    left: calc(10% + 52px); /* FIXED: was 2% + 42px - TOO FAR RIGHT */
   }
 }
 

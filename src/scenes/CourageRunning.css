@@ -1,6 +1,6 @@
 .runnercourage {
   position: fixed;
-  bottom: 10%;
+  bottom: 15%; /* RAISED HIGHER - better ground positioning */
   height: 230px;
   width: 200px;
   left: 0; /* Start from the very left */
@@ -10,7 +10,7 @@
 /* Mobile running adjustments */
 @media (max-width: 768px) {
   .runnercourage {
-    bottom: 25%; /* Position much higher on mobile - prevent grounding */
+    bottom: 15%; /* Position higher on mobile */
     height: 180px; /* Scale down proportionally */
     width: 160px;
   }
@@ -18,16 +18,16 @@
 
 @keyframes runLoop {
   0% {
-    transform: translateX(15vw) rotateY(0deg); /* Start further right on mobile */
+    transform: translateX(10vw) rotateY(0deg);
   }
   50% {
-    transform: translateX(75vw) rotateY(0deg); /* Move further right on mobile */
+    transform: translateX(70vw) rotateY(0deg); /* Move just close to the right end */
   }
   51% {
-    transform: translateX(75vw) rotateY(180deg); /* Rotate at the right end */
+    transform: translateX(70vw) rotateY(180deg); /* Rotate at the right end */
   }
   100% {
-    transform: translateX(15vw) rotateY(180deg); /* Return to start - further right */
+    transform: translateX(10vw) rotateY(180deg); /* Return to the start */
   }
 }
 

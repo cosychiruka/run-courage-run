@@ -22,17 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-# Environment files
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Sensitive files
+.env.example
 KATZ service provider list.txt
 sensitive-data.txt
-*.pem
-*.key
-secrets/
-credentials/
