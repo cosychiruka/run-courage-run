@@ -42,7 +42,7 @@ async def get_redis() -> Optional[aioredis.Redis]:
             await asyncio.wait_for(_redis.ping(), timeout=1.0)
             print(f"[REDIS] Connected successfully to {REDIS_URL}")
         except Exception as e:
-            print(f"[REDIS] Warning: Could not connect to {REDIS_URL}. Hot-cache disabled. Error: {e}")
+            print(f"[REDIS] Warning: Could not connect to {REDIS_URL}. Hot-cache disabled. Falling back to SQLite persistence. Error: {e}")
             _redis = None
             _redis_available = False
     return _redis

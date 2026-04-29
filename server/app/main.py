@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from app.config import FRONTEND_ORIGIN
+from app.config import FRONTEND_ORIGIN, OLLAMA_HOST, REDIS_URL
 from app.news_cache import (
     init_db, discovery_round, get_all_recent, get_recent_articles,
     get_cached_articles, fetch_pair, search_newsapi, search_gnews,
@@ -60,6 +60,13 @@ async def lifespan(app: FastAPI):
     # First discovery immediately (non-blocking)
     asyncio.create_task(discovery_round())
 
+    print("\n" + "="*50)
+    print("🐕 COURAGE AI BACKEND — STARTUP SUMMARY")
+    print(f"📡 OLLAMA_HOST: {OLLAMA_HOST}")
+    print(f"🗄️ REDIS_URL:   {REDIS_URL.split('@')[-1] if '@' in REDIS_URL else REDIS_URL}") # mask credentials
+    print(f"🌐 FRONTEND:    {FRONTEND_ORIGIN}")
+    print("="*50 + "\n")
+
     yield
 
     scheduler.shutdown(wait=False)
@@ -79,7 +86,7 @@ app.add_middleware(
 
 # ── REST ───────────────────────────────────────────────────────────────────────
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     budget = await get_budget_status()
     return {"status": "ok", "x_enabled": x_client is not None, "budget": budget}
