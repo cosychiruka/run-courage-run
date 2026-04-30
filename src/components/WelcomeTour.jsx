@@ -77,8 +77,8 @@ const WelcomeTour = ({ forceOpen, onClose }) => {
           ))}
         </div>
 
-        <p className="tour-hint">
-          Courage scrolls with you — he's always watching from the corner.
+        <p className="tour-outro-hint">
+          "When someone says the world is too much for them, tell them they need some Courage. Download the App, wink!!"
         </p>
 
         <div className="tour-alive-banner">

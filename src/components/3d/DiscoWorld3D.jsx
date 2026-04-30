@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { Scene } from './Scene3D';
 import { House } from './House3D';
 import { audioManager } from '../../utils/audioManager';
+import courageDancingGif from '../../assets/images/courage.gif';
 
 const MemoHouse = React.memo(House);
 
@@ -164,7 +165,7 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
         <StrawGround position={[0, 0, -9]} />
         
         <Html position={[0, -0.5, -10]} center transform sprite zIndexRange={[100, 0]}>
-           <img src="/assets/courage-dancing.gif" alt="Courage Dancing" style={{ width: '250px', filter: 'drop-shadow(0px 10px 10px rgba(0,0,0,0.8))' }} />
+           <img src={courageDancingGif} alt="Courage Dancing" style={{ width: '250px', filter: 'drop-shadow(0px 10px 10px rgba(0,0,0,0.8))' }} />
         </Html>
         
         <DancingGhost position={[-4, 1, -10]} offsetTime={0} />

@@ -80,16 +80,21 @@
 }
 
 .tour-feature {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-left: 3px solid var(--accent);
-  border-radius: 12px;
-  padding: 0.8rem 0.9rem;
-  transition: background 0.2s;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
+  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.02), 0 4px 15px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .tour-feature:hover {
-  background: rgba(255, 255, 255, 0.07);
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05), 0 8px 25px rgba(0, 0, 0, 0.4);
+  border-color: var(--accent);
 }
 
 .tour-feature-icon {
@@ -107,12 +112,21 @@
 
 .tour-feature-desc {
   margin: 0;
-  font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1.45;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
 }
 
-/* ── Hint ── */
+/* ── Outro Hint ── */
+.tour-outro-hint {
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #14F195;
+  margin: 1rem 0;
+  font-style: italic;
+  text-shadow: 0 0 8px rgba(20, 241, 149, 0.4);
+}
 .tour-hint {
   text-align: center;
   font-size: 0.72rem;

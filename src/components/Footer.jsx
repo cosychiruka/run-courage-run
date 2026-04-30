@@ -1,28 +1,65 @@
 import React from 'react';
-import { FaCode, FaGithub } from 'react-icons/fa';
 
 const Footer = () => {
   return (
-    <footer className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-300">
-            <FaCode className="text-blue-500 dark:text-blue-400" />
-            <span>Developed by</span>
-            <a 
-              href="https://bytezero.dev" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200"
-            >
-              ByteZero
-            </a>
-          </div>
-          <div className="mt-4 md:mt-0 text-sm text-gray-500 dark:text-gray-400">
-            © {new Date().getFullYear()} All rights reserved
-          </div>
+    <footer className="courage-footer">
+      <div className="footer-content">
+        <img 
+          src="/web-app-manifest-192x192.png" 
+          alt="Courage Icon" 
+          className="footer-icon"
+        />
+        <div className="footer-outro">
+          "When someone says the world is too much for them, tell them they need some Courage. Download the App, wink!!"
         </div>
       </div>
+      <style>{`
+        .courage-footer {
+          margin-top: auto;
+          background: linear-gradient(180deg, transparent 0%, rgba(10, 0, 20, 0.6) 100%);
+          border-top: 1px solid rgba(235, 87, 193, 0.2);
+          padding: 2.5rem 1rem 3rem;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          position: relative;
+          z-index: 10;
+        }
+        .footer-content {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1rem;
+          max-width: 600px;
+          text-align: center;
+          animation: floatFooter 4s ease-in-out infinite;
+        }
+        .footer-icon {
+          width: 64px;
+          height: 64px;
+          border-radius: 50%;
+          border: 2px solid #eb57c1;
+          box-shadow: 0 0 15px rgba(235, 87, 193, 0.5), inset 0 0 10px rgba(235, 87, 193, 0.3);
+          transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          cursor: pointer;
+        }
+        .footer-icon:hover {
+          transform: scale(1.15) rotate(10deg);
+        }
+        .footer-outro {
+          font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+          font-size: 0.95rem;
+          color: #14F195;
+          text-shadow: 0 0 10px rgba(20, 241, 149, 0.5);
+          line-height: 1.4;
+          font-weight: bold;
+          font-style: italic;
+        }
+        @keyframes floatFooter {
+          0%, 100% { transform: translateY(0px); }
+          50%      { transform: translateY(-5px); }
+        }
+      `}</style>
     </footer>
   );
 };
