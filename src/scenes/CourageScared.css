@@ -440,61 +440,40 @@
     -webkit-clip-path: polygon(300% 26%, 300% 90%, 52% 65%, 50% 28%);
             clip-path: polygon(300% 26%, 300% 90%, 52% 65%, 50% 28%);
   }
+  /* ── Clean Base Body Limbs ── */
   .courage .body .leg.top {
-    width: 15px;
-    height: 32px;
     position: absolute;
     z-index: 3;
-    top: 5px;
-  }
-  .courage .body .leg.top::after {
-    content: "";
-    width: 20px;
-    height: 10px;
+    top: 25px;
+    width: 15px;
+    height: 48px;
+    border-radius: 8px;
     background-color: var(--pink);
-    position: absolute;
-    bottom: -2px;
+    box-shadow: inset 0 0 0 2px var(--black);
+    transform-origin: top center;
   }
+  .courage .body .leg.top::after { display: none; }
+  
   .courage .body .leg.top.left {
-    left: 25px;
-    border-radius: 100% 0% 0% 0%/100% 100% 0% 0%;
-    box-shadow: -2px 0 0 var(--black), -6px 0 0 var(--pink), -8px 0 0 var(--black);
-    -webkit-animation: tremble 0.2s infinite ease-in-out;
-            animation: tremble 0.2s infinite ease-in-out;
-    transform-origin: bottom left;
-  }
-  .courage .body .leg.top.left::after {
-    right: 5px;
-    transform: rotate(-30deg);
+    left: 8px;
+    transform: rotate(145deg);
+    animation: tremble 0.2s infinite ease-in-out;
   }
   .courage .body .leg.top.right {
-    left: 50px;
-    border-radius: 0% 100% 0% 0%/0% 100% 0% 0%;
-    box-shadow: 2px 0 0 var(--black), 6px 0 0 var(--pink), 8px 0 0 var(--black);
+    left: 65px;
+    transform: rotate(-145deg);
     animation: tremble 0.2s infinite ease-in-out reverse;
-    transform-origin: bottom right;
   }
-  .courage .body .leg.top.right::after {
-    left: 5px;
-    transform: rotate(30deg);
-  }
+  
   .courage .body .leg.top .paw {
     width: 16px;
     height: 13px;
     position: absolute;
-    top: -10px;
-    left: -2px;
+    bottom: -6px;
+    left: -1px;
   }
-  .courage .body .leg.top .paw::after {
-    content: "";
-    width: 5px;
-    height: 7px;
-    background-color: var(--pink);
-    position: absolute;
-    bottom: -2px;
-    left: 5px;
-    border-radius: 50%;
-  }
+  .courage .body .leg.top .paw::after { display: none; }
+  
   .courage .body .leg.top .paw .finger {
     width: 8px;
     height: 10px;
@@ -504,79 +483,47 @@
     border: 2px solid var(--black);
     box-sizing: border-box;
     border-bottom-color: transparent;
-    left: 4px;
-    top: -2px;
   }
-  .courage .body .leg.top .paw .finger:nth-child(1) {
-    transform: rotate(-90deg);
-    top: 5px;
-    left: -1px;
-  }
-  .courage .body .leg.top .paw .finger:nth-child(2) {
-    transform: rotate(90deg);
-    top: 5px;
-    left: 9px;
-  }
-  .courage .body .leg.top.left .paw {
-    transform: rotate(35deg);
-    left: 2px;
-  }
-  .courage .body .leg.top.right .paw {
-    transform: rotate(-37deg);
-    right: 2px;
-  }
+  .courage .body .leg.top .paw .finger:nth-child(1) { transform: rotate(-90deg); top: 5px; left: -1px; }
+  .courage .body .leg.top .paw .finger:nth-child(2) { transform: rotate(90deg); top: 5px; left: 9px; }
+  .courage .body .leg.top .paw .finger:nth-child(3) { top: -2px; left: 4px; }
+  
+  .courage .body .leg.top.left .paw { transform: rotate(10deg); }
+  .courage .body .leg.top.right .paw { transform: rotate(-10deg); }
+
+
   .courage .body .leg.bottom {
-    width: 19px;
-    height: 35px;
-    position: absolute;
-    border-radius: 50%;
-    top: 66px;
-    left: 10px;
-    z-index: 1;
-    box-shadow: -4px 0 0 -2px var(--black), -8px 0 0 -2px var(--pink), -10px 0 0 -2px var(--black);
-  }
-  .courage .body .leg.bottom::after {
-    content: "";
-    width: 16px;
-    height: 10px;
-    border-radius: 50%;
     background-color: var(--pink);
+    box-shadow: inset 0 0 0 2px var(--black);
+    width: 16px;
+    height: 38px;
+    border-radius: 8px;
     position: absolute;
-    left: -5px;
-    top: -1px;
+    top: 66px;
+    z-index: 1;
   }
+  .courage .body .leg.bottom::after { display: none; }
+  
   .courage .body .leg.bottom.left {
-    -webkit-animation: tremble 0.2s infinite ease-in-out;
-            animation: tremble 0.2s infinite ease-in-out;
-    transform-origin: top left;
+    left: 16px;
+    transform: rotate(15deg);
+    animation: tremble 0.2s infinite ease-in-out;
   }
   .courage .body .leg.bottom.right {
-    left: 36px;
-    box-shadow: 4px 0 0 -2px var(--black), 8px 0 0 -2px var(--pink), 10px 0 0 -2px var(--black);
+    left: 54px;
+    transform: rotate(-15deg);
     animation: tremble 0.2s infinite ease-in-out reverse;
-    transform-origin: top right;
   }
-  .courage .body .leg.bottom.right::after {
-    left: 9px;
-    top: 0px;
-  }
+  
   .courage .body .leg.bottom .paw {
     width: 16px;
     height: 13px;
     position: absolute;
-    bottom: -10px;
-    left: -2px;
+    bottom: -8px;
+    left: 0px;
   }
-  .courage .body .leg.bottom .paw::after {
-    content: "";
-    width: 5px;
-    height: 7px;
-    background-color: var(--pink);
-    position: absolute;
-    bottom: -2px;
-    left: 5px;
-    border-radius: 50%;
-  }
+  .courage .body .leg.bottom .paw::after { display: none; }
+  
   .courage .body .leg.bottom .paw .finger {
     width: 8px;
     height: 10px;
@@ -586,28 +533,10 @@
     border: 2px solid var(--black);
     box-sizing: border-box;
     border-bottom-color: transparent;
-    left: 4px;
-    top: -2px;
   }
-  .courage .body .leg.bottom .paw .finger:nth-child(1) {
-    transform: rotate(-90deg);
-    top: 5px;
-    left: -1px;
-  }
-  .courage .body .leg.bottom .paw .finger:nth-child(2) {
-    transform: rotate(90deg);
-    top: 5px;
-    left: 9px;
-  }
-  .courage .body .leg.bottom.left .paw {
-    transform: rotate(160deg);
-    left: -6px;
-  }
-  .courage .body .leg.bottom.right .paw {
-    transform: rotate(-150deg);
-    left: 7px;
-    bottom: -8px;
-  }
+  .courage .body .leg.bottom .paw .finger:nth-child(1) { transform: rotate(-90deg); top: 5px; left: -1px; }
+  .courage .body .leg.bottom .paw .finger:nth-child(2) { transform: rotate(90deg); top: 5px; left: 9px; }
+  .courage .body .leg.bottom .paw .finger:nth-child(3) { top: -2px; left: 4px; }
   .courage .body::after {
     content: "";
     width: 130%;
@@ -797,28 +726,25 @@
   75%      { transform: rotate(-3deg) translateY( -1px); }
 }
 
-/* ── Voice chat: mouth (hidden by default, shown when talking) ── */
-
+/* ── Voice chat: mouth ── */
 .courage .head .mouth {
   display: none;
   position: absolute;
-  bottom: -46px;
-  left: 8px;
-  width: 68px;
-  height: 20px;
+  bottom: -20px; /* Snout position */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 56px;
+  height: 12px;
   z-index: 4;
   overflow: hidden;
-  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  border-radius: 0 0 24px 24px;
   border: 2px solid var(--black);
   box-sizing: border-box;
   background-color: #b40200;
-  transform-origin: top center;
-  transform: scaleY(0.15);
+  transition: height 0.1s;
 }
 
-.courage.is-talking .head .mouth {
-  display: block;
-}
+.courage.is-talking .head .mouth { display: block; }
 
 /* Top teeth */
 .courage .head .mouth .tooth.top {
@@ -832,9 +758,9 @@
   box-sizing: border-box;
   z-index: 2;
 }
-.courage .head .mouth .tooth.top:nth-child(2) { left: 3px; }
+.courage .head .mouth .tooth.top:nth-child(2) { left: 4px; }
 .courage .head .mouth .tooth.top:nth-child(3) { left: 19px; }
-.courage .head .mouth .tooth.top:nth-child(4) { left: 35px; }
+.courage .head .mouth .tooth.top:nth-child(4) { left: 34px; }
 
 /* Bottom teeth */
 .courage .head .mouth .tooth.bottom {
@@ -848,8 +774,8 @@
   box-sizing: border-box;
   z-index: 2;
 }
-.courage .head .mouth .tooth.bottom:nth-child(5) { left: 8px; }
-.courage .head .mouth .tooth.bottom:nth-child(6) { left: 40px; }
+.courage .head .mouth .tooth.bottom:nth-child(5) { left: 10px; }
+.courage .head .mouth .tooth.bottom:nth-child(6) { left: 32px; }
 
 /* Mouth-inner: red cavity glow */
 .courage .head .mouth .mouth-inner {
@@ -859,28 +785,14 @@
   z-index: 1;
 }
 
-/* Stop trembling when talking */
-.courage.is-talking .body .leg.top {
-  animation: none !important;
-  transform: none !important;
-}
-
-/* Arms relax downward when talking (mirror the happy pose) */
-.courage.is-talking .body .leg.top.left {
-  box-shadow: -2px 0 0 var(--black), -5px 0 0 var(--pink) !important;
-}
-.courage.is-talking .body .leg.top.right {
-  box-shadow: 2px 0 0 var(--black), 5px 0 0 var(--pink) !important;
-}
-
-/* Mouth opens and talks when speaking */
+/* Mouth opens and talks when speaking, uses height instead of scaleY */
 .courage.is-speaking .head .mouth {
   animation: scaredTalk 0.38s ease-in-out infinite;
 }
 
 @keyframes scaredTalk {
-  0%   { transform: scaleY(0.15); }
-  40%  { transform: scaleY(1.0);  }
-  60%  { transform: scaleY(1.0);  }
-  100% { transform: scaleY(0.15); }
+  0%   { height: 12px; border-radius: 0 0 12px 12px; }
+  40%  { height: 34px; border-radius: 0 0 32px 32px; }
+  60%  { height: 20px; border-radius: 0 0 18px 18px; }
+  100% { height: 12px; border-radius: 0 0 12px 12px; }
 }
