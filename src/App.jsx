@@ -19,6 +19,7 @@ import { createVoiceService } from './services/voiceService';
 const EveningWorld3D = lazy(() => import('./components/3d/EveningWorld3D'));
 const SunriseWorld3D = lazy(() => import('./components/3d/SunriseWorld3D'));
 const DiscoWorld3D = lazy(() => import('./components/3d/DiscoWorld3D'));
+import courageDancingGif from './assets/images/courage.gif';
 
 export default function App() {
   const [scene, setScene] = useState('');
@@ -296,8 +297,19 @@ export default function App() {
     const isNoon = activeScene === 'noon';
     const isTalking = voiceState !== null;
 
-    // Do not render CSS DOM courage in strictly 3D scenes if they assume full control
-    if (activeScene === 'disco') return null;
+    // Disco landing page logic
+    if (activeScene === 'disco') {
+      return (
+         <div className="disco-landing-scene">
+            <div className="disco-ball">
+               <div className="disco-sparkle"></div>
+               <div className="disco-sparkle s2"></div>
+               <div className="disco-sparkle s3"></div>
+            </div>
+            <img src={courageDancingGif} alt="Courage Dancing" className="courage-disco-gif" />
+         </div>
+      );
+    }
 
     // Always render the pieces character during an explosion (voice can't trigger this)
     if (explosionPhase) {

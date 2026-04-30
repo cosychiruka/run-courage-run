@@ -233,6 +233,9 @@ function StoryController() {
 
 function Meteor() {
   const meshRef = useRef();
+  const trailRef = useRef();
+  const headRef = useRef();
+  
   useFrame((state) => {
      // 5 minutes = 300 seconds. Runs for 30 seconds.
      const t = state.clock.elapsedTime % 300;
@@ -240,26 +243,44 @@ function Meteor() {
          meshRef.current.visible = true;
          const progress = t / 30; // 0 to 1
          meshRef.current.position.set(THREE.MathUtils.lerp(-120, 120, progress), THREE.MathUtils.lerp(60, 10, progress), -90);
+         
+         if (headRef.current) {
+            headRef.current.rotation.x += 0.05;
+            headRef.current.rotation.y += 0.08;
+         }
+         
+         if (trailRef.current) {
+            trailRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 20) * 0.05;
+         }
      } else if (meshRef.current) {
          meshRef.current.visible = false;
      }
   });
 
+  const angle = Math.atan2(-50, 240);
+
   return (
-      <group ref={meshRef} visible={false}>
-         <mesh>
-            <sphereGeometry args={[2, 16, 16]} />
-            <meshStandardMaterial color="#ff3300" emissive="#ff3300" emissiveIntensity={4} />
+      <group ref={meshRef} visible={false} rotation={[0, 0, angle]}>
+         {/* Solid dark rocky head with sharp edges */}
+         <mesh ref={headRef}>
+            <icosahedronGeometry args={[2.5, 0]} />
+            <meshStandardMaterial color="#1a0a00" roughness={0.9} />
          </mesh>
-         <mesh position={[-2.5, 1, 0]} scale={[0.8, 0.8, 0.8]}>
-            <sphereGeometry args={[2, 16, 16]} />
-            <meshStandardMaterial color="#ffaa00" emissive="#ff2200" emissiveIntensity={2} transparent opacity={0.6} />
+         {/* Bright inner glow popping through edges */}
+         <mesh scale={[0.98, 0.98, 0.98]}>
+            <icosahedronGeometry args={[2.5, 0]} />
+            <meshStandardMaterial color="#ffffff" emissive="#ff3300" emissiveIntensity={5} wireframe />
          </mesh>
-         <mesh position={[-4.5, 1.5, 0]} scale={[0.5, 0.5, 0.5]}>
-            <sphereGeometry args={[2, 16, 16]} />
-            <meshStandardMaterial color="#ff0000" emissive="#881100" emissiveIntensity={1} transparent opacity={0.3} />
+         {/* Trailing tail (pencil-stroked/wireframe overlapping cones) */}
+         <mesh ref={trailRef} position={[-8, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
+            <coneGeometry args={[2.2, 16, 8, 1, true]} />
+            <meshBasicMaterial color="#ff5500" transparent opacity={0.8} wireframe />
          </mesh>
-         <pointLight color="#ff3300" intensity={5} distance={150} />
+         <mesh position={[-12, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
+            <coneGeometry args={[1.5, 24, 6, 1, true]} />
+            <meshBasicMaterial color="#ffcc00" transparent opacity={0.4} wireframe />
+         </mesh>
+         <pointLight color="#ff4400" intensity={8} distance={200} />
       </group>
   );
 }
