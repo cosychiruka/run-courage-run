@@ -13,7 +13,7 @@ const MemoWindmill = memo(Windmill);
 const MemoTruck = memo(Truck);
 const MemoTerrain = memo(Terrain);
 
-function Ghost({ courageRef, offsetTime = 0, offsetPosition = [0, 0, 0], visible = true, phase = 0 }) {
+function Ghost({ courageRef, sequenceRef, offsetTime = 0, offsetPosition = [0, 0, 0], visible = true, phase = 0 }) {
   const groupRef = useRef(null);
   const scratchVec1 = useMemo(() => new THREE.Vector3(), []);
   
@@ -31,17 +31,32 @@ function Ghost({ courageRef, offsetTime = 0, offsetPosition = [0, 0, 0], visible
       if (t < 0.1) { groupRef.current.scale.setScalar(0); return; }
 
       let targetX, targetY, targetZ;
-      if (phase === 5 || phase === 0) {
-        const retreatT = THREE.MathUtils.clamp((t - 26) / 3.5, 0, 1);
-        targetX = THREE.MathUtils.lerp(courageRef.current.position.x, -2.5, retreatT) + offsetPosition[0];
-        targetY = THREE.MathUtils.lerp(1.5, 4, retreatT) + offsetPosition[1];
-        targetZ = THREE.MathUtils.lerp(courageRef.current.position.z, 0, retreatT) + offsetPosition[2];
-        groupRef.current.scale.setScalar(THREE.MathUtils.lerp(1, 0, retreatT));
+      if (sequenceRef?.current === 1) {
+        // Sequence 1: FAKE OUT! Ghosts blindly fly diagonal across the map
+        if (phase === 4 || phase === 5) {
+           const fakeT = (t - 20) / 10; // 10s path over screen
+           targetX = THREE.MathUtils.lerp(-2.5, 35, fakeT) + offsetPosition[0] + Math.sin(t*2)*0.5;
+           targetY = THREE.MathUtils.lerp(2.5, 12, fakeT) + offsetPosition[1] + Math.sin(t*4)*0.6;
+           targetZ = THREE.MathUtils.lerp(1, 15, fakeT) + offsetPosition[2];
+           if (visible) groupRef.current.scale.setScalar(1);
+        } else {
+           groupRef.current.scale.setScalar(0); 
+           targetX = 0; targetY=0; targetZ=0;
+        }
       } else {
-        targetX = courageRef.current.position.x + offsetPosition[0] + Math.sin(state.clock.elapsedTime * 2 + offsetTime * 2) * 0.5;
-        targetY = 1 + offsetPosition[1] + Math.sin(state.clock.elapsedTime * 4 + offsetTime) * 0.6;
-        targetZ = courageRef.current.position.z + offsetPosition[2];
-        if (visible) groupRef.current.scale.setScalar(1);
+        // Sequence 0: Original Chase
+        if (phase === 5 || phase === 0) {
+          const retreatT = THREE.MathUtils.clamp((t - 26) / 3.5, 0, 1);
+          targetX = THREE.MathUtils.lerp(courageRef.current.position.x, -2.5, retreatT) + offsetPosition[0];
+          targetY = THREE.MathUtils.lerp(1.5, 4, retreatT) + offsetPosition[1];
+          targetZ = THREE.MathUtils.lerp(courageRef.current.position.z, 0, retreatT) + offsetPosition[2];
+          groupRef.current.scale.setScalar(THREE.MathUtils.lerp(1, 0, retreatT));
+        } else {
+          targetX = courageRef.current.position.x + offsetPosition[0] + Math.sin(state.clock.elapsedTime * 2 + offsetTime * 2) * 0.5;
+          targetY = 1 + offsetPosition[1] + Math.sin(state.clock.elapsedTime * 4 + offsetTime) * 0.6;
+          targetZ = courageRef.current.position.z + offsetPosition[2];
+          if (visible) groupRef.current.scale.setScalar(1);
+        }
       }
       groupRef.current.position.lerp(scratchVec1.set(targetX, targetY, targetZ), 0.1);
       groupRef.current.lookAt(state.camera.position);
@@ -67,13 +82,19 @@ function StoryController() {
   const houseRef = useRef(null);
   const [doorOpen, setDoorOpen] = useState(false);
   const [phase, setPhase] = useState(0);
+  const seqRef = useRef(0);
   const scratchVec1 = useMemo(() => new THREE.Vector3(), []);
   
   useFrame((state) => {
     const t = state.clock.elapsedTime % 30;
     let p = 0;
     if (t < 4) p = 0; else if (t < 8) p = 1; else if (t < 12) p = 2; else if (t < 20) p = 3; else if (t < 26) p = 4; else p = 5;
-    if (p !== phase) { setPhase(p); setDoorOpen(p === 2 || p === 4); }
+    
+    if (p !== phase) { 
+      if (p === 3) seqRef.current = Math.random() > 0.5 ? 1 : 0; // Roll branch while inside!
+      setPhase(p); 
+      setDoorOpen(p === 2 || p === 4 || (p === 5 && seqRef.current === 1)); 
+    }
 
     if (courageRef.current && houseRef.current) {
       if (p === 0) {
@@ -102,13 +123,29 @@ function StoryController() {
         const squishZ = 1 + Math.sin(pT * 18) * 0.08;
         houseRef.current.scale.lerp(scratchVec1.set(squishX, squishY, squishZ), 0.5);
       } else if (p === 4) {
-        const pT = (t - 20) / 6;
-        courageRef.current.rotation.y = 0;
-        courageRef.current.position.set(THREE.MathUtils.lerp(-2.8, 22, pT), -0.1, THREE.MathUtils.lerp(2.5, 9, pT));
-        courageRef.current.scale.setScalar(THREE.MathUtils.lerp(0.25, 0.7, pT));
+        if (seqRef.current === 0) {
+          const pT = (t - 20) / 6;
+          courageRef.current.rotation.y = 0;
+          courageRef.current.position.set(THREE.MathUtils.lerp(-2.8, 22, pT), -0.1, THREE.MathUtils.lerp(2.5, 9, pT));
+          courageRef.current.scale.setScalar(THREE.MathUtils.lerp(0.25, 0.7, pT));
+        } else {
+          // Fake out sequence: Sneak around back of house
+          const pT = Math.min((t - 20) / 3, 1);
+          courageRef.current.rotation.y = Math.PI * 0.8;
+          courageRef.current.position.set(THREE.MathUtils.lerp(-2.8, -8, pT), -0.1, THREE.MathUtils.lerp(2.5, -4, pT));
+          courageRef.current.scale.setScalar(0.4);
+        }
         houseRef.current.scale.lerp(scratchVec1.set(1, 1, 1), 0.1);
       } else {
-        courageRef.current.scale.setScalar(0);
+        if (seqRef.current === 0) {
+          courageRef.current.scale.setScalar(0);
+        } else {
+          // Fake out sequence: Dash back inside!
+          const pT = (t - 26) / 4;
+          courageRef.current.rotation.y = -Math.PI * 0.3;
+          courageRef.current.position.set(THREE.MathUtils.lerp(-8, -3.3, pT), -0.1, THREE.MathUtils.lerp(-4, 2.5, pT));
+          courageRef.current.scale.setScalar(THREE.MathUtils.lerp(0.4, 0.25, pT));
+        }
         houseRef.current.scale.lerp(scratchVec1.set(1, 1, 1), 0.1);
       }
     }
@@ -122,7 +159,7 @@ function StoryController() {
       <group ref={courageRef}>
         <Html transform center eps={0.001} style={{ pointerEvents: 'none' }}>
            <CourageRunningAnimationComplete />
-           {phase === 4 && (
+           {phase === 4 && seqRef.current === 0 && (
              <div style={{ 
                position: 'absolute', top: '-90px', left: '50%', transform: 'translateX(-50%)', 
                backgroundColor: '#ffffff', color: '#000000', fontWeight: 900, fontSize: '2rem', 
@@ -141,15 +178,71 @@ function StoryController() {
         </Html>
       </group>
       <group>
-         <Ghost courageRef={courageRef} offsetPosition={[-1, 0.5, -1]} offsetTime={0} visible={phase === 4 || phase === 5} phase={phase} />
-         <Ghost courageRef={courageRef} offsetPosition={[-2, 1.5, -2]} offsetTime={2} visible={phase === 4 || phase === 5} phase={phase} />
-         <Ghost courageRef={courageRef} offsetPosition={[-3, 2.5, -0.5]} offsetTime={4} visible={phase === 4 || phase === 5} phase={phase} />
+         <Ghost courageRef={courageRef} sequenceRef={seqRef} offsetPosition={[-1, 0.5, -1]} offsetTime={0} visible={phase === 4 || phase === 5} phase={phase} />
+         <Ghost courageRef={courageRef} sequenceRef={seqRef} offsetPosition={[-2, 1.5, -2]} offsetTime={2} visible={phase === 4 || phase === 5} phase={phase} />
+         <Ghost courageRef={courageRef} sequenceRef={seqRef} offsetPosition={[-3, 2.5, -0.5]} offsetTime={4} visible={phase === 4 || phase === 5} phase={phase} />
       </group>
     </group>
   );
 }
 
+function Meteor() {
+  const meshRef = useRef();
+  useFrame((state) => {
+     // 5 minutes = 300 seconds. Runs for 30 seconds.
+     const t = state.clock.elapsedTime % 300;
+     if (t < 30 && meshRef.current) {
+         meshRef.current.visible = true;
+         const progress = t / 30; // 0 to 1
+         meshRef.current.position.set(THREE.MathUtils.lerp(-120, 120, progress), THREE.MathUtils.lerp(60, 10, progress), -90);
+     } else if (meshRef.current) {
+         meshRef.current.visible = false;
+     }
+  });
+
+  return (
+      <group ref={meshRef} visible={false}>
+         <mesh>
+            <sphereGeometry args={[2, 16, 16]} />
+            <meshStandardMaterial color="#ff3300" emissive="#ff3300" emissiveIntensity={4} />
+         </mesh>
+         <mesh position={[-2.5, 1, 0]} scale={[0.8, 0.8, 0.8]}>
+            <sphereGeometry args={[2, 16, 16]} />
+            <meshStandardMaterial color="#ffaa00" emissive="#ff2200" emissiveIntensity={2} transparent opacity={0.6} />
+         </mesh>
+         <mesh position={[-4.5, 1.5, 0]} scale={[0.5, 0.5, 0.5]}>
+            <sphereGeometry args={[2, 16, 16]} />
+            <meshStandardMaterial color="#ff0000" emissive="#881100" emissiveIntensity={1} transparent opacity={0.3} />
+         </mesh>
+         <pointLight color="#ff3300" intensity={5} distance={150} />
+      </group>
+  );
+}
+
+function StylizedCloud({ position, scale = 1, opacity = 0.5, speed = 0.05, morning = false }) {
+  const meshRef = useRef();
+  const color = morning ? '#ffd1b3' : '#aaccff'; 
+  useFrame((state) => {
+    if (meshRef.current) {
+        meshRef.current.position.x += speed * scale;
+        if (meshRef.current.position.x > 150) meshRef.current.position.x = -150;
+    }
+  });
+  return (
+     <group ref={meshRef} position={position} scale={[scale, scale, scale]}>
+       <mesh position={[0, 0, 0]}><sphereGeometry args={[4, 16, 16]} /><meshStandardMaterial color={color} transparent opacity={opacity} roughness={1} /></mesh>
+       <mesh position={[4, -1, 0]}><sphereGeometry args={[3, 16, 16]} /><meshStandardMaterial color={color} transparent opacity={opacity} roughness={1} /></mesh>
+       <mesh position={[-4, -1, 0]}><sphereGeometry args={[3, 16, 16]} /><meshStandardMaterial color={color} transparent opacity={opacity} roughness={1} /></mesh>
+       <mesh position={[0, -2, 2]}><sphereGeometry args={[3.5, 16, 16]} /><meshStandardMaterial color={color} transparent opacity={opacity} roughness={1} /></mesh>
+     </group>
+  );
+}
+
 export function Scene({ scene = 'evening' }) {
+  const isSunrise = scene === 'sunrise';
+  const ambientColor = isSunrise ? '#ffaa44' : '#bd80e8';
+  const dirLightColor = isSunrise ? '#ffeeba' : '#ffccf5';
+  
   const gradientTexture = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 2; canvas.height = 512;
@@ -159,8 +252,8 @@ export function Scene({ scene = 'evening' }) {
       
       // Different gradients for different scenes
       if (scene === 'sunrise') {
-        gradient.addColorStop(0.0, '#ff6b35'); gradient.addColorStop(0.3, '#f7931e');
-        gradient.addColorStop(0.6, '#fdc830'); gradient.addColorStop(1.0, '#f37335');
+        gradient.addColorStop(0.0, '#ff4b1f'); gradient.addColorStop(0.3, '#ff9068');
+        gradient.addColorStop(0.6, '#ffd194'); gradient.addColorStop(1.0, '#70e1f5');
       } else if (scene === 'noon') {
         gradient.addColorStop(0.0, '#87ceeb'); gradient.addColorStop(0.4, '#98d8e8');
         gradient.addColorStop(0.7, '#b0e0e6'); gradient.addColorStop(1.0, '#e0f6ff');
@@ -184,9 +277,17 @@ export function Scene({ scene = 'evening' }) {
       <color attach="background" args={['#0a001a']} />
       <mesh position={[0, -5, 0]}><sphereGeometry args={[120, 16, 16]} /><meshBasicMaterial side={THREE.BackSide} depthWrite={false} map={gradientTexture} /></mesh>
       <Stars radius={80} depth={30} count={2000} factor={6} saturation={0.5} fade speed={0.5} />
-      <ambientLight intensity={0.4} color="#bd80e8" />
-      <directionalLight position={[40, 15, 10]} intensity={2.8} color="#ffccf5" castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-camera-near={0.5} shadow-camera-far={120} shadow-camera-left={-40} shadow-camera-right={40} shadow-camera-top={40} shadow-camera-bottom={-40} shadow-bias={-0.0005} />
-      <group position={[0, -2, 0]}><MemoTerrain /><StoryController /></group>
+      {scene === 'sunrise' && (
+        <>
+          <StylizedCloud position={[-40, 30, -50]} scale={1.2} morning={true} opacity={0.6} />
+          <StylizedCloud position={[20, 45, -60]} scale={1.8} morning={true} speed={0.03} opacity={0.4} />
+          <StylizedCloud position={[80, 25, -40]} scale={0.9} morning={true} speed={0.07} opacity={0.7} />
+        </>
+      )}
+      <ambientLight intensity={isSunrise ? 0.7 : 0.4} color={ambientColor} />
+      <directionalLight position={[40, 15, 10]} intensity={2.8} color={dirLightColor} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-camera-near={0.5} shadow-camera-far={120} shadow-camera-left={-40} shadow-camera-right={40} shadow-camera-top={40} shadow-camera-bottom={-40} shadow-bias={-0.0005} />
+      <Meteor />
+      <group position={[0, -2, 0]}><MemoTerrain scene={scene} /><StoryController /></group>
     </>
   );
 }

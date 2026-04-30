@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import * as THREE from 'three';
 
-export function Terrain() {
+export function Terrain({ scene = 'evening' }) {
   const noiseBumpMap = useMemo(() => {
     const size = 512;
     const canvas = document.createElement('canvas');
@@ -27,12 +27,17 @@ export function Terrain() {
     return tex;
   }, []);
 
+  let terrainColor = '#70129c'; // evening
+  if (scene === 'sunrise') terrainColor = '#4a6b2c';
+  if (scene === 'noon') terrainColor = '#69a84f';
+  if (scene === 'midnight') terrainColor = '#1a0d33';
+
   return (
     <mesh receiveShadow position={[0, -99.5, 0]}>
       {/* Flattened large sphere to represent the curved horizon */}
       <sphereGeometry args={[100, 32, 32]} />
       <meshStandardMaterial 
-        color="#70129c" 
+        color={terrainColor} 
         roughness={1.0} 
         metalness={0.0}
         bumpMap={noiseBumpMap} 
