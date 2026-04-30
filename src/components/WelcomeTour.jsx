@@ -86,7 +86,7 @@ const WelcomeTour = ({ forceOpen, onClose }) => {
           <span className="tour-alive-text">
             He&rsquo;s Alive &mdash; Animated Self Aware Meme
           </span>
-          <span className="tour-alive-sub">AI Voice Chat powered by local LLM</span>
+          <span className="tour-alive-sub">AI Voice Chat powered by phi3:mini (runs on just 4GB RAM!)</span>
         </div>
 
         <button className="tour-cta" onClick={dismiss}>

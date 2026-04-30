@@ -1,7 +1,7 @@
 version: '3.9'
 
 services:
-  # ── Local LLM (qwen2.5-coder:7b — best tool-caller on Ollama) ──────────────
+  # ── Local LLM (phi3:mini — best small model for 4GB RAM) ──────────────
   ollama:
     image: ollama/ollama:latest
     container_name: courage_ollama
@@ -18,7 +18,7 @@ services:
     volumes:
       - ollama_models:/root/.ollama
     entrypoint: >
-      sh -c "sleep 8 && ollama pull ${OLLAMA_MODEL:-qwen2.5-coder:7b}"
+      sh -c "sleep 8 && ollama pull ${OLLAMA_MODEL:-phi3:mini}"
     depends_on:
       - ollama
     environment:

@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 OLLAMA_HOST  = os.getenv("OLLAMA_HOST",  "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5-coder:7b")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "phi3:mini")
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 DB_PATH   = os.getenv("DB_PATH",   "./data/courage.db")

@@ -76,6 +76,7 @@ Courage has been re-animated with modern web magic to become:
 
 ### 📋 **Prerequisites**
 - Node.js 16+ 
+- **Voice AI Server (Optional)**: If you want to host the Voice AI backend locally using Ollama, you will need a machine with **at least 4GB RAM** to run `phi3:mini`.
 - A sense of humor and love for pink dogs
 
 ### 🎮 **Installation**
