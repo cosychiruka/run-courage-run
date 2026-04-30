@@ -737,40 +737,37 @@
   100% { opacity: 0;   transform: scale(2.2) translateX(-38px); }
 }
 
-/* Freeze all limb animations */
-.runnercourage.is-talking .runnercourage-head,
-.runnercourage.is-talking .runnercourage-ear-left,
-.runnercourage.is-talking .runnercourage-ear-left::after,
-.runnercourage.is-talking .runnercourage-ear-right,
-.runnercourage.is-talking .runnercourage-ear-right::after,
-.runnercourage.is-talking .runnercourage-body,
+/* Freeze all limb animations (but let head/ears move when speaking) */
+.runnercourage.is-talking:not(.is-speaking) .runnercourage-head,
+.runnercourage.is-talking:not(.is-speaking) .runnercourage-ear-left,
+.runnercourage.is-talking:not(.is-speaking) .runnercourage-ear-left::after,
+.runnercourage.is-talking:not(.is-speaking) .runnercourage-ear-right,
+.runnercourage.is-talking:not(.is-speaking) .runnercourage-ear-right::after,
+.runnercourage.is-talking:not(.is-speaking) .runnercourage-body,
 .runnercourage.is-talking .runnercourage-leg-back,
 .runnercourage.is-talking .runnercourage-leg-front,
-.runnercourage.is-talking .runnercourage-arm-front,
-.runnercourage.is-talking .runnercourage-arm-back,
-.runnercourage.is-talking .runnercourage-eye-front::before,
-.runnercourage.is-talking .runnercourage-eye-rear::before,
-.runnercourage.is-talking .runnercourage-mouth {
+.runnercourage.is-talking:not(.is-speaking) .runnercourage-eye-front::before,
+.runnercourage.is-talking:not(.is-speaking) .runnercourage-eye-rear::before,
+.runnercourage.is-talking:not(.is-speaking) .runnercourage-mouth {
   animation: none !important;
 }
 
-/* Mouth mostly closed while listening */
+/* Restore the original mouth shape without squishing, just clip the bottom to look 'shut' */
 .runnercourage.is-talking .runnercourage-mouth {
-  transform-origin: top center;
-  transform: scaleY(0.22);
+  transform: none; /* remove any scale */
+  clip-path: inset(0 0 65% 0); /* trim bottom 65% of the wide open mouth so it looks closed */
 }
 
-/* Mouth opens and talks while speaking (overrides above) */
+/* Mouth opens and talks while speaking */
 .runnercourage.is-speaking .runnercourage-mouth {
-  transform-origin: top center;
   animation: runnerTalk 0.36s ease-in-out infinite !important;
 }
 
 @keyframes runnerTalk {
-  0%   { transform: scaleY(0.22); }
-  40%  { transform: scaleY(1.0);  }
-  60%  { transform: scaleY(1.0);  }
-  100% { transform: scaleY(0.22); }
+  0%   { clip-path: inset(0 0 65% 0); }
+  40%  { clip-path: inset(0 0 0% 0);  } /* fully open original mouth */
+  60%  { clip-path: inset(0 0 0% 0);  }
+  100% { clip-path: inset(0 0 65% 0); }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
