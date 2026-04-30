@@ -238,7 +238,7 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
          </div>
       )}
       
-      <Canvas shadows dpr={[1, 2]} gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0, powerPreference: 'high-performance' }} style={{ width: '100%', height: '100%' }}>
+      <Canvas dpr={[1, 1.5]} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0, powerPreference: 'high-performance' }} style={{ width: '100%', height: '100%' }}>
         <PerspectiveCamera makeDefault position={[0, 5, 25]} fov={50} />
         <OrbitControls target={[0, 2, -10]} minDistance={5} maxDistance={60} minPolarAngle={Math.PI / 8} maxPolarAngle={Math.PI / 2} enablePan={true} />
         <ReadySignal onReady={onReady} />

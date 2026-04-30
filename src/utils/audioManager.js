@@ -153,8 +153,8 @@ class AudioManager {
     const tracks = [
       { name: 'run-boy-run', url: '/audio/run-boy-run.mp3' },
       { name: 'seek-chase', url: '/audio/seek-chase-theme.mp3' },
-      { name: 'midnight-scary', url: '/audio/seek-chase-theme.mp3' }, // Use existing file as placeholder
-      { name: 'sunrise-energetic', url: '/audio/seek-chase-theme.mp3' } // Use existing file as placeholder
+      { name: 'midnight-scary', url: '/audio/seek-chase-theme.mp3' },
+      { name: 'sunrise-energetic', url: '/audio/shush-all-star.mp3' } 
     ];
 
     // Load tracks individually to avoid Promise.all failing completely

@@ -55,15 +55,15 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
       setMinimizedMusic(false);
       timer = setTimeout(() => setMinimizedMusic(true), 3500);
 
-      // Play Seek Chase Theme for sunrise scene - requires user interaction
+      // Play Sunrise feel-good Theme
       const playAudio = async () => {
         try {
-          await audioManager.playTrack('seek-chase', {
+          await audioManager.playTrack('sunrise-energetic', {
             loop: true,
             volume: 0.4
           });
         } catch (error) {
-          console.warn('Failed to play seek-chase theme:', error);
+          console.warn('Failed to play sunrise theme:', error);
         }
       };
       
@@ -105,7 +105,7 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
           <div className="music-icon">🎵</div>
           <div className="music-details">
             <div className="music-label">Now Playing</div>
-            <div className="music-title">Seek Chase Theme</div>
+            <div className="music-title">Shush All Star</div>
           </div>
         </div>
       )}
@@ -213,12 +213,11 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
         </div>
       )}
       <Canvas
-        shadows
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
         gl={{
-          antialias: true,
+          antialias: false,
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.2, // Brighter for sunrise
+          toneMappingExposure: 1.2, 
           powerPreference: 'high-performance',
         }}
         style={{ width: '100%', height: '100%' }}

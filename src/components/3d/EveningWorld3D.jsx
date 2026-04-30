@@ -64,10 +64,10 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
   // Handle scene switching
   const switchToSunrise = useCallback(() => {
     setCurrentScene('sunrise');
-    // Stop ALL music and play sunrise music
+      // Stop ALL music and play sunrise music
     audioManager.stopAllTracks();
     setTimeout(() => {
-      audioManager.playTrack('seek-chase', { loop: true, volume: 0.4 });
+      audioManager.playTrack('sunrise-energetic', { loop: true, volume: 0.4 });
     }, 100);
   }, []);
 
@@ -82,7 +82,7 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
               volume: 0.3
             });
           } else if (currentScene === 'sunrise') {
-            await audioManager.playTrack('seek-chase', {
+            await audioManager.playTrack('sunrise-energetic', {
               loop: true,
               volume: 0.4
             });
@@ -169,10 +169,9 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
       )}
       <Canvas
         ref={canvasRef}
-        shadows
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
         gl={{
-          antialias: true,
+          antialias: false,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1,
           powerPreference: 'high-performance',
