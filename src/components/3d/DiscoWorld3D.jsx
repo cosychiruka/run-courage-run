@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { Scene } from './Scene3D';
 import { House } from './House3D';
 import { audioManager } from '../../utils/audioManager';
-import courageDancingGif from '../../assets/images/courage.gif';
+import courageDancingGif from '../../assets/images/Courage.gif';
 
 const MemoHouse = React.memo(House);
 
