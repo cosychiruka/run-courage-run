@@ -18,6 +18,7 @@ import { createVoiceService } from './services/voiceService';
 
 const EveningWorld3D = lazy(() => import('./components/3d/EveningWorld3D'));
 const SunriseWorld3D = lazy(() => import('./components/3d/SunriseWorld3D'));
+const DiscoWorld3D = lazy(() => import('./components/3d/DiscoWorld3D'));
 
 export default function App() {
   const [scene, setScene] = useState('');
@@ -158,9 +159,32 @@ export default function App() {
   }, []);
 
   // ── Scene override (user-controlled cycle) ────────────────────────────────
-  const SCENE_CYCLE = ['sunrise', 'noon', 'evening', 'midnight', null];
-  const SCENE_LABELS = { sunrise: '☀️', noon: '🌤', evening: '🌆', midnight: '🌙', null: '🕐' };
+  const SCENE_CYCLE = ['sunrise', 'noon', 'evening', 'midnight', 'disco', null];
+  const SCENE_LABELS = { sunrise: '☀️', noon: '🌤', evening: '🌆', midnight: '🌙', disco: '🕺', null: '🕐' };
   const [sceneOverride, setSceneOverride] = useState(null);
+
+  const handleClose3D = useCallback(() => {
+    setWorld3DMounted(false);
+    setWorld3DVisible(false);
+    document.body.classList.remove('world3d-active');
+    
+    // Reset CSS Courage animation
+    setTimeout(() => {
+      const currentScene = sceneOverride || scene;
+      setSceneOverride(null);
+      const courageElement = document.getElementById('courageCharacter');
+      if (courageElement) {
+        courageElement.style.display = 'none';
+        courageElement.offsetHeight; // reflow
+        courageElement.style.animation = 'none';
+        courageElement.offsetHeight; // reflow
+        courageElement.style.display = '';
+        courageElement.style.animation = '';
+        courageElement.offsetHeight; // reflow
+      }
+      setTimeout(() => setSceneOverride(currentScene), 50);
+    }, 100);
+  }, [scene, sceneOverride]);
 
   // Entry point for mic button — blocks midnight with a speech bubble then auto-switches scene
   // Declared after sceneOverride to avoid TDZ in the dependency array
@@ -271,6 +295,9 @@ export default function App() {
     const isNight = activeScene === 'evening' || activeScene === 'midnight';
     const isNoon = activeScene === 'noon';
     const isTalking = voiceState !== null;
+
+    // Do not render CSS DOM courage in strictly 3D scenes if they assume full control
+    if (activeScene === 'disco') return null;
 
     // Always render the pieces character during an explosion (voice can't trigger this)
     if (explosionPhase) {
@@ -572,15 +599,15 @@ export default function App() {
           </button>
         )}
 
-        {/* Enter 3D World — evening scene only; shows loading state while scene warms up */}
+        {/* Enter 3D World — shows loading state while scene warms up */}
         <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
-          {_active === 'evening' && voiceState === null && !world3DVisible && (
+          {(_active === 'evening' || _active === 'sunrise' || _active === 'disco') && voiceState === null && !world3DVisible && (
             <button
               className={`enter-3d-btn brutal-btn brutal-btn--pink${world3DMounted ? ' enter-3d-btn--loading' : ''}`}
               onClick={() => { if (!world3DMounted) setWorld3DMounted(true); }}
-              aria-label="Enter 3D evening world"
+              aria-label="Enter 3D world"
             >
-              {world3DMounted ? '⏳ Loading…' : '🌆 Enter 3D World'}
+              {world3DMounted ? '⏳ Loading…' : `🚪 Enter 3D World (${_active})`}
             </button>
           )}
         </div>
@@ -806,44 +833,32 @@ export default function App() {
 
       <Footer />
 
-      {/* ── 3D Evening World portal — mounts silently in background, fades in when ready ── */}
+      {/* ── 3D World portals — mounts silently in background, fades in when ready ── */}
       {world3DMounted && (
         <Suspense fallback={null}>
-          <EveningWorld3D
-            visible={world3DVisible}
-            onReady={() => setWorld3DVisible(true)}
-            onClose={() => { 
-  setWorld3DMounted(false); 
-  setWorld3DVisible(false);
-  
-  // Remove world3d-active class immediately
-  document.body.classList.remove('world3d-active');
-  
-  // Force scene refresh to ensure Courage reappears
-  setTimeout(() => {
-    const currentScene = sceneOverride || scene;
-    setSceneOverride(null);
-    
-    // Force style recalculation to reset Courage positioning and animation
-    const courageElement = document.getElementById('courageCharacter');
-    if (courageElement) {
-      // Completely reset the element to restart animation
-      courageElement.style.display = 'none';
-      courageElement.offsetHeight; // Force reflow
-      
-      // Remove and re-add animation class
-      courageElement.style.animation = 'none';
-      courageElement.offsetHeight; // Force reflow again
-      
-      courageElement.style.display = '';
-      courageElement.style.animation = '';
-      courageElement.offsetHeight; // Final reflow to apply animation
-    }
-    
-    setTimeout(() => setSceneOverride(currentScene), 50);
-  }, 100);
-}}
-          />
+          {(_active === 'evening' || _active === 'midnight') && (
+            <EveningWorld3D
+              visible={world3DVisible}
+              onReady={() => setWorld3DVisible(true)}
+              onClose={() => handleClose3D()}
+            />
+          )}
+
+          {_active === 'sunrise' && (
+            <SunriseWorld3D
+              visible={world3DVisible}
+              onReady={() => setWorld3DVisible(true)}
+              onClose={() => handleClose3D()}
+            />
+          )}
+
+          {_active === 'disco' && (
+            <DiscoWorld3D
+              visible={world3DVisible}
+              onReady={() => setWorld3DVisible(true)}
+              onClose={() => handleClose3D()}
+            />
+          )}
         </Suspense>
       )}
 

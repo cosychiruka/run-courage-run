@@ -238,7 +238,7 @@ function StylizedCloud({ position, scale = 1, opacity = 0.5, speed = 0.05, morni
   );
 }
 
-export function Scene({ scene = 'evening' }) {
+export function Scene({ scene = 'evening', showStory = true }) {
   const isSunrise = scene === 'sunrise';
   const ambientColor = isSunrise ? '#ffaa44' : '#bd80e8';
   const dirLightColor = isSunrise ? '#ffeeba' : '#ffccf5';
@@ -287,7 +287,10 @@ export function Scene({ scene = 'evening' }) {
       <ambientLight intensity={isSunrise ? 0.7 : 0.4} color={ambientColor} />
       <directionalLight position={[40, 15, 10]} intensity={2.8} color={dirLightColor} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-camera-near={0.5} shadow-camera-far={120} shadow-camera-left={-40} shadow-camera-right={40} shadow-camera-top={40} shadow-camera-bottom={-40} shadow-bias={-0.0005} />
       <Meteor />
-      <group position={[0, -2, 0]}><MemoTerrain scene={scene} /><StoryController /></group>
+      <group position={[0, -2, 0]}>
+        <MemoTerrain scene={scene} />
+        {showStory && <StoryController />}
+      </group>
     </>
   );
 }
