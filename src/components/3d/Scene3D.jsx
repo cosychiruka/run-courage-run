@@ -149,20 +149,35 @@ function StoryController() {
   );
 }
 
-export function Scene() {
+export function Scene({ scene = 'evening' }) {
   const gradientTexture = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 2; canvas.height = 512;
     const context = canvas.getContext('2d');
     if (context) {
       const gradient = context.createLinearGradient(0, 0, 0, 512);
-      gradient.addColorStop(0.0, '#0a001a'); gradient.addColorStop(0.4, '#240046');
-      gradient.addColorStop(0.65, '#5c006b'); gradient.addColorStop(0.75, '#b90082');
-      gradient.addColorStop(1.0, '#ff1a9c');
+      
+      // Different gradients for different scenes
+      if (scene === 'sunrise') {
+        gradient.addColorStop(0.0, '#ff6b35'); gradient.addColorStop(0.3, '#f7931e');
+        gradient.addColorStop(0.6, '#fdc830'); gradient.addColorStop(1.0, '#f37335');
+      } else if (scene === 'noon') {
+        gradient.addColorStop(0.0, '#87ceeb'); gradient.addColorStop(0.4, '#98d8e8');
+        gradient.addColorStop(0.7, '#b0e0e6'); gradient.addColorStop(1.0, '#e0f6ff');
+      } else if (scene === 'midnight') {
+        gradient.addColorStop(0.0, '#000000'); gradient.addColorStop(0.4, '#0a001a');
+        gradient.addColorStop(0.7, '#1a0033'); gradient.addColorStop(1.0, '#2d1b69');
+      } else {
+        // evening (default)
+        gradient.addColorStop(0.0, '#0a001a'); gradient.addColorStop(0.4, '#240046');
+        gradient.addColorStop(0.65, '#5c006b'); gradient.addColorStop(0.75, '#b90082');
+        gradient.addColorStop(1.0, '#ff1a9c');
+      }
+      
       context.fillStyle = gradient; context.fillRect(0, 0, 2, 512);
     }
     return new THREE.CanvasTexture(canvas);
-  }, []);
+  }, [scene]);
 
   return (
     <>

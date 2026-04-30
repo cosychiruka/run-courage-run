@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 import { Scene } from './Scene3D';
+import { audioManager } from '../../utils/audioManager';
 
 /**
  * Fires onReady() on the very first rendered frame — signals to the parent
@@ -27,11 +28,87 @@ function ReadySignal({ onReady }) {
  * When unmounted, Canvas automatically disposes the WebGL context.
  */
 export default function EveningWorld3D({ visible, onReady, onClose }) {
+  const [audioLoaded, setAudioLoaded] = useState(false);
+  const [currentScene, setCurrentScene] = useState('evening');
+  const canvasRef = useRef(null);
+
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && visible) onClose(); };
     window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    
+    // Add world3d-active class to body for CSS targeting
+    if (visible) {
+      document.body.classList.add('world3d-active');
+    } else {
+      document.body.classList.remove('world3d-active');
+    }
+    
+    return () => {
+      window.removeEventListener('keydown', handler);
+      document.body.classList.remove('world3d-active');
+    };
   }, [onClose, visible]);
+
+  // Initialize and preload audio
+  useEffect(() => {
+    const initAudio = async () => {
+      await audioManager.preloadTracks();
+      setAudioLoaded(true);
+    };
+    
+    if (visible && !audioLoaded) {
+      initAudio();
+    }
+  }, [visible, audioLoaded]);
+
+  // Handle scene switching
+  const switchToSunrise = useCallback(() => {
+    setCurrentScene('sunrise');
+    // Stop ALL music and play sunrise music
+    audioManager.stopAllTracks();
+    setTimeout(() => {
+      audioManager.playTrack('seek-chase', { loop: true, volume: 0.4 });
+    }, 100);
+  }, []);
+
+  // Play scene-specific music when visible or scene changes
+  useEffect(() => {
+    if (visible && audioLoaded) {
+      const playSceneAudio = async () => {
+        try {
+          if (currentScene === 'evening') {
+            await audioManager.playTrack('run-boy-run', {
+              loop: true,
+              volume: 0.3
+            });
+          } else if (currentScene === 'sunrise') {
+            await audioManager.playTrack('seek-chase', {
+              loop: true,
+              volume: 0.4
+            });
+          }
+        } catch (error) {
+          console.warn('Failed to play scene audio:', error);
+        }
+      };
+      
+      // Delay slightly to ensure user interaction context
+      setTimeout(playSceneAudio, 100);
+    }
+    
+    return () => {
+      if (audioLoaded) {
+        audioManager.fadeOut(300);
+        // Complete cleanup after fade out
+        setTimeout(() => audioManager.cleanup(), 400);
+      }
+      // Force WebGL context cleanup
+      const gl = canvasRef.current?.getContext('webgl') || canvasRef.current?.getContext('webgl2');
+      if (gl) {
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      }
+    };
+  }, [visible, audioLoaded, currentScene]);
 
   return (
     <div
@@ -49,10 +126,49 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
       )}
       {visible && (
         <div className="world3d-hint">
-          drag to orbit &nbsp;·&nbsp; scroll to zoom
+          {currentScene === 'sunrise' ? '🌅 Sunrise Scene' : '🌆 Evening Scene'} &nbsp;·&nbsp; drag to orbit &nbsp;·&nbsp; scroll to zoom
+        </div>
+      )}
+      {visible && (
+        <div className="world3d-music-controls">
+          <button 
+            className="music-btn"
+            onClick={switchToSunrise}
+            title="Switch to Sunrise Scene"
+          >
+            🌅 {currentScene === 'sunrise' ? 'Sunrise' : 'Chase'}
+          </button>
+          <button 
+            className="music-btn"
+            onClick={async () => {
+              setCurrentScene('evening');
+              audioManager.stopAllTracks();
+              setTimeout(async () => {
+                try {
+                  await audioManager.playTrack('run-boy-run', { loop: true, volume: 0.3 });
+                } catch (error) {
+                  console.warn('Failed to play run-boy-run:', error);
+                }
+              }, 100);
+            }}
+            title="Switch to Evening Scene"
+          >
+            🌆 Evening
+          </button>
+          <button 
+            className="music-btn"
+            onClick={() => {
+              const newVolume = audioManager.volume === 0 ? 0.3 : 0;
+              audioManager.setVolume(newVolume);
+            }}
+            title="Toggle Mute"
+          >
+            {audioManager.volume === 0 ? '🔇' : '🔊'}
+          </button>
         </div>
       )}
       <Canvas
+        ref={canvasRef}
         shadows
         dpr={[1, 2]}
         gl={{
@@ -73,7 +189,7 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
           enablePan={true}
         />
         <ReadySignal onReady={onReady} />
-        <Scene />
+        <Scene scene={currentScene} />
       </Canvas>
     </div>
   );

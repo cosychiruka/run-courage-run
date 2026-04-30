@@ -1,6 +1,5 @@
 .runnercourage {
   position: fixed;
-  bottom: 18%; /* RAISED HIGHER - better ground positioning */
   height: 230px;
   width: 200px;
   left: 0; /* Start from the very left */
@@ -10,9 +9,7 @@
 /* Mobile running adjustments */
 @media (max-width: 768px) {
   .runnercourage {
-    bottom: 35%; /* Position higher on mobile */
-    height: 160px; /* Scale down proportionally */
-    width: 140px;
+    bottom: 55%; /* Position much higher on mobile */
   }
 }
 
@@ -21,31 +18,31 @@
     transform: translateX(10vw) rotateY(0deg);
   }
   50% {
-    transform: translateX(70vw) rotateY(0deg); /* Move just close to the right end */
+    transform: translateX(55vw) rotateY(0deg); /* Move further to the right on desktop */
   }
   51% {
-    transform: translateX(70vw) rotateY(180deg); /* Rotate at the right end */
+    transform: translateX(55vw) rotateY(180deg); /* Rotate at the right end */
   }
   100% {
-    transform: translateX(10vw) rotateY(180deg); /* Return to the start */
+    transform: translateX(10vw) rotateY(180deg); /* Return to the start, less left movement */
   }
 }
 
-/* Mobile: scale the runner down by baking scale() into a new keyframe set.
-   We CANNOT just set transform:scale() because the animation overrides it.
-   Keyframe order: scale first (rightmost = applied first), then flip, then translate. */
-@media (max-width: 500px) {
-  .runnercourage {
-    transform-origin: bottom left;
-    animation-name: runLoopMobile;
+@media (max-width: 768px) {
+  @keyframes runLoop {
+    0% {
+      transform: translateX(10vw) rotateY(0deg);
+    }
+    50% {
+      transform: translateX(70vw) rotateY(0deg); /* Mobile: keep original right position */
+    }
+    51% {
+      transform: translateX(70vw) rotateY(180deg); /* Rotate at the right end */
+    }
+    100% {
+      transform: translateX(10vw) rotateY(180deg); /* Return to the start */
+    }
   }
-}
-
-@keyframes runLoopMobile {
-  0%   { transform: translateX(20vw)  rotateY(0deg)   scale(0.65); }
-  50%  { transform: translateX(70vw) rotateY(0deg)   scale(0.65); }
-  51%  { transform: translateX(70vw) rotateY(180deg) scale(0.65); }
-  100% { transform: translateX(20vw)  rotateY(180deg) scale(0.65); }
 }
 
 .runnercourage-head {
@@ -706,16 +703,18 @@
    VOICE: brake + talk + gesture
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* Slam the brakes — settle at center-left, slight overshoot wobble */
+/* Brake to mic position like other characters */
 .runnercourage.is-talking {
-  animation: runBrake 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+  left: 33% !important;
+  animation: none !important;
 }
 
-@keyframes runBrake {
-  0%   { transform: translateX(38vw) rotateY(0deg); }
-  55%  { transform: translateX(42vw) rotateY(0deg); }
-  75%  { transform: translateX(36vw) rotateY(0deg); }
-  100% { transform: translateX(39vw) rotateY(0deg); }
+/* Mobile: also brake to mic position */
+@media (max-width: 768px) {
+  .runnercourage.is-talking {
+    left: 33% !important;
+    animation: none !important;
+  }
 }
 
 /* Dust puff at feet */
@@ -772,19 +771,6 @@
   40%  { transform: scaleY(1.0);  }
   60%  { transform: scaleY(1.0);  }
   100% { transform: scaleY(0.22); }
-}
-
-/* Mobile brake (preserve scale) */
-@media (max-width: 500px) {
-  .runnercourage.is-talking {
-    animation: runBrakeMobile 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
-  }
-  @keyframes runBrakeMobile {
-    0%   { transform: translateX(28vw) rotateY(0deg) scale(0.65); }
-    55%  { transform: translateX(32vw) rotateY(0deg) scale(0.65); }
-    75%  { transform: translateX(26vw) rotateY(0deg) scale(0.65); }
-    100% { transform: translateX(29vw) rotateY(0deg) scale(0.65); }
-  }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -878,4 +864,130 @@
   0%, 100% { transform: rotate(  0deg); }
   40%       { transform: rotate(-14deg) translateY(-5px); }
   75%       { transform: rotate(  7deg); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RUNNER THOUGHT BUBBLE — directional thoughts while running
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.runnercourage-thought-bubble {
+  position: absolute;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  animation: runnerThoughtBubbleLifecycle 4.5s ease forwards;
+}
+
+@keyframes runnerThoughtBubbleLifecycle {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.4) translateY(-8px);
+  }
+
+  8% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1) translateY(0);
+  }
+
+  78% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1) translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.9) translateY(-5px);
+  }
+}
+
+/* Ascending dot trail pointing up toward Courage's head */
+.runnercourage-thought-bubble .thought-trail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 5px;
+}
+
+.runnercourage-thought-bubble .thought-dot {
+  width: 6px;
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  animation: thoughtDotFade 4.5s ease forwards;
+}
+
+.runnercourage-thought-bubble .thought-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.runnercourage-thought-bubble .thought-dot:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.runnercourage-thought-bubble .thought-dot:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+@keyframes thoughtDotFade {
+  0%, 20% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  30%, 70% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+.runnercourage-thought-bubble .thought-text {
+  background: rgba(255, 255, 255, 0.95);
+  color: #333;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: 'Comic Sans MS', cursive;
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 2px solid rgba(255, 26, 156, 0.3);
+  animation: thoughtTextFade 4.5s ease forwards;
+  /* Create new stacking context to prevent parent transform inheritance */
+  isolation: isolate;
+  transform: scale(1) rotate(0deg) !important;
+  transform-origin: center !important;
+  backface-visibility: hidden;
+}
+
+@keyframes thoughtTextFade {
+  0%, 20% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  30%, 70% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+/* Only show thought bubble on landing page (not in 3D world) */
+.world3d-overlay .runnercourage-thought-bubble {
+  display: none !important;
 }

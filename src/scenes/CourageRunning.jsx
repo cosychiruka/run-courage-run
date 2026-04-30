@@ -1,13 +1,89 @@
 import './CourageRunning.css';
+import { useState, useEffect } from 'react';
 
-const CourageRunning = ({ voiceState = null }) => {
+const CourageRunning = ({ voiceState = null, currentScene = 'sunrise' }) => {
   const isTalking   = voiceState !== null;
   const isListening = voiceState === 'listening';
   const isThinking  = voiceState === 'thinking';
   const isSpeaking  = voiceState === 'speaking';
+  const isSunriseScene = currentScene === 'sunrise';
+
+  const [showThought, setShowThought] = useState(false);
+  const [thoughtText, setThoughtText] = useState('');
+  const [runningDirection, setRunningDirection] = useState('right');
+
+  // Track running direction based on animation phase
+  useEffect(() => {
+    const checkDirection = () => {
+      const runner = document.querySelector('.runnercourage');
+      if (runner) {
+        const transform = window.getComputedStyle(runner).transform;
+        // Check if running to the right (positive translateX) or left (negative)
+        if (transform.includes('translateX(')) {
+          const match = transform.match(/translateX\(([^)]+)\)/);
+          if (match) {
+            const value = parseFloat(match[1]);
+            setRunningDirection(value > 0 ? 'right' : 'left');
+          }
+        }
+      }
+    };
+
+    const interval = setInterval(checkDirection, 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Show thought bubble based on running direction changes (only in sunrise scene)
+  useEffect(() => {
+    if (!isSunriseScene) return; // Only show in sunrise scene
+
+    let lastDirection = runningDirection;
+    let showTimeout = null;
+    let hideTimeout = null;
+
+    const showThoughtBubble = (direction) => {
+      // Clear any existing timeouts
+      if (showTimeout) clearTimeout(showTimeout);
+      if (hideTimeout) clearTimeout(hideTimeout);
+      
+      const text = direction === 'right' ? '...monsters outside!!!' : '...monsters inside';
+      setThoughtText(text);
+      setShowThought(true);
+      
+      // Hide after 4.5 seconds (matching the animation duration)
+      hideTimeout = setTimeout(() => {
+        setShowThought(false);
+      }, 4500);
+    };
+
+    // Check for direction changes
+    const checkDirection = () => {
+      if (runningDirection !== lastDirection) {
+        lastDirection = runningDirection;
+        showThoughtBubble(runningDirection);
+      }
+    };
+
+    // Initial check after 1 second
+    showTimeout = setTimeout(() => {
+      showThoughtBubble(runningDirection);
+    }, 1000);
+
+    // Check direction changes every 100ms
+    const directionCheckInterval = setInterval(checkDirection, 100);
+
+    return () => {
+      if (showTimeout) clearTimeout(showTimeout);
+      if (hideTimeout) clearTimeout(hideTimeout);
+      clearInterval(directionCheckInterval);
+    };
+  }, [runningDirection, isSunriseScene]);
 
   return (
-    <div className={`runnercourage${isTalking ? ' is-talking' : ''}${isListening ? ' is-listening' : ''}${isThinking ? ' is-thinking' : ''}${isSpeaking ? ' is-speaking' : ''}`}>
+    <div 
+      id="courageCharacter"
+      className={`runnercourage${isTalking ? ' is-talking' : ''}${isListening ? ' is-listening' : ''}${isThinking ? ' is-thinking' : ''}${isSpeaking ? ' is-speaking' : ''}`}
+    >
       <div className='runnercourage-head'>
         <div className='runnercourage-ear-left'></div>
         <div className='runnercourage-head-rear'></div>
@@ -39,6 +115,18 @@ const CourageRunning = ({ voiceState = null }) => {
         <div className='runnercourage-tail'></div>
         <div className='runnercourage-leg-back'></div>
         <div className='runnercourage-leg-front'></div>
+        
+        {/* Thought bubble - only show in sunrise scene on landing page */}
+        {showThought && isSunriseScene && (
+          <div className="runnercourage-thought-bubble">
+            <div className="thought-trail">
+              <div className="thought-dot"></div>
+              <div className="thought-dot"></div>
+              <div className="thought-dot"></div>
+            </div>
+            <div className="thought-text">{thoughtText}</div>
+          </div>
+        )}
       </div>
     </div>
   );

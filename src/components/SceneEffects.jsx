@@ -20,11 +20,21 @@ const Flies = () => {
   const [flies, setFlies] = useState(() =>
     FLY_BASE.map((f, i) => ({ ...f, id: i, squashed: false, dead: false }))
   );
+  const timersRef = useRef(new Set());
 
   const squash = useCallback((id) => {
     setFlies(prev => prev.map(f => f.id === id && !f.squashed ? { ...f, squashed: true } : f));
     playSquash();
-    setTimeout(() => setFlies(prev => prev.map(f => f.id === id ? { ...f, dead: true } : f)), 700);
+    const timer = setTimeout(() => setFlies(prev => prev.map(f => f.id === id ? { ...f, dead: true } : f)), 700);
+    timersRef.current.add(timer);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      // Clear all timers on unmount
+      timersRef.current.forEach(timer => clearTimeout(timer));
+      timersRef.current.clear();
+    };
   }, []);
 
   return (
@@ -109,6 +119,7 @@ const Ghosts = ({ repulseSignal, onCourageMove }) => {
   const courageXRef  = useRef(COURAGE_LEFT);
   const phaseRef     = useRef('idle');
   const timerRef     = useRef(null);
+  const angryTimerRef = useRef(null);
 
   const moveCourage = useCallback((x, trans = 'left 2s ease-in-out') => {
     courageXRef.current = x;
@@ -156,7 +167,12 @@ const Ghosts = ({ repulseSignal, onCourageMove }) => {
     setGhostXs(GHOST_X_START);
     moveCourage(COURAGE_LEFT, 'left 0s');
     timerRef.current = setTimeout(() => runPhase('approaching'), 800);
-    return () => clearTimeout(timerRef.current);
+    return () => {
+      // Clear ALL timers on unmount
+      if (timerRef.current) clearTimeout(timerRef.current);
+      // Clear any angry ghost timer
+      if (angryTimerRef.current) clearTimeout(angryTimerRef.current);
+    };
   }, [runPhase, moveCourage]);
 
   // Repulse signal
@@ -191,7 +207,8 @@ const Ghosts = ({ repulseSignal, onCourageMove }) => {
     if (angryId === id) return;
     setAngryId(id);
     playGhostAngry();
-    setTimeout(() => setAngryId(null), 1600);
+    if (angryTimerRef.current) clearTimeout(angryTimerRef.current);
+    angryTimerRef.current = setTimeout(() => setAngryId(null), 1600);
   }, [angryId]);
 
   return (

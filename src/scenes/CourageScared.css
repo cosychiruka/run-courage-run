@@ -9,7 +9,6 @@
   }
   #courageCharacter {
     position: fixed;
-    bottom: 10%;
     left: 10%;
     z-index: 5;
   }

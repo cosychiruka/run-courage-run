@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, startTransition } from "react";
+import React, { useState, useEffect, useCallback, useRef, startTransition, lazy, Suspense } from "react";
 import "./App.css";
 import { FaTv, FaNewspaper } from "react-icons/fa";
 import HomePage from "./components/HomePage";
@@ -16,7 +16,8 @@ import { fetchTopNews } from './services/newsService';
 import { analyzeSentiment } from './utils/sentimentUtils';
 import { createVoiceService } from './services/voiceService';
 
-const EveningWorld3D = React.lazy(() => import('./components/3d/EveningWorld3D'));
+const EveningWorld3D = lazy(() => import('./components/3d/EveningWorld3D'));
+const SunriseWorld3D = lazy(() => import('./components/3d/SunriseWorld3D'));
 
 export default function App() {
   const [scene, setScene] = useState('');
@@ -288,8 +289,8 @@ export default function App() {
     const chaseStyle = { left: `${courageX}%`, transition: courageTrans };
     if (!newsOpen && isNight) return <CourageScared explosionPhase={null} onFrightened={handleRepulse} style={chaseStyle} voiceState={isTalking ? voiceState : null} />;
     if (!newsOpen && isNoon) return <CourageHappy explosionPhase={null} onFrightened={() => { }} voiceState={isTalking ? voiceState : null} />;
-    return <CourageRunning voiceState={isTalking ? voiceState : null} />;
-  }, [scene, sceneOverride, newsEmotion, newsOpen, explosionPhase, handleRepulse, courageX, courageTrans, voiceState]);
+    return <CourageRunning voiceState={isTalking ? voiceState : null} currentScene={activeScene} />;
+  }, [scene, sceneOverride, newsEmotion, newsOpen, explosionPhase, handleRepulse, courageX, courageTrans, voiceState, world3DVisible]);
 
   
   const loadNews = useCallback(async (country = newsCountry, category = newsCategory) => {
@@ -479,8 +480,14 @@ export default function App() {
   return (
     <div className="app-container" id="app-background" onClick={handleBackgroundClick}>
 
-      {/* ── Scene ambient effects ── */}
-      <SceneEffects scene={_active} repulseSignal={repulseSignal} onCourageMove={handleCourageMove} />
+      {/* ── Scene ambient effects — suspended when 3D world is visible */}
+      {!world3DVisible && (
+        <SceneEffects 
+          scene={sceneOverride || scene} 
+          repulseSignal={repulseSignal} 
+          onCourageMove={handleCourageMove} 
+        />
+      )}  
 
       {/* ── Typewriter scene hints ── */}
       <HeroHints scene={_active} scrolled={scrolled} />
@@ -645,7 +652,7 @@ export default function App() {
               <h2 className="landing-heading">📺 What does he do?</h2>
             </div>
             <p>
-              Treat this as his mini browser world. Tap him to trigger reactions. Change scenes in menubar. Courage fetches real news every hour — good headlines make him wag, bad ones make him
+              Treat this as his mini browser world. Tap him to trigger reactions. Evading monsters inside and outside the house. Change scenes in menubar. Courage fetches real news every hour — good headlines make him wag, bad ones make him
               literally <strong>explode from fear</strong> then reassemble. Just a scared dog doing his best.
             </p>
           </div>
@@ -801,13 +808,43 @@ export default function App() {
 
       {/* ── 3D Evening World portal — mounts silently in background, fades in when ready ── */}
       {world3DMounted && (
-        <React.Suspense fallback={null}>
+        <Suspense fallback={null}>
           <EveningWorld3D
             visible={world3DVisible}
             onReady={() => setWorld3DVisible(true)}
-            onClose={() => { setWorld3DMounted(false); setWorld3DVisible(false); }}
+            onClose={() => { 
+  setWorld3DMounted(false); 
+  setWorld3DVisible(false);
+  
+  // Remove world3d-active class immediately
+  document.body.classList.remove('world3d-active');
+  
+  // Force scene refresh to ensure Courage reappears
+  setTimeout(() => {
+    const currentScene = sceneOverride || scene;
+    setSceneOverride(null);
+    
+    // Force style recalculation to reset Courage positioning and animation
+    const courageElement = document.getElementById('courageCharacter');
+    if (courageElement) {
+      // Completely reset the element to restart animation
+      courageElement.style.display = 'none';
+      courageElement.offsetHeight; // Force reflow
+      
+      // Remove and re-add animation class
+      courageElement.style.animation = 'none';
+      courageElement.offsetHeight; // Force reflow again
+      
+      courageElement.style.display = '';
+      courageElement.style.animation = '';
+      courageElement.offsetHeight; // Final reflow to apply animation
+    }
+    
+    setTimeout(() => setSceneOverride(currentScene), 50);
+  }, 100);
+}}
           />
-        </React.Suspense>
+        </Suspense>
       )}
 
       {/* ── First-time visitor welcome tour ── */}

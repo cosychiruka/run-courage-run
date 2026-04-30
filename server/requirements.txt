@@ -18,8 +18,8 @@ tweepy>=4.14
 # News article full-text fetching
 httpx[http2]
 
-# Screenshot for tweet image generation
-playwright
+# Card image rendering (replaces Playwright)
+Pillow
 
 # Multipart uploads
 python-multipart

@@ -87,20 +87,6 @@ body {
   }
 }
 
-/* Character positioning adjustments for all scenes */
-@media (max-width: 768px) {
-
-  /* Position characters higher and more centered on mobile */
-  #courageCharacter,
-  .courage.happy,
-  .courage.scared,
-  .courage.excited {
-    bottom: 20% !important;
-    /* Higher positioning for better visibility */
-    left: 8% !important;
-    /* More centered, not too far left */
-  }
-}
 
 /* Bone-Shaped Navigation Bar */
 .bone-nav {
@@ -300,25 +286,21 @@ h1 {
   -webkit-animation: float 3.5s ease-in-out infinite;
   animation: float 3.5s ease-in-out infinite;
 }
-
-.typo::before,
-.typo::after {
+.typo::before, .typo::after {
   color: transparent;
   content: "👻";
   position: absolute;
   top: 0;
   z-index: -10;
 }
-
 .typo::before {
   font-size: 1.2em;
   left: -20%;
   -webkit-animation: move_upper_shadow 4s ease-in-out infinite;
-  animation: move_upper_shadow 4s ease-in-out infinite;
+          animation: move_upper_shadow 4s ease-in-out infinite;
   opacity: 0;
-  text-shadow: 6px 0 2px rgba(255, 255, 255, .6), 12px 0 2px rgba(26, 35, 126, .3);
+  text-shadow: 6px 0 2px rgba(255,255,255,.6),12px 0 2px rgba(26,35,126,.3);
 }
-
 .typo::after {
   content: "👻";
   font-size: 2em;
@@ -326,68 +308,50 @@ h1 {
   right: -30%;
   -webkit-animation: move_bottom_shadow 6s ease-in-out infinite;
   animation: move_bottom_shadow 6s ease-in-out infinite;
-  text-shadow: 6px 0 2px rgba(255, 255, 255, .6), 12px 0 2px rgba(26, 35, 126, .3);
+  text-shadow: 6px 0 2px rgba(255,255,255,.6),12px 0 2px rgba(26,35,126,.3);
 }
-
 @-webkit-keyframes move_upper_shadow {
-
-  0%,
-  90%,
-  100% {
+  0%, 90%, 100% {
     opacity: 0;
     transform: translateX(-2%);
   }
-
   30% {
     opacity: 1;
     transform: translateX(0);
   }
 }
-
 @keyframes move_upper_shadow {
-
-  0%,
-  90%,
-  100% {
+  0%, 90%, 100% {
     opacity: 0;
     transform: translateX(-2%);
   }
-
   30% {
     opacity: 1;
     transform: translateX(0);
   }
 }
-
 @-webkit-keyframes move_bottom_shadow {
-
-  0%,
-  90%,
-  100% {
+  0%, 90%, 100% {
     opacity: 1;
     transform: translate(0, 0);
   }
-
   30% {
     opacity: 0;
     transform: translateY(-3.5%);
   }
 }
-
 @keyframes move_bottom_shadow {
-
-  0%,
-  90%,
-  100% {
+  0%, 90%, 100% {
     opacity: 1;
     transform: translate(0, 0);
   }
-
   30% {
     opacity: 0;
     transform: translateY(-3.5%);
   }
 }
+
+
 
 @-webkit-keyframes float {
   50% {
@@ -2178,23 +2142,6 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   }
 }
 
-/* ── Midnight: nav ghost turns goldish and glows ── */
-.midnight .typo {
-  filter: sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.6);
-  animation: float 3.5s ease-in-out infinite, ghostGoldGlow 2s ease-in-out infinite;
-}
-
-@keyframes ghostGoldGlow {
-
-  0%,
-  100% {
-    filter: sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.6) drop-shadow(0 0 6px rgba(255, 200, 50, 0.8));
-  }
-
-  50% {
-    filter: sepia(1) saturate(5) hue-rotate(-10deg) brightness(2.0) drop-shadow(0 0 18px rgba(255, 220, 80, 1));
-  }
-}
 
 .midnight .bone-nav {
   box-shadow: 0 0 24px rgba(255, 200, 50, 0.25), 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -3271,10 +3218,9 @@ div:where(.swal2-container) div:where(.swal2-popup) {
    ══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 500px) {
 
-  /* Scared / Happy character (fixed, anchored bottom-left)
+  /* AL - Scared / Happy character (fixed, anchored bottom-left)
      110px clears the sticky bar even when it wraps to 2 rows (~90px + gap) */
   #courageCharacter {
-    transform: scale(0.78);
     transform-origin: bottom left;
   }
 
@@ -3581,6 +3527,25 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   font-size: 1.1rem;
   letter-spacing: 0.06em;
 }
+/* ── Other Courage Characters Positioning ───────────────────────────────────
+   Scared, Happy, Excited characters unified positioning */
+#courageCharacter {
+  bottom: 12%; /* Lower position for other characters */
+}
+/* ── CourageRunning (runnercourage) Positioning ───────────────────────────────
+   Standalone positioning for the running character */
+.runnercourage {
+  bottom: 20% !important; /* Higher position for running character */
+}
+
+/* Mobile CourageRunning sizing */
+@media (max-width: 768px) {
+  #courageCharacter .runnercourage {
+    height: 140px !important;
+    left: 10% !important;      /* Match other characters */
+    bottom: 50% !important;
+  }
+}
 
 /* ── 3D World CSS isolation ──────────────────────────────────────────────────
    CourageRunning.css defines .runnercourage { position:fixed; animation:runLoop }
@@ -3594,8 +3559,49 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   transform: none !important;
 }
 
+
+/* 3D World Music Controls */
+.world3d-music-controls {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 1000;
+}
+
+.music-btn {
+  background: rgba(255, 26, 156, 0.8);
+  border: 2px solid #000;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.2s ease;
+  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.3);
+}
+
+.music-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 26, 156, 1);
+}
+
 /* Mobile */
 @media (max-width: 500px) {
+  .hero-section {
+    padding-top: 4rem !important;
+    min-height: 85vh !important; /* More scroll space for sticky controls */
+  }
+  
+  .hero-center {
+    transform: translateY(-1rem); /* Less aggressive push up */
+  }
+  
   .enter-3d-btn {
     bottom: calc(30%);
     left: 50%;

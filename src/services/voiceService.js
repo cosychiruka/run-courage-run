@@ -8,7 +8,9 @@
  *   svc.destroy();       // clean up WebSocket + AudioContext
  */
 
-const WS_URL = import.meta.env.VITE_BACKEND_WS || 'ws://localhost:8000/ws/voice';
+const WS_URL = import.meta.env.VITE_BACKEND_WS || 
+                __VITE_BACKEND_WS__ || 
+                (import.meta.env.PROD ? 'wss://run-courage-run.sliplane.app/ws/voice' : 'ws://localhost:8000/ws/voice');
 
 // 24kHz mono PCM — matches Kokoro TTS output
 const TTS_SAMPLE_RATE = 24000;
@@ -24,22 +26,28 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
 
   function connect() {
     return new Promise((resolve, reject) => {
+      console.log('[Voice] Attempting WebSocket connection to:', WS_URL);
       ws = new WebSocket(WS_URL);
       ws.binaryType = 'arraybuffer';
 
       ws.onopen = () => {
         connected = true;
+        console.log('[Voice] WebSocket connected successfully');
         resolve();
       };
 
       ws.onerror = (e) => {
         connected = false;
+        console.error('[Voice] WebSocket error:', e);
+        console.error('[Voice] WebSocket URL:', WS_URL);
+        console.error('[Voice] ReadyState:', ws.readyState);
         onError?.('WebSocket error — is the backend running?');
         reject(e);
       };
 
-      ws.onclose = () => {
+      ws.onclose = (e) => {
         connected = false;
+        console.log('[Voice] WebSocket closed:', e.code, e.reason);
       };
 
       ws.onmessage = async (event) => {
@@ -142,9 +150,40 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
     }, 20000);
   }
 
+  // ── Health check function
+  async function checkBackendHealth() {
+    try {
+      const healthUrl = WS_URL.replace('wss://', 'https://').replace('ws://', 'http://').replace('/ws/voice', '/health');
+      console.log('[Voice] Checking backend health at:', healthUrl);
+      const response = await fetch(healthUrl);
+      const data = await response.json();
+      console.log('[Voice] Backend health check:', data);
+      return response.ok;
+    } catch (error) {
+      console.error('[Voice] Backend health check failed:', error);
+      console.log('[Voice] Falling back to same-origin health check');
+      // Fallback to same origin
+      try {
+        const response = await fetch('/health');
+        const data = await response.json();
+        console.log('[Voice] Same-origin health check:', data);
+        return response.ok;
+      } catch (fallbackError) {
+        console.error('[Voice] Same-origin health check also failed:', fallbackError);
+        return false;
+      }
+    }
+  }
+
   // ── Public API ─────────────────────────────────────────────────────────────
 
   async function start() {
+    // First check if backend is accessible
+    const isHealthy = await checkBackendHealth();
+    if (!isHealthy) {
+      onError?.('Backend health check failed - WebSocket connection may fail');
+    }
+
     if (!connected) {
       await connect();
       _startPing();

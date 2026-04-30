@@ -39,39 +39,65 @@ async def _tweet_image_fn(article_url: str):
     return await render_card_for_url(article_url)
 
 
+# ── Background voice model loader ─────────────────────────────────────────────
+async def _load_voice_models_bg():
+    """Load voice models in background so health checks pass immediately."""
+    try:
+        print("[STARTUP] Loading voice models (background)...")
+        await asyncio.to_thread(load_models)
+        print("[STARTUP] Voice models ready.")
+    except Exception as e:
+        print(f"[STARTUP] Voice model loading failed: {e}")
+        print("[STARTUP] Voice features will be unavailable.")
+
+
 # ── Lifespan (startup / shutdown) ─────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global x_client
 
-    # DB
-    await init_db()
+    try:
+        # DB — fast, do first
+        print("[STARTUP] Initializing database...")
+        await init_db()
+        print("[STARTUP] Database initialized.")
 
-    # Voice models (runs in thread via asyncio.to_thread inside load_models)
-    await asyncio.to_thread(load_models)
+        # X client (optional — graceful if keys missing)
+        print("[STARTUP] Setting up X client...")
+        x_client = make_x_client()
+        print("[STARTUP] X client setup completed.")
 
-    # X client (optional — graceful if keys missing)
-    x_client = make_x_client()
+        # Background jobs — 30 min interval:
+        # Guardian 5000/day ÷ 48 rounds × 4 pairs = 192 calls → well within limit
+        # GNews/NewsAPI budgets only consumed when Guardian fails
+        scheduler.add_job(discovery_round, "interval", minutes=30, id="discovery")
+        scheduler.start()
+        print("[STARTUP] Background scheduler started.")
 
-    # Background jobs — 30 min interval:
-    # Guardian 5000/day ÷ 48 rounds × 4 pairs = 192 calls → well within limit
-    # GNews/NewsAPI budgets only consumed when Guardian fails
-    scheduler.add_job(discovery_round, "interval", minutes=30, id="discovery")
-    scheduler.start()
+        # First discovery immediately (non-blocking)
+        asyncio.create_task(discovery_round())
+        print("[STARTUP] Initial news discovery queued.")
 
-    # First discovery immediately (non-blocking)
-    asyncio.create_task(discovery_round())
+        # Voice models — load in background AFTER server is ready to serve
+        asyncio.create_task(_load_voice_models_bg())
 
-    print("\n" + "="*50)
-    print("🐕 COURAGE AI BACKEND — STARTUP SUMMARY")
-    print(f"📡 OLLAMA_HOST: {OLLAMA_HOST}")
-    print(f"🗄️ REDIS_URL:   {REDIS_URL.split('@')[-1] if '@' in REDIS_URL else REDIS_URL}") # mask credentials
-    print(f"🌐 FRONTEND:    {FRONTEND_ORIGIN}")
-    print("="*50 + "\n")
+        print("\n" + "="*50)
+        print("🐕 COURAGE AI BACKEND — READY")
+        print(f"📡 OLLAMA_HOST: {OLLAMA_HOST}")
+        print(f"🗄️ REDIS_URL:   {REDIS_URL.split('@')[-1] if '@' in REDIS_URL else REDIS_URL}")
+        print(f"🌐 FRONTEND:    {FRONTEND_ORIGIN}")
+        print("="*50 + "\n")
+
+    except Exception as e:
+        print(f"[STARTUP] ERROR during initialization: {e}")
+        print("[STARTUP] Continuing with limited functionality...")
+        # Don't re-raise - allow app to start even if some components fail
 
     yield
 
+    print("[SHUTDOWN] Shutting down...")
     scheduler.shutdown(wait=False)
+    print("[SHUTDOWN] Shutdown complete.")
 
 
 # ── App ────────────────────────────────────────────────────────────────────────

@@ -22,7 +22,7 @@ X_BEARER_TOKEN        = os.getenv("X_BEARER_TOKEN",        "")
 
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
 
-WHISPER_MODEL = "base.en"   # fast, accurate, 150MB
+WHISPER_MODEL = "tiny.en"   # fast, lightweight, 39MB — good for 2GB RAM
 KOKORO_VOICE  = "am_michael"  # warm male voice; try 'af_heart' for female
 
 # ── Daily API budgets (leave 20% buffer below hard limits) ────────────────────

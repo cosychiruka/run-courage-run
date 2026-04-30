@@ -1,5 +1,18 @@
 # Stage 1: Build the React frontend
 FROM node:18-alpine AS build-stage
+# Install build dependencies for native modules (only in build stage)
+RUN apk add --no-cache \
+    autoconf \
+    automake \
+    make \
+    g++ \
+    python3 \
+    libpng-dev \
+    giflib-dev \
+    nasm \
+    file \
+    libtool \
+    pkgconfig
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -12,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libsndfile1 \
     wget \
+    fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -20,13 +34,10 @@ WORKDIR /app
 COPY server/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download models
-RUN python -c "from faster_whisper import WhisperModel; WhisperModel('base.en', device='cpu', compute_type='int8')"
+# Pre-download models (tiny.en = 39MB, much lighter than base.en = 150MB)
+RUN python -c "from faster_whisper import WhisperModel; WhisperModel('tiny.en', device='cpu', compute_type='int8')"
 RUN wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
 RUN wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
-
-# Playwright for card rendering
-RUN playwright install chromium --with-deps
 
 # Copy backend code
 COPY server/ .
@@ -39,7 +50,7 @@ RUN mkdir -p /app/data
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=30s --start-period=120s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8000/health || exit 1
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

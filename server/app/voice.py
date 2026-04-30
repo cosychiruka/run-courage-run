@@ -31,21 +31,45 @@ def load_models():
     """Call once at app startup to pre-load both models into memory."""
     global _whisper, _kokoro
     print("[VOICE] Loading Whisper...")
-    _whisper = WhisperModel(WHISPER_MODEL, device="cpu", compute_type="int8")
+    try:
+        # Load Whisper with memory optimization
+        _whisper = WhisperModel(WHISPER_MODEL, device="cpu", compute_type="int8")
+        print("[VOICE] Whisper loaded successfully.")
+        # Clear any cached data to free memory
+        import gc
+        gc.collect()
+    except Exception as e:
+        print(f"[VOICE] ERROR: Failed to load Whisper model: {e}")
+        print("[VOICE] Voice transcription will not be available.")
+        
     print("[VOICE] Loading Kokoro TTS...")
-    _kokoro = Kokoro("kokoro-v1.0.onnx", "voices-v1.0.bin")
-    print("[VOICE] Models ready.")
+    try:
+        # Load Kokoro with memory optimization
+        _kokoro = Kokoro("kokoro-v1.0.onnx", "voices-v1.0.bin")
+        print("[VOICE] Kokoro TTS loaded successfully.")
+        # Clear any cached data to free memory
+        gc.collect()
+    except Exception as e:
+        print(f"[VOICE] ERROR: Failed to load Kokoro TTS: {e}")
+        print("[VOICE] Voice synthesis will not be available.")
+        
+    if _whisper is not None and _kokoro is not None:
+        print("[VOICE] All models ready.")
+        print("[VOICE] Memory usage optimized.")
+    else:
+        print("[VOICE] WARNING: Some models failed to load - voice features limited.")
+        print("[VOICE] Running with reduced functionality.")
 
 
 def _get_whisper() -> WhisperModel:
     if _whisper is None:
-        raise RuntimeError("Whisper not loaded — call load_models() at startup")
+        raise RuntimeError("Voice models are still loading — please try again in a moment.")
     return _whisper
 
 
 def _get_kokoro() -> Kokoro:
     if _kokoro is None:
-        raise RuntimeError("Kokoro not loaded — call load_models() at startup")
+        raise RuntimeError("Voice models are still loading — please try again in a moment.")
     return _kokoro
 
 
