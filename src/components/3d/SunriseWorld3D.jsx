@@ -143,6 +143,12 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
           pointer-events: all;
           cursor: pointer;
         }
+        @media (max-width: 768px) {
+          .music-now-playing.minimized {
+            left: 5vw;
+            margin-left: 15px;
+          }
+        }
         .music-now-playing.minimized:hover {
           background: rgba(30, 30, 45, 0.95);
           transform: translateY(-2px);

@@ -13,30 +13,46 @@ const MemoWindmill = memo(Windmill);
 const MemoTruck = memo(Truck);
 const MemoTerrain = memo(Terrain);
 
-function Ghost({ courageRef, sequenceRef, offsetTime = 0, offsetPosition = [0, 0, 0], visible = true, phase = 0 }) {
+function GiantFly({ courageRef, sequenceRef, offsetTime = 0, offsetPosition = [0, 0, 0], visible = true, phase = 0 }) {
   const groupRef = useRef(null);
+  const leftWingRef = useRef(null);
+  const rightWingRef = useRef(null);
   const scratchVec1 = useMemo(() => new THREE.Vector3(), []);
   
-  const ghostMat = useMemo(() => new THREE.MeshStandardMaterial({ 
-    color: '#ffffff', emissive: '#d7d4ff', emissiveIntensity: 0.8,
-    transparent: true, opacity: 0.85, roughness: 0.8
+  const bodyMat = useMemo(() => new THREE.MeshStandardMaterial({ 
+    color: '#1a1005', roughness: 0.8
   }), []);
 
-  const eyeGeo = useMemo(() => new THREE.CircleGeometry(0.08, 16), []);
-  const eyeMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#111122' }), []);
+  const wingMat = useMemo(() => new THREE.MeshBasicMaterial({ 
+    color: '#bed2ff', transparent: true, opacity: 0.6, side: THREE.DoubleSide
+  }), []);
+
+  const wingGeo = useMemo(() => new THREE.CircleGeometry(0.6, 16), []);
+  const eyeMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ff3c00' }), []);
 
   useFrame((state) => {
     if (groupRef.current && courageRef.current) {
-      const t = state.clock.elapsedTime % 30;
-      if (t < 0.1) { groupRef.current.scale.setScalar(0); return; }
+      if (leftWingRef.current && rightWingRef.current) {
+         // Intense wing flap
+         const flap = Math.sin(state.clock.elapsedTime * 60) * 0.8;
+         leftWingRef.current.rotation.x = flap;
+         rightWingRef.current.rotation.x = -flap;
+         
+         // Wobble the entire fly
+         groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 10 + offsetTime) * 0.2;
+         groupRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 15 + offsetTime) * 0.1;
+      }
 
       let targetX, targetY, targetZ;
+      // Phase mappings: 
+      // 0: inside house, 1, 2, 3: Sequence 0 chase. 4, 5: Sequence 1 Fakeout
       if (sequenceRef?.current === 1) {
-        // Sequence 1: FAKE OUT! Ghosts blindly fly diagonal across the map
-        if (phase === 4 || phase === 5) {
-           const fakeT = (t - 20) / 10; // 10s path over screen
-           targetX = THREE.MathUtils.lerp(-2.5, 35, fakeT) + offsetPosition[0] + Math.sin(t*2)*0.5;
-           targetY = THREE.MathUtils.lerp(2.5, 12, fakeT) + offsetPosition[1] + Math.sin(t*4)*0.6;
+        if (phase === 4) {
+           // Flies blindly fly diagonally across screen tracking fake path
+           const t = state.clock.elapsedTime % 15;
+           const fakeT = THREE.MathUtils.clamp((t - 5) / 10, 0, 1);
+           targetX = THREE.MathUtils.lerp(-2.5, 35, fakeT) + offsetPosition[0];
+           targetY = THREE.MathUtils.lerp(2.5, 10, fakeT) + offsetPosition[1];
            targetZ = THREE.MathUtils.lerp(1, 15, fakeT) + offsetPosition[2];
            if (visible) groupRef.current.scale.setScalar(1);
         } else {
@@ -44,35 +60,50 @@ function Ghost({ courageRef, sequenceRef, offsetTime = 0, offsetPosition = [0, 0
            targetX = 0; targetY=0; targetZ=0;
         }
       } else {
-        // Sequence 0: Original Chase
-        if (phase === 5 || phase === 0) {
-          const retreatT = THREE.MathUtils.clamp((t - 26) / 3.5, 0, 1);
-          targetX = THREE.MathUtils.lerp(courageRef.current.position.x, -2.5, retreatT) + offsetPosition[0];
-          targetY = THREE.MathUtils.lerp(1.5, 4, retreatT) + offsetPosition[1];
-          targetZ = THREE.MathUtils.lerp(courageRef.current.position.z, 0, retreatT) + offsetPosition[2];
-          groupRef.current.scale.setScalar(THREE.MathUtils.lerp(1, 0, retreatT));
+        if (phase === 1 || phase === 2 || phase === 3) {
+           // Chase Courage directly
+           targetX = courageRef.current.position.x + offsetPosition[0];
+           targetY = 2 + offsetPosition[1];
+           targetZ = courageRef.current.position.z + offsetPosition[2];
+           if (visible) groupRef.current.scale.setScalar(1);
         } else {
-          targetX = courageRef.current.position.x + offsetPosition[0] + Math.sin(state.clock.elapsedTime * 2 + offsetTime * 2) * 0.5;
-          targetY = 1 + offsetPosition[1] + Math.sin(state.clock.elapsedTime * 4 + offsetTime) * 0.6;
-          targetZ = courageRef.current.position.z + offsetPosition[2];
-          if (visible) groupRef.current.scale.setScalar(1);
+           groupRef.current.scale.setScalar(0);
+           targetX = 0; targetY=0; targetZ=0;
         }
       }
       groupRef.current.position.lerp(scratchVec1.set(targetX, targetY, targetZ), 0.1);
-      groupRef.current.lookAt(state.camera.position);
+      
+      // Calculate look direction but keep flies relatively flat
+      scratchVec1.copy(state.camera.position);
+      scratchVec1.y = groupRef.current.position.y;
+      groupRef.current.lookAt(scratchVec1);
     }
   });
 
   return (
     <group ref={groupRef} visible={visible} scale={visible ? 1 : 0.001}>
-      <pointLight color="#d7d4ff" intensity={visible ? 1.5 : 0} distance={8} />
-      <mesh position={[0, 0.4, 0]}><sphereGeometry args={[0.35, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} /><primitive object={ghostMat} attach="material" /></mesh>
-      <mesh position={[0, 0.2, 0]}><cylinderGeometry args={[0.35, 0.35, 0.4, 16]} /><primitive object={ghostMat} attach="material" /></mesh>
-      <mesh position={[-0.23, 0, 0]} rotation={[0, 0, Math.PI]}><coneGeometry args={[0.12, 0.25, 8]} /><primitive object={ghostMat} attach="material" /></mesh>
-      <mesh position={[0, 0, 0]} rotation={[0, 0, Math.PI]}><coneGeometry args={[0.12, 0.25, 8]} /><primitive object={ghostMat} attach="material" /></mesh>
-      <mesh position={[0.23, 0, 0]} rotation={[0, 0, Math.PI]}><coneGeometry args={[0.12, 0.25, 8]} /><primitive object={ghostMat} attach="material" /></mesh>
-      <mesh position={[-0.12, 0.45, 0.35]}><primitive object={eyeGeo} attach="geometry" /><primitive object={eyeMat} attach="material" /></mesh>
-      <mesh position={[0.12, 0.45, 0.35]}><primitive object={eyeGeo} attach="geometry" /><primitive object={eyeMat} attach="material" /></mesh>
+      <pointLight color="#ff3c00" intensity={0.5} distance={5} />
+      {/* Body */}
+      <mesh position={[0, 0, 0]} rotation={[Math.PI/2, 0, 0]}>
+        <capsuleGeometry args={[0.3, 0.6, 4, 8]} />
+        <primitive object={bodyMat} attach="material" />
+      </mesh>
+      {/* Wings */}
+      <group position={[-0.3, 0.4, 0]}>
+         <mesh ref={leftWingRef} position={[-0.4, 0, 0]} rotation={[0, Math.PI/2, 0]}>
+            <primitive object={wingGeo} attach="geometry" />
+            <primitive object={wingMat} attach="material" />
+         </mesh>
+      </group>
+      <group position={[0.3, 0.4, 0]}>
+         <mesh ref={rightWingRef} position={[0.4, 0, 0]} rotation={[0, Math.PI/2, 0]}>
+            <primitive object={wingGeo} attach="geometry" />
+            <primitive object={wingMat} attach="material" />
+         </mesh>
+      </group>
+      {/* Eyes */}
+      <mesh position={[-0.15, 0.2, 0.4]}><sphereGeometry args={[0.15, 8, 8]} /><primitive object={eyeMat} attach="material" /></mesh>
+      <mesh position={[0.15, 0.2, 0.4]}><sphereGeometry args={[0.15, 8, 8]} /><primitive object={eyeMat} attach="material" /></mesh>
     </group>
   );
 }
@@ -83,70 +114,76 @@ function StoryController() {
   const [doorOpen, setDoorOpen] = useState(false);
   const [phase, setPhase] = useState(0);
   const seqRef = useRef(0);
+  const startTimeRef = useRef(null);
   const scratchVec1 = useMemo(() => new THREE.Vector3(), []);
   
   useFrame((state) => {
-    const t = state.clock.elapsedTime % 30;
+    if (startTimeRef.current === null) startTimeRef.current = state.clock.elapsedTime;
+    const t = state.clock.elapsedTime - startTimeRef.current;
+    
     let p = 0;
-    if (t < 4) p = 0; else if (t < 8) p = 1; else if (t < 12) p = 2; else if (t < 20) p = 3; else if (t < 26) p = 4; else p = 5;
+    if (t < 5) {
+       p = 0; // Inside house bouncing
+    } else {
+       if (seqRef.current === 0) {
+          if (t < 12) p = 1;      // Exit -> Top Right
+          else if (t < 18) p = 2; // Top Right -> Top Left
+          else if (t < 24) p = 3; // Top Left -> Enter House
+          else { startTimeRef.current = state.clock.elapsedTime; p = 0; }
+       } else {
+          if (t < 15) p = 4;      // Fakeout Exit & Hide
+          else if (t < 18) p = 5; // Sneak Back in
+          else { startTimeRef.current = state.clock.elapsedTime; p = 0; }
+       }
+    }
     
     if (p !== phase) { 
-      if (p === 3) seqRef.current = Math.random() > 0.5 ? 1 : 0; // Roll branch while inside!
+      // Roll branch when starting inside house
+      if (p === 0 && phase !== 0) seqRef.current = Math.random() > 0.5 ? 1 : 0; 
       setPhase(p); 
-      setDoorOpen(p === 2 || p === 4 || (p === 5 && seqRef.current === 1)); 
+      setDoorOpen(p === 1 || p === 3 || p === 4 || p === 5); 
     }
 
     if (courageRef.current && houseRef.current) {
       if (p === 0) {
-        const pT = t / 4; 
-        courageRef.current.rotation.y = Math.PI;
-        courageRef.current.position.set(THREE.MathUtils.lerp(22, -22, pT), -0.1, 8);
-        courageRef.current.scale.setScalar(0.7);
-        houseRef.current.scale.lerp(scratchVec1.set(1, 1, 1), 0.1);
-      } else if (p === 1) {
-        const pT = (t - 4) / 4;
-        courageRef.current.rotation.y = 0;
-        courageRef.current.position.set(THREE.MathUtils.lerp(-22, 10, pT), -0.1, 8);
-        courageRef.current.scale.setScalar(0.7);
-        houseRef.current.scale.lerp(scratchVec1.set(1, 1, 1), 0.1);
-      } else if (p === 2) {
-        const pT = Math.pow((t - 8) / 4, 1.2);
-        courageRef.current.rotation.y = Math.PI;
-        courageRef.current.position.set(THREE.MathUtils.lerp(10, -3.3, pT), -0.1, THREE.MathUtils.lerp(8, 2.5, pT));
-        courageRef.current.scale.setScalar(THREE.MathUtils.lerp(0.7, 0.25, pT));
-        houseRef.current.scale.lerp(scratchVec1.set(1, 1, 1), 0.1);
-      } else if (p === 3) {
-        courageRef.current.scale.setScalar(0);
-        const pT = (t - 12);
-        const squishX = 1 + Math.sin(pT * 15) * 0.08;
-        const squishY = 1 + Math.cos(pT * 12) * 0.08;
-        const squishZ = 1 + Math.sin(pT * 18) * 0.08;
+        courageRef.current.scale.setScalar(0.001); // Shrink Courage so he's hidden inside
+        const squishX = 1 + Math.sin(t * 15) * 0.08;
+        const squishY = 1 + Math.cos(t * 12) * 0.08;
+        const squishZ = 1 + Math.sin(t * 18) * 0.08;
         houseRef.current.scale.lerp(scratchVec1.set(squishX, squishY, squishZ), 0.5);
-      } else if (p === 4) {
-        if (seqRef.current === 0) {
-          const pT = (t - 20) / 6;
-          courageRef.current.rotation.y = 0;
-          courageRef.current.position.set(THREE.MathUtils.lerp(-2.8, 22, pT), -0.1, THREE.MathUtils.lerp(2.5, 9, pT));
-          courageRef.current.scale.setScalar(THREE.MathUtils.lerp(0.25, 0.7, pT));
-        } else {
-          // Fake out sequence: Sneak around back of house
-          const pT = Math.min((t - 20) / 3, 1);
-          courageRef.current.rotation.y = Math.PI * 0.8;
-          courageRef.current.position.set(THREE.MathUtils.lerp(-2.8, -8, pT), -0.1, THREE.MathUtils.lerp(2.5, -4, pT));
-          courageRef.current.scale.setScalar(0.4);
-        }
-        houseRef.current.scale.lerp(scratchVec1.set(1, 1, 1), 0.1);
       } else {
-        if (seqRef.current === 0) {
-          courageRef.current.scale.setScalar(0);
-        } else {
-          // Fake out sequence: Dash back inside!
-          const pT = (t - 26) / 4;
-          courageRef.current.rotation.y = -Math.PI * 0.3;
-          courageRef.current.position.set(THREE.MathUtils.lerp(-8, -3.3, pT), -0.1, THREE.MathUtils.lerp(-4, 2.5, pT));
-          courageRef.current.scale.setScalar(THREE.MathUtils.lerp(0.4, 0.25, pT));
-        }
         houseRef.current.scale.lerp(scratchVec1.set(1, 1, 1), 0.1);
+        if (p === 1) { 
+           // Seq0: Run starting from door to Top Right
+           const pT = (t - 5) / 7;
+           courageRef.current.rotation.y = 0;
+           courageRef.current.position.set(THREE.MathUtils.lerp(-2.8, 22, pT), -0.1, THREE.MathUtils.lerp(2.5, 9, pT));
+           courageRef.current.scale.setScalar(THREE.MathUtils.lerp(0.25, 0.7, pT));
+        } else if (p === 2) { 
+           // Seq0: Top Right to Top Left across screen
+           const pT = (t - 12) / 6;
+           courageRef.current.rotation.y = Math.PI;
+           courageRef.current.position.set(THREE.MathUtils.lerp(22, -22, pT), -0.1, 8);
+           courageRef.current.scale.setScalar(0.7);
+        } else if (p === 3) { 
+           // Seq0: Top Left back to Door
+           const pT = Math.pow((t - 18) / 6, 1.2);
+           courageRef.current.rotation.y = Math.PI * 0.8;
+           courageRef.current.position.set(THREE.MathUtils.lerp(-22, -2.8, pT), -0.1, THREE.MathUtils.lerp(8, 2.5, pT));
+           courageRef.current.scale.setScalar(THREE.MathUtils.lerp(0.7, 0.25, pT));
+        } else if (p === 4) { 
+           // Seq1 Fakeout: Run from door straight to back of house
+           const pT = Math.min((t - 5) / 2, 1);
+           courageRef.current.rotation.y = Math.PI * 0.8;
+           courageRef.current.position.set(THREE.MathUtils.lerp(-2.8, -8, pT), -0.1, THREE.MathUtils.lerp(2.5, -4, pT));
+           courageRef.current.scale.setScalar(0.4);
+        } else if (p === 5) { 
+           // Seq1 Fakeout: Sneak back to Door
+           const pT = Math.min((t - 15) / 3, 1);
+           courageRef.current.rotation.y = -Math.PI * 0.2;
+           courageRef.current.position.set(THREE.MathUtils.lerp(-8, -2.8, pT), -0.1, THREE.MathUtils.lerp(-4, 2.5, pT));
+           courageRef.current.scale.setScalar(THREE.MathUtils.lerp(0.4, 0.25, pT));
+        }
       }
     }
   });
@@ -159,7 +196,7 @@ function StoryController() {
       <group ref={courageRef}>
         <Html transform center eps={0.001} style={{ pointerEvents: 'none' }}>
            <CourageRunningAnimationComplete />
-           {phase === 4 && seqRef.current === 0 && (
+           {(phase === 1 || phase === 2) && seqRef.current === 0 && (
              <div style={{ 
                position: 'absolute', top: '-90px', left: '50%', transform: 'translateX(-50%)', 
                backgroundColor: '#ffffff', color: '#000000', fontWeight: 900, fontSize: '2rem', 
@@ -178,9 +215,9 @@ function StoryController() {
         </Html>
       </group>
       <group>
-         <Ghost courageRef={courageRef} sequenceRef={seqRef} offsetPosition={[-1, 0.5, -1]} offsetTime={0} visible={phase === 4 || phase === 5} phase={phase} />
-         <Ghost courageRef={courageRef} sequenceRef={seqRef} offsetPosition={[-2, 1.5, -2]} offsetTime={2} visible={phase === 4 || phase === 5} phase={phase} />
-         <Ghost courageRef={courageRef} sequenceRef={seqRef} offsetPosition={[-3, 2.5, -0.5]} offsetTime={4} visible={phase === 4 || phase === 5} phase={phase} />
+         <GiantFly courageRef={courageRef} sequenceRef={seqRef} offsetPosition={[-1, 0.5, -1]} offsetTime={0} visible={phase > 0} phase={phase} />
+         <GiantFly courageRef={courageRef} sequenceRef={seqRef} offsetPosition={[-2, 1.5, -2]} offsetTime={2} visible={phase > 0} phase={phase} />
+         <GiantFly courageRef={courageRef} sequenceRef={seqRef} offsetPosition={[-3, 2.5, -0.5]} offsetTime={4} visible={phase > 0} phase={phase} />
       </group>
     </group>
   );
@@ -240,8 +277,8 @@ function StylizedCloud({ position, scale = 1, opacity = 0.5, speed = 0.05, morni
 
 export function Scene({ scene = 'evening', showStory = true }) {
   const isSunrise = scene === 'sunrise';
-  const ambientColor = isSunrise ? '#ffaa44' : '#bd80e8';
-  const dirLightColor = isSunrise ? '#ffeeba' : '#ffccf5';
+  const ambientColor = isSunrise ? '#88ccff' : '#bd80e8';
+  const dirLightColor = isSunrise ? '#ffffff' : '#ffccf5';
   
   const gradientTexture = useMemo(() => {
     const canvas = document.createElement('canvas');
@@ -252,8 +289,8 @@ export function Scene({ scene = 'evening', showStory = true }) {
       
       // Different gradients for different scenes
       if (scene === 'sunrise') {
-        gradient.addColorStop(0.0, '#ff4b1f'); gradient.addColorStop(0.3, '#ff9068');
-        gradient.addColorStop(0.6, '#ffd194'); gradient.addColorStop(1.0, '#70e1f5');
+        gradient.addColorStop(0.0, '#1e90ff'); gradient.addColorStop(0.3, '#66bbff');
+        gradient.addColorStop(0.6, '#aaddff'); gradient.addColorStop(1.0, '#e0f6ff');
       } else if (scene === 'noon') {
         gradient.addColorStop(0.0, '#87ceeb'); gradient.addColorStop(0.4, '#98d8e8');
         gradient.addColorStop(0.7, '#b0e0e6'); gradient.addColorStop(1.0, '#e0f6ff');
