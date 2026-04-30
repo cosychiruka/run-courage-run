@@ -3,7 +3,10 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Html, SpotLight } from '@react-three/drei';
 import * as THREE from 'three';
 import { Scene } from './Scene3D';
+import { House } from './House3D';
 import { audioManager } from '../../utils/audioManager';
+
+const MemoHouse = React.memo(House);
 
 function ReadySignal({ onReady }) {
   const calledRef = useRef(false);
@@ -16,24 +19,41 @@ function ReadySignal({ onReady }) {
   return null;
 }
 
-function DiscoBall() {
-  const meshRef = useRef();
-  
-  useFrame((state) => {
-     if (meshRef.current) {
-        meshRef.current.rotation.y += 0.01;
-        meshRef.current.rotation.x += 0.005;
+function HayStack({ position, rotation = [0, 0, 0] }) {
+  const geo = useMemo(() => new THREE.BoxGeometry(1.4, 1.0, 1.4), []);
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#cca355', roughness: 1 }), []);
+  return (
+    <group position={position} rotation={rotation}>
+       <mesh position={[0, 0.5, 0]} geometry={geo} material={mat} />
+       <mesh position={[0.4, 1.5, -0.2]} rotation={[0, 0.2, 0]} geometry={geo} material={mat} />
+       <mesh position={[-0.4, 0.5, 0.4]} rotation={[0, -0.15, 0]} geometry={geo} material={mat} />
+       <mesh position={[-0.2, 1.4, 0.3]} rotation={[0, -0.3, 0]} geometry={geo} material={mat} />
+       <mesh position={[0.1, 2.5, 0]} rotation={[0, 0.1, 0]} geometry={geo} material={mat} />
+    </group>
+  );
+}
+
+function StrawGround({ position }) {
+  const straws = useMemo(() => {
+     const arr = [];
+     for(let i=0; i<60; i++) {
+        arr.push({
+           x: (Math.random() - 0.5) * 8,
+           z: (Math.random() - 0.5) * 6,
+           r: Math.random() * Math.PI,
+           s: Math.random() * 0.4 + 0.6
+        });
      }
-  });
+     return arr;
+  }, []);
+  const mat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#e8c982' }), []);
+  const geo = useMemo(() => new THREE.CylinderGeometry(0.015, 0.015, 0.6, 4), []);
   
   return (
-    <group position={[0, 15, -10]}>
-       <mesh ref={meshRef}>
-         <icosahedronGeometry args={[2.5, 3]} />
-         <meshStandardMaterial color="#ffffff" metalness={1} roughness={0.1} />
-       </mesh>
-       <SpotLight position={[10, 10, 10]} angle={0.3} penumbra={1} intensity={5} color="#ff00ff" />
-       <SpotLight position={[-10, 10, 10]} angle={0.3} penumbra={1} intensity={5} color="#00ffff" />
+    <group position={position}>
+       {straws.map((s, i) => (
+          <mesh key={i} position={[s.x, 0.02, s.z]} rotation={[Math.PI/2, 0, s.r]} scale={[1, s.s, 1]} geometry={geo} material={mat} />
+       ))}
     </group>
   );
 }
@@ -133,8 +153,15 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
         
         {/* We reuse evening colors and objects but disable the moving Courage/Ghost animations */}
         <Scene scene="evening" showStory={false} />
+        <MemoHouse position={[-2.5, -0.2, 0]} doorOpen={false} />
         
-        <DiscoBall />
+        {/* Hay stacks flanking the dancing floor */}
+        <HayStack position={[-9, 0, -10]} rotation={[0, 0.5, 0]} />
+        <HayStack position={[-7, 0, -4]} rotation={[0, -0.3, 0]} />
+        <HayStack position={[8, 0, -12]} rotation={[0, -0.6, 0]} />
+        <HayStack position={[9, 0, -5]} rotation={[0, 0.4, 0]} />
+
+        <StrawGround position={[0, 0, -9]} />
         
         <Html position={[0, -0.5, -10]} center transform sprite zIndexRange={[100, 0]}>
            <img src="/assets/courage-dancing.gif" alt="Courage Dancing" style={{ width: '250px', filter: 'drop-shadow(0px 10px 10px rgba(0,0,0,0.8))' }} />

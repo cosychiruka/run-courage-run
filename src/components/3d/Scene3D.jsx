@@ -13,7 +13,7 @@ const MemoWindmill = memo(Windmill);
 const MemoTruck = memo(Truck);
 const MemoTerrain = memo(Terrain);
 
-function GiantFly({ courageRef, sequenceRef, offsetTime = 0, offsetPosition = [0, 0, 0], visible = true, phase = 0 }) {
+function GiantFly({ courageRef, sequenceRef, sequenceStartTime, offsetTime = 0, offsetPosition = [0, 0, 0], visible = true, phase = 0 }) {
   const groupRef = useRef(null);
   const leftWingRef = useRef(null);
   const rightWingRef = useRef(null);
@@ -45,12 +45,12 @@ function GiantFly({ courageRef, sequenceRef, offsetTime = 0, offsetPosition = [0
 
       let targetX, targetY, targetZ;
       // Phase mappings: 
-      // 0: inside house, 1, 2, 3: Sequence 0 chase. 4, 5: Sequence 1 Fakeout
+      // -1, 0: inside house, 1, 2, 3: Sequence 0 chase. 4, 5: Sequence 1 Fakeout
       if (sequenceRef?.current === 1) {
         if (phase === 4) {
            // Flies blindly fly diagonally across screen tracking fake path
-           const t = state.clock.elapsedTime % 15;
-           const fakeT = THREE.MathUtils.clamp((t - 5) / 10, 0, 1);
+           const pathT = state.clock.elapsedTime - sequenceStartTime - 7;
+           const fakeT = THREE.MathUtils.clamp((pathT - 5) / 10, 0, 1);
            targetX = THREE.MathUtils.lerp(-2.5, 35, fakeT) + offsetPosition[0];
            targetY = THREE.MathUtils.lerp(2.5, 10, fakeT) + offsetPosition[1];
            targetZ = THREE.MathUtils.lerp(1, 15, fakeT) + offsetPosition[2];
@@ -122,64 +122,72 @@ function StoryController() {
     const t = state.clock.elapsedTime - startTimeRef.current;
     
     let p = 0;
-    if (t < 5) {
-       p = 0; // Inside house bouncing
+    if (t < 7) {
+       p = -1; // 7s suspense
+    } else if (t < 12) {
+       p = 0; // 5s bouncing
     } else {
+       const pathT = t - 7;
        if (seqRef.current === 0) {
-          if (t < 12) p = 1;      // Exit -> Top Right
-          else if (t < 18) p = 2; // Top Right -> Top Left
-          else if (t < 24) p = 3; // Top Left -> Enter House
-          else { startTimeRef.current = state.clock.elapsedTime; p = 0; }
+          if (pathT < 12) p = 1;      // Exit -> Top Right
+          else if (pathT < 18) p = 2; // Top Right -> Top Left
+          else if (pathT < 24) p = 3; // Top Left -> Enter House
+          else { startTimeRef.current = state.clock.elapsedTime; p = -1; }
        } else {
-          if (t < 15) p = 4;      // Fakeout Exit & Hide
-          else if (t < 18) p = 5; // Sneak Back in
-          else { startTimeRef.current = state.clock.elapsedTime; p = 0; }
+          if (pathT < 15) p = 4;      // Fakeout Exit & Hide
+          else if (pathT < 18) p = 5; // Sneak Back in
+          else { startTimeRef.current = state.clock.elapsedTime; p = -1; }
        }
     }
     
     if (p !== phase) { 
-      // Roll branch when starting inside house
-      if (p === 0 && phase !== 0) seqRef.current = Math.random() > 0.5 ? 1 : 0; 
+      // Roll branch when entering house suspense phase
+      if (p === -1 && phase !== -1) seqRef.current = Math.random() > 0.5 ? 1 : 0; 
       setPhase(p); 
       setDoorOpen(p === 1 || p === 3 || p === 4 || p === 5); 
     }
 
     if (courageRef.current && houseRef.current) {
-      if (p === 0) {
+      if (p === -1) {
+        courageRef.current.scale.setScalar(0.001); // Hidden inside
+        houseRef.current.scale.lerp(scratchVec1.set(1, 1, 1), 0.1);
+      } else if (p === 0) {
         courageRef.current.scale.setScalar(0.001); // Shrink Courage so he's hidden inside
-        const squishX = 1 + Math.sin(t * 15) * 0.08;
-        const squishY = 1 + Math.cos(t * 12) * 0.08;
-        const squishZ = 1 + Math.sin(t * 18) * 0.08;
+        const bounceT = t - 7;
+        const squishX = 1 + Math.sin(bounceT * 15) * 0.08;
+        const squishY = 1 + Math.cos(bounceT * 12) * 0.08;
+        const squishZ = 1 + Math.sin(bounceT * 18) * 0.08;
         houseRef.current.scale.lerp(scratchVec1.set(squishX, squishY, squishZ), 0.5);
       } else {
         houseRef.current.scale.lerp(scratchVec1.set(1, 1, 1), 0.1);
+        const pathT = t - 7;
         if (p === 1) { 
            // Seq0: Run starting from door to Top Right
-           const pT = (t - 5) / 7;
+           const pT = (pathT - 5) / 7;
            courageRef.current.rotation.y = 0;
            courageRef.current.position.set(THREE.MathUtils.lerp(-2.8, 22, pT), -0.1, THREE.MathUtils.lerp(2.5, 9, pT));
            courageRef.current.scale.setScalar(THREE.MathUtils.lerp(0.25, 0.7, pT));
         } else if (p === 2) { 
            // Seq0: Top Right to Top Left across screen
-           const pT = (t - 12) / 6;
+           const pT = (pathT - 12) / 6;
            courageRef.current.rotation.y = Math.PI;
            courageRef.current.position.set(THREE.MathUtils.lerp(22, -22, pT), -0.1, 8);
            courageRef.current.scale.setScalar(0.7);
         } else if (p === 3) { 
            // Seq0: Top Left back to Door
-           const pT = Math.pow((t - 18) / 6, 1.2);
+           const pT = Math.pow((pathT - 18) / 6, 1.2);
            courageRef.current.rotation.y = Math.PI * 0.8;
            courageRef.current.position.set(THREE.MathUtils.lerp(-22, -2.8, pT), -0.1, THREE.MathUtils.lerp(8, 2.5, pT));
            courageRef.current.scale.setScalar(THREE.MathUtils.lerp(0.7, 0.25, pT));
         } else if (p === 4) { 
            // Seq1 Fakeout: Run from door straight to back of house
-           const pT = Math.min((t - 5) / 2, 1);
+           const pT = Math.min((pathT - 5) / 2, 1);
            courageRef.current.rotation.y = Math.PI * 0.8;
            courageRef.current.position.set(THREE.MathUtils.lerp(-2.8, -8, pT), -0.1, THREE.MathUtils.lerp(2.5, -4, pT));
            courageRef.current.scale.setScalar(0.4);
         } else if (p === 5) { 
            // Seq1 Fakeout: Sneak back to Door
-           const pT = Math.min((t - 15) / 3, 1);
+           const pT = Math.min((pathT - 15) / 3, 1);
            courageRef.current.rotation.y = -Math.PI * 0.2;
            courageRef.current.position.set(THREE.MathUtils.lerp(-8, -2.8, pT), -0.1, THREE.MathUtils.lerp(-4, 2.5, pT));
            courageRef.current.scale.setScalar(THREE.MathUtils.lerp(0.4, 0.25, pT));
@@ -215,9 +223,9 @@ function StoryController() {
         </Html>
       </group>
       <group>
-         <GiantFly courageRef={courageRef} sequenceRef={seqRef} offsetPosition={[-1, 0.5, -1]} offsetTime={0} visible={phase > 0} phase={phase} />
-         <GiantFly courageRef={courageRef} sequenceRef={seqRef} offsetPosition={[-2, 1.5, -2]} offsetTime={2} visible={phase > 0} phase={phase} />
-         <GiantFly courageRef={courageRef} sequenceRef={seqRef} offsetPosition={[-3, 2.5, -0.5]} offsetTime={4} visible={phase > 0} phase={phase} />
+         <GiantFly courageRef={courageRef} sequenceRef={seqRef} sequenceStartTime={startTimeRef.current} offsetPosition={[-1, 0.5, -1]} offsetTime={0} visible={phase > 0} phase={phase} />
+         <GiantFly courageRef={courageRef} sequenceRef={seqRef} sequenceStartTime={startTimeRef.current} offsetPosition={[-2, 1.5, -2]} offsetTime={2} visible={phase > 0} phase={phase} />
+         <GiantFly courageRef={courageRef} sequenceRef={seqRef} sequenceStartTime={startTimeRef.current} offsetPosition={[-3, 2.5, -0.5]} offsetTime={4} visible={phase > 0} phase={phase} />
       </group>
     </group>
   );
