@@ -18,6 +18,7 @@ import { createVoiceService } from './services/voiceService';
 
 const EveningWorld3D = lazy(() => import('./components/3d/EveningWorld3D'));
 const SunriseWorld3D = lazy(() => import('./components/3d/SunriseWorld3D'));
+const NoonWorld3D = lazy(() => import('./components/3d/NoonWorld3D'));
 const DiscoWorld3D = lazy(() => import('./components/3d/DiscoWorld3D'));
 import courageDancingGif from './assets/images/Courage.gif';
 
@@ -858,6 +859,14 @@ export default function App() {
 
           {_active === 'sunrise' && (
             <SunriseWorld3D
+              visible={world3DVisible}
+              onReady={() => setWorld3DVisible(true)}
+              onClose={() => handleClose3D()}
+            />
+          )}
+
+          {_active === 'noon' && (
+            <NoonWorld3D
               visible={world3DVisible}
               onReady={() => setWorld3DVisible(true)}
               onClose={() => handleClose3D()}

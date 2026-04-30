@@ -7,6 +7,7 @@ import { Truck } from './Truck3D';
 import { Windmill } from './Windmill3D';
 import { Terrain } from './Terrain3D';
 import CourageRunningAnimationComplete from './CourageRunningAnimationComplete';
+import { NoonStoryController } from './NoonStoryController';
 
 const MemoHouse = memo(House);
 const MemoWindmill = memo(Windmill);
@@ -491,7 +492,10 @@ export function Scene({ scene = 'evening', showStory = true }) {
       <Meteor />
       <group position={[0, -2, 0]}>
         <MemoTerrain scene={scene} />
-        {showStory && (scene === 'sunrise' ? <SunriseStoryController /> : <EveningStoryController />)}
+        {showStory && (
+          scene === 'noon' ? <NoonStoryController /> :
+          scene === 'sunrise' ? <SunriseStoryController /> : <EveningStoryController />
+        )}
       </group>
     </>
   );
