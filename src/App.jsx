@@ -19,7 +19,7 @@ import { createVoiceService } from './services/voiceService';
 const EveningWorld3D = lazy(() => import('./components/3d/EveningWorld3D'));
 const SunriseWorld3D = lazy(() => import('./components/3d/SunriseWorld3D'));
 const DiscoWorld3D = lazy(() => import('./components/3d/DiscoWorld3D'));
-import courageDancingGif from './assets/images/courage.gif';
+import courageDancingGif from './assets/images/Courage.gif';
 
 export default function App() {
   const [scene, setScene] = useState('');

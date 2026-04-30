@@ -61,15 +61,7 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
     }
   }, [visible, audioLoaded]);
 
-  // Handle scene switching
-  const switchToSunrise = useCallback(() => {
-    setCurrentScene('sunrise');
-      // Stop ALL music and play sunrise music
-    audioManager.stopAllTracks();
-    setTimeout(() => {
-      audioManager.playTrack('sunrise-energetic', { loop: true, volume: 0.4 });
-    }, 100);
-  }, []);
+  // Removed switchToSunrise callback as per architectural rules
 
   // Play scene-specific music when visible or scene changes
   useEffect(() => {
@@ -131,30 +123,7 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
       )}
       {visible && (
         <div className="world3d-music-controls">
-          <button 
-            className="music-btn"
-            onClick={switchToSunrise}
-            title="Switch to Sunrise Scene"
-          >
-            🌅 {currentScene === 'sunrise' ? 'Sunrise' : 'Chase'}
-          </button>
-          <button 
-            className="music-btn"
-            onClick={async () => {
-              setCurrentScene('evening');
-              audioManager.stopAllTracks();
-              setTimeout(async () => {
-                try {
-                  await audioManager.playTrack('run-boy-run', { loop: true, volume: 0.3 });
-                } catch (error) {
-                  console.warn('Failed to play run-boy-run:', error);
-                }
-              }, 100);
-            }}
-            title="Switch to Evening Scene"
-          >
-            🌆 Evening
-          </button>
+
           <button 
             className="music-btn"
             onClick={() => {
