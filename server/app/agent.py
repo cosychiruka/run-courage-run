@@ -1,8 +1,8 @@
 """
-agent.py — Ollama tool-calling loop for Courage.
+agent.py — Courage AI tool-calling agent (Groq backend).
 
-Sends messages to Ollama, handles tool calls in a loop,
-and returns the final response text.
+Sends messages to Groq, handles tool calls in a strict loop,
+and returns clean final text. Never leaks tool syntax to the user.
 """
 
 import json
@@ -13,60 +13,86 @@ from typing import Optional
 from app.system_prompt import build_context_prompt
 from app.tools import TOOL_SCHEMAS, TOOL_NAMES, dispatch_tool
 from app.news_cache import get_all_recent
-
-MAX_TOOL_ROUNDS = 6   # max consecutive tool calls before forcing a final answer
-CONTEXT_TIMEOUT = 180  # seconds — generous for local LLM
-
-
-# ── Ollama chat call ───────────────────────────────────────────────────────────
+from app.twitter_memory import init_twitter_db, get_twitter_summary
 
 from app.config import GROQ_API_KEY, GROQ_MODEL
 
+MAX_TOOL_ROUNDS = 8    # enough for: check rate → fetch news (×2) → post tweet → record
+CONTEXT_TIMEOUT = 60   # Groq is fast; 60s is generous
+
+# Strip any XML tool-call artifacts the model might leak into final text
+_TOOL_TAG_RE = re.compile(
+    r"(</?function[^>]*>|</?parameter[^>]*>|```json.*?```|```.*?```)",
+    re.DOTALL | re.IGNORECASE,
+)
+
+
+# ── Groq chat completion call ──────────────────────────────────────────────────
+
 async def _groq_chat(messages: list[dict], use_tools: bool = True) -> dict:
     payload = {
-        "model":    GROQ_MODEL,
-        "messages": messages,
-        "stream":   False,
-        "temperature": 0.72,
+        "model":       GROQ_MODEL,
+        "messages":    messages,
+        "stream":      False,
+        "temperature": 0.78,
+        "max_tokens":  1024,
     }
-    
+
     if use_tools:
-        payload["tools"] = TOOL_SCHEMAS
+        payload["tools"]       = TOOL_SCHEMAS
+        payload["tool_choice"] = "auto"
 
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
+        "Content-Type":  "application/json",
     }
 
     async with httpx.AsyncClient(timeout=CONTEXT_TIMEOUT) as client:
-        r = await client.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers)
+        r = await client.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            json=payload,
+            headers=headers,
+        )
         r.raise_for_status()
         return r.json()
 
 
-# ── Qwen XML-style tool call extractor (fallback when native not present) ─────
+# ── Helper: scrub any leaked tool syntax from text ────────────────────────────
 
-_FUNC_RE = re.compile(r"<?function=(\w+)>(.*?)</function>?", re.DOTALL)
-_PARAM_RE = re.compile(r"<?parameter=(\w+)>(.*?)</parameter>?", re.DOTALL)
-
-def _extract_xml_tools(text: str) -> list[dict]:
-    calls = []
-    for fn_match in _FUNC_RE.finditer(text):
-        name = fn_match.group(1)
-        if name not in TOOL_NAMES:
-            continue
-        args = {}
-        for p in _PARAM_RE.finditer(fn_match.group(2)):
-            raw = p.group(2).strip()
-            try:
-                args[p.group(1)] = json.loads(raw)
-            except json.JSONDecodeError:
-                args[p.group(1)] = raw
-        calls.append({"name": name, "arguments": args})
-    return calls
+def _clean(text: str) -> str:
+    cleaned = _TOOL_TAG_RE.sub("", text).strip()
+    # Also collapse multiple blank lines left behind
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned or "..."
 
 
-# ── Main agent run ─────────────────────────────────────────────────────────────
+# ── Helper: build properly structured tool_calls for Groq ─────────────────────
+
+def _build_groq_tool_calls(calls: list[dict]) -> list[dict]:
+    """
+    Groq requires tool_calls to be a list of:
+      {"id": "...", "type": "function", "function": {"name": "...", "arguments": "<json string>"}}
+    This normalises both native-Groq format and any dict-style calls we constructed.
+    """
+    out = []
+    for i, call in enumerate(calls):
+        if "function" in call:
+            # Already in Groq format
+            out.append(call)
+        else:
+            # Our constructed dict format
+            out.append({
+                "id":   call.get("id", f"call_{i}_{call.get('name', 'tool')}"),
+                "type": "function",
+                "function": {
+                    "name":      call["name"],
+                    "arguments": json.dumps(call.get("arguments", {})),
+                },
+            })
+    return out
+
+
+# ── Main agent entry point ─────────────────────────────────────────────────────
 
 async def run_agent(
     user_message: str,
@@ -76,87 +102,77 @@ async def run_agent(
     world_context: Optional[str] = None,
 ) -> str:
     """
-    Run the full Courage agent for one user turn.
-    Returns the final text response.
+    Run one full Courage agent turn and return the final text response.
     """
-    # Build system prompt with recent news injected
-    recent_articles = await get_all_recent(limit=8)
-    system = build_context_prompt(recent_articles, world_context=world_context)
+    # Ensure Twitter memory tables exist
+    await init_twitter_db()
 
-    messages = [
+    # Build rich system prompt: recent articles + Twitter memory
+    recent_articles  = await get_all_recent(limit=10)
+    twitter_summary  = await get_twitter_summary()
+    system           = build_context_prompt(
+        recent_articles,
+        world_context=world_context,
+        twitter_summary=twitter_summary,
+    )
+
+    messages: list[dict] = [
         {"role": "system", "content": system},
         *history,
         {"role": "user", "content": user_message},
     ]
 
     for _round in range(MAX_TOOL_ROUNDS):
-        resp   = await _groq_chat(messages, use_tools=True)
-        # Groq returns choices[0].message
-        msg    = resp.get("choices", [{}])[0].get("message", {})
-        content = msg.get("content", "")
+        resp    = await _groq_chat(messages, use_tools=True)
+        choice  = resp.get("choices", [{}])[0]
+        msg     = choice.get("message", {})
+        content = msg.get("content") or ""
 
-        # Native tool calls (Ollama structured format)
-        native_calls = msg.get("tool_calls") or []
+        # ── Groq native tool calls ───────────────────────────────────────────
+        native_calls: list[dict] = msg.get("tool_calls") or []
 
-        # XML-style tool calls (Qwen fallback)
-        xml_calls = _extract_xml_tools(content) if not native_calls and content else []
+        finish_reason = choice.get("finish_reason", "")
 
-        all_calls = native_calls or xml_calls
+        # If finish_reason == "stop" with no tool calls → final answer
+        if finish_reason == "stop" and not native_calls:
+            return _clean(content)
 
-        if not all_calls:
-            # No tool calls — this is the final response. Strip any stray tool tags before speaking.
-            final_text = _FUNC_RE.sub("", content).strip()
-            return final_text or "..."
-
-        # Construct assistant message for the tool call execution
-        ast_msg = {"role": "assistant", "content": content}
-        
+        # If finish_reason == "tool_calls" or we have calls → execute them
         if native_calls:
-            ast_msg["tool_calls"] = native_calls
-        elif xml_calls:
-            # If the model output raw XML, we MUST fake the native tool_calls structure
-            # otherwise Groq's API will reject the subsequent role="tool" messages with a 400 Bad Request.
-            ast_msg["tool_calls"] = [
-                {
-                    "id": f"call_{c['name']}",
-                    "type": "function",
-                    "function": {
-                        "name": c["name"],
-                        "arguments": json.dumps(c["arguments"])
-                    }
-                }
-                for c in xml_calls
-            ]
-            
-        messages.append(ast_msg)
+            # Append the assistant's message exactly as Groq returned it
+            assistant_msg: dict = {"role": "assistant", "content": content, "tool_calls": native_calls}
+            messages.append(assistant_msg)
 
-        for call in all_calls:
-            # Normalise across native + XML formats
-            if "function" in call:
-                name = call["function"].get("name", "")
-                raw_args = call["function"].get("arguments", {})
-            else:
-                name = call.get("name", "")
-                raw_args = call.get("arguments", {})
+            for call in native_calls:
+                fn   = call.get("function", {})
+                name = fn.get("name", "")
+                raw_args = fn.get("arguments", "{}")
+                if isinstance(raw_args, str):
+                    try:
+                        raw_args = json.loads(raw_args)
+                    except json.JSONDecodeError:
+                        raw_args = {}
 
-            if isinstance(raw_args, str):
-                try:
-                    raw_args = json.loads(raw_args)
-                except json.JSONDecodeError:
-                    raw_args = {}
+                result = await dispatch_tool(
+                    name, raw_args,
+                    x_client=x_client,
+                    tweet_image_fn=tweet_image_fn,
+                )
 
-            result = await dispatch_tool(name, raw_args, x_client=x_client, tweet_image_fn=tweet_image_fn)
+                messages.append({
+                    "role":         "tool",
+                    "tool_call_id": call.get("id", f"call_{name}"),
+                    "name":         name,
+                    "content":      result,
+                })
 
-            messages.append({
-                "role":         "tool",
-                "name":         name,
-                "content":      result,
-                "tool_call_id": call.get("id", f"call_{name}"),
-            })
+            continue  # next round with tool results injected
 
-    # Forced final answer after hitting MAX_TOOL_ROUNDS
-    final = await _groq_chat(messages, use_tools=False)
-    msg = final.get("choices", [{}])[0].get("message", {})
-    final_content = msg.get("content", "")
-    final_text = _FUNC_RE.sub("", final_content).strip()
-    return final_text or "..."
+        # No tool calls and not a clean stop — treat current content as final
+        if content:
+            return _clean(content)
+
+    # ── Safety: force a final answer after MAX_TOOL_ROUNDS ────────────────────
+    final_resp = await _groq_chat(messages, use_tools=False)
+    final_msg  = final_resp.get("choices", [{}])[0].get("message", {})
+    return _clean(final_msg.get("content", "") or "The things I do for you people... something got lost. Try again?")

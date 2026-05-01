@@ -34,6 +34,7 @@ from app.voice import load_models, transcribe, synthesise
 from app.agent import run_agent
 from app.x_client import make_x_client
 from app.tweet_image import render_news_card, render_card_for_url
+from app.twitter_memory import init_twitter_db
 import redis.asyncio as aioredis
 
 # ── Shared HTTP client (persistent pool, not per-request) ─────────────────────
@@ -87,6 +88,7 @@ async def lifespan(app: FastAPI):
         # DB — fast, do first
         print("[STARTUP] Initializing database...")
         await init_db()
+        await init_twitter_db()
         print("[STARTUP] Database initialized.")
 
         # Redis — for presence persistence across redeploys
