@@ -135,10 +135,12 @@ async def _ensure_ollama_model_bg():
             else:
                 print(f"[OLLAMA] Cannot reach {OLLAMA_HOST} after {len(retry_delays)} attempts. Check OLLAMA_HOST env var.")
         except Exception as e:
+            err_detail = f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
             if attempt < len(retry_delays):
-                print(f"[OLLAMA] Error (attempt {attempt}): {e} — retrying in {retry_delays[attempt]}s...")
+                print(f"[OLLAMA] Error (attempt {attempt}): {err_detail} — retrying in {retry_delays[attempt]}s...")
             else:
-                print(f"[OLLAMA] Giving up after {len(retry_delays)} attempts: {e}")
+                print(f"[OLLAMA] Giving up after {len(retry_delays)} attempts: {err_detail}")
+
 
 
 
