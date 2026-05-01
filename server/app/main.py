@@ -73,6 +73,61 @@ async def _load_voice_models_bg():
         print("[STARTUP] Voice features will be unavailable.")
 
 
+# ── Ollama model auto-pull ─────────────────────────────────────────────────────
+async def _ensure_ollama_model_bg():
+    """
+    On startup, check whether the configured model exists in Ollama.
+    If not, trigger a pull via the Ollama REST API.
+    Runs entirely in the background — never blocks the server from starting.
+    """
+    from app.config import OLLAMA_HOST, OLLAMA_MODEL
+    await asyncio.sleep(5)  # give Ollama a moment to fully boot
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            # Check if model already exists
+            resp = await client.get(f"{OLLAMA_HOST}/api/tags")
+            if resp.status_code == 200:
+                existing = [m["name"] for m in resp.json().get("models", [])]
+                # Ollama names: "phi3:mini" or "phi3" both match
+                model_base = OLLAMA_MODEL.split(":")[0]
+                already_have = any(
+                    m == OLLAMA_MODEL or m.startswith(model_base)
+                    for m in existing
+                )
+                if already_have:
+                    print(f"[OLLAMA] Model '{OLLAMA_MODEL}' already present ✓")
+                    return
+
+        # Model not found — trigger pull (streaming)
+        print(f"[OLLAMA] Model '{OLLAMA_MODEL}' not found. Pulling now (this may take several minutes)...")
+        async with httpx.AsyncClient(timeout=600) as client:
+            async with client.stream(
+                "POST",
+                f"{OLLAMA_HOST}/api/pull",
+                json={"name": OLLAMA_MODEL, "stream": True},
+            ) as resp:
+                async for line in resp.aiter_lines():
+                    if line:
+                        try:
+                            data = __import__("json").loads(line)
+                            status = data.get("status", "")
+                            completed = data.get("completed", 0)
+                            total = data.get("total", 0)
+                            if total:
+                                pct = int(completed / total * 100)
+                                print(f"[OLLAMA] Pulling '{OLLAMA_MODEL}': {status} {pct}%")
+                            elif status:
+                                print(f"[OLLAMA] Pulling '{OLLAMA_MODEL}': {status}")
+                        except Exception:
+                            pass
+        print(f"[OLLAMA] Model '{OLLAMA_MODEL}' pull complete ✓ Courage has a brain!")
+
+    except httpx.ConnectError:
+        print(f"[OLLAMA] Cannot reach Ollama at {OLLAMA_HOST} — LLM events will be skipped until it's up.")
+    except Exception as e:
+        print(f"[OLLAMA] Model pull failed: {e} — will retry on next redeploy.")
+
+
 # ── Lifespan (startup / shutdown) ─────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -107,6 +162,7 @@ async def lifespan(app: FastAPI):
         print("[STARTUP] Initial news discovery queued.")
 
         asyncio.create_task(_load_voice_models_bg())
+        asyncio.create_task(_ensure_ollama_model_bg())
 
         print("\n" + "="*50)
         print("🐕 COURAGE AI BACKEND — READY")
