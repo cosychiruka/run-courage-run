@@ -336,7 +336,11 @@ async def voice_ws(ws: WebSocket):
                     await ws.send_text(json.dumps({"type": "pong"}))
                     continue
 
-                if kind == "voice_end" and audio_buffer:
+                if kind == "voice_end":
+                    if not audio_buffer:
+                        await ws.send_text(json.dumps({"type": "error", "message": "No audio data received. Please hold the button to record."}))
+                        continue
+                    
                     # Safety cap: reject absurdly large audio buffers (>5 MB = ~5 min recording)
                     if len(audio_buffer) > 5 * 1024 * 1024:
                         audio_buffer.clear()

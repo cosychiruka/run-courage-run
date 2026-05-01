@@ -48,6 +48,7 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
 
       ws.onclose = (e) => {
         connected = false;
+        onState?.('idle');
         console.log('[Voice] WebSocket closed:', e.code, e.reason);
       };
 
