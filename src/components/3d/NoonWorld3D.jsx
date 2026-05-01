@@ -66,16 +66,14 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
         }
       };
       
-      setTimeout(playAudio, 100);
+      setTimeout(playAudio, 200);
     } else {
       setShowMusicTitle(false);
     }
     
     return () => {
       clearTimeout(timer);
-      if (audioLoaded) {
-        audioManager.fadeOut(500);
-      }
+      audioManager.softCleanup();
     };
   }, [visible, audioLoaded]);
 
@@ -202,16 +200,16 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
         gl={{
           antialias: false,
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.2, 
+          toneMappingExposure: 1.5, 
           powerPreference: 'high-performance',
         }}
         style={{ width: '100%', height: '100%' }}
       >
-        <PerspectiveCamera makeDefault position={[0, 3, 50]} fov={30} />
+        <PerspectiveCamera makeDefault position={[0, 6, 20]} fov={45} />
         <OrbitControls
-          target={[0, 1.5, 0]}
-          minDistance={10}
-          maxDistance={100}
+          target={[0, 1, 0]}
+          minDistance={5}
+          maxDistance={60}
           minPolarAngle={Math.PI / 8}
           maxPolarAngle={Math.PI / 2}
           enablePan={true}

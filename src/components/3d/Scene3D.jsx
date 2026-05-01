@@ -443,8 +443,13 @@ function StylizedCloud({ position, scale = 1, opacity = 0.5, speed = 0.05, morni
 
 export function Scene({ scene = 'evening', showStory = true }) {
   const isSunrise = scene === 'sunrise';
-  const ambientColor = isSunrise ? '#88ccff' : '#bd80e8';
-  const dirLightColor = isSunrise ? '#ffffff' : '#ffccf5';
+  const isNoon = scene === 'noon';
+  const ambientColor = isNoon ? '#fff9e6' : isSunrise ? '#88ccff' : '#bd80e8';
+  const ambientIntensity = isNoon ? 1.1 : isSunrise ? 0.7 : 0.4;
+  const dirLightColor = isNoon ? '#fff8d0' : isSunrise ? '#ffffff' : '#ffccf5';
+  const dirLightIntensity = isNoon ? 4.0 : 2.8;
+  // Sun position: directly overhead + slightly in front for noon
+  const dirLightPos = isNoon ? [5, 40, 5] : [40, 15, 10];
   
   const gradientTexture = useMemo(() => {
     const canvas = document.createElement('canvas');
@@ -453,18 +458,16 @@ export function Scene({ scene = 'evening', showStory = true }) {
     if (context) {
       const gradient = context.createLinearGradient(0, 0, 0, 512);
       
-      // Different gradients for different scenes
       if (scene === 'sunrise') {
         gradient.addColorStop(0.0, '#1e90ff'); gradient.addColorStop(0.3, '#66bbff');
         gradient.addColorStop(0.6, '#aaddff'); gradient.addColorStop(1.0, '#e0f6ff');
       } else if (scene === 'noon') {
-        gradient.addColorStop(0.0, '#87ceeb'); gradient.addColorStop(0.4, '#98d8e8');
-        gradient.addColorStop(0.7, '#b0e0e6'); gradient.addColorStop(1.0, '#e0f6ff');
+        gradient.addColorStop(0.0, '#2176c7'); gradient.addColorStop(0.35, '#4da3e8');
+        gradient.addColorStop(0.65, '#87ceeb'); gradient.addColorStop(1.0, '#c8eaff');
       } else if (scene === 'midnight') {
         gradient.addColorStop(0.0, '#000000'); gradient.addColorStop(0.4, '#0a001a');
         gradient.addColorStop(0.7, '#1a0033'); gradient.addColorStop(1.0, '#2d1b69');
       } else {
-        // evening (default)
         gradient.addColorStop(0.0, '#0a001a'); gradient.addColorStop(0.4, '#240046');
         gradient.addColorStop(0.65, '#5c006b'); gradient.addColorStop(0.75, '#b90082');
         gradient.addColorStop(1.0, '#ff1a9c');
@@ -475,11 +478,14 @@ export function Scene({ scene = 'evening', showStory = true }) {
     return new THREE.CanvasTexture(canvas);
   }, [scene]);
 
+  const bgColor = isNoon ? '#87ceeb' : '#0a001a';
+
   return (
     <>
-      <color attach="background" args={['#0a001a']} />
+      <color attach="background" args={[bgColor]} />
       <mesh position={[0, -5, 0]}><sphereGeometry args={[120, 16, 16]} /><meshBasicMaterial side={THREE.BackSide} depthWrite={false} map={gradientTexture} /></mesh>
-      <Stars radius={80} depth={30} count={2000} factor={6} saturation={0.5} fade speed={0.5} />
+      {/* Stars only for night/evening scenes */}
+      {!isNoon && <Stars radius={80} depth={30} count={2000} factor={6} saturation={0.5} fade speed={0.5} />}
       {scene === 'sunrise' && (
         <>
           <StylizedCloud position={[-40, 30, -50]} scale={1.2} morning={true} opacity={0.6} />
@@ -487,9 +493,42 @@ export function Scene({ scene = 'evening', showStory = true }) {
           <StylizedCloud position={[80, 25, -40]} scale={0.9} morning={true} speed={0.07} opacity={0.7} />
         </>
       )}
-      <ambientLight intensity={isSunrise ? 0.7 : 0.4} color={ambientColor} />
-      <directionalLight position={[40, 15, 10]} intensity={2.8} color={dirLightColor} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-camera-near={0.5} shadow-camera-far={120} shadow-camera-left={-40} shadow-camera-right={40} shadow-camera-top={40} shadow-camera-bottom={-40} shadow-bias={-0.0005} />
-      <Meteor />
+      {/* Noon: bright white-yellow sun sphere high in sky */}
+      {isNoon && (
+        <>
+          <mesh position={[10, 55, -60]}>
+            <sphereGeometry args={[6, 16, 16]} />
+            <meshStandardMaterial color="#fff5a0" emissive="#ffee44" emissiveIntensity={3} />
+          </mesh>
+          {/* Sun halo glow */}
+          <mesh position={[10, 55, -60]}>
+            <sphereGeometry args={[9, 12, 12]} />
+            <meshStandardMaterial color="#fffbe0" transparent opacity={0.15} />
+          </mesh>
+          {/* Noon poofy white clouds */}
+          <StylizedCloud position={[-50, 35, -70]} scale={1.5} morning={false} opacity={0.85} />
+          <StylizedCloud position={[40, 42, -65]} scale={2.0} morning={false} speed={0.02} opacity={0.7} />
+          <StylizedCloud position={[85, 30, -55]} scale={1.1} morning={false} speed={0.06} opacity={0.9} />
+        </>
+      )}
+      <ambientLight intensity={ambientIntensity} color={ambientColor} />
+      <directionalLight
+        position={dirLightPos}
+        intensity={dirLightIntensity}
+        color={dirLightColor}
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-near={0.5}
+        shadow-camera-far={120}
+        shadow-camera-left={-40}
+        shadow-camera-right={40}
+        shadow-camera-top={40}
+        shadow-camera-bottom={-40}
+        shadow-bias={-0.0005}
+      />
+      {/* Meteor only in evening/night scenes */}
+      {!isNoon && <Meteor />}
       <group position={[0, -2, 0]}>
         <MemoTerrain scene={scene} />
         {showStory && (

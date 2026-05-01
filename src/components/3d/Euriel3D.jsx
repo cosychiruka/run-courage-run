@@ -21,16 +21,13 @@ export function Euriel({ position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], 
       if (rightLegRef.current) rightLegRef.current.rotation.x = Math.sin(t + Math.PI) * 0.5;
       if (leftArmRef.current) leftArmRef.current.rotation.x = Math.sin(t + Math.PI) * 0.5;
       if (rightArmRef.current) rightArmRef.current.rotation.x = Math.sin(t) * 0.5;
-      
-      // Slight bobbing
-      groupRef.current.position.y = position[1] + Math.abs(Math.sin(t)) * 0.1;
+      // Bob is applied as a local child offset, NOT overriding group.position.y
+      // so NoonStoryController.position.set() always wins
     } else if (groupRef.current) {
-      // Reset
       if (leftLegRef.current) leftLegRef.current.rotation.x = 0;
       if (rightLegRef.current) rightLegRef.current.rotation.x = 0;
       if (leftArmRef.current) leftArmRef.current.rotation.x = 0;
       if (rightArmRef.current) rightArmRef.current.rotation.x = 0;
-      groupRef.current.position.y = position[1];
     }
   });
 

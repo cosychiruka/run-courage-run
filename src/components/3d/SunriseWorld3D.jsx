@@ -68,16 +68,14 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
       };
       
       // Delay slightly to ensure user interaction context
-      setTimeout(playAudio, 100);
+      setTimeout(playAudio, 200);
     } else {
       setShowMusicTitle(false);
     }
     
     return () => {
       clearTimeout(timer);
-      if (audioLoaded) {
-        audioManager.fadeOut(500);
-      }
+      audioManager.softCleanup();
     };
   }, [visible, audioLoaded]);
 

@@ -87,6 +87,95 @@ function Speaker({ position, rotation }) {
   );
 }
 
+function DiscoBall3D({ position }) {
+  const ballRef = useRef();
+  const lightRef1 = useRef();
+  const lightRef2 = useRef();
+  const lightRef3 = useRef();
+
+  const facetMat = useMemo(() => new THREE.MeshStandardMaterial({ metalness: 0.9, roughness: 0.1 }), []);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (ballRef.current) ballRef.current.rotation.y = t * 0.5;
+    // Rotating colored spot lights to simulate reflections
+    const r = 8;
+    if (lightRef1.current) {
+      lightRef1.current.position.set(Math.cos(t * 0.8) * r, -2, Math.sin(t * 0.8) * r);
+      lightRef1.current.color.setHSL((t * 0.05) % 1, 1, 0.5);
+    }
+    if (lightRef2.current) {
+      lightRef2.current.position.set(Math.cos(t * 0.8 + Math.PI * 0.66) * r, -2, Math.sin(t * 0.8 + Math.PI * 0.66) * r);
+      lightRef2.current.color.setHSL(((t * 0.05) + 0.33) % 1, 1, 0.5);
+    }
+    if (lightRef3.current) {
+      lightRef3.current.position.set(Math.cos(t * 0.8 + Math.PI * 1.33) * r, -2, Math.sin(t * 0.8 + Math.PI * 1.33) * r);
+      lightRef3.current.color.setHSL(((t * 0.05) + 0.66) % 1, 1, 0.5);
+    }
+  });
+
+  // Build a pixelated faceted disco ball using many small mirror-like quads
+  const facets = useMemo(() => {
+    const arr = [];
+    const rows = 12, cols = 16;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const phi = (r / rows) * Math.PI;
+        const theta = (c / cols) * Math.PI * 2;
+        arr.push({
+          phi, theta,
+          color: new THREE.Color().setHSL((r * cols + c) / (rows * cols), 0.9, 0.8)
+        });
+      }
+    }
+    return arr;
+  }, []);
+
+  return (
+    <group position={position}>
+      {/* Hanging wire */}
+      <mesh position={[0, 1.5, 0]}>
+        <cylinderGeometry args={[0.015, 0.015, 3, 4]} />
+        <meshStandardMaterial color="#888888" metalness={0.9} roughness={0.1} />
+      </mesh>
+      {/* Ball */}
+      <group ref={ballRef}>
+        {/* Core sphere for shape */}
+        <mesh>
+          <sphereGeometry args={[1, 12, 10]} />
+          <meshStandardMaterial color="#111111" roughness={0.2} metalness={0.8} />
+        </mesh>
+        {/* Mirror facets — colored squares arranged over sphere */}
+        {facets.map(({ phi, theta, color }, i) => {
+          const x = Math.sin(phi) * Math.cos(theta);
+          const y = Math.cos(phi);
+          const z = Math.sin(phi) * Math.sin(theta);
+          return (
+            <mesh
+              key={i}
+              position={[x * 1.02, y * 1.02, z * 1.02]}
+              lookAt={[x * 5, y * 5, z * 5]}
+            >
+              <boxGeometry args={[0.14, 0.14, 0.02]} />
+              <meshStandardMaterial
+                color={color}
+                emissive={color}
+                emissiveIntensity={0.6}
+                metalness={1.0}
+                roughness={0.05}
+              />
+            </mesh>
+          );
+        })}
+      </group>
+      {/* Three rotating colored spot lights that sweep the dance floor */}
+      <pointLight ref={lightRef1} intensity={3} distance={20} />
+      <pointLight ref={lightRef2} intensity={3} distance={20} />
+      <pointLight ref={lightRef3} intensity={3} distance={20} />
+    </group>
+  );
+}
+
 function TextileBanner({ position, rotation }) {
   const texRef = useRef(new THREE.CanvasTexture(document.createElement('canvas')));
   useEffect(() => {
@@ -205,7 +294,7 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
       };
       playNext();
     }
-    return () => audioManager.stopAllTracks();
+    return () => audioManager.softCleanup();
   }, [visible, audioLoaded, currentTrackIdx, isPlaying]);
 
   return (
@@ -263,6 +352,9 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
         <HayStack position={[9, 0, -5]} rotation={[0, 0.4, 0]} />
 
         <StrawGround position={[0, 0, -9]} />
+        
+        {/* 3D Disco Ball hanging above the dance floor */}
+        <DiscoBall3D position={[0, 12, -9]} />
         
         {/* Dance floor spotlight directly under Courage */}
         <pointLight position={[0, 0, -9.5]} color="#ff00ff" intensity={3} distance={10} />

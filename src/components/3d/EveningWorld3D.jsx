@@ -30,6 +30,9 @@ function ReadySignal({ onReady }) {
 export default function EveningWorld3D({ visible, onReady, onClose }) {
   const [audioLoaded, setAudioLoaded] = useState(false);
   const [currentScene, setCurrentScene] = useState('evening');
+  const [showMusicTitle, setShowMusicTitle] = useState(false);
+  const [minimizedMusic, setMinimizedMusic] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -85,20 +88,22 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
       };
       
       // Delay slightly to ensure user interaction context
-      setTimeout(playSceneAudio, 100);
+      setTimeout(playSceneAudio, 200);
+    }
+    
+    // Show music badge
+    if (visible && audioLoaded) {
+      setShowMusicTitle(true);
+      setMinimizedMusic(false);
+      const timer = setTimeout(() => setMinimizedMusic(true), 3500);
+      return () => {
+        clearTimeout(timer);
+        audioManager.softCleanup();
+      };
     }
     
     return () => {
-      if (audioLoaded) {
-        audioManager.fadeOut(300);
-        // Complete cleanup after fade out
-        setTimeout(() => audioManager.cleanup(), 400);
-      }
-      // Force WebGL context cleanup
-      const gl = canvasRef.current?.getContext('webgl') || canvasRef.current?.getContext('webgl2');
-      if (gl) {
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      }
+      audioManager.softCleanup();
     };
   }, [visible, audioLoaded, currentScene]);
 
@@ -121,18 +126,26 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
           {currentScene === 'sunrise' ? '🌅 Sunrise Scene' : '🌆 Evening Scene'} &nbsp;·&nbsp; drag to orbit &nbsp;·&nbsp; scroll to zoom
         </div>
       )}
+      {visible && showMusicTitle && (
+        <div className={`music-now-playing ${minimizedMusic ? 'minimized' : ''}`}>
+          <div className="music-icon">🎵</div>
+          <div className="music-details">
+            <div className="music-label">Now Playing</div>
+            <div className="music-title">{currentScene === 'evening' ? 'Run Boy Run' : 'Shush All Star'}</div>
+          </div>
+        </div>
+      )}
       {visible && (
         <div className="world3d-music-controls">
-
           <button 
             className="music-btn"
             onClick={() => {
-              const newVolume = audioManager.volume === 0 ? 0.3 : 0;
-              audioManager.setVolume(newVolume);
+              const nowMuted = audioManager.toggleMute();
+              setIsMuted(nowMuted);
             }}
             title="Toggle Mute"
           >
-            {audioManager.volume === 0 ? '🔇' : '🔊'}
+            {isMuted ? '🔇' : '🔊'}
           </button>
         </div>
       )}
@@ -147,7 +160,7 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
         }}
         style={{ width: '100%', height: '100%' }}
       >
-        <PerspectiveCamera makeDefault position={[0, 3, 50]} fov={30} />
+        <PerspectiveCamera makeDefault position={[0, 4, 22]} fov={45} />
         <OrbitControls
           target={[0, 1.5, 0]}
           minDistance={10}
