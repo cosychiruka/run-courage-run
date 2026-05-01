@@ -217,32 +217,77 @@ function TextileBanner({ position, rotation }) {
   );
 }
 
-function DancingGhost({ position, offsetTime = 0 }) {
+// Dance choreography patterns — each ghost gets assigned one, cycling through phases
+const DANCE_PATTERNS = [
+  // Pattern 0: orbit the center clockwise
+  (t, base) => ({
+    x: base[0] + Math.cos(t * 0.6) * 2.5,
+    z: base[2] + Math.sin(t * 0.6) * 2.5,
+    ry: -t * 0.6,
+    scaleY: 1 + Math.sin(t * 8) * 0.12,
+  }),
+  // Pattern 1: moonwalk (slide left-right, lean)
+  (t, base) => ({
+    x: base[0] + Math.sin(t * 1.5) * 3,
+    z: base[2],
+    ry: Math.sin(t * 1.5) > 0 ? 0 : Math.PI,
+    scaleY: 1 + Math.abs(Math.sin(t * 6)) * 0.15,
+  }),
+  // Pattern 2: spin and stop (spin × 3 then freeze 2s)
+  (t, base) => {
+    const cycle = t % 5;
+    return {
+      x: base[0],
+      z: base[2],
+      ry: cycle < 3 ? t * 4 : 0,
+      scaleY: 1 + Math.sin(t * 10) * 0.08,
+    };
+  },
+  // Pattern 3: bounce-in-place with big squish
+  (t, base) => ({
+    x: base[0] + Math.sin(t * 2) * 0.4,
+    z: base[2] + Math.cos(t * 1.7) * 0.4,
+    ry: Math.sin(t * 2) * 0.8,
+    scaleY: 1 + Math.abs(Math.sin(t * 6)) * 0.3,
+  }),
+  // Pattern 4: figure-8 around haystacks
+  (t, base) => ({
+    x: base[0] + Math.sin(t * 0.8) * 2,
+    z: base[2] + Math.sin(t * 1.6) * 1,
+    ry: t * 0.8,
+    scaleY: 1 + Math.sin(t * 5) * 0.1,
+  }),
+];
+
+function DancingGhost({ position, offsetTime = 0, patternIdx = 0 }) {
   const groupRef = useRef(null);
-  
   const ghostMat = useMemo(() => new THREE.MeshStandardMaterial({ 
     color: '#ffffff', emissive: '#d7d4ff', emissiveIntensity: 0.8,
     transparent: true, opacity: 0.85, roughness: 0.8
   }), []);
   const eyeGeo = useMemo(() => new THREE.CircleGeometry(0.08, 16), []);
   const eyeMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#111122' }), []);
+  const basePos = useMemo(() => [...position], [position]);
 
   useFrame((state) => {
-    if (groupRef.current) {
-      const t = state.clock.elapsedTime * 4 + offsetTime;
-      // Wobble up and down slightly (vibing)
-      groupRef.current.position.y = position[1] + Math.sin(t) * 0.3;
-      // Scale squish
-      const scaleSquish = 1 + Math.sin(t * 2) * 0.1;
-      groupRef.current.scale.set(1 / scaleSquish, scaleSquish, 1);
-      // Look slightly side to side
-      groupRef.current.rotation.y = Math.sin(t * 0.5) * 0.5;
-    }
+    if (!groupRef.current) return;
+    const t = state.clock.elapsedTime * 1.0 + offsetTime;
+    const pattern = DANCE_PATTERNS[patternIdx % DANCE_PATTERNS.length](t, basePos);
+    // Y bob is universal — ghost floats and bobs always
+    const yBob = basePos[1] + Math.sin(t * 3 + offsetTime) * 0.25 + 0.1;
+    groupRef.current.position.set(pattern.x, yBob, pattern.z);
+    groupRef.current.rotation.y = pattern.ry;
+    const sy = pattern.scaleY;
+    groupRef.current.scale.set(1 / Math.sqrt(sy), sy, 1 / Math.sqrt(sy)); // volume-preserve squish
+    // Random colour flash for disco feel
+    const hue = ((t * 0.15 + patternIdx * 0.2) % 1);
+    ghostMat.emissive.setHSL(hue, 0.6, 0.5);
+    ghostMat.emissiveIntensity = 0.6 + Math.sin(t * 6) * 0.3;
   });
 
   return (
     <group ref={groupRef} position={position}>
-      <pointLight color="#d7d4ff" intensity={1} distance={5} />
+      <pointLight color="#d7d4ff" intensity={1.5} distance={6} />
       <mesh position={[0, 0.4, 0]}><sphereGeometry args={[0.35, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} /><primitive object={ghostMat} attach="material" /></mesh>
       <mesh position={[0, 0.2, 0]}><cylinderGeometry args={[0.35, 0.35, 0.4, 16]} /><primitive object={ghostMat} attach="material" /></mesh>
       <mesh position={[-0.23, 0, 0]} rotation={[0, 0, Math.PI]}><coneGeometry args={[0.12, 0.25, 8]} /><primitive object={ghostMat} attach="material" /></mesh>
@@ -335,39 +380,45 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
         {/* We reuse evening colors and objects but disable the moving Courage/Ghost animations */}
         <Scene scene="evening" showStory={false} />
         
-        {/* The House and its 3D Banner attached right onto the wall above middle level */}
-        <group position={[-2.5, -0.2, 0]}>
+        {/* The House — the Scene terrain group is at Y:-2, so house offset is -0.2+2=1.8 net.
+            We keep house group at Y:-0.2 relative to scene group (which sits at Y:-2 in Scene3D)
+            House group local Y needs to be 0 so it sits on the terrain sphere top at Y=-0.5 approx */}
+        <group position={[-2.5, 0, 0]}>
            <MemoHouse doorOpen={false} />
-           <TextileBanner position={[0, 4.5, -1.9]} rotation={[0, Math.PI, 0]} />
+           {/* Banner: mounted on the BACK wall of the house (Z negative = behind house from camera).
+               Only visible when user orbits to look at the party side. */}
+           <TextileBanner position={[0, 4.5, -3.8]} rotation={[0, Math.PI, 0]} />
         </group>
         
-        {/* Pumping speakers on the dance floor */}
-        <Speaker position={[-5, 0, -6]} rotation={[0, 0.4, 0]} />
-        <Speaker position={[5, 0, -6]} rotation={[0, -0.4, 0]} />
+        {/* Pumping speakers on the dance floor — lowered to sit on terrain */}
+        <Speaker position={[-5, -1.5, -6]} rotation={[0, 0.4, 0]} />
+        <Speaker position={[5, -1.5, -6]} rotation={[0, -0.4, 0]} />
         
         {/* Hay stacks flanking the dancing floor */}
-        <HayStack position={[-9, 0, -10]} rotation={[0, 0.5, 0]} />
-        <HayStack position={[-7, 0, -4]} rotation={[0, -0.3, 0]} />
-        <HayStack position={[8, 0, -12]} rotation={[0, -0.6, 0]} />
-        <HayStack position={[9, 0, -5]} rotation={[0, 0.4, 0]} />
+        <HayStack position={[-9, -1.5, -10]} rotation={[0, 0.5, 0]} />
+        <HayStack position={[-7, -1.5, -4]} rotation={[0, -0.3, 0]} />
+        <HayStack position={[8, -1.5, -12]} rotation={[0, -0.6, 0]} />
+        <HayStack position={[9, -1.5, -5]} rotation={[0, 0.4, 0]} />
 
-        <StrawGround position={[0, 0, -9]} />
+        <StrawGround position={[0, -1.5, -9]} />
         
         {/* 3D Disco Ball hanging above the dance floor */}
-        <DiscoBall3D position={[0, 12, -9]} />
+        <DiscoBall3D position={[0, 10, -9]} />
         
         {/* Dance floor spotlight directly under Courage */}
-        <pointLight position={[0, 0, -9.5]} color="#ff00ff" intensity={3} distance={10} />
+        <pointLight position={[0, -1.5, -9.5]} color="#ff00ff" intensity={4} distance={12} />
         
-        <Html position={[0, -0.5, -9.5]} center transform zIndexRange={[100, 0]}>
-           <img src={courageDancingGif} alt="Courage Dancing" style={{ width: '250px', filter: 'drop-shadow(0px 10px 10px rgba(0,0,0,0.8))' }} />
+        {/* Courage GIF: sits just above ground level (-1.5 terrain + 0.3 height offset) */}
+        <Html position={[0, -1.2, -9.5]} center transform zIndexRange={[100, 0]}>
+           <img src={courageDancingGif} alt="Courage Dancing" style={{ width: '220px', filter: 'drop-shadow(0px 10px 10px rgba(0,0,0,0.8))' }} />
         </Html>
         
-        <DancingGhost position={[-4, 1, -10]} offsetTime={0} />
-        <DancingGhost position={[4, 1, -10]} offsetTime={1.2} />
-        <DancingGhost position={[-2, 1, -14]} offsetTime={0.5} />
-        <DancingGhost position={[2, 1, -14]} offsetTime={2.3} />
-        <DancingGhost position={[0, 2, -6]} offsetTime={3.1} />
+        {/* Dancing Ghosts — each with a distinct choreography pattern */}
+        <DancingGhost position={[-4, -0.5, -10]} offsetTime={0}   patternIdx={0} />
+        <DancingGhost position={[4,  -0.5, -10]} offsetTime={1.2} patternIdx={1} />
+        <DancingGhost position={[-2, -0.5, -14]} offsetTime={0.5} patternIdx={2} />
+        <DancingGhost position={[2,  -0.5, -14]} offsetTime={2.3} patternIdx={3} />
+        <DancingGhost position={[0,  -0.5, -6]}  offsetTime={3.1} patternIdx={4} />
         
       </Canvas>
     </div>
