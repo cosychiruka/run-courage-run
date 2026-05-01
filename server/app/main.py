@@ -24,7 +24,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import os
 import httpx
 
-from app.config import FRONTEND_ORIGIN, OLLAMA_HOST, REDIS_URL
+from app.config import FRONTEND_ORIGIN, REDIS_URL
 from app.news_cache import (
     init_db, discovery_round, get_all_recent, get_recent_articles,
     get_cached_articles, fetch_pair, search_newsapi, search_gnews,
