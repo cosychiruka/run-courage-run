@@ -3520,19 +3520,24 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 
 .courage-disco-gif {
   width: min(300px, 60vw);
-  transform: translateY(10px);
+  margin-bottom: 20vh;
   filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.8));
   z-index: 5;
 }
 
 .disco-ball {
   position: absolute;
-  top: 10%;
+  top: 22%;
   width: 120px;
   height: 120px;
-  background: radial-gradient(circle at 30% 30%, #ffffff, #aaaaaa 60%, #444444);
+  background: 
+    linear-gradient(45deg, rgba(255,255,255,0.4) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.4) 75%),
+    linear-gradient(-45deg, rgba(255,255,255,0.4) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.4) 75%),
+    conic-gradient(#ff00ff, #00ffff, #00ff00, #ffff00, #ff0000, #ff00ff);
+  background-size: 16px 16px, 16px 16px, 100% 100%;
+  background-position: 0 0, 8px 8px, 0 0;
   border-radius: 50%;
-  box-shadow: 0 0 30px #eb57c1, inset 0 0 20px #ffffff;
+  box-shadow: 0 0 40px #eb57c1, inset 0 0 30px rgba(255,255,255,0.8), 0 0 15px #00ffff;
   animation: discoSpin 4s linear infinite;
   z-index: 2;
 }
