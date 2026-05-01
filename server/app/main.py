@@ -22,6 +22,7 @@ from fastapi.responses import JSONResponse, Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import os
+import httpx
 
 from app.config import FRONTEND_ORIGIN, OLLAMA_HOST, REDIS_URL
 from app.news_cache import (
@@ -375,7 +376,6 @@ async def world_event(payload: dict):
     except KeyError:
         prompt = template
 
-    import httpx
     from app.config import OLLAMA_HOST, OLLAMA_MODEL
     messages = [
         {"role": "system", "content": "You are a world event director. Output ONLY valid JSON. No extra text."},
