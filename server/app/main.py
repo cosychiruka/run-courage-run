@@ -81,13 +81,14 @@ async def _ensure_ollama_model_bg():
     Retries with backoff — handles Ollama being slow to start.
     Runs entirely in the background — never blocks the server.
     """
-    from app.config import OLLAMA_HOST, OLLAMA_MODEL
+    from app.config import OLLAMA_HOST, OLLAMA_MODEL, OLLAMA_API_KEY
     retry_delays = [5, 15, 30, 60, 120]  # seconds between attempts
+    headers = {"Authorization": f"Bearer {OLLAMA_API_KEY}"} if OLLAMA_API_KEY else {}
 
     for attempt, delay in enumerate(retry_delays, 1):
         await asyncio.sleep(delay)
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
+            async with httpx.AsyncClient(timeout=10, headers=headers) as client:
                 resp = await client.get(f"{OLLAMA_HOST}/api/tags")
                 if resp.status_code != 200:
                     raise Exception(f"HTTP {resp.status_code}")
@@ -104,7 +105,7 @@ async def _ensure_ollama_model_bg():
 
             # Model not found — trigger pull
             print(f"[OLLAMA] Pulling '{OLLAMA_MODEL}' (attempt {attempt}/{len(retry_delays)})...")
-            async with httpx.AsyncClient(timeout=600) as client:
+            async with httpx.AsyncClient(timeout=600, headers=headers) as client:
                 async with client.stream(
                     "POST",
                     f"{OLLAMA_HOST}/api/pull",
@@ -445,14 +446,15 @@ async def world_event(payload: dict):
     except KeyError:
         prompt = template
 
-    from app.config import OLLAMA_HOST, OLLAMA_MODEL
+    from app.config import OLLAMA_HOST, OLLAMA_MODEL, OLLAMA_API_KEY
+    ollama_headers = {"Authorization": f"Bearer {OLLAMA_API_KEY}"} if OLLAMA_API_KEY else {}
     messages = [
         {"role": "system", "content": "You are a world event director. Output ONLY valid JSON. No extra text."},
         {"role": "user",   "content": prompt},
     ]
     try:
         client = get_http_client()
-        r = await client.post(f"{OLLAMA_HOST}/api/chat", json={
+        r = await client.post(f"{OLLAMA_HOST}/api/chat", headers=ollama_headers, json={
             "model":   OLLAMA_MODEL,
             "messages": messages,
             "stream":  False,
