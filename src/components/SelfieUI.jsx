@@ -45,14 +45,16 @@ export default function SelfieUI({
         <button
           onClick={() => fileInputRef.current?.click()}
           style={{
-            position: 'fixed', bottom: '30px', right: fabRight,
+            position: 'fixed', bottom: '66px', right: fabRight,
             background: 'linear-gradient(135deg, #ff00cc 0%, #ff6600 100%)',
             border: '3px solid #fff', borderRadius: '50px',
-            padding: '12px 22px', cursor: 'pointer', zIndex: 1000,
-            fontFamily: '"Comic Sans MS", cursive', fontWeight: 900, fontSize: '1rem',
+            padding: '10px 18px', cursor: 'pointer', zIndex: 1003,
+            fontFamily: '"Comic Sans MS", cursive', fontWeight: 900, fontSize: '0.9rem',
             color: '#fff', boxShadow: '0 6px 0 rgba(0,0,0,0.4), 0 0 25px rgba(255,0,200,0.7)',
             transition: 'transform 0.15s ease',
             animation: 'selfieButtonPulse 2.5s ease-in-out infinite',
+            whiteSpace: 'nowrap',
+            maxWidth: 'calc(100vw - 40px)',
           }}
           onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px) scale(1.05)'; }}
           onMouseLeave={e => { e.currentTarget.style.transform = ''; }}

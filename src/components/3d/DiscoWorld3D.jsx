@@ -315,9 +315,7 @@ function DancingGhost({ position, offsetTime = 0, patternIdx = 0, selfieTexture 
       {/* Ghost body dome */}
       <mesh position={[0, 0.4, 0]}>
         <sphereGeometry args={[0.35, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        {selfieMat
-          ? <primitive object={selfieMat} attach="material" />
-          : <primitive object={ghostMat} attach="material" />}
+        <primitive object={ghostMat} attach="material" />
       </mesh>
       <mesh position={[0, 0.2, 0]}><cylinderGeometry args={[0.35, 0.35, 0.4, 16]} /><primitive object={ghostMat} attach="material" /></mesh>
       <mesh position={[-0.23, 0, 0]} rotation={[0, 0, Math.PI]}><coneGeometry args={[0.12, 0.25, 8]} /><primitive object={ghostMat} attach="material" /></mesh>
@@ -329,20 +327,29 @@ function DancingGhost({ position, offsetTime = 0, patternIdx = 0, selfieTexture 
           <mesh position={[0.12, 0.45, 0.35]}><primitive object={eyeGeo} attach="geometry" /><primitive object={eyeMat} attach="material" /></mesh>
         </>
       )}
-      {/* Selfie ghost: rainbow halo ring + nametag */}
+      {/* Selfie ghost: large face sphere above dome + rainbow halo + nametag */}
       {isSelfie && (
         <>
-          <mesh position={[0, 0.65, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[0.5, 0.06, 8, 24]} />
+          {/* Selfie face sphere — clearly visible above the ghost dome */}
+          <mesh position={[0, 0.85, 0]}>
+            <sphereGeometry args={[0.55, 16, 16]} />
+            {selfieMat
+              ? <primitive object={selfieMat} attach="material" />
+              : <primitive object={ghostMat} attach="material" />}
+          </mesh>
+          {/* Rainbow halo ring around the face */}
+          <mesh position={[0, 0.85, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.68, 0.07, 8, 24]} />
             <primitive object={haloMat} attach="material" />
           </mesh>
-          <Html position={[0, 1.1, 0]} center sprite>
+          {/* Nametag — far enough above face to not overlap */}
+          <Html position={[0, 1.7, 0]} center sprite>
             <div style={{
               background: 'linear-gradient(135deg, #ff00cc, #ff6600)',
               color: '#fff',
               fontFamily: '"Comic Sans MS", cursive',
               fontWeight: 900,
-              fontSize: '22px',
+              fontSize: '20px',
               padding: '6px 14px',
               borderRadius: '20px',
               border: '3px solid #fff',
@@ -350,7 +357,6 @@ function DancingGhost({ position, offsetTime = 0, patternIdx = 0, selfieTexture 
               whiteSpace: 'nowrap',
               textShadow: '0 2px 4px rgba(0,0,0,0.5)',
               letterSpacing: '1px',
-              animation: 'none',
             }}>
               👻 {selfieLabel || 'YOU'}
             </div>
@@ -476,15 +482,9 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
       {visible && <button className="world3d-close" onClick={onClose} aria-label="Exit 3D World">✕ Exit</button>}
       {visible && <div className="world3d-hint">drag to orbit &nbsp;·&nbsp; scroll to zoom</div>}
       
-      {/* Disco Music Player Overlay */}
+      {/* Disco Music Player Overlay — centered horizontally */}
       {visible && (
-         <div style={{
-            position: 'absolute', bottom: '30px', left: '30px',
-            background: 'rgba(10, 10, 18, 0.9)', backdropFilter: 'blur(10px)',
-            padding: '15px 25px', borderRadius: '20px', border: '1px solid rgba(0, 255, 0, 0.3)',
-            display: 'flex', alignItems: 'center', gap: '20px', color: 'white', zIndex: 10,
-            boxShadow: '0 5px 20px rgba(0,255,0,0.2)', pointerEvents: 'all'
-         }}>
+         <div className="disco-music-panel">
             <div style={{ fontSize: '2rem' }}>💿</div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
                <span style={{ fontSize: '0.7rem', color: '#00FF00', fontWeight: 'bold' }}>DJ Courage's Playlist</span>
@@ -507,7 +507,6 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
         worldName="Nowhere High School Disco"
         monsterName="Monster"
         monsterEmoji="👻"
-        fabRight="110px"
         onScreenshot={handleScreenshot}
       />
       <WorldEventBanner event={event} world="disco" onDismiss={clearEvent} />

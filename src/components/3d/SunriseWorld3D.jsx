@@ -10,32 +10,25 @@ import WorldVoiceButton from '../WorldVoiceButton';
 import WorldEventBanner from '../WorldEventBanner';
 import { useWorldEvents, registerPresence } from '../../hooks/useWorldEvents';
 
-/**
- * Fires onReady() on the very first rendered frame — signals to the parent
- * that the WebGL scene is fully painted and the transition can begin.
- */
+const SUNRISE_TRACKS = [
+  { id: 'shush-all-star',      url: '/audio/shush-all-star.mp3',       title: 'Shush All Star' },
+  { id: 'more-makreel-thrifty', url: '/audio/more-makreel-thrifty.mp3', title: 'More Makreel' },
+];
+
 function ReadySignal({ onReady }) {
   const calledRef = useRef(false);
   useFrame(() => {
-    if (!calledRef.current) {
-      calledRef.current = true;
-      onReady();
-    }
+    if (!calledRef.current) { calledRef.current = true; onReady(); }
   });
   return null;
 }
 
-/**
- * Full-screen WebGL portal for the sunrise 3D world.
- * Uses Seek Chase Theme for energetic wake-up music.
- */
 export default function SunriseWorld3D({ visible, onReady, onClose }) {
-  const [audioLoaded, setAudioLoaded] = useState(false);
-  const [showMusicTitle, setShowMusicTitle] = useState(false);
-  const [minimizedMusic, setMinimizedMusic] = useState(false);
+  const [audioLoaded, setAudioLoaded]         = useState(false);
+  const [isMuted, setIsMuted]                 = useState(false);
+  const [currentTrackIdx, setCurrentTrackIdx] = useState(0);
   const canvasRef = useRef(null);
-  const selfie = useSelfie();
-
+  const selfie    = useSelfie();
 
   const { event, clearEvent, presenceCount } = useWorldEvents({
     world: 'sunrise',
@@ -47,14 +40,11 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
   // Mobile GPU cleanup
   useEffect(() => {
     if (!visible && canvasRef.current) {
-      try {
-        canvasRef.current.renderLists?.dispose?.();
-        canvasRef.current.info?.reset?.();
-      } catch { /* silent */ }
+      try { canvasRef.current.renderLists?.dispose?.(); canvasRef.current.info?.reset?.(); } catch { /**/ }
     }
   }, [visible]);
 
-  // Register selfie presence on activate + heartbeat every 2min
+  // Register selfie presence + heartbeat
   useEffect(() => {
     if (!selfie.isActive) return;
     const uid = `sunrise_${Date.now()}`;
@@ -75,7 +65,7 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
         link.href = dataUrl;
         link.click();
       }
-    } catch (e) { /* cross-origin, skip download */ }
+    } catch { /* cross-origin, skip download */ }
     setTimeout(() => {
       const text = encodeURIComponent(`🪰 I became a Giant Fly chasing Courage at Sunrise! 🐕 Play with @CourageMemeSOL #CourageRunRun #GiantFlySelfie`);
       window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
@@ -88,124 +78,78 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
     return () => window.removeEventListener('keydown', handler);
   }, [onClose, visible]);
 
-  // Initialize and preload audio
+  // Load all sunrise tracks on first open
   useEffect(() => {
-    const initAudio = async () => {
-      await audioManager.preloadTracks();
+    if (!visible || audioLoaded) return;
+    const load = async () => {
+      await Promise.all(SUNRISE_TRACKS.map(t => audioManager.loadTrack(t.id, t.url)));
       setAudioLoaded(true);
     };
-    
-    if (visible && !audioLoaded) {
-      initAudio();
-    }
+    load();
   }, [visible, audioLoaded]);
 
-  // Play Seek Chase Theme when visible (energetic wake-up)
-  useEffect(() => {
-    let timer;
-    if (visible && audioLoaded) {
-      setShowMusicTitle(true);
-      setMinimizedMusic(false);
-      timer = setTimeout(() => setMinimizedMusic(true), 3500);
-
-      // Play Sunrise feel-good Theme
-      const playAudio = async () => {
-        try {
-          await audioManager.playTrack('sunrise-energetic', {
-            loop: true,
-            volume: 0.4
-          });
-        } catch (error) {
-          console.warn('Failed to play sunrise theme:', error);
+  // Play track + wire auto-advance
+  const playTrack = useCallback(async (idx) => {
+    const track = SUNRISE_TRACKS[idx];
+    await audioManager.loadTrack(track.id, track.url);
+    await audioManager.playTrack(track.id, { loop: false, volume: 0.4 });
+    const t = audioManager.tracks.get(track.id);
+    if (t?.source) {
+      t.source.onended = () => {
+        if (audioManager.currentTrack === track.id) {
+          const next = (idx + 1) % SUNRISE_TRACKS.length;
+          setCurrentTrackIdx(next);
         }
       };
-      
-      // Delay slightly to ensure user interaction context
-      setTimeout(playAudio, 200);
-    } else {
-      setShowMusicTitle(false);
     }
-    
-    return () => {
-      clearTimeout(timer);
-      audioManager.softCleanup();
-    };
-  }, [visible, audioLoaded]);
+  }, []);
+
+  useEffect(() => {
+    if (!visible || !audioLoaded) return;
+    playTrack(currentTrackIdx);
+    return () => audioManager.softCleanup();
+  }, [visible, audioLoaded, currentTrackIdx, playTrack]);
+
+  const handleNext = useCallback(() => setCurrentTrackIdx(i => (i + 1) % SUNRISE_TRACKS.length), []);
+  const handleMute = useCallback(() => { const m = audioManager.toggleMute(); setIsMuted(m); }, []);
 
   return (
-    <div
-      className="world3d-overlay"
-      style={{
-        opacity: visible ? 1 : 0,
-        pointerEvents: visible ? 'all' : 'none',
-        transition: 'opacity 0.8s ease',
-      }}
-    >
+    <div className="world3d-overlay" style={{ opacity: visible ? 1 : 0, pointerEvents: visible ? 'all' : 'none', transition: 'opacity 0.8s ease' }}>
+      {visible && <button className="world3d-close" onClick={onClose} aria-label="Exit 3D World">✕ Exit</button>}
+      {visible && <div className="world3d-hint">🌅 Sunrise &nbsp;·&nbsp; drag to orbit &nbsp;·&nbsp; scroll to zoom</div>}
+
+      {/* ── Music bar ── */}
       {visible && (
-        <button className="world3d-close" onClick={onClose} aria-label="Exit 3D World">
-          ✕ Exit
-        </button>
-      )}
-      {visible && (
-        <div className="world3d-hint">
-          drag to orbit &nbsp;·&nbsp; scroll to zoom
-        </div>
-      )}
-      {visible && showMusicTitle && (
-        <div className={`music-now-playing ${minimizedMusic ? 'minimized' : ''}`}>
-          <div className="music-icon">🎵</div>
-          <div className="music-details">
-            <div className="music-label">Now Playing</div>
-            <div className="music-title">Shush All Star</div>
+        <div className="world3d-music-bar">
+          <div className="music-now-playing-inline">
+            <span className="music-bar-icon">🎵</span>
+            <span className="music-bar-title">{SUNRISE_TRACKS[currentTrackIdx].title}</span>
           </div>
-        </div>
-      )}
-
-
-      {visible && (
-        <div className="world3d-music-controls">
-          <button 
-            className="music-btn"
-            onClick={async () => {
-              try {
-                await audioManager.playTrack('run-boy-run', { volume: 0.3 });
-              } catch (error) {
-                console.warn('Failed to play run-boy-run:', error);
-              }
-            }}
-            title="Play Run Boy Run"
-          >
-            🏃 Run
-          </button>
-          <button 
-            className="music-btn"
-            onClick={() => {
-              const newVolume = audioManager.volume === 0 ? 0.4 : 0;
-              audioManager.setVolume(newVolume);
-            }}
-            title="Toggle Mute"
-          >
-            {audioManager.volume === 0 ? '🔇' : '🔊'}
+          <button className="music-btn" onClick={handleNext} title="Next track">⏭</button>
+          <button className="music-btn" onClick={handleMute} title="Toggle Mute">
+            {isMuted ? '🔇' : '🔊'}
           </button>
         </div>
       )}
+
+      {/* Selfie FAB row sits above music bar */}
       <SelfieUI
         selfie={selfie}
         visible={visible}
         worldName="Sunrise World"
         monsterName="Giant Fly"
         monsterEmoji="🪰"
-        fabRight="180px"
         onScreenshot={handleScreenshot}
       />
       <WorldEventBanner event={event} world="sunrise" onDismiss={clearEvent} />
       {visible && presenceCount > 0 && (
         <div className="world-presence-badge">
           <span className="presence-dot" />
-          {presenceCount} fly{presenceCount !== 1 ? 'ies' : ''} here
+          {presenceCount} fl{presenceCount !== 1 ? 'ies' : 'y'} here
         </div>
       )}
       <WorldVoiceButton worldContext="sunrise" visible={visible} />
+
       <Canvas
         frameloop={visible ? 'always' : 'demand'}
         dpr={[1, 1.5]}
@@ -214,14 +158,7 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
         onCreated={({ gl }) => { canvasRef.current = gl; }}
       >
         <PerspectiveCamera makeDefault position={[0, 4, 22]} fov={45} />
-        <OrbitControls
-          target={[0, 1.5, 0]}
-          minDistance={10}
-          maxDistance={100}
-          minPolarAngle={Math.PI / 8}
-          maxPolarAngle={Math.PI / 2}
-          enablePan={true}
-        />
+        <OrbitControls target={[0, 1.5, 0]} minDistance={10} maxDistance={100} minPolarAngle={Math.PI / 8} maxPolarAngle={Math.PI / 2} enablePan={true} />
         <ReadySignal onReady={onReady} />
         <Scene
           scene="sunrise"

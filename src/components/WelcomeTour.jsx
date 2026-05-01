@@ -71,8 +71,10 @@ const WelcomeTour = ({ forceOpen, onClose }) => {
           {FEATURES.map(f => (
             <div key={f.title} className="tour-feature" style={{ '--accent': f.color }}>
               <span className="tour-feature-icon">{f.icon}</span>
-              <strong className="tour-feature-title">{f.title}</strong>
-              <p className="tour-feature-desc">{f.desc}</p>
+              <div>
+                <strong className="tour-feature-title">{f.title}</strong>
+                <p className="tour-feature-desc">{f.desc}</p>
+              </div>
             </div>
           ))}
         </div>

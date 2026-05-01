@@ -104,18 +104,18 @@ function GiantFly({ courageRef, sequenceRef, sequenceStartTime, offsetTime = 0, 
       {/* Head: selfie face OR default bug eyes */}
       {selfieMat ? (
         <>
-          {/* Selfie face sphere replacing the head */}
-          <mesh position={[0, 0.55, 0.3]}>
-            <sphereGeometry args={[0.42, 16, 16]} />
+          {/* Selfie face sphere — larger so photo is clearly visible */}
+          <mesh position={[0, 0.65, 0.3]}>
+            <sphereGeometry args={[0.65, 16, 16]} />
             <primitive object={selfieMat} attach="material" />
           </mesh>
           {/* Green halo ring */}
-          <mesh position={[0, 0.55, 0.3]} rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[0.55, 0.055, 8, 24]} />
+          <mesh position={[0, 0.65, 0.3]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.78, 0.07, 8, 24]} />
             <primitive object={haloMat} attach="material" />
           </mesh>
-          {/* Floating nametag */}
-          <Html position={[0, 1.3, 0]} center sprite>
+          {/* Floating nametag — moved further up to clear the bigger face */}
+          <Html position={[0, 1.8, 0]} center sprite>
             <div style={{
               background: 'linear-gradient(135deg, #00cc44, #00aaff)',
               color: '#fff',
@@ -445,57 +445,52 @@ function SunriseStoryController({ selfieFlyTexture = null, selfieFlyLabel = '', 
   );
 }
 
-function Meteor() {
-  const meshRef = useRef();
-  const trailRef = useRef();
-  const headRef = useRef();
-  
-  useFrame((state) => {
-     // 5 minutes = 300 seconds. Runs for 30 seconds.
-     const t = state.clock.elapsedTime % 300;
-     if (t < 30 && meshRef.current) {
-         meshRef.current.visible = true;
-         const progress = t / 30; // 0 to 1
-         meshRef.current.position.set(THREE.MathUtils.lerp(-120, 120, progress), THREE.MathUtils.lerp(60, 10, progress), -90);
-         
-         if (headRef.current) {
-            headRef.current.rotation.x += 0.05;
-            headRef.current.rotation.y += 0.08;
-         }
-         
-         if (trailRef.current) {
-            trailRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 20) * 0.05;
-         }
-     } else if (meshRef.current) {
-         meshRef.current.visible = false;
-     }
-  });
-
-  const angle = Math.atan2(-50, 240);
-
+/**
+ * ShootingStar — pure CSS shooting star rendered in a Html overlay.
+ * Looks clean on all devices, no geometry quality issues.
+ * Fires every 5 minutes for ~3 seconds.
+ */
+function ShootingStar() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    // Fire immediately on mount, then every 5 minutes
+    const fire = () => { setVisible(true); setTimeout(() => setVisible(false), 3200); };
+    fire();
+    const interval = setInterval(fire, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+  if (!visible) return null;
   return (
-      <group ref={meshRef} visible={false} rotation={[0, 0, angle]}>
-         {/* Solid dark rocky head with sharp edges */}
-         <mesh ref={headRef}>
-            <icosahedronGeometry args={[2.5, 0]} />
-            <meshStandardMaterial color="#1a0a00" roughness={0.9} />
-         </mesh>
-         {/* Bright inner glow popping through edges */}
-         <mesh scale={[0.98, 0.98, 0.98]}>
-            <icosahedronGeometry args={[2.5, 0]} />
-            <meshStandardMaterial color="#ffffff" emissive="#ff3300" emissiveIntensity={5} />
-         </mesh>
-         {/* Trailing tail (pencil-stroked/wireframe overlapping cones) */}
-         <mesh ref={trailRef} position={[-8, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
-            <coneGeometry args={[2.2, 16, 8, 1, true]} />
-            <meshBasicMaterial color="#ff5500" transparent opacity={0.8} />
-         </mesh>
-         <mesh position={[-12, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
-            <coneGeometry args={[1.5, 24, 6, 1, true]} />
-            <meshBasicMaterial color="#ffcc00" transparent opacity={0.4} />
-         </mesh>
-         <pointLight color="#ff4400" intensity={8} distance={200} />
-      </group>
+    <Html
+      position={[-60, 45, -80]}
+      style={{ pointerEvents: 'none', overflow: 'visible' }}
+      zIndexRange={[0, 0]}
+    >
+      <style>{`
+        @keyframes shootStar {
+          0%   { transform: translate(0, 0) rotate(-35deg); opacity: 1; }
+          100% { transform: translate(340px, 180px) rotate(-35deg); opacity: 0; }
+        }
+        .shooting-star-wrap { animation: shootStar 3s ease-in forwards; }
+        .shooting-star-head {
+          width: 14px; height: 14px; border-radius: 50%;
+          background: radial-gradient(circle, #ffffff 0%, #ffe599 50%, rgba(255,200,80,0) 100%);
+          box-shadow: 0 0 12px 6px rgba(255,230,120,0.9), 0 0 30px 10px rgba(255,160,40,0.4);
+        }
+        .shooting-star-tail {
+          position: absolute; top: 50%; left: 14px;
+          transform: translateY(-50%);
+          width: 90px; height: 3px;
+          background: linear-gradient(to right, rgba(255,230,120,0.9), rgba(255,160,40,0.3), transparent);
+          border-radius: 2px;
+          filter: blur(1px);
+        }
+      `}</style>
+      <div className="shooting-star-wrap" style={{ position: 'relative' }}>
+        <div className="shooting-star-head" />
+        <div className="shooting-star-tail" />
+      </div>
+    </Html>
   );
 }
 
@@ -604,12 +599,12 @@ export function Scene({ scene = 'evening', showStory = true, selfieFlyTexture = 
         shadow-camera-bottom={-40}
         shadow-bias={-0.0005}
       />
-      {/* Meteor only in evening/night scenes */}
-      {!isNoon && <Meteor />}
+      {/* CSS shooting star — only in evening/sunrise (not noon) */}
+      {!isNoon && <ShootingStar />}
       <group position={[0, -2, 0]}>
         <MemoTerrain scene={scene} />
         {showStory && (
-          scene === 'noon' ? <NoonStoryController /> :
+          scene === 'noon' ? <NoonStoryController eventLine={eventLine} /> :
           scene === 'sunrise' ? <SunriseStoryController selfieFlyTexture={selfieFlyTexture} selfieFlyLabel={selfieFlyLabel} eventLine={eventLine} /> : <EveningStoryController eventLine={eventLine} />
         )}
       </group>

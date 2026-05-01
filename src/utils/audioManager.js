@@ -155,11 +155,23 @@ class AudioManager {
 
   async preloadTracks() {
     const tracks = [
+      // Evening tracks
       { name: 'run-boy-run',           url: '/audio/run-boy-run.mp3' },
       { name: 'seek-chase',            url: '/audio/seek-chase-theme.mp3' },
+      // Shared alias for midnight
       { name: 'midnight-scary',        url: '/audio/seek-chase-theme.mp3' },
-      { name: 'sunrise-energetic',     url: '/audio/shush-all-star.mp3' },
+      // Sunrise tracks
+      { name: 'shush-all-star',        url: '/audio/shush-all-star.mp3' },
+      { name: 'more-makreel-thrifty',  url: '/audio/more-makreel-thrifty.mp3' },
+      // Noon tracks
       { name: 'noon-chill',            url: '/audio/dirty-paws-monsters-nmen.mp3' },
+      { name: 'noon-track2',           url: '/audio/badtuch-bloodhoundg.mp3' },
+      // Disco playlist
+      { name: 'thrilla-michael-jackson', url: '/audio/thrilla-michael-jackson.mp3' },
+      { name: 'monster-fren-mikeybotz', url: '/audio/monster-fren-mikeybotz.mp3' },
+      { name: 'dirty-paws-monsters-nmen', url: '/audio/dirty-paws-monsters-nmen.mp3' },
+      { name: 'smuth-criminal-zandaru', url: '/audio/smuth-criminal-zandaru.mp3' },
+      { name: 'badtuch-bloodhoundg',   url: '/audio/badtuch-bloodhoundg.mp3' },
     ];
 
     const results = await Promise.allSettled(

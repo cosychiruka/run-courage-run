@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
@@ -8,31 +8,25 @@ import WorldVoiceButton from '../WorldVoiceButton';
 import WorldEventBanner from '../WorldEventBanner';
 import { useWorldEvents } from '../../hooks/useWorldEvents';
 
-/**
- * Fires onReady() on the very first rendered frame — signals to the parent
- * that the WebGL scene is fully painted and the transition can begin.
- */
+const NOON_TRACKS = [
+  { id: 'noon-chill',   url: '/audio/dirty-paws-monsters-nmen.mp3', title: 'Dirty Paws' },
+  { id: 'noon-track2',  url: '/audio/badtuch-bloodhoundg.mp3',       title: 'Badtuch' },
+];
+
 function ReadySignal({ onReady }) {
   const calledRef = useRef(false);
   useFrame(() => {
-    if (!calledRef.current) {
-      calledRef.current = true;
-      onReady();
-    }
+    if (!calledRef.current) { calledRef.current = true; onReady(); }
   });
   return null;
 }
 
-/**
- * Full-screen WebGL portal for the noon 3D world.
- * Uses noon-chill (dirty paws) for calm daytime music.
- */
 export default function NoonWorld3D({ visible, onReady, onClose }) {
   const [audioLoaded, setAudioLoaded] = useState(false);
-  const [showMusicTitle, setShowMusicTitle] = useState(false);
-  const [minimizedMusic, setMinimizedMusic] = useState(false);
-  const canvasRef = useRef(null);
-  const [noonAnim, setNoonAnim] = useState(null); // { emoji, label }
+  const [isMuted, setIsMuted]         = useState(false);
+  const [currentTrackIdx, setCurrentTrackIdx] = useState(0);
+  const canvasRef    = useRef(null);
+  const [noonAnim, setNoonAnim] = useState(null);
 
   const { event, clearEvent, presenceCount } = useWorldEvents({
     world: 'noon',
@@ -52,19 +46,13 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
       courage_bark:  { emoji: '🐕🔊', label: 'Courage barks at something!' },
     };
     const anim = NOON_ANIMS[event.action];
-    if (anim) {
-      setNoonAnim(anim);
-      setTimeout(() => setNoonAnim(null), 4_000);
-    }
+    if (anim) { setNoonAnim(anim); setTimeout(() => setNoonAnim(null), 4_000); }
   }, [event]);
 
   // Mobile GPU cleanup
   useEffect(() => {
     if (!visible && canvasRef.current) {
-      try {
-        canvasRef.current.renderLists?.dispose?.();
-        canvasRef.current.info?.reset?.();
-      } catch { /* silent */ }
+      try { canvasRef.current.renderLists?.dispose?.(); canvasRef.current.info?.reset?.(); } catch { /**/ }
     }
   }, [visible]);
 
@@ -74,175 +62,68 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
     return () => window.removeEventListener('keydown', handler);
   }, [onClose, visible]);
 
-  // Initialize and preload audio
+  // Load all noon tracks on first open
   useEffect(() => {
-    const initAudio = async () => {
-      await audioManager.preloadTracks();
+    if (!visible || audioLoaded) return;
+    const load = async () => {
+      await Promise.all(NOON_TRACKS.map(t => audioManager.loadTrack(t.id, t.url)));
       setAudioLoaded(true);
     };
-    
-    if (visible && !audioLoaded) {
-      initAudio();
-    }
+    load();
   }, [visible, audioLoaded]);
 
-  // Play noon chill theme when visible
-  useEffect(() => {
-    let timer;
-    if (visible && audioLoaded) {
-      setShowMusicTitle(true);
-      setMinimizedMusic(false);
-      timer = setTimeout(() => setMinimizedMusic(true), 3500);
-
-      const playAudio = async () => {
-        try {
-          await audioManager.playTrack('noon-chill', {
-            loop: true,
-            volume: 0.4
-          });
-        } catch (error) {
-          console.warn('Failed to play noon theme:', error);
+  // Play track and wire auto-advance
+  const playTrack = useCallback(async (idx) => {
+    const track = NOON_TRACKS[idx];
+    await audioManager.loadTrack(track.id, track.url);
+    await audioManager.playTrack(track.id, { loop: false, volume: 0.4 });
+    // Wire auto-advance on ended
+    const t = audioManager.tracks.get(track.id);
+    if (t?.source) {
+      t.source.onended = () => {
+        if (audioManager.currentTrack === track.id) {
+          const next = (idx + 1) % NOON_TRACKS.length;
+          setCurrentTrackIdx(next);
         }
       };
-      
-      setTimeout(playAudio, 200);
-    } else {
-      setShowMusicTitle(false);
     }
-    
-    return () => {
-      clearTimeout(timer);
-      audioManager.softCleanup();
-    };
-  }, [visible, audioLoaded]);
+  }, []);
+
+  useEffect(() => {
+    if (!visible || !audioLoaded) return;
+    playTrack(currentTrackIdx);
+    return () => audioManager.softCleanup();
+  }, [visible, audioLoaded, currentTrackIdx, playTrack]);
+
+  const handleNext = useCallback(() => {
+    setCurrentTrackIdx(i => (i + 1) % NOON_TRACKS.length);
+  }, []);
+
+  const handleMute = useCallback(() => {
+    const muted = audioManager.toggleMute();
+    setIsMuted(muted);
+  }, []);
 
   return (
-    <div
-      className="world3d-overlay"
-      style={{
-        opacity: visible ? 1 : 0,
-        pointerEvents: visible ? 'all' : 'none',
-        transition: 'opacity 0.8s ease',
-      }}
-    >
+    <div className="world3d-overlay" style={{ opacity: visible ? 1 : 0, pointerEvents: visible ? 'all' : 'none', transition: 'opacity 0.8s ease' }}>
+      {visible && <button className="world3d-close" onClick={onClose} aria-label="Exit 3D World">✕ Exit</button>}
+      {visible && <div className="world3d-hint">drag to orbit &nbsp;·&nbsp; scroll to zoom</div>}
+
+      {/* ── Music controls ── */}
       {visible && (
-        <button className="world3d-close" onClick={onClose} aria-label="Exit 3D World">
-          ✕ Exit
-        </button>
-      )}
-      {visible && (
-        <div className="world3d-hint">
-          drag to orbit &nbsp;·&nbsp; scroll to zoom
-        </div>
-      )}
-      {visible && showMusicTitle && (
-        <div className={`music-now-playing ${minimizedMusic ? 'minimized' : ''}`}>
-          <div className="music-icon">🎵</div>
-          <div className="music-details">
-            <div className="music-label">Now Playing</div>
-            <div className="music-title">Dirty Paws</div>
+        <div className="world3d-music-bar">
+          <div className="music-now-playing-inline">
+            <span className="music-bar-icon">🎵</span>
+            <span className="music-bar-title">{NOON_TRACKS[currentTrackIdx].title}</span>
           </div>
-        </div>
-      )}
-      <style>{`
-        .music-now-playing {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: rgba(15, 15, 25, 0.85);
-          backdrop-filter: blur(12px);
-          padding: 25px 45px;
-          border-radius: 50px;
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          color: white;
-          display: flex;
-          align-items: center;
-          gap: 24px;
-          z-index: 1000;
-          transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
-          box-shadow: 0 15px 40px rgba(0,0,0,0.6);
-          animation: popInMusic 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-          pointer-events: none;
-        }
-        .music-now-playing.minimized {
-          top: unset;
-          bottom: 30px;
-          left: 30px;
-          transform: none;
-          padding: 12px 24px;
-          border-radius: 20px;
-          gap: 15px;
-          background: rgba(10, 10, 18, 0.9);
-          box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-          pointer-events: all;
-          cursor: pointer;
-        }
-        @media (max-width: 768px) {
-          .music-now-playing.minimized {
-            left: 5vw;
-            margin-left: 15px;
-          }
-        }
-        .music-now-playing.minimized:hover {
-          background: rgba(30, 30, 45, 0.95);
-          transform: translateY(-2px);
-        }
-        .music-now-playing.minimized .music-icon { font-size: 1.5rem; }
-        .music-now-playing.minimized .music-label { font-size: 0.7rem; }
-        .music-now-playing.minimized .music-title { font-size: 1rem; }
-        .music-icon {
-          font-size: 3.5rem;
-          transition: font-size 0.8s ease;
-        }
-        .music-details {
-          display: flex;
-          flex-direction: column;
-        }
-        .music-label {
-          font-size: 1.1rem;
-          color: #ffaa44;
-          text-transform: uppercase;
-          letter-spacing: 3px;
-          margin-bottom: 2px;
-          transition: all 0.8s ease;
-        }
-        .music-title {
-          font-size: 2.2rem;
-          font-weight: 900;
-          transition: all 0.8s ease;
-          white-space: nowrap;
-          text-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-        @keyframes popInMusic {
-          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
-          100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        }
-      `}</style>
-      
-      {visible && (
-        <div className="world3d-music-controls">
-          <button 
-            className="music-btn"
-            onClick={() => {
-              const newVolume = audioManager.volume === 0 ? 0.4 : 0;
-              audioManager.setVolume(newVolume);
-            }}
-            title="Toggle Mute"
-          >
-            {audioManager.volume === 0 ? '🔇' : '🔊'}
+          <button className="music-btn" onClick={handleNext} title="Next track">⏭</button>
+          <button className="music-btn" onClick={handleMute} title="Toggle Mute">
+            {isMuted ? '🔇' : '🔊'}
           </button>
         </div>
       )}
-      <WorldEventBanner event={event} world="noon" onDismiss={clearEvent} />
-      {visible && presenceCount > 0 && (
-        <div className="world-presence-badge">
-          <span className="presence-dot" />
-          {presenceCount} watching
-        </div>
-      )}
-      <WorldVoiceButton worldContext="noon" visible={visible} />
-      {/* Noon narrative emoji moment — lightweight CSS overlay, zero 3D cost */}
+
+      {/* Noon narrative emoji moment */}
       {visible && noonAnim && (
         <div style={{
           position: 'fixed', bottom: '160px', left: '50%', transform: 'translateX(-50%)',
@@ -252,16 +133,21 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
           <div style={{ fontSize: '4rem', lineHeight: 1, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }}>
             {noonAnim.emoji}
           </div>
-          <div style={{
-            fontSize: '0.85rem', color: 'rgba(255,240,200,0.9)',
-            fontFamily: 'Georgia, serif', fontStyle: 'italic',
-            textShadow: '0 1px 4px rgba(0,0,0,0.8)',
-            marginTop: '6px',
-          }}>
+          <div style={{ fontSize: '0.85rem', color: 'rgba(255,240,200,0.9)', fontFamily: 'Georgia, serif', fontStyle: 'italic', textShadow: '0 1px 4px rgba(0,0,0,0.8)', marginTop: '6px' }}>
             {noonAnim.label}
           </div>
         </div>
       )}
+
+      <WorldEventBanner event={event} world="noon" onDismiss={clearEvent} />
+      {visible && presenceCount > 0 && (
+        <div className="world-presence-badge">
+          <span className="presence-dot" />
+          {presenceCount} watching
+        </div>
+      )}
+      <WorldVoiceButton worldContext="noon" visible={visible} />
+
       <Canvas
         frameloop={visible ? 'always' : 'demand'}
         dpr={[1, 1.5]}
@@ -269,17 +155,14 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
         style={{ width: '100%', height: '100%' }}
         onCreated={({ gl }) => { canvasRef.current = gl; }}
       >
-        <PerspectiveCamera makeDefault position={[0, 6, 20]} fov={45} />
-        <OrbitControls
-          target={[0, 1, 0]}
-          minDistance={5}
-          maxDistance={60}
-          minPolarAngle={Math.PI / 8}
-          maxPolarAngle={Math.PI / 2}
-          enablePan={true}
-        />
+        {/* Midway between old z=50 and too-close z=20 */}
+        <PerspectiveCamera makeDefault position={[0, 5, 35]} fov={38} />
+        <OrbitControls target={[0, 1, 0]} minDistance={5} maxDistance={60} minPolarAngle={Math.PI / 8} maxPolarAngle={Math.PI / 2} enablePan={true} />
         <ReadySignal onReady={onReady} />
-        <Scene scene="noon" />
+        <Scene
+          scene="noon"
+          eventLine={event?.action && ['leaf_blows','bird_lands','cloud_shadow','courage_sniff','courage_bark'].includes(event.action) ? '' : (event?.message ?? '')}
+        />
       </Canvas>
     </div>
   );

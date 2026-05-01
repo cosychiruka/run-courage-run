@@ -92,10 +92,9 @@ export default function WorldVoiceButton({ worldContext, visible }) {
   const isBusy = voiceState !== 'idle';
 
   return (
-    <div style={{
-      position: 'fixed', bottom: '30px', right: '20px',
+    <div className="world-voice-btn" style={{
       display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px',
-      zIndex: 1001, userSelect: 'none',
+      userSelect: 'none',
     }}>
       {/* Transcript + Reply bubble */}
       {expanded && (transcript || reply || error) && (
