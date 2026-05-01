@@ -9,6 +9,8 @@ import courageDancingGif from '../../assets/images/Courage.gif';
 import { useSelfie } from '../../hooks/useSelfie';
 import SelfieUI from '../SelfieUI';
 import WorldVoiceButton from '../WorldVoiceButton';
+import WorldEventBanner from '../WorldEventBanner';
+import { useWorldEvents, registerPresence } from '../../hooks/useWorldEvents';
 
 const MemoHouse = React.memo(House);
 
@@ -372,6 +374,24 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
   const selfie = useSelfie();
   const canvasRef = useRef(null);
 
+  const { event, clearEvent, presenceCount } = useWorldEvents({
+    world: 'disco',
+    active: visible,
+    state: { ghost_count: 5, elapsed: 0 },
+    intervalMs: 40_000,
+  });
+
+  // Presence heartbeat when selfie is active
+  useEffect(() => {
+    if (!selfie.isActive) return;
+    const uid = `disco_${Date.now()}`;
+    registerPresence({ world: 'disco', uid, name: selfie.label, emoji: '👻' });
+    const hb = setInterval(() =>
+      registerPresence({ world: 'disco', uid, name: selfie.label, emoji: '👻' }),
+    120_000);
+    return () => clearInterval(hb);
+  }, [selfie.isActive, selfie.label]);
+
   // Screenshot → share on X
   const handleScreenshot = useCallback(() => {
     // Find the WebGL canvas, grab it as PNG, open X share dialog
@@ -463,6 +483,13 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
         fabRight="110px"
         onScreenshot={handleScreenshot}
       />
+      <WorldEventBanner event={event} world="disco" onDismiss={clearEvent} />
+      {visible && presenceCount > 0 && (
+        <div className="world-presence-badge">
+          <span className="presence-dot" />
+          {presenceCount} monster{presenceCount !== 1 ? 's' : ''} in the party
+        </div>
+      )}
       <WorldVoiceButton worldContext="disco" visible={visible} />
       <Canvas dpr={[1, 1.5]} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0, powerPreference: 'high-performance' }} style={{ width: '100%', height: '100%' }}>
 

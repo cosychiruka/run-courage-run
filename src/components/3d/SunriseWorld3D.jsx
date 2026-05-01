@@ -7,6 +7,8 @@ import { audioManager } from '../../utils/audioManager';
 import { useSelfie } from '../../hooks/useSelfie';
 import SelfieUI from '../SelfieUI';
 import WorldVoiceButton from '../WorldVoiceButton';
+import WorldEventBanner from '../WorldEventBanner';
+import { useWorldEvents, registerPresence } from '../../hooks/useWorldEvents';
 
 /**
  * Fires onReady() on the very first rendered frame — signals to the parent
@@ -32,6 +34,24 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
   const [showMusicTitle, setShowMusicTitle] = useState(false);
   const [minimizedMusic, setMinimizedMusic] = useState(false);
   const selfie = useSelfie();
+
+  const { event, clearEvent, presenceCount } = useWorldEvents({
+    world: 'sunrise',
+    active: visible,
+    state: { state: 'running' },
+    intervalMs: 45_000,
+  });
+
+  // Register selfie presence on activate + heartbeat every 2min
+  useEffect(() => {
+    if (!selfie.isActive) return;
+    const uid = `sunrise_${Date.now()}`;
+    registerPresence({ world: 'sunrise', uid, name: selfie.label, emoji: '🪰' });
+    const hb = setInterval(() =>
+      registerPresence({ world: 'sunrise', uid, name: selfie.label, emoji: '🪰' }),
+    120_000);
+    return () => clearInterval(hb);
+  }, [selfie.isActive, selfie.label]);
 
   const handleScreenshot = useCallback(() => {
     const glCanvas = document.querySelector('.world3d-overlay canvas');
@@ -166,6 +186,13 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
         fabRight="180px"
         onScreenshot={handleScreenshot}
       />
+      <WorldEventBanner event={event} world="sunrise" onDismiss={clearEvent} />
+      {visible && presenceCount > 0 && (
+        <div className="world-presence-badge">
+          <span className="presence-dot" />
+          {presenceCount} fly{presenceCount !== 1 ? 'ies' : ''} here
+        </div>
+      )}
       <WorldVoiceButton worldContext="sunrise" visible={visible} />
       <Canvas
         dpr={[1, 1.5]}

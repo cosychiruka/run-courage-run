@@ -3886,3 +3886,47 @@ div:where(.swal2-container) div:where(.swal2-popup) {
     }
   }
 }
+
+/* ── World Event Banner ───────────────────────────────────────────────────── */
+@keyframes worldEventIn {
+  0%   { opacity: 0; transform: translateY(12px) scale(0.9); }
+  100% { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* Resets transform-origin for center-positioned banners */
+.world-event-center { transform-origin: center center; }
+
+/* ── World Presence Badge ─────────────────────────────────────────────────── */
+.world-presence-badge {
+  position: fixed;
+  top: 70px;
+  left: 20px;
+  background: rgba(10, 0, 20, 0.82);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255,255,255,0.85);
+  font-size: 0.78rem;
+  font-family: "Comic Sans MS", cursive;
+  z-index: 999;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.world-presence-badge .presence-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00ff88;
+  box-shadow: 0 0 8px #00ff88;
+  animation: presencePulse 2s ease-in-out infinite;
+}
+
+@keyframes presencePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(1.4); }
+}

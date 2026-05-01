@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import { Scene } from './Scene3D';
 import { audioManager } from '../../utils/audioManager';
 import WorldVoiceButton from '../WorldVoiceButton';
+import WorldEventBanner from '../WorldEventBanner';
+import { useWorldEvents } from '../../hooks/useWorldEvents';
 
 /**
  * Fires onReady() on the very first rendered frame — signals to the parent
@@ -35,6 +37,13 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
   const [minimizedMusic, setMinimizedMusic] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const canvasRef = useRef(null);
+
+  const { event, clearEvent, presenceCount } = useWorldEvents({
+    world: currentScene,
+    active: visible,
+    state: { mood: 'mischievous' },
+    intervalMs: 50_000,
+  });
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && visible) onClose(); };
@@ -148,6 +157,13 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
           >
             {isMuted ? '🔇' : '🔊'}
           </button>
+        </div>
+      )}
+      <WorldEventBanner event={event} world={currentScene} onDismiss={clearEvent} />
+      {visible && presenceCount > 0 && (
+        <div className="world-presence-badge">
+          <span className="presence-dot" />
+          {presenceCount} monster{presenceCount !== 1 ? 's' : ''} here
         </div>
       )}
       <WorldVoiceButton worldContext={currentScene} visible={visible} />

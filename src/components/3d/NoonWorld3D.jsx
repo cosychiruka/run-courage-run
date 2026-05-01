@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import { Scene } from './Scene3D';
 import { audioManager } from '../../utils/audioManager';
 import WorldVoiceButton from '../WorldVoiceButton';
+import WorldEventBanner from '../WorldEventBanner';
+import { useWorldEvents } from '../../hooks/useWorldEvents';
 
 /**
  * Fires onReady() on the very first rendered frame — signals to the parent
@@ -29,6 +31,13 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
   const [audioLoaded, setAudioLoaded] = useState(false);
   const [showMusicTitle, setShowMusicTitle] = useState(false);
   const [minimizedMusic, setMinimizedMusic] = useState(false);
+
+  const { event, clearEvent, presenceCount } = useWorldEvents({
+    world: 'noon',
+    active: visible,
+    state: { euriel_state: 'arrived' },
+    intervalMs: 55_000,
+  });
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && visible) onClose(); };
@@ -194,6 +203,13 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
           >
             {audioManager.volume === 0 ? '🔇' : '🔊'}
           </button>
+        </div>
+      )}
+      <WorldEventBanner event={event} world="noon" onDismiss={clearEvent} />
+      {visible && presenceCount > 0 && (
+        <div className="world-presence-badge">
+          <span className="presence-dot" />
+          {presenceCount} watching
         </div>
       )}
       <WorldVoiceButton worldContext="noon" visible={visible} />
