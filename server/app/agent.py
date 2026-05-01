@@ -26,7 +26,7 @@ async def _ollama_chat(messages: list[dict], use_tools: bool = True) -> dict:
         "model":    OLLAMA_MODEL,
         "messages": messages,
         "stream":   False,
-        "options":  {"num_ctx": 16384, "temperature": 0.72},
+        "options":  {"num_ctx": 4096, "temperature": 0.72},
     }
     
     # tinyllama does not support native tool calling

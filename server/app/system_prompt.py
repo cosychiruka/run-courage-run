@@ -96,7 +96,7 @@ def build_context_prompt(articles: list[dict], world_context: str | None = None)
         return prompt
 
     news_block = "\n\n== RECENT NEWS IN YOUR MEMORY ==\n"
-    for i, a in enumerate(articles[:8], 1):
+    for i, a in enumerate(articles[:3], 1):
         news_block += (
             f"\n[{i}] {a.get('title', 'No title')}\n"
             f"    Source: {a.get('source_name', 'Unknown')} | "
