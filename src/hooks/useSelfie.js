@@ -8,14 +8,15 @@ import * as THREE from 'three';
  * phases: 'idle' | 'processing' | 'confirm' | 'active' | 'removing'
  */
 export function useSelfie({ autoRemoveMs = 10 * 60 * 1000 } = {}) {
-  const [phase, setPhase] = useState('idle');
-  const [texture, setTexture] = useState(null);
-  const [label, setLabel] = useState('');
-  const [nameInput, setNameInput] = useState('');
+  const [phase, setPhase]           = useState('idle');
+  const [texture, setTexture]       = useState(null);
+  const [label, setLabel]           = useState('');
+  const [nameInput, setNameInput]   = useState('');
   const [previewUrl, setPreviewUrl] = useState(null);
 
-  const fileInputRef = useRef(null);
-  const autoRemoveTimerRef = useRef(null);
+  const fileInputRef        = useRef(null);
+  const autoRemoveTimerRef  = useRef(null);
+  const textureRef          = useRef(null); // stable ref for disposal in async callbacks
 
   /** Open file picker (or camera on mobile) */
   const openPicker = useCallback(() => {
@@ -31,9 +32,9 @@ export function useSelfie({ autoRemoveMs = 10 * 60 * 1000 } = {}) {
     const url = URL.createObjectURL(file);
 
     img.onload = () => {
-      const size = 256;
+      const size   = 256;
       const canvas = document.createElement('canvas');
-      canvas.width = size;
+      canvas.width  = size;
       canvas.height = size;
       const ctx = canvas.getContext('2d');
 
@@ -45,8 +46,8 @@ export function useSelfie({ autoRemoveMs = 10 * 60 * 1000 } = {}) {
 
       // Center-crop + slight upward bias to capture face
       const srcSize = Math.min(img.width, img.height);
-      const srcX = (img.width - srcSize) / 2;
-      const srcY = (img.height - srcSize) * 0.28; // 28% from top = faces tend to be here
+      const srcX    = (img.width  - srcSize) / 2;
+      const srcY    = (img.height - srcSize) * 0.28; // 28% from top = faces tend to be here
 
       ctx.save();
       ctx.beginPath();
@@ -57,14 +58,14 @@ export function useSelfie({ autoRemoveMs = 10 * 60 * 1000 } = {}) {
 
       // White border ring
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 10;
+      ctx.lineWidth   = 10;
       ctx.beginPath();
       ctx.arc(size / 2, size / 2, size / 2 - 5, 0, Math.PI * 2);
       ctx.stroke();
 
       // Pink accent ring
       ctx.strokeStyle = '#ff00cc';
-      ctx.lineWidth = 4;
+      ctx.lineWidth   = 4;
       ctx.beginPath();
       ctx.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2);
       ctx.stroke();
@@ -74,8 +75,15 @@ export function useSelfie({ autoRemoveMs = 10 * 60 * 1000 } = {}) {
       const dataUrl = canvas.toDataURL('image/png');
       setPreviewUrl(dataUrl);
 
+      // Dispose any previous texture before creating a new one
+      if (textureRef.current) {
+        textureRef.current.dispose();
+        textureRef.current = null;
+      }
+
       const tex = new THREE.CanvasTexture(canvas);
       tex.needsUpdate = true;
+      textureRef.current = tex;
       setTexture(tex);
       setPhase('confirm');
     };
@@ -96,11 +104,16 @@ export function useSelfie({ autoRemoveMs = 10 * 60 * 1000 } = {}) {
     autoRemoveTimerRef.current = setTimeout(() => remove(), autoRemoveMs);
   }, [nameInput, autoRemoveMs]);
 
-  /** Graceful remove with fade */
+  /** Graceful remove with fade — always disposes the GPU texture */
   const remove = useCallback(() => {
     setPhase('removing');
     clearTimeout(autoRemoveTimerRef.current);
     setTimeout(() => {
+      // Dispose the GPU texture to release VRAM — critical on mobile
+      if (textureRef.current) {
+        textureRef.current.dispose();
+        textureRef.current = null;
+      }
       setTexture(null);
       setLabel('');
       setNameInput('');
@@ -111,6 +124,10 @@ export function useSelfie({ autoRemoveMs = 10 * 60 * 1000 } = {}) {
 
   /** Retake — back to idle without clearing texture until new one comes */
   const retake = useCallback(() => {
+    if (textureRef.current) {
+      textureRef.current.dispose();
+      textureRef.current = null;
+    }
     setTexture(null);
     setPreviewUrl(null);
     setPhase('idle');

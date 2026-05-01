@@ -263,6 +263,7 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
         </div>
       )}
       <Canvas
+        frameloop={visible ? 'always' : 'demand'}
         dpr={[1, 1.5]}
         gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.5, powerPreference: 'high-performance' }}
         style={{ width: '100%', height: '100%' }}

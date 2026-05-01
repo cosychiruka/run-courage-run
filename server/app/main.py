@@ -33,6 +33,23 @@ from app.voice import load_models, transcribe, synthesise
 from app.agent import run_agent
 from app.x_client import make_x_client
 from app.tweet_image import render_news_card, render_card_for_url
+import redis.asyncio as aioredis
+
+# ── Shared HTTP client (persistent pool, not per-request) ─────────────────────
+_http_client: httpx.AsyncClient | None = None
+
+def get_http_client() -> httpx.AsyncClient:
+    """Return the shared httpx client. Created lazily on first call."""
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.AsyncClient(timeout=30)
+    return _http_client
+
+# ── Redis client (for presence) ───────────────────────────────────────────────
+_redis: aioredis.Redis | None = None
+
+def get_redis() -> aioredis.Redis | None:
+    return _redis
 
 # ── Scheduler + shared state ───────────────────────────────────────────────────
 scheduler = AsyncIOScheduler()
@@ -58,7 +75,7 @@ async def _load_voice_models_bg():
 # ── Lifespan (startup / shutdown) ─────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global x_client
+    global x_client, _redis
 
     try:
         # DB — fast, do first
@@ -66,23 +83,28 @@ async def lifespan(app: FastAPI):
         await init_db()
         print("[STARTUP] Database initialized.")
 
+        # Redis — for presence persistence across redeploys
+        try:
+            _redis = aioredis.from_url(REDIS_URL, decode_responses=True)
+            await _redis.ping()
+            print("[STARTUP] Redis connected (presence will survive redeploys).")
+        except Exception as e:
+            _redis = None
+            print(f"[STARTUP] Redis unavailable ({e}) — presence falls back to in-memory.")
+
         # X client (optional — graceful if keys missing)
         print("[STARTUP] Setting up X client...")
         x_client = make_x_client()
         print("[STARTUP] X client setup completed.")
 
-        # Background jobs — 30 min interval:
-        # Guardian 5000/day ÷ 48 rounds × 4 pairs = 192 calls → well within limit
-        # GNews/NewsAPI budgets only consumed when Guardian fails
+        # Background jobs — 30 min interval
         scheduler.add_job(discovery_round, "interval", minutes=30, id="discovery")
         scheduler.start()
         print("[STARTUP] Background scheduler started.")
 
-        # First discovery immediately (non-blocking)
         asyncio.create_task(discovery_round())
         print("[STARTUP] Initial news discovery queued.")
 
-        # Voice models — load in background AFTER server is ready to serve
         asyncio.create_task(_load_voice_models_bg())
 
         print("\n" + "="*50)
@@ -95,12 +117,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"[STARTUP] ERROR during initialization: {e}")
         print("[STARTUP] Continuing with limited functionality...")
-        # Don't re-raise - allow app to start even if some components fail
 
     yield
 
     print("[SHUTDOWN] Shutting down...")
     scheduler.shutdown(wait=False)
+    if _http_client and not _http_client.is_closed:
+        await _http_client.aclose()
+    if _redis:
+        await _redis.aclose()
     print("[SHUTDOWN] Shutdown complete.")
 
 
@@ -231,9 +256,13 @@ async def voice_ws(ws: WebSocket):
                     continue
 
                 if kind == "voice_end" and audio_buffer:
+                    # Safety cap: reject absurdly large audio buffers (>5 MB = ~5 min recording)
+                    if len(audio_buffer) > 5 * 1024 * 1024:
+                        audio_buffer.clear()
+                        await ws.send_text(json.dumps({"type": "error", "message": "Recording too long. Please keep it under 2 minutes."}))
+                        continue
                     raw_audio = bytes(audio_buffer)
                     audio_buffer.clear()
-                    # Optional world context sent from the frontend
                     world_context = data.get("world_context", None)
 
                     # 1. Transcribe
@@ -350,20 +379,23 @@ async def world_event(payload: dict):
     from app.config import OLLAMA_HOST, OLLAMA_MODEL
     messages = [
         {"role": "system", "content": "You are a world event director. Output ONLY valid JSON. No extra text."},
-        {"role": "user", "content": prompt},
+        {"role": "user",   "content": prompt},
     ]
     try:
-        async with httpx.AsyncClient(timeout=20) as client:
-            r = await client.post(f"{OLLAMA_HOST}/api/chat", json={
-                "model": OLLAMA_MODEL, "messages": messages,
-                "stream": False, "options": {"temperature": 0.9, "num_ctx": 1024},
-            })
-            r.raise_for_status()
-            raw = r.json().get("message", {}).get("content", "{}").strip()
-            # Strip markdown fences if present
-            if raw.startswith("```"):
-                raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
-            return JSONResponse(json.loads(raw))
+        client = get_http_client()
+        r = await client.post(f"{OLLAMA_HOST}/api/chat", json={
+            "model":   OLLAMA_MODEL,
+            "messages": messages,
+            "stream":  False,
+            "format":  "json",   # enforce JSON at inference level — no regex needed
+            "options": {"temperature": 0.9, "num_ctx": 1024},
+        })
+        r.raise_for_status()
+        raw = r.json().get("message", {}).get("content", "{}").strip()
+        # Strip markdown fences in case older Ollama ignores format param
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+        return JSONResponse(json.loads(raw))
     except Exception as e:
         # Fallback safe defaults per world
         defaults = {
@@ -376,11 +408,10 @@ async def world_event(payload: dict):
 
 
 # ── World Presence (Monster Selfie sessions) ───────────────────────────────────
-# In-memory store — no DB needed for MVP.  Auto-expires after 10 min.
+# Redis-backed with in-memory fallback. Survives redeployments.
 
-_world_presence: dict = {}  # { world: { uid: { name, last_seen, emoji } } }
+_world_presence_mem: dict = {}  # Fallback if Redis is down
 _PRESENCE_TTL = 600  # 10 minutes
-
 
 @app.post("/api/world/presence")
 async def update_presence(payload: dict):
@@ -389,34 +420,72 @@ async def update_presence(payload: dict):
     uid   = payload.get("uid", "anon")
     name  = payload.get("name", "Anonymous Monster")
     emoji = payload.get("emoji", "👻")
-
-    if world not in _world_presence:
-        _world_presence[world] = {}
-
-    _world_presence[world][uid] = {
-        "name": name, "emoji": emoji, "last_seen": time.time()
-    }
-    # Prune expired entries
-    now = time.time()
-    _world_presence[world] = {
-        k: v for k, v in _world_presence[world].items()
-        if now - v["last_seen"] < _PRESENCE_TTL
-    }
-    return JSONResponse({"ok": True, "active": len(_world_presence[world])})
-
+    
+    data = {"name": name, "emoji": emoji, "last_seen": time.time()}
+    redis = get_redis()
+    
+    if redis:
+        try:
+            key = f"presence:{world}:{uid}"
+            await redis.set(key, json.dumps(data), ex=_PRESENCE_TTL)
+        except Exception as e:
+            print(f"[REDIS ERROR] update_presence: {e}")
+            # Fallback handled below
+    
+    # Always update memory as fallback/backup
+    if world not in _world_presence_mem:
+        _world_presence_mem[world] = {}
+    _world_presence_mem[world][uid] = data
+    
+    return JSONResponse({"ok": True})
 
 @app.get("/api/world/presence")
 async def get_presence(world: str = "disco"):
     """Return all active monster selfie sessions in a world."""
-    sessions = _world_presence.get(world, {})
     now = time.time()
-    active = [
+    active_users = []
+    redis = get_redis()
+    
+    if redis:
+        try:
+            # Find all presence keys for this world
+            cursor = 0
+            while True:
+                cursor, keys = await redis.scan(cursor, match=f"presence:{world}:*", count=100)
+                for key in keys:
+                    raw = await redis.get(key)
+                    if raw:
+                        v = json.loads(raw)
+                        uid = key.split(":")[-1]
+                        active_users.append({
+                            "uid": uid, 
+                            "name": v["name"], 
+                            "emoji": v["emoji"],
+                            "seconds_ago": int(now - v["last_seen"])
+                        })
+                if cursor == 0:
+                    break
+            if active_users:
+                return JSONResponse(active_users)
+        except Exception as e:
+            print(f"[REDIS ERROR] get_presence: {e}")
+            # Fallback to memory
+    
+    # Memory fallback
+    sessions = _world_presence_mem.get(world, {})
+    active_users = [
         {"uid": k, "name": v["name"], "emoji": v["emoji"],
          "seconds_ago": int(now - v["last_seen"])}
         for k, v in sessions.items()
         if now - v["last_seen"] < _PRESENCE_TTL
     ]
-    return JSONResponse(active)
+    # Prune memory while we are at it
+    _world_presence_mem[world] = {
+        k: v for k, v in sessions.items()
+        if now - v["last_seen"] < _PRESENCE_TTL
+    }
+    
+    return JSONResponse(active_users)
 
 
 # ── Static Files (Frontend) ───────────────────────────────────────────────────

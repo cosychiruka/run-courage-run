@@ -410,10 +410,14 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
     };
     const mult = SPEED_MAP[event.action] ?? 1.0;
     _discoSpeedMult.current = mult;
-    // Auto-restore speed after banner auto-clears (8s)
     const restore = setTimeout(() => { _discoSpeedMult.current = 1.0; }, 9_000);
     return () => clearTimeout(restore);
   }, [event]);
+
+  // Reset speed to normal when world is hidden — prevents stale frenzy speed on re-entry
+  useEffect(() => {
+    if (!visible) _discoSpeedMult.current = 1.0;
+  }, [visible]);
 
   // Screenshot → share on X
   const handleScreenshot = useCallback(() => {
@@ -515,13 +519,11 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
       )}
       <WorldVoiceButton worldContext="disco" visible={visible} />
       <Canvas
+        frameloop={visible ? 'always' : 'demand'}
         dpr={[1, 1.5]}
         gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0, powerPreference: 'high-performance' }}
         style={{ width: '100%', height: '100%' }}
-        onCreated={({ gl }) => {
-          // Store gl so we can dispose on mobile when done
-          canvasRef.current = gl;
-        }}
+        onCreated={({ gl }) => { canvasRef.current = gl; }}
       >
 
         <PerspectiveCamera makeDefault position={[0, 5, 25]} fov={50} />
