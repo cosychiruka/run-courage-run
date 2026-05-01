@@ -62,6 +62,16 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
     };
   }, [onClose, visible]);
 
+  // Mobile GPU cleanup — dispose render lists when world is hidden, freeing VRAM
+  useEffect(() => {
+    if (!visible && canvasRef.current) {
+      try {
+        canvasRef.current.renderLists?.dispose?.();
+        canvasRef.current.info?.reset?.();
+      } catch { /* silent */ }
+    }
+  }, [visible]);
+
   // Initialize and preload audio
   useEffect(() => {
     const initAudio = async () => {
@@ -170,13 +180,9 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
       <Canvas
         ref={canvasRef}
         dpr={[1, 1.5]}
-        gl={{
-          antialias: false,
-          toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1,
-          powerPreference: 'high-performance',
-        }}
+        gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1, powerPreference: 'high-performance' }}
         style={{ width: '100%', height: '100%' }}
+        onCreated={({ gl }) => { canvasRef.current = gl; }}
       >
         <PerspectiveCamera makeDefault position={[0, 4, 22]} fov={45} />
         <OrbitControls
@@ -188,7 +194,10 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
           enablePan={true}
         />
         <ReadySignal onReady={onReady} />
-        <Scene scene={currentScene} />
+        <Scene
+          scene={currentScene}
+          eventLine={event?.action === 'taunt' || event?.action === 'advance' || event?.action === 'thought_bubble' ? (event.message ?? '') : ''}
+        />
       </Canvas>
     </div>
   );

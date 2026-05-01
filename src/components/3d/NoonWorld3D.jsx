@@ -31,6 +31,8 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
   const [audioLoaded, setAudioLoaded] = useState(false);
   const [showMusicTitle, setShowMusicTitle] = useState(false);
   const [minimizedMusic, setMinimizedMusic] = useState(false);
+  const canvasRef = useRef(null);
+  const [noonAnim, setNoonAnim] = useState(null); // { emoji, label }
 
   const { event, clearEvent, presenceCount } = useWorldEvents({
     world: 'noon',
@@ -38,6 +40,33 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
     state: { euriel_state: 'arrived' },
     intervalMs: 55_000,
   });
+
+  // Map LLM event actions to cute narrative emoji moments
+  useEffect(() => {
+    if (!event) return;
+    const NOON_ANIMS = {
+      leaf_blows:    { emoji: '🍂', label: 'A leaf drifts by...' },
+      bird_lands:    { emoji: '🐦', label: 'A bird lands nearby.' },
+      cloud_shadow:  { emoji: '☁️', label: 'A cloud rolls overhead.' },
+      courage_sniff: { emoji: '🐕', label: 'Courage sniffs the air.' },
+      courage_bark:  { emoji: '🐕🔊', label: 'Courage barks at something!' },
+    };
+    const anim = NOON_ANIMS[event.action];
+    if (anim) {
+      setNoonAnim(anim);
+      setTimeout(() => setNoonAnim(null), 4_000);
+    }
+  }, [event]);
+
+  // Mobile GPU cleanup
+  useEffect(() => {
+    if (!visible && canvasRef.current) {
+      try {
+        canvasRef.current.renderLists?.dispose?.();
+        canvasRef.current.info?.reset?.();
+      } catch { /* silent */ }
+    }
+  }, [visible]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && visible) onClose(); };
@@ -213,15 +242,31 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
         </div>
       )}
       <WorldVoiceButton worldContext="noon" visible={visible} />
+      {/* Noon narrative emoji moment — lightweight CSS overlay, zero 3D cost */}
+      {visible && noonAnim && (
+        <div style={{
+          position: 'fixed', bottom: '160px', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 1003, textAlign: 'center', pointerEvents: 'none',
+          animation: 'noonAnimIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275) forwards',
+        }}>
+          <div style={{ fontSize: '4rem', lineHeight: 1, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }}>
+            {noonAnim.emoji}
+          </div>
+          <div style={{
+            fontSize: '0.85rem', color: 'rgba(255,240,200,0.9)',
+            fontFamily: 'Georgia, serif', fontStyle: 'italic',
+            textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+            marginTop: '6px',
+          }}>
+            {noonAnim.label}
+          </div>
+        </div>
+      )}
       <Canvas
         dpr={[1, 1.5]}
-        gl={{
-          antialias: false,
-          toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.5, 
-          powerPreference: 'high-performance',
-        }}
+        gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.5, powerPreference: 'high-performance' }}
         style={{ width: '100%', height: '100%' }}
+        onCreated={({ gl }) => { canvasRef.current = gl; }}
       >
         <PerspectiveCamera makeDefault position={[0, 6, 20]} fov={45} />
         <OrbitControls

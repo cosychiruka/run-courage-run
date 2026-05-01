@@ -33,7 +33,9 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
   const [audioLoaded, setAudioLoaded] = useState(false);
   const [showMusicTitle, setShowMusicTitle] = useState(false);
   const [minimizedMusic, setMinimizedMusic] = useState(false);
+  const canvasRef = useRef(null);
   const selfie = useSelfie();
+
 
   const { event, clearEvent, presenceCount } = useWorldEvents({
     world: 'sunrise',
@@ -41,6 +43,16 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
     state: { state: 'running' },
     intervalMs: 45_000,
   });
+
+  // Mobile GPU cleanup
+  useEffect(() => {
+    if (!visible && canvasRef.current) {
+      try {
+        canvasRef.current.renderLists?.dispose?.();
+        canvasRef.current.info?.reset?.();
+      } catch { /* silent */ }
+    }
+  }, [visible]);
 
   // Register selfie presence on activate + heartbeat every 2min
   useEffect(() => {
@@ -196,13 +208,9 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
       <WorldVoiceButton worldContext="sunrise" visible={visible} />
       <Canvas
         dpr={[1, 1.5]}
-        gl={{
-          antialias: false,
-          toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.2, 
-          powerPreference: 'high-performance',
-        }}
+        gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2, powerPreference: 'high-performance' }}
         style={{ width: '100%', height: '100%' }}
+        onCreated={({ gl }) => { canvasRef.current = gl; }}
       >
         <PerspectiveCamera makeDefault position={[0, 4, 22]} fov={45} />
         <OrbitControls
@@ -218,6 +226,7 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
           scene="sunrise"
           selfieFlyTexture={selfie.isActive ? selfie.texture : null}
           selfieFlyLabel={selfie.isActive ? selfie.label : ''}
+          eventLine={event?.action === 'thought_bubble' ? (event.message ?? '') : ''}
         />
       </Canvas>
     </div>

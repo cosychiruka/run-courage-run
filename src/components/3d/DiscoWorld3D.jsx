@@ -264,6 +264,9 @@ const DANCE_PATTERNS = [
   }),
 ];
 
+// Module-level mutable speed ref — updated by event without triggering re-render
+const _discoSpeedMult = { current: 1.0 };
+
 function DancingGhost({ position, offsetTime = 0, patternIdx = 0, selfieTexture = null, selfieLabel = '', isSelfie = false }) {
   const groupRef = useRef(null);
   const ghostMat = useMemo(() => new THREE.MeshStandardMaterial({ 
@@ -282,23 +285,24 @@ function DancingGhost({ position, offsetTime = 0, patternIdx = 0, selfieTexture 
 
   useFrame((state) => {
     if (!groupRef.current) return;
-    const t = state.clock.elapsedTime * 1.0 + offsetTime;
+    // speed driven by LLM disco event
+    const speed = _discoSpeedMult.current;
+    const t = state.clock.elapsedTime * speed + offsetTime;
     const pattern = DANCE_PATTERNS[patternIdx % DANCE_PATTERNS.length](t, basePos);
     const yBob = basePos[1] + Math.sin(t * 3 + offsetTime) * 0.25 + 0.1;
     groupRef.current.position.set(pattern.x, yBob, pattern.z);
     groupRef.current.rotation.y = pattern.ry;
-    const sy = pattern.scaleY;
+    const sy = speed === 0 ? 1 : pattern.scaleY;
     groupRef.current.scale.set(
       scale / Math.sqrt(sy),
       scale * sy,
       scale / Math.sqrt(sy)
     );
     if (!isSelfie) {
-      const hue = ((t * 0.15 + patternIdx * 0.2) % 1);
+      const hue = ((state.clock.elapsedTime * 0.15 + patternIdx * 0.2) % 1);
       ghostMat.emissive.setHSL(hue, 0.6, 0.5);
       ghostMat.emissiveIntensity = 0.6 + Math.sin(t * 6) * 0.3;
     } else {
-      // Selfie ghost pulses gold/pink
       const hue = 0.85 + Math.sin(t * 2) * 0.1;
       ghostMat.emissive.setHSL(hue, 1.0, 0.6);
       ghostMat.emissiveIntensity = 0.8 + Math.sin(t * 8) * 0.4;
@@ -391,6 +395,25 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
     120_000);
     return () => clearInterval(hb);
   }, [selfie.isActive, selfie.label]);
+
+  // Wire LLM event actions to ghost animation speed
+  useEffect(() => {
+    if (!event) return;
+    const SPEED_MAP = {
+      ghost_frenzy:  2.2,
+      speed_up:      1.6,
+      slow_down:     0.45,
+      freeze_frame:  0.0,
+      lights_out:    1.0,
+      color_shift:   1.0,
+      dj_shoutout:   1.0,
+    };
+    const mult = SPEED_MAP[event.action] ?? 1.0;
+    _discoSpeedMult.current = mult;
+    // Auto-restore speed after banner auto-clears (8s)
+    const restore = setTimeout(() => { _discoSpeedMult.current = 1.0; }, 9_000);
+    return () => clearTimeout(restore);
+  }, [event]);
 
   // Screenshot → share on X
   const handleScreenshot = useCallback(() => {
@@ -491,7 +514,15 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
         </div>
       )}
       <WorldVoiceButton worldContext="disco" visible={visible} />
-      <Canvas dpr={[1, 1.5]} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0, powerPreference: 'high-performance' }} style={{ width: '100%', height: '100%' }}>
+      <Canvas
+        dpr={[1, 1.5]}
+        gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0, powerPreference: 'high-performance' }}
+        style={{ width: '100%', height: '100%' }}
+        onCreated={({ gl }) => {
+          // Store gl so we can dispose on mobile when done
+          canvasRef.current = gl;
+        }}
+      >
 
         <PerspectiveCamera makeDefault position={[0, 5, 25]} fov={50} />
         <OrbitControls target={[0, 2, -5]} minDistance={5} maxDistance={60} minPolarAngle={Math.PI / 8} maxPolarAngle={Math.PI / 2} enablePan={true} />

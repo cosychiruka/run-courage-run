@@ -3930,3 +3930,18 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: 0.5; transform: scale(1.4); }
 }
+
+/* ── Noon Narrative Emoji Overlay ─────────────────────────────────────────── */
+@keyframes noonAnimIn {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(20px) scale(0.7); }
+  60%  { opacity: 1; transform: translateX(-50%) translateY(-6px)  scale(1.05); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1); }
+}
+
+/* ── Mobile canvas safety ─────────────────────────────────────────────────── */
+/* Prevent canvas from leaking memory by keeping it contained */
+.world3d-overlay canvas {
+  display: block;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
