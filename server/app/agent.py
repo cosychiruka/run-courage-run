@@ -28,7 +28,9 @@ async def _ollama_chat(messages: list[dict], use_tools: bool = True) -> dict:
         "stream":   False,
         "options":  {"num_ctx": 16384, "temperature": 0.72},
     }
-    if use_tools:
+    
+    # tinyllama does not support native tool calling
+    if use_tools and "tinyllama" not in OLLAMA_MODEL.lower():
         payload["tools"] = TOOL_SCHEMAS
 
     async with httpx.AsyncClient(timeout=CONTEXT_TIMEOUT) as client:
