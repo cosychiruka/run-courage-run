@@ -4,6 +4,7 @@ import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 import { Scene } from './Scene3D';
 import { audioManager } from '../../utils/audioManager';
+import WorldVoiceButton from '../WorldVoiceButton';
 
 /**
  * Fires onReady() on the very first rendered frame — signals to the parent
@@ -195,6 +196,7 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
           </button>
         </div>
       )}
+      <WorldVoiceButton worldContext="noon" visible={visible} />
       <Canvas
         dpr={[1, 1.5]}
         gl={{

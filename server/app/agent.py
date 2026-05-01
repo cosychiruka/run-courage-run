@@ -66,6 +66,7 @@ async def run_agent(
     history: list[dict],
     x_client=None,
     tweet_image_fn=None,
+    world_context: Optional[str] = None,
 ) -> str:
     """
     Run the full Courage agent for one user turn.
@@ -73,7 +74,7 @@ async def run_agent(
     """
     # Build system prompt with recent news injected
     recent_articles = await get_all_recent(limit=8)
-    system = build_context_prompt(recent_articles)
+    system = build_context_prompt(recent_articles, world_context=world_context)
 
     messages = [
         {"role": "system", "content": system},

@@ -8,6 +8,7 @@ import { audioManager } from '../../utils/audioManager';
 import courageDancingGif from '../../assets/images/Courage.gif';
 import { useSelfie } from '../../hooks/useSelfie';
 import SelfieUI from '../SelfieUI';
+import WorldVoiceButton from '../WorldVoiceButton';
 
 const MemoHouse = React.memo(House);
 
@@ -462,6 +463,7 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
         fabRight="110px"
         onScreenshot={handleScreenshot}
       />
+      <WorldVoiceButton worldContext="disco" visible={visible} />
       <Canvas dpr={[1, 1.5]} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0, powerPreference: 'high-performance' }} style={{ width: '100%', height: '100%' }}>
 
         <PerspectiveCamera makeDefault position={[0, 5, 25]} fov={50} />

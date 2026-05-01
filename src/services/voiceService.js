@@ -21,6 +21,7 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
   let audioCtx = null;
   let stream = null;
   let connected = false;
+  let _worldContext = null;  // set by setWorldContext() or stop(worldContext)
 
   // ── WebSocket management ───────────────────────────────────────────────────
 
@@ -191,12 +192,17 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
     await _startRecording();
   }
 
-  async function stop() {
+  async function stop(worldContext) {
     await _stopRecording();
     onState?.('thinking');
+    const ctx = worldContext ?? _worldContext;
     if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'voice_end' }));
+      ws.send(JSON.stringify({ type: 'voice_end', ...(ctx ? { world_context: ctx } : {}) }));
     }
+  }
+
+  function setWorldContext(ctx) {
+    _worldContext = ctx;
   }
 
   function destroy() {
@@ -209,5 +215,5 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
     connected = false;
   }
 
-  return { start, stop, destroy };
+  return { start, stop, destroy, setWorldContext };
 }

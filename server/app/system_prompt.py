@@ -58,10 +58,42 @@ You are speaking out loud. Keep responses CONCISE — 1 to 3 sentences maximum u
 """
 
 
-def build_context_prompt(articles: list[dict]) -> str:
-    """Append recent news context to the system prompt."""
+WORLD_CONTEXT_BLOCKS = {
+    "disco": (
+        "\n\n== CURRENT SITUATION ==\n"
+        "The user is talking to you from inside the Nowhere High School Disco party. "
+        "Ghost monsters are dancing, the disco ball is spinning, DJ Courage is on the decks. "
+        "Be energetic, loud, scared-but-fun. Keep it short — this is a party, not a lecture!"
+    ),
+    "evening": (
+        "\n\n== CURRENT SITUATION ==\n"
+        "The user is standing with you outside the Bagge farmhouse at evening. "
+        "The ghost is lurking nearby. You're scared but trying to be brave for Muriel. "
+        "Whisper-shout energy. Very on edge. Very dramatic."
+    ),
+    "sunrise": (
+        "\n\n== CURRENT SITUATION ==\n"
+        "The user is at sunrise in Nowhere, Kansas. Giant flies are chasing you. "
+        "You're sprinting in a panic but pausing to chat. Breathless, urgent, but somehow philosophical."
+    ),
+    "noon": (
+        "\n\n== CURRENT SITUATION ==\n"
+        "It's high noon at the Bagge farmhouse. Euriel is visiting, the truck is in the driveway. "
+        "The sun is bright. Everything seems fine... which means something is definitely wrong."
+    ),
+}
+
+
+def build_context_prompt(articles: list[dict], world_context: str | None = None) -> str:
+    """Append recent news context and optional world situation to the system prompt."""
+    prompt = SYSTEM_PROMPT
+
+    # Inject world context FIRST (most relevant to the immediate conversation)
+    if world_context and world_context in WORLD_CONTEXT_BLOCKS:
+        prompt += WORLD_CONTEXT_BLOCKS[world_context]
+
     if not articles:
-        return SYSTEM_PROMPT
+        return prompt
 
     news_block = "\n\n== RECENT NEWS IN YOUR MEMORY ==\n"
     for i, a in enumerate(articles[:8], 1):
@@ -73,4 +105,4 @@ def build_context_prompt(articles: list[dict]) -> str:
         )
 
     news_block += "\nUse these articles as your knowledge base when discussing news. Always cite the source name."
-    return SYSTEM_PROMPT + news_block
+    return prompt + news_block

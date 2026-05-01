@@ -6,6 +6,7 @@ import { Scene } from './Scene3D';
 import { audioManager } from '../../utils/audioManager';
 import { useSelfie } from '../../hooks/useSelfie';
 import SelfieUI from '../SelfieUI';
+import WorldVoiceButton from '../WorldVoiceButton';
 
 /**
  * Fires onReady() on the very first rendered frame — signals to the parent
@@ -127,82 +128,8 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
           </div>
         </div>
       )}
-      <style>{`
-        .music-now-playing {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: rgba(15, 15, 25, 0.85);
-          backdrop-filter: blur(12px);
-          padding: 25px 45px;
-          border-radius: 50px;
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          color: white;
-          display: flex;
-          align-items: center;
-          gap: 24px;
-          z-index: 1000;
-          transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
-          box-shadow: 0 15px 40px rgba(0,0,0,0.6);
-          animation: popInMusic 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-          pointer-events: none;
-        }
-        .music-now-playing.minimized {
-          top: unset;
-          bottom: 30px;
-          left: 30px;
-          transform: none;
-          padding: 12px 24px;
-          border-radius: 20px;
-          gap: 15px;
-          background: rgba(10, 10, 18, 0.9);
-          box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-          pointer-events: all;
-          cursor: pointer;
-        }
-        @media (max-width: 768px) {
-          .music-now-playing.minimized {
-            left: 5vw;
-            margin-left: 15px;
-          }
-        }
-        .music-now-playing.minimized:hover {
-          background: rgba(30, 30, 45, 0.95);
-          transform: translateY(-2px);
-        }
-        .music-now-playing.minimized .music-icon { font-size: 1.5rem; }
-        .music-now-playing.minimized .music-label { font-size: 0.7rem; }
-        .music-now-playing.minimized .music-title { font-size: 1rem; }
-        .music-icon {
-          font-size: 3.5rem;
-          transition: font-size 0.8s ease;
-        }
-        .music-details {
-          display: flex;
-          flex-direction: column;
-        }
-        .music-label {
-          font-size: 1.1rem;
-          color: #ffaa44;
-          text-transform: uppercase;
-          letter-spacing: 3px;
-          margin-bottom: 2px;
-          transition: all 0.8s ease;
-        }
-        .music-title {
-          font-size: 2.2rem;
-          font-weight: 900;
-          transition: all 0.8s ease;
-          white-space: nowrap;
-          text-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-        @keyframes popInMusic {
-          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
-          100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        }
-      `}</style>
-      
+
+
       {visible && (
         <div className="world3d-music-controls">
           <button 
@@ -236,9 +163,10 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
         worldName="Sunrise World"
         monsterName="Giant Fly"
         monsterEmoji="🪰"
-        fabRight="110px"
+        fabRight="180px"
         onScreenshot={handleScreenshot}
       />
+      <WorldVoiceButton worldContext="sunrise" visible={visible} />
       <Canvas
         dpr={[1, 1.5]}
         gl={{

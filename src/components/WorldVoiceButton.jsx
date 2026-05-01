@@ -1,0 +1,167 @@
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { createVoiceService } from '../../services/voiceService';
+
+/**
+ * WorldVoiceButton — context-aware mic button for the 3D worlds.
+ *
+ * Props:
+ *   worldContext  string  — 'disco' | 'evening' | 'sunrise' | 'noon'
+ *   visible       bool    — only render when the world is open
+ *
+ * Renders a floating microphone FAB in the bottom-right corner.
+ * Hold to record, release to send.  Courage's reply plays as TTS audio.
+ */
+
+const STATE_COLORS = {
+  idle:      'linear-gradient(135deg, #6600cc 0%, #cc00ff 100%)',
+  listening: 'linear-gradient(135deg, #cc0000 0%, #ff3333 100%)',
+  thinking:  'linear-gradient(135deg, #cc6600 0%, #ff9900 100%)',
+  speaking:  'linear-gradient(135deg, #006600 0%, #00cc44 100%)',
+};
+
+const STATE_EMOJI = {
+  idle:      '🎙️',
+  listening: '🔴',
+  thinking:  '🤔',
+  speaking:  '🐕',
+};
+
+const STATE_LABEL = {
+  idle:      'Talk to Courage',
+  listening: 'Listening...',
+  thinking:  'Thinking...',
+  speaking:  'Courage says...',
+};
+
+export default function WorldVoiceButton({ worldContext, visible }) {
+  const [voiceState, setVoiceState] = useState('idle');
+  const [transcript, setTranscript] = useState('');
+  const [reply, setReply] = useState('');
+  const [error, setError] = useState('');
+  const [expanded, setExpanded] = useState(false);
+  const svcRef = useRef(null);
+  const holdingRef = useRef(false);
+
+  // Build service once
+  useEffect(() => {
+    const svc = createVoiceService({
+      onState:      (s) => setVoiceState(s),
+      onTranscript: (t) => { setTranscript(t); setExpanded(true); },
+      onReply:      (r) => { setReply(r); setExpanded(true); },
+      onAudio:      () => {},
+      onError:      (e) => { setError(e); setVoiceState('idle'); },
+    });
+    svc.setWorldContext(worldContext);
+    svcRef.current = svc;
+    return () => svc.destroy();
+  }, []); // eslint-disable-line
+
+  // Update context if world changes
+  useEffect(() => {
+    svcRef.current?.setWorldContext(worldContext);
+  }, [worldContext]);
+
+  const handlePress = useCallback(async () => {
+    if (holdingRef.current) return;
+    holdingRef.current = true;
+    setError('');
+    setTranscript('');
+    setReply('');
+    setExpanded(false);
+    try {
+      await svcRef.current?.start();
+    } catch (e) {
+      setError('Mic error — allow microphone access');
+      holdingRef.current = false;
+    }
+  }, []);
+
+  const handleRelease = useCallback(async () => {
+    if (!holdingRef.current) return;
+    holdingRef.current = false;
+    try {
+      await svcRef.current?.stop(worldContext);
+    } catch (e) {
+      setError('Send error');
+      setVoiceState('idle');
+    }
+  }, [worldContext]);
+
+  if (!visible) return null;
+
+  const isBusy = voiceState !== 'idle';
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: '30px', right: '20px',
+      display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px',
+      zIndex: 1001, userSelect: 'none',
+    }}>
+      {/* Transcript + Reply bubble */}
+      {expanded && (transcript || reply || error) && (
+        <div style={{
+          background: 'rgba(10,0,20,0.95)', backdropFilter: 'blur(12px)',
+          border: '2px solid rgba(150,0,255,0.6)', borderRadius: '16px',
+          padding: '14px 18px', maxWidth: '300px', color: '#fff',
+          boxShadow: '0 4px 20px rgba(120,0,255,0.3)',
+          animation: 'selfieButtonPulse 0s', // reuse existing keyframe name just for entrance
+        }}>
+          {transcript && (
+            <div style={{ fontSize: '0.8rem', color: '#aaa', marginBottom: '6px' }}>
+              <span style={{ color: '#9933ff' }}>You:</span> {transcript}
+            </div>
+          )}
+          {reply && (
+            <div style={{ fontSize: '0.9rem', lineHeight: 1.5 }}>
+              <span style={{ color: '#cc66ff' }}>🐕 Courage:</span> {reply}
+            </div>
+          )}
+          {error && (
+            <div style={{ fontSize: '0.8rem', color: '#ff6666' }}>⚠️ {error}</div>
+          )}
+          <button
+            onClick={() => setExpanded(false)}
+            style={{
+              position: 'absolute', top: '6px', right: '10px',
+              background: 'none', border: 'none', color: '#666',
+              cursor: 'pointer', fontSize: '0.8rem',
+            }}
+          >✕</button>
+        </div>
+      )}
+
+      {/* Mic FAB */}
+      <button
+        onMouseDown={handlePress}
+        onMouseUp={handleRelease}
+        onTouchStart={(e) => { e.preventDefault(); handlePress(); }}
+        onTouchEnd={(e) => { e.preventDefault(); handleRelease(); }}
+        disabled={voiceState === 'thinking' || voiceState === 'speaking'}
+        title={STATE_LABEL[voiceState]}
+        style={{
+          width: '58px', height: '58px', borderRadius: '50%',
+          background: STATE_COLORS[voiceState] || STATE_COLORS.idle,
+          border: voiceState === 'listening' ? '3px solid #fff' : '3px solid rgba(255,255,255,0.3)',
+          cursor: isBusy && voiceState !== 'listening' ? 'wait' : 'pointer',
+          fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: voiceState === 'listening'
+            ? '0 0 0 8px rgba(255,0,0,0.25), 0 6px 20px rgba(0,0,0,0.5)'
+            : '0 6px 20px rgba(0,0,0,0.4)',
+          transition: 'all 0.2s ease',
+          animation: voiceState === 'listening' ? 'selfieSpinner 2s linear infinite' : 'none',
+        }}
+      >
+        {STATE_EMOJI[voiceState]}
+      </button>
+
+      {/* Label */}
+      <div style={{
+        fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)',
+        textAlign: 'center', fontFamily: '"Comic Sans MS", cursive',
+        textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+      }}>
+        {STATE_LABEL[voiceState]}
+      </div>
+    </div>
+  );
+}

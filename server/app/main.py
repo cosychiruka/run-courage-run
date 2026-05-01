@@ -2,15 +2,19 @@
 main.py — FastAPI application: voice WebSocket, REST endpoints, APScheduler.
 
 Endpoints:
-  GET  /health          — liveness check
-  WS   /ws/voice        — full voice chat pipeline (audio in → audio out)
-  POST /api/render_card — render a news article as PNG (for tweet image preview)
-  GET  /api/news        — latest cached news articles (for frontend sync)
+  GET  /health               — liveness check
+  WS   /ws/voice             — full voice chat pipeline (audio in → audio out)
+  POST /api/render_card      — render a news article as PNG
+  GET  /api/news             — latest cached news articles
+  POST /api/world/event      — LLM decides a world event given world state
+  POST /api/world/presence   — lightweight monster selfie session presence
+  GET  /api/world/presence   — get active monsters in a world
 """
 
 import json
 import base64
 import asyncio
+import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -229,6 +233,8 @@ async def voice_ws(ws: WebSocket):
                 if kind == "voice_end" and audio_buffer:
                     raw_audio = bytes(audio_buffer)
                     audio_buffer.clear()
+                    # Optional world context sent from the frontend
+                    world_context = data.get("world_context", None)
 
                     # 1. Transcribe
                     try:
@@ -246,13 +252,14 @@ async def voice_ws(ws: WebSocket):
                     await ws.send_text(json.dumps({"type": "transcript", "text": transcript}))
                     await ws.send_text(json.dumps({"type": "thinking"}))
 
-                    # 2. Agent
+                    # 2. Agent (with optional world context injected)
                     try:
                         reply = await run_agent(
                             user_message=transcript,
                             history=history,
                             x_client=x_client,
                             tweet_image_fn=_tweet_image_fn,
+                            world_context=world_context,
                         )
                     except Exception as e:
                         err_msg = "The things I do for you people... something went wrong on my end."
@@ -286,7 +293,133 @@ async def voice_ws(ws: WebSocket):
         except Exception:
             pass
 
-# ── Static Files (Frontend) ──────────────────────────────────────────────────
+
+# ── World Event Engine ─────────────────────────────────────────────────────────
+# The LLM acts as an invisible director, periodically deciding what happens in
+# each 3D world.  Returns a structured JSON action the frontend can apply.
+
+WORLD_EVENT_PROMPTS = {
+    "disco": (
+        "You are the invisible DJ brain of the Nowhere High School Disco. "
+        "The party has been running for {elapsed}s. Current ghost count: {ghost_count}. "
+        "Decide ONE event. Respond ONLY with valid JSON, no markdown:\n"
+        "{\"action\": \"<one of: speed_up|slow_down|color_shift|ghost_frenzy|freeze_frame|lights_out|dj_shoutout>\","
+        " \"message\": \"<short funny DJ announcement, max 12 words>\","
+        " \"hue\": <0.0-1.0 for color_shift only, else null>}"
+    ),
+    "evening": (
+        "You are the ghost haunting the Bagge farmhouse at evening in Nowhere, Kansas. "
+        "Courage the dog has been watching you for {elapsed}s. You feel {mood}. "
+        "Decide your next move. Respond ONLY with valid JSON:\n"
+        "{\"action\": \"<one of: retreat|advance|hide|call_friends|taunt|disappear>\","
+        " \"message\": \"<what the ghost rasps aloud, max 10 words, spooky>\"}"
+    ),
+    "sunrise": (
+        "You are narrating Courage's inner thoughts at sunrise. {elapsed}s have passed. "
+        "Courage is {state}. "
+        "Write a poetic internal thought bubble. Respond ONLY with valid JSON:\n"
+        "{\"action\": \"thought_bubble\","
+        " \"message\": \"<Courage's thought, max 14 words, anxious but brave>\"}"
+    ),
+    "noon": (
+        "You are narrating the Noon world. Euriel just {euriel_state}. Courage has been watching for {elapsed}s. "
+        "Decide a small narrative moment. Respond ONLY with valid JSON:\n"
+        "{\"action\": \"<one of: courage_sniff|courage_bark|leaf_blows|bird_lands|cloud_shadow>\","
+        " \"message\": \"<brief narrator note, max 10 words>\"}"
+    ),
+}
+
+@app.post("/api/world/event")
+async def world_event(payload: dict):
+    """
+    Body: { "world": "disco"|"evening"|"sunrise"|"noon", "state": {...} }
+    Returns: { "action": "...", "message": "...", ... }
+    LLM picks the next world event.  Falls back to a random safe default.
+    """
+    world = payload.get("world", "evening")
+    state = payload.get("state", {})
+
+    template = WORLD_EVENT_PROMPTS.get(world, WORLD_EVENT_PROMPTS["evening"])
+    try:
+        prompt = template.format(**{**{"elapsed": 30, "ghost_count": 5, "mood": "mischievous",
+                                       "state": "running", "euriel_state": "left"}, **state})
+    except KeyError:
+        prompt = template
+
+    import httpx
+    from app.config import OLLAMA_HOST, OLLAMA_MODEL
+    messages = [
+        {"role": "system", "content": "You are a world event director. Output ONLY valid JSON. No extra text."},
+        {"role": "user", "content": prompt},
+    ]
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.post(f"{OLLAMA_HOST}/api/chat", json={
+                "model": OLLAMA_MODEL, "messages": messages,
+                "stream": False, "options": {"temperature": 0.9, "num_ctx": 1024},
+            })
+            r.raise_for_status()
+            raw = r.json().get("message", {}).get("content", "{}").strip()
+            # Strip markdown fences if present
+            if raw.startswith("```"):
+                raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+            return JSONResponse(json.loads(raw))
+    except Exception as e:
+        # Fallback safe defaults per world
+        defaults = {
+            "disco": {"action": "dj_shoutout", "message": "Nowhere High is ON FIRE tonight!", "hue": None},
+            "evening": {"action": "taunt", "message": "Mwahahaha... I see you, pink dog."},
+            "sunrise": {"action": "thought_bubble", "message": "What's out there... I'll face it anyway."},
+            "noon": {"action": "leaf_blows", "message": "A warm Kansas breeze drifts by."},
+        }
+        return JSONResponse(defaults.get(world, {"action": "idle", "message": "..."}))
+
+
+# ── World Presence (Monster Selfie sessions) ───────────────────────────────────
+# In-memory store — no DB needed for MVP.  Auto-expires after 10 min.
+
+_world_presence: dict = {}  # { world: { uid: { name, last_seen, emoji } } }
+_PRESENCE_TTL = 600  # 10 minutes
+
+
+@app.post("/api/world/presence")
+async def update_presence(payload: dict):
+    """Register or refresh a monster selfie presence session."""
+    world = payload.get("world", "disco")
+    uid   = payload.get("uid", "anon")
+    name  = payload.get("name", "Anonymous Monster")
+    emoji = payload.get("emoji", "👻")
+
+    if world not in _world_presence:
+        _world_presence[world] = {}
+
+    _world_presence[world][uid] = {
+        "name": name, "emoji": emoji, "last_seen": time.time()
+    }
+    # Prune expired entries
+    now = time.time()
+    _world_presence[world] = {
+        k: v for k, v in _world_presence[world].items()
+        if now - v["last_seen"] < _PRESENCE_TTL
+    }
+    return JSONResponse({"ok": True, "active": len(_world_presence[world])})
+
+
+@app.get("/api/world/presence")
+async def get_presence(world: str = "disco"):
+    """Return all active monster selfie sessions in a world."""
+    sessions = _world_presence.get(world, {})
+    now = time.time()
+    active = [
+        {"uid": k, "name": v["name"], "emoji": v["emoji"],
+         "seconds_ago": int(now - v["last_seen"])}
+        for k, v in sessions.items()
+        if now - v["last_seen"] < _PRESENCE_TTL
+    ]
+    return JSONResponse(active)
+
+
+# ── Static Files (Frontend) ───────────────────────────────────────────────────
 # Mount the built React app. Serve index.html for any unknown paths (SPA)
 
 if os.path.exists("/app/static"):
