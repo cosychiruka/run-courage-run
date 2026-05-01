@@ -14,7 +14,7 @@ const MemoWindmill = memo(Windmill);
 const MemoTruck = memo(Truck);
 const MemoTerrain = memo(Terrain);
 
-function GiantFly({ courageRef, sequenceRef, sequenceStartTime, offsetTime = 0, offsetPosition = [0, 0, 0], visible = true, phase = 0 }) {
+function GiantFly({ courageRef, sequenceRef, sequenceStartTime, offsetTime = 0, offsetPosition = [0, 0, 0], visible = true, phase = 0, selfieTexture = null, selfieLabel = '', isSelfie = false }) {
   const groupRef = useRef(null);
   const leftWingRef = useRef(null);
   const rightWingRef = useRef(null);
@@ -25,8 +25,15 @@ function GiantFly({ courageRef, sequenceRef, sequenceStartTime, offsetTime = 0, 
   }), []);
 
   const wingMat = useMemo(() => new THREE.MeshBasicMaterial({ 
-    color: '#bed2ff', transparent: true, opacity: 0.6, side: THREE.DoubleSide
-  }), []);
+    color: isSelfie ? '#aaffcc' : '#bed2ff', transparent: true, opacity: 0.6, side: THREE.DoubleSide
+  }), [isSelfie]);
+
+  const selfieMat = useMemo(() => selfieTexture
+    ? new THREE.MeshStandardMaterial({ map: selfieTexture, roughness: 0.5 })
+    : null,
+  [selfieTexture]);
+
+  const haloMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#00ff88', wireframe: true }), []);
 
   const wingGeo = useMemo(() => new THREE.CircleGeometry(0.6, 16), []);
   const eyeMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ff3c00' }), []);
@@ -34,39 +41,32 @@ function GiantFly({ courageRef, sequenceRef, sequenceStartTime, offsetTime = 0, 
   useFrame((state) => {
     if (groupRef.current && courageRef.current) {
       if (leftWingRef.current && rightWingRef.current) {
-         // Intense wing flap
          const flap = Math.sin(state.clock.elapsedTime * 60) * 0.8;
          leftWingRef.current.rotation.x = flap;
          rightWingRef.current.rotation.x = -flap;
-         
-         // Wobble the entire fly
          groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 10 + offsetTime) * 0.2;
          groupRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 15 + offsetTime) * 0.1;
       }
 
       let targetX, targetY, targetZ;
-      // Phase mappings: 
-      // -1, 0: inside house, 1, 2, 3: Sequence 0 chase. 4, 5: Sequence 1 Fakeout
       if (sequenceRef?.current === 1) {
         if (phase === 4) {
-           // Flies blindly fly diagonally across screen tracking fake path
            const pathT = state.clock.elapsedTime - sequenceStartTime - 7;
            const fakeT = THREE.MathUtils.clamp((pathT - 5) / 10, 0, 1);
            targetX = THREE.MathUtils.lerp(-2.5, 35, fakeT) + offsetPosition[0];
            targetY = THREE.MathUtils.lerp(2.5, 10, fakeT) + offsetPosition[1];
            targetZ = THREE.MathUtils.lerp(1, 15, fakeT) + offsetPosition[2];
-           if (visible) groupRef.current.scale.setScalar(1);
+           if (visible) groupRef.current.scale.setScalar(isSelfie ? 1.4 : 1);
         } else {
            groupRef.current.scale.setScalar(0); 
            targetX = 0; targetY=0; targetZ=0;
         }
       } else {
         if (phase === 1 || phase === 2 || phase === 3) {
-           // Chase Courage directly
            targetX = courageRef.current.position.x + offsetPosition[0];
            targetY = 2 + offsetPosition[1];
            targetZ = courageRef.current.position.z + offsetPosition[2];
-           if (visible) groupRef.current.scale.setScalar(1);
+           if (visible) groupRef.current.scale.setScalar(isSelfie ? 1.4 : 1);
         } else {
            groupRef.current.scale.setScalar(0);
            targetX = 0; targetY=0; targetZ=0;
@@ -74,7 +74,6 @@ function GiantFly({ courageRef, sequenceRef, sequenceStartTime, offsetTime = 0, 
       }
       groupRef.current.position.lerp(scratchVec1.set(targetX, targetY, targetZ), 0.1);
       
-      // Calculate look direction but keep flies relatively flat
       scratchVec1.copy(state.camera.position);
       scratchVec1.y = groupRef.current.position.y;
       groupRef.current.lookAt(scratchVec1);
@@ -83,7 +82,7 @@ function GiantFly({ courageRef, sequenceRef, sequenceStartTime, offsetTime = 0, 
 
   return (
     <group ref={groupRef} visible={visible} scale={visible ? 1 : 0.001}>
-      <pointLight color="#ff3c00" intensity={0.5} distance={5} />
+      <pointLight color={isSelfie ? '#00ff88' : '#ff3c00'} intensity={isSelfie ? 1.5 : 0.5} distance={5} />
       {/* Body */}
       <mesh position={[0, 0, 0]} rotation={[Math.PI/2, 0, 0]}>
         <capsuleGeometry args={[0.3, 0.6, 4, 8]} />
@@ -102,9 +101,43 @@ function GiantFly({ courageRef, sequenceRef, sequenceStartTime, offsetTime = 0, 
             <primitive object={wingMat} attach="material" />
          </mesh>
       </group>
-      {/* Eyes */}
-      <mesh position={[-0.15, 0.2, 0.4]}><sphereGeometry args={[0.15, 8, 8]} /><primitive object={eyeMat} attach="material" /></mesh>
-      <mesh position={[0.15, 0.2, 0.4]}><sphereGeometry args={[0.15, 8, 8]} /><primitive object={eyeMat} attach="material" /></mesh>
+      {/* Head: selfie face OR default bug eyes */}
+      {selfieMat ? (
+        <>
+          {/* Selfie face sphere replacing the head */}
+          <mesh position={[0, 0.55, 0.3]}>
+            <sphereGeometry args={[0.42, 16, 16]} />
+            <primitive object={selfieMat} attach="material" />
+          </mesh>
+          {/* Green halo ring */}
+          <mesh position={[0, 0.55, 0.3]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.55, 0.055, 8, 24]} />
+            <primitive object={haloMat} attach="material" />
+          </mesh>
+          {/* Floating nametag */}
+          <Html position={[0, 1.3, 0]} center sprite>
+            <div style={{
+              background: 'linear-gradient(135deg, #00cc44, #00aaff)',
+              color: '#fff',
+              fontFamily: '"Comic Sans MS", cursive',
+              fontWeight: 900,
+              fontSize: '18px',
+              padding: '5px 12px',
+              borderRadius: '18px',
+              border: '2px solid #fff',
+              boxShadow: '0 3px 0 rgba(0,0,0,0.4), 0 0 16px rgba(0,255,100,0.8)',
+              whiteSpace: 'nowrap',
+            }}>
+              🪰 {selfieLabel || 'YOU'}
+            </div>
+          </Html>
+        </>
+      ) : (
+        <>
+          <mesh position={[-0.15, 0.2, 0.4]}><sphereGeometry args={[0.15, 8, 8]} /><primitive object={eyeMat} attach="material" /></mesh>
+          <mesh position={[0.15, 0.2, 0.4]}><sphereGeometry args={[0.15, 8, 8]} /><primitive object={eyeMat} attach="material" /></mesh>
+        </>
+      )}
     </group>
   );
 }
@@ -245,7 +278,7 @@ function EveningStoryController() {
   );
 }
 
-function SunriseStoryController() {
+function SunriseStoryController({ selfieFlyTexture = null, selfieFlyLabel = '' }) {
   const courageRef = useRef(null);
   const houseRef = useRef(null);
   const [doorOpen, setDoorOpen] = useState(false);
@@ -362,7 +395,19 @@ function SunriseStoryController() {
       <group>
          <GiantFly courageRef={courageRef} sequenceRef={seqRef} sequenceStartTime={startTimeRef.current} offsetPosition={[-1, 0.5, -1]} offsetTime={0} visible={phase > 0} phase={phase} />
          <GiantFly courageRef={courageRef} sequenceRef={seqRef} sequenceStartTime={startTimeRef.current} offsetPosition={[-2, 1.5, -2]} offsetTime={2} visible={phase > 0} phase={phase} />
-         <GiantFly courageRef={courageRef} sequenceRef={seqRef} sequenceStartTime={startTimeRef.current} offsetPosition={[-3, 2.5, -0.5]} offsetTime={4} visible={phase > 0} phase={phase} />
+         {/* Fly 3: selfie fly when active, otherwise NPC */}
+         <GiantFly
+           courageRef={courageRef}
+           sequenceRef={seqRef}
+           sequenceStartTime={startTimeRef.current}
+           offsetPosition={[-3, 2.5, -0.5]}
+           offsetTime={4}
+           visible={phase > 0}
+           phase={phase}
+           selfieTexture={selfieFlyTexture}
+           selfieLabel={selfieFlyLabel}
+           isSelfie={!!selfieFlyTexture}
+         />
       </group>
     </group>
   );
@@ -441,7 +486,7 @@ function StylizedCloud({ position, scale = 1, opacity = 0.5, speed = 0.05, morni
   );
 }
 
-export function Scene({ scene = 'evening', showStory = true }) {
+export function Scene({ scene = 'evening', showStory = true, selfieFlyTexture = null, selfieFlyLabel = '' }) {
   const isSunrise = scene === 'sunrise';
   const isNoon = scene === 'noon';
   const ambientColor = isNoon ? '#fff9e6' : isSunrise ? '#88ccff' : '#bd80e8';
@@ -533,7 +578,7 @@ export function Scene({ scene = 'evening', showStory = true }) {
         <MemoTerrain scene={scene} />
         {showStory && (
           scene === 'noon' ? <NoonStoryController /> :
-          scene === 'sunrise' ? <SunriseStoryController /> : <EveningStoryController />
+          scene === 'sunrise' ? <SunriseStoryController selfieFlyTexture={selfieFlyTexture} selfieFlyLabel={selfieFlyLabel} /> : <EveningStoryController />
         )}
       </group>
     </>

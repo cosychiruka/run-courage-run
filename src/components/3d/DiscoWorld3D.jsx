@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Html, SpotLight } from '@react-three/drei';
 import * as THREE from 'three';
@@ -6,6 +6,8 @@ import { Scene } from './Scene3D';
 import { House } from './House3D';
 import { audioManager } from '../../utils/audioManager';
 import courageDancingGif from '../../assets/images/Courage.gif';
+import { useSelfie } from '../../hooks/useSelfie';
+import SelfieUI from '../SelfieUI';
 
 const MemoHouse = React.memo(House);
 
@@ -366,70 +368,31 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
   const [currentTrackIdx, setCurrentTrackIdx] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
 
-  // ── Monster Selfie state ──────────────────────────────────────────────────
-  const [selfiePhase, setSelfiePhase] = useState('idle'); // idle | picker | processing | active | removing
-  const [selfieTexture, setSelfieTexture] = useState(null);
-  const [selfieLabel, setSelfieLabel] = useState('');
-  const [selfieNameInput, setSelfieNameInput] = useState('');
-  const [selfiePreviewUrl, setSelfiePreviewUrl] = useState(null);
-  const fileInputRef = useRef(null);
-  const selfieAutoRemoveRef = useRef(null);
+  const selfie = useSelfie();
+  const canvasRef = useRef(null);
 
-  // Face-center crop: squash image into a square centered canvas texture
-  const processSelfieImage = (file) => {
-    setSelfiePhase('processing');
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const size = 256;
-      const canvas = document.createElement('canvas');
-      canvas.width = size; canvas.height = size;
-      const ctx = canvas.getContext('2d');
-      // Cartoon pink ghost border
-      ctx.fillStyle = '#ff99dd';
-      ctx.beginPath(); ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2); ctx.fill();
-      // Crop face: take center square of the image
-      const srcSize = Math.min(img.width, img.height);
-      const srcX = (img.width - srcSize) / 2;
-      const srcY = (img.height - srcSize) * 0.3; // slightly above center to hit face
-      ctx.save();
-      ctx.beginPath(); ctx.arc(size/2, size/2, size/2 - 8, 0, Math.PI * 2); ctx.clip();
-      ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, size, size);
-      ctx.restore();
-      // Cartoon outline ring
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 10;
-      ctx.beginPath(); ctx.arc(size/2, size/2, size/2 - 5, 0, Math.PI * 2); ctx.stroke();
-      ctx.strokeStyle = '#ff00cc'; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.arc(size/2, size/2, size/2 - 2, 0, Math.PI * 2); ctx.stroke();
-      URL.revokeObjectURL(url);
-      setSelfiePreviewUrl(canvas.toDataURL());
-      const tex = new THREE.CanvasTexture(canvas);
-      tex.needsUpdate = true;
-      setSelfieTexture(tex);
-      setSelfiePhase('confirm');
-    };
-    img.src = url;
-  };
-
-  const activateSelfie = () => {
-    setSelfieLabel(selfieNameInput.trim() || 'YOU');
-    setSelfiePhase('active');
-    // Auto-remove after 10 minutes
-    clearTimeout(selfieAutoRemoveRef.current);
-    selfieAutoRemoveRef.current = setTimeout(() => removeSelfie(), 10 * 60 * 1000);
-  };
-
-  const removeSelfie = () => {
-    setSelfiePhase('removing');
-    clearTimeout(selfieAutoRemoveRef.current);
-    setTimeout(() => {
-      setSelfieTexture(null);
-      setSelfieLabel('');
-      setSelfieNameInput('');
-      setSelfiePreviewUrl(null);
-      setSelfiePhase('idle');
-    }, 600);
-  };
+  // Screenshot → share on X
+  const handleScreenshot = useCallback(() => {
+    // Find the WebGL canvas, grab it as PNG, open X share dialog
+    const glCanvas = document.querySelector('.world3d-overlay canvas');
+    if (!glCanvas) return;
+    try {
+      const dataUrl = glCanvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = 'monster-selfie-disco.png';
+      link.href = dataUrl;
+      link.click();
+      // Open X share intent after short delay
+      setTimeout(() => {
+        const text = encodeURIComponent(`👻 I became a Monster at the Nowhere High School Disco with @CourageMemeSOL! #CourageRunRun #MonsterSelfie #Web3`);
+        window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+      }, 800);
+    } catch (e) {
+      // Canvas CORS — fallback to just opening X with text
+      const text = encodeURIComponent(`👻 I became a Monster at the Nowhere High School Disco with @CourageMemeSOL! #CourageRunRun #MonsterSelfie`);
+      window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+    }
+  }, []);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && visible) onClose(); };
@@ -490,145 +453,15 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
          </div>
       )}
 
-      {/* ── Monster Selfie hidden file input ─────────────────────────────── */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        capture="user"
-        style={{ display: 'none' }}
-        onChange={(e) => { if (e.target.files?.[0]) processSelfieImage(e.target.files[0]); }}
+      <SelfieUI
+        selfie={selfie}
+        visible={visible}
+        worldName="Nowhere High School Disco"
+        monsterName="Monster"
+        monsterEmoji="👻"
+        fabRight="110px"
+        onScreenshot={handleScreenshot}
       />
-
-      {/* ── Monster Selfie FAB button (idle) ─────────────────────────────── */}
-      {visible && selfiePhase === 'idle' && (
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          style={{
-            position: 'fixed', bottom: '30px', right: '110px',
-            background: 'linear-gradient(135deg, #ff00cc 0%, #ff6600 100%)',
-            border: '3px solid #fff', borderRadius: '50px',
-            padding: '12px 22px', cursor: 'pointer', zIndex: 1000,
-            fontFamily: '"Comic Sans MS", cursive', fontWeight: 900, fontSize: '1rem',
-            color: '#fff', boxShadow: '0 6px 0 rgba(0,0,0,0.4), 0 0 25px rgba(255,0,200,0.7)',
-            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-            animation: 'selfieButtonPulse 2.5s ease-in-out infinite',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px) scale(1.04)'; }}
-          onMouseLeave={e => { e.currentTarget.style.transform = ''; }}
-        >
-          👻 Become a Monster!
-        </button>
-      )}
-
-      {/* ── Monster Selfie processing spinner ────────────────────────────── */}
-      {visible && selfiePhase === 'processing' && (
-        <div style={{
-          position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center', zIndex: 2000,
-          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)',
-        }}>
-          <div style={{ fontSize: '5rem', animation: 'selfieSpinner 0.6s linear infinite' }}>👻</div>
-          <div style={{ color: '#fff', fontFamily: '"Comic Sans MS", cursive', fontSize: '1.4rem', marginTop: '1rem' }}>
-            Haunting your face...
-          </div>
-        </div>
-      )}
-
-      {/* ── Monster Selfie confirm card ───────────────────────────────────── */}
-      {visible && selfiePhase === 'confirm' && (
-        <div style={{
-          position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 2000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
-        }}>
-          <div style={{
-            background: 'linear-gradient(160deg, #1a0028 0%, #0d001f 100%)',
-            border: '3px solid #ff00cc', borderRadius: '24px', padding: '32px 36px',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px',
-            boxShadow: '0 0 60px rgba(255,0,200,0.4)', maxWidth: '340px', width: '90vw',
-          }}>
-            <div style={{ fontSize: '2rem', fontFamily: '"Comic Sans MS", cursive', color: '#ff00cc', fontWeight: 900 }}>👻 Monster Selfie!</div>
-            <div style={{ position: 'relative' }}>
-              <img src={selfiePreviewUrl} alt="Your selfie" style={{
-                width: '150px', height: '150px', borderRadius: '50%',
-                border: '4px solid #ff00cc', boxShadow: '0 0 30px rgba(255,0,200,0.7)',
-              }} />
-              <div style={{
-                position: 'absolute', bottom: 0, right: 0,
-                background: '#ff00cc', borderRadius: '50%', width: '38px', height: '38px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem',
-                border: '2px solid #fff',
-              }}>👻</div>
-            </div>
-            <div style={{ color: '#ccc', fontSize: '0.9rem', textAlign: 'center' }}>
-              You'll appear as a monster dancing at the party!
-            </div>
-            <input
-              type="text"
-              placeholder="Your monster name (or emoji 🎃)"
-              value={selfieNameInput}
-              maxLength={20}
-              onChange={(e) => setSelfieNameInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') activateSelfie(); }}
-              style={{
-                width: '100%', padding: '10px 16px', borderRadius: '12px',
-                border: '2px solid #ff00cc', background: 'rgba(255,0,200,0.1)',
-                color: '#fff', fontSize: '1rem', fontFamily: '"Comic Sans MS", cursive',
-                outline: 'none', textAlign: 'center',
-              }}
-            />
-            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
-              <button
-                onClick={() => { setSelfiePhase('idle'); setSelfieTexture(null); setSelfiePreviewUrl(null); }}
-                style={{
-                  flex: 1, padding: '12px', borderRadius: '12px', border: '2px solid #666',
-                  background: 'rgba(255,255,255,0.08)', color: '#ccc', cursor: 'pointer',
-                  fontFamily: '"Comic Sans MS", cursive', fontSize: '0.9rem',
-                }}
-              >✕ Retake</button>
-              <button
-                onClick={activateSelfie}
-                style={{
-                  flex: 2, padding: '12px', borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #ff00cc, #ff6600)',
-                  border: 'none', color: '#fff', cursor: 'pointer', fontWeight: 900,
-                  fontFamily: '"Comic Sans MS", cursive', fontSize: '1rem',
-                  boxShadow: '0 4px 0 rgba(0,0,0,0.3)',
-                }}
-              >👻 Join the Party!</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Monster Selfie active controls ───────────────────────────────── */}
-      {visible && selfiePhase === 'active' && (
-        <div style={{
-          position: 'fixed', top: '70px', right: '20px', zIndex: 1000,
-          background: 'rgba(10,0,18,0.92)', backdropFilter: 'blur(10px)',
-          border: '2px solid #ff00cc', borderRadius: '16px', padding: '12px 18px',
-          display: 'flex', alignItems: 'center', gap: '12px',
-          boxShadow: '0 0 20px rgba(255,0,200,0.4)', transition: 'opacity 0.6s ease',
-          opacity: selfiePhase === 'removing' ? 0 : 1,
-        }}>
-          <img src={selfiePreviewUrl} alt="selfie" style={{
-            width: '40px', height: '40px', borderRadius: '50%', border: '2px solid #ff00cc',
-          }} />
-          <div style={{ color: '#fff', fontFamily: '"Comic Sans MS", cursive', fontSize: '0.85rem' }}>
-            <div style={{ color: '#ff00cc', fontWeight: 900 }}>👻 {selfieLabel}</div>
-            <div style={{ color: '#aaa', fontSize: '0.75rem' }}>You're at the party!</div>
-          </div>
-          <button
-            onClick={removeSelfie}
-            title="Leave the party"
-            style={{
-              background: 'rgba(255,0,0,0.2)', border: '1px solid #ff4444', borderRadius: '8px',
-              color: '#ff4444', padding: '4px 10px', cursor: 'pointer', fontSize: '0.8rem',
-              fontFamily: '"Comic Sans MS", cursive',
-            }}
-          >Leave 👋</button>
-        </div>
-      )}
       <Canvas dpr={[1, 1.5]} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0, powerPreference: 'high-performance' }} style={{ width: '100%', height: '100%' }}>
 
         <PerspectiveCamera makeDefault position={[0, 5, 25]} fov={50} />
@@ -677,13 +510,13 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
         <DancingGhost position={[-2, -0.5, -14]} offsetTime={0.5} patternIdx={2} />
         <DancingGhost position={[2,  -0.5, -14]} offsetTime={2.3} patternIdx={3} />
         {/* Ghost 5: reserved for Monster Selfie — only visible when selfie is active */}
-        {selfiePhase === 'active' || selfiePhase === 'removing' ? (
+        {selfie.isActive ? (
           <DancingGhost
             position={[0, -0.5, -12]}
             offsetTime={4.5}
             patternIdx={0}
-            selfieTexture={selfieTexture}
-            selfieLabel={selfieLabel}
+            selfieTexture={selfie.texture}
+            selfieLabel={selfie.label}
             isSelfie={true}
           />
         ) : (

@@ -1,9 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 import { Scene } from './Scene3D';
 import { audioManager } from '../../utils/audioManager';
+import { useSelfie } from '../../hooks/useSelfie';
+import SelfieUI from '../SelfieUI';
 
 /**
  * Fires onReady() on the very first rendered frame — signals to the parent
@@ -28,6 +30,24 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
   const [audioLoaded, setAudioLoaded] = useState(false);
   const [showMusicTitle, setShowMusicTitle] = useState(false);
   const [minimizedMusic, setMinimizedMusic] = useState(false);
+  const selfie = useSelfie();
+
+  const handleScreenshot = useCallback(() => {
+    const glCanvas = document.querySelector('.world3d-overlay canvas');
+    try {
+      const dataUrl = glCanvas?.toDataURL('image/png');
+      if (dataUrl) {
+        const link = document.createElement('a');
+        link.download = 'giant-fly-selfie-sunrise.png';
+        link.href = dataUrl;
+        link.click();
+      }
+    } catch (e) { /* cross-origin, skip download */ }
+    setTimeout(() => {
+      const text = encodeURIComponent(`🪰 I became a Giant Fly chasing Courage at Sunrise! 🐕 Play with @CourageMemeSOL #CourageRunRun #GiantFlySelfie`);
+      window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+    }, 700);
+  }, []);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && visible) onClose(); };
@@ -210,6 +230,15 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
           </button>
         </div>
       )}
+      <SelfieUI
+        selfie={selfie}
+        visible={visible}
+        worldName="Sunrise World"
+        monsterName="Giant Fly"
+        monsterEmoji="🪰"
+        fabRight="110px"
+        onScreenshot={handleScreenshot}
+      />
       <Canvas
         dpr={[1, 1.5]}
         gl={{
@@ -220,7 +249,7 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
         }}
         style={{ width: '100%', height: '100%' }}
       >
-        <PerspectiveCamera makeDefault position={[0, 3, 50]} fov={30} />
+        <PerspectiveCamera makeDefault position={[0, 4, 22]} fov={45} />
         <OrbitControls
           target={[0, 1.5, 0]}
           minDistance={10}
@@ -230,7 +259,11 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
           enablePan={true}
         />
         <ReadySignal onReady={onReady} />
-        <Scene scene="sunrise" />
+        <Scene
+          scene="sunrise"
+          selfieFlyTexture={selfie.isActive ? selfie.texture : null}
+          selfieFlyLabel={selfie.isActive ? selfie.label : ''}
+        />
       </Canvas>
     </div>
   );
