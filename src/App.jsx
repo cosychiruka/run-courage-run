@@ -12,6 +12,7 @@ import HeroHints from "./components/HeroHints";
 import ErrorBoundary from './components/ErrorBoundary';
 import Footer from './components/Footer';
 import WelcomeTour from './components/WelcomeTour';
+import ThinkingOverlay from './components/ThinkingOverlay';
 import { fetchTopNews } from './services/newsService';
 import { analyzeSentiment } from './utils/sentimentUtils';
 import { createVoiceService } from './services/voiceService';
@@ -94,6 +95,8 @@ export default function App() {
   // ── Voice chat state ──────────────────────────────────────────────────────
   // 'idle' | 'listening' | 'thinking' | 'speaking' | null (normal scene)
   const [voiceState, setVoiceState] = useState(null);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [voiceToolLog, setVoiceToolLog] = useState([]);
   const voiceSvcRef = useRef(null);
 
   // Midnight refusal speech bubble (shown briefly, then auto-switches scene)
@@ -114,11 +117,20 @@ export default function App() {
       // Start recording
       if (!voiceSvcRef.current) {
         voiceSvcRef.current = createVoiceService({
-          onState: (s) => setVoiceState(s),
-          onTranscript: (t) => console.log('[Voice] transcript:', t),
+          onState: (s) => { setVoiceState(s); if (s !== 'thinking') setVoiceToolLog([]); },
+          onTranscript: (t) => { setVoiceTranscript(t); setVoiceToolLog([]); console.log('[Voice] transcript:', t); },
           onReply: (r) => console.log('[Voice] reply:', r),
           onAudio: () => { },
-          onError: (e) => { console.warn('[Voice]', e); setVoiceState('idle'); },
+          onError: (e) => { console.warn('[Voice]', e); setVoiceState('idle'); setVoiceToolLog([]); },
+          onToolCall: (ev) => {
+            if (ev.type === 'call') {
+              setVoiceToolLog(prev => [...prev, { type: 'call', tool: ev.tool, label: ev.label }]);
+            } else {
+              setVoiceToolLog(prev => prev.map(e =>
+                e.tool === ev.tool && e.type === 'call' ? { ...e, type: 'result' } : e
+              ));
+            }
+          },
         });
       }
       try {
@@ -632,6 +644,15 @@ export default function App() {
           </div>
         )}
 
+        {/* Thinking overlay — shows during agent tool calls */}
+        {voiceState === 'thinking' && (
+          <ThinkingOverlay
+            visible={true}
+            transcript={voiceTranscript}
+            toolLog={voiceToolLog}
+          />
+        )}
+
         {/* Mic drop — OUTSIDE character-stage so pointer-events:none doesn't block it */}
         {voiceState !== null && (
           <div className={`mic-drop-wrap mic-drop-wrap--${voiceState}`} onClick={handleVoiceClick} role="button" aria-label="Voice chat control">
@@ -652,6 +673,7 @@ export default function App() {
             <button className="voice-exit-btn" onClick={(e) => { e.stopPropagation(); handleVoiceClose(); }} title="Exit voice chat" aria-label="Exit voice chat">✕</button>
           </div>
         )}
+
 
         {explosionReady && !explosionPhase && (
           <button className="explosion-trigger-btn" onClick={triggerExplosion}>

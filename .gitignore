@@ -26,3 +26,5 @@ dist-ssr
 KATZ service provider list.txt
 sensitive-data.txt
 issues.md  
+.ssh_sliplane_key*
+sliplane_ssh_info.md

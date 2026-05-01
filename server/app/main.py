@@ -241,10 +241,41 @@ async def api_render_card(payload: dict):
 #   Server → Client (text):    { "type": "error",      "message": "..." }
 
 @app.websocket("/ws/voice")
-async def voice_ws(ws: WebSocket):
+async def voice_ws(ws: WebSocket, session: str = ""):
     await ws.accept()
+
+    # ── Per-session history (isolated per user connection) ─────────────────────────
+    # Each WebSocket connection gets its OWN history. If a session_id is provided
+    # we also persist it in Redis so reconnections restore context.
+    session_key = f"session:{session}:history" if session else None
     history: list[dict] = []
+
+    if session_key and _redis:
+        try:
+            raw = await _redis.get(session_key)
+            if raw:
+                history = json.loads(raw)
+                print(f"[SESSION] Restored {len(history)} history entries for session={session}")
+        except Exception as e:
+            print(f"[SESSION] Could not load history: {e}")
+
     audio_buffer = bytearray()
+
+    # ── Helper: emit a JSON message to this specific client ───────────────────────
+    async def ws_emit(msg: dict):
+        try:
+            await ws.send_text(json.dumps(msg))
+        except Exception:
+            pass  # client may have disconnected during a tool call
+
+    async def _save_history():
+        if session_key and _redis:
+            try:
+                # Keep last 40 messages; TTL 4 hours
+                to_save = history[-40:]
+                await _redis.set(session_key, json.dumps(to_save), ex=14400)
+            except Exception as e:
+                print(f"[SESSION] Could not save history: {e}")
 
     try:
         while True:
@@ -294,7 +325,7 @@ async def voice_ws(ws: WebSocket):
                     await ws.send_text(json.dumps({"type": "transcript", "text": transcript}))
                     await ws.send_text(json.dumps({"type": "thinking"}))
 
-                    # 2. Agent (with optional world context injected)
+                    # 2. Agent (with optional world context and live tool-event streaming)
                     try:
                         reply = await run_agent(
                             user_message=transcript,
@@ -302,6 +333,7 @@ async def voice_ws(ws: WebSocket):
                             x_client=x_client,
                             tweet_image_fn=_tweet_image_fn,
                             world_context=world_context,
+                            ws_emit=ws_emit,
                         )
                     except Exception as e:
                         err_msg = "The things I do for you people... something went wrong on my end."
@@ -322,9 +354,9 @@ async def voice_ws(ws: WebSocket):
                         {"role": "user",      "content": transcript},
                         {"role": "assistant", "content": reply},
                     ])
-                    # Keep last 20 turns to avoid bloating context
                     if len(history) > 40:
                         history = history[-40:]
+                    await _save_history()
 
     except WebSocketDisconnect:
         pass

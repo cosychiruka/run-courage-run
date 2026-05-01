@@ -8,20 +8,36 @@
  *   svc.destroy();       // clean up WebSocket + AudioContext
  */
 
-const WS_URL = import.meta.env.VITE_BACKEND_WS || 
-                __VITE_BACKEND_WS__ || 
-                (import.meta.env.PROD ? 'wss://run-courage-run.sliplane.app/ws/voice' : 'ws://localhost:8000/ws/voice');
+const _WS_BASE = import.meta.env.VITE_BACKEND_WS ||
+                 (typeof __VITE_BACKEND_WS__ !== 'undefined' ? __VITE_BACKEND_WS__ : null) ||
+                 (import.meta.env.PROD
+                   ? 'wss://run-courage-run.sliplane.app/ws/voice'
+                   : 'ws://localhost:8000/ws/voice');
+
+/** Stable session ID — persists across page refreshes so conversation history survives. */
+function _getSessionId() {
+  let id = localStorage.getItem('courage_session_id');
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem('courage_session_id', id);
+  }
+  return id;
+}
 
 // 24kHz mono PCM — matches Kokoro TTS output
 const TTS_SAMPLE_RATE = 24000;
 
-export function createVoiceService({ onState, onTranscript, onReply, onAudio, onError } = {}) {
+export function createVoiceService({ onState, onTranscript, onReply, onAudio, onError, onToolCall } = {}) {
   let ws = null;
   let mediaRecorder = null;
   let audioCtx = null;
   let stream = null;
   let connected = false;
-  let _worldContext = null;  // set by setWorldContext() or stop(worldContext)
+  let _worldContext = null;
+
+  // Build WS URL with session ID so backend restores per-user history on reconnect
+  const sessionId = _getSessionId();
+  const WS_URL = `${_WS_BASE}?session=${sessionId}`;
 
   // ── WebSocket management ───────────────────────────────────────────────────
 
@@ -70,6 +86,12 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
               break;
             case 'thinking':
               onState?.('thinking');
+              break;
+            case 'tool_call':
+              onToolCall?.({ type: 'call', tool: msg.tool, label: msg.label });
+              break;
+            case 'tool_result':
+              onToolCall?.({ type: 'result', tool: msg.tool, summary: msg.summary });
               break;
             case 'done':
               onReply?.(msg.reply);

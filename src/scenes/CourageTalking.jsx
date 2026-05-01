@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import './CourageScared.css';
 import './CourageTalking.css';
+import ThinkingOverlay from '../components/ThinkingOverlay';
 
 /**
  * CourageTalking — AI voice chat mode character.
@@ -17,7 +18,7 @@ const BUTTON_LABELS = {
   speaking:  '🔇 Stop',
 };
 
-const CourageTalking = ({ voiceState = 'idle', onVoiceClick }) => {
+const CourageTalking = ({ voiceState = 'idle', onVoiceClick, toolLog = [], transcript = '' }) => {
   const [interaction, setInteraction] = useState(null);
 
   const applyInteraction = useCallback((cls, duration = 600) => {
@@ -37,12 +38,18 @@ const CourageTalking = ({ voiceState = 'idle', onVoiceClick }) => {
   const phase       = interaction || '';
 
   return (
-    <div
-      id="courageCharacter"
-      className={`courage talking ${phase}`}
-      onClick={handleCharacterClick}
-      style={{ cursor: 'pointer' }}
-    >
+    <>
+      <ThinkingOverlay
+        visible={voiceState === 'thinking'}
+        transcript={transcript}
+        toolLog={toolLog}
+      />
+      <div
+        id="courageCharacter"
+        className={`courage talking ${phase}`}
+        onClick={handleCharacterClick}
+        style={{ cursor: 'pointer' }}
+      >
       {/* ── Floating voice chat button above the character ── */}
       <button
         className={`voice-chat-btn${voiceState !== 'idle' ? ` ${voiceState}` : ''}`}
@@ -134,6 +141,7 @@ const CourageTalking = ({ voiceState = 'idle', onVoiceClick }) => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

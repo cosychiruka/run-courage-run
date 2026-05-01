@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createVoiceService } from '../services/voiceService';
+import ThinkingOverlay from './ThinkingOverlay';
 
 /**
  * WorldVoiceButton — context-aware mic button for the 3D worlds.
@@ -39,17 +40,28 @@ export default function WorldVoiceButton({ worldContext, visible }) {
   const [reply, setReply] = useState('');
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState(false);
+  const [toolLog, setToolLog] = useState([]);
   const svcRef = useRef(null);
   const holdingRef = useRef(false);
 
   // Build service once
   useEffect(() => {
     const svc = createVoiceService({
-      onState:      (s) => setVoiceState(s),
-      onTranscript: (t) => { setTranscript(t); setExpanded(true); },
+      onState:      (s) => { setVoiceState(s); if (s !== 'thinking') setToolLog([]); },
+      onTranscript: (t) => { setTranscript(t); setExpanded(true); setToolLog([]); },
       onReply:      (r) => { setReply(r); setExpanded(true); },
       onAudio:      () => {},
-      onError:      (e) => { setError(e); setVoiceState('idle'); },
+      onError:      (e) => { setError(e); setVoiceState('idle'); setToolLog([]); },
+      onToolCall:   (ev) => {
+        if (ev.type === 'call') {
+          setToolLog(prev => [...prev, { type: 'call', tool: ev.tool, label: ev.label }]);
+        } else {
+          // Mark matching call as done
+          setToolLog(prev => prev.map(e =>
+            e.tool === ev.tool && e.type === 'call' ? { ...e, type: 'result' } : e
+          ));
+        }
+      },
     });
     svc.setWorldContext(worldContext);
     svcRef.current = svc;
@@ -92,10 +104,16 @@ export default function WorldVoiceButton({ worldContext, visible }) {
   const isBusy = voiceState !== 'idle';
 
   return (
-    <div className="world-voice-btn" style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px',
-      userSelect: 'none',
-    }}>
+    <>
+      <ThinkingOverlay
+        visible={voiceState === 'thinking'}
+        transcript={transcript}
+        toolLog={toolLog}
+      />
+      <div className="world-voice-btn" style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px',
+        userSelect: 'none',
+      }}>
       {/* Transcript + Reply bubble */}
       {expanded && (transcript || reply || error) && (
         <div style={{
@@ -162,5 +180,6 @@ export default function WorldVoiceButton({ worldContext, visible }) {
         {STATE_LABEL[voiceState]}
       </div>
     </div>
+    </>
   );
 }
