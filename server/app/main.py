@@ -88,7 +88,11 @@ async def _ensure_ollama_model_bg():
     for attempt, delay in enumerate(retry_delays, 1):
         await asyncio.sleep(delay)
         try:
-            async with httpx.AsyncClient(timeout=10, headers=headers) as client:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(30.0, connect=30.0),
+                verify=False,
+                headers=headers
+            ) as client:
                 resp = await client.get(f"{OLLAMA_HOST}/api/tags")
                 if resp.status_code != 200:
                     raise Exception(f"HTTP {resp.status_code}")
@@ -105,7 +109,11 @@ async def _ensure_ollama_model_bg():
 
             # Model not found — trigger pull
             print(f"[OLLAMA] Pulling '{OLLAMA_MODEL}' (attempt {attempt}/{len(retry_delays)})...")
-            async with httpx.AsyncClient(timeout=600, headers=headers) as client:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(600.0, connect=30.0),
+                verify=False,
+                headers=headers
+            ) as client:
                 async with client.stream(
                     "POST",
                     f"{OLLAMA_HOST}/api/pull",
