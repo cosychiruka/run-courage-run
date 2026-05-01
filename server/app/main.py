@@ -73,81 +73,7 @@ async def _load_voice_models_bg():
         print("[STARTUP] Voice features will be unavailable.")
 
 
-# ── Ollama model auto-pull ─────────────────────────────────────────────────────
-async def _ensure_ollama_model_bg():
-    """
-    On startup, check whether the configured model exists in Ollama.
-    If not, trigger a pull via the Ollama REST API.
-    Retries with backoff — handles Ollama being slow to start.
-    Runs entirely in the background — never blocks the server.
-    """
-    from app.config import OLLAMA_HOST, OLLAMA_MODEL, OLLAMA_API_KEY
-    retry_delays = [5, 15, 30, 60, 120]  # seconds between attempts
-    headers = {"Authorization": f"Bearer {OLLAMA_API_KEY}"} if OLLAMA_API_KEY else {}
 
-    for attempt, delay in enumerate(retry_delays, 1):
-        await asyncio.sleep(delay)
-        try:
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(30.0, connect=30.0),
-                verify=False,
-                headers=headers
-            ) as client:
-                resp = await client.get(f"{OLLAMA_HOST}/api/tags")
-                if resp.status_code != 200:
-                    raise Exception(f"HTTP {resp.status_code}")
-
-                existing = [m["name"] for m in resp.json().get("models", [])]
-                model_base = OLLAMA_MODEL.split(":")[0]
-                already_have = any(
-                    m == OLLAMA_MODEL or m.startswith(model_base)
-                    for m in existing
-                )
-                if already_have:
-                    print(f"[OLLAMA] Model '{OLLAMA_MODEL}' already present ✓")
-                    return
-
-            # Model not found — trigger pull
-            print(f"[OLLAMA] Pulling '{OLLAMA_MODEL}' (attempt {attempt}/{len(retry_delays)})...")
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(600.0, connect=30.0),
-                verify=False,
-                headers=headers
-            ) as client:
-                async with client.stream(
-                    "POST",
-                    f"{OLLAMA_HOST}/api/pull",
-                    json={"name": OLLAMA_MODEL, "stream": True},
-                ) as resp:
-                    async for line in resp.aiter_lines():
-                        if line:
-                            try:
-                                data = __import__("json").loads(line)
-                                status = data.get("status", "")
-                                completed = data.get("completed", 0)
-                                total = data.get("total", 0)
-                                if total:
-                                    pct = int(completed / total * 100)
-                                    if pct % 10 == 0:  # log every 10%
-                                        print(f"[OLLAMA] {status} {pct}%")
-                                elif status:
-                                    print(f"[OLLAMA] {status}")
-                            except Exception:
-                                pass
-            print(f"[OLLAMA] '{OLLAMA_MODEL}' ready ✓ Courage has a brain!")
-            return  # success — stop retrying
-
-        except httpx.ConnectError:
-            if attempt < len(retry_delays):
-                print(f"[OLLAMA] Not reachable at {OLLAMA_HOST} (attempt {attempt}) — retrying in {retry_delays[attempt]}s...")
-            else:
-                print(f"[OLLAMA] Cannot reach {OLLAMA_HOST} after {len(retry_delays)} attempts. Check OLLAMA_HOST env var.")
-        except Exception as e:
-            err_detail = f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
-            if attempt < len(retry_delays):
-                print(f"[OLLAMA] Error (attempt {attempt}): {err_detail} — retrying in {retry_delays[attempt]}s...")
-            else:
-                print(f"[OLLAMA] Giving up after {len(retry_delays)} attempts: {err_detail}")
 
 
 
@@ -186,11 +112,11 @@ async def lifespan(app: FastAPI):
         print("[STARTUP] Initial news discovery queued.")
 
         asyncio.create_task(_load_voice_models_bg())
-        asyncio.create_task(_ensure_ollama_model_bg())
+
 
         print("\n" + "="*50)
         print("🐕 COURAGE AI BACKEND — READY")
-        print(f"📡 OLLAMA_HOST: {OLLAMA_HOST}")
+        print("🧠 AI ENGINE:    Groq (Llama 3 Cloud)")
         print(f"🗄️ REDIS_URL:   {REDIS_URL.split('@')[-1] if '@' in REDIS_URL else REDIS_URL}")
         print(f"🌐 FRONTEND:    {FRONTEND_ORIGIN}")
         print("="*50 + "\n")
@@ -460,24 +386,24 @@ async def world_event(payload: dict):
     except KeyError:
         prompt = template
 
-    from app.config import OLLAMA_HOST, OLLAMA_MODEL, OLLAMA_API_KEY
-    ollama_headers = {"Authorization": f"Bearer {OLLAMA_API_KEY}"} if OLLAMA_API_KEY else {}
+    from app.config import GROQ_API_KEY, GROQ_MODEL
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     messages = [
         {"role": "system", "content": "You are a world event director. Output ONLY valid JSON. No extra text."},
         {"role": "user",   "content": prompt},
     ]
     try:
         client = get_http_client()
-        r = await client.post(f"{OLLAMA_HOST}/api/chat", headers=ollama_headers, json={
-            "model":   OLLAMA_MODEL,
+        r = await client.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json={
+            "model":   GROQ_MODEL,
             "messages": messages,
             "stream":  False,
-            "format":  "json",   # enforce JSON at inference level — no regex needed
-            "options": {"temperature": 0.9, "num_ctx": 1024},
+            "response_format": {"type": "json_object"},
+            "temperature": 0.9,
         })
         r.raise_for_status()
-        raw = r.json().get("message", {}).get("content", "{}").strip()
-        # Strip markdown fences in case older Ollama ignores format param
+        raw = r.json().get("choices", [{}])[0].get("message", {}).get("content", "{}").strip()
+        # Strip markdown fences just in case
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
         return JSONResponse(json.loads(raw))

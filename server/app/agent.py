@@ -10,7 +10,6 @@ import re
 import httpx
 from typing import Optional
 
-from app.config import OLLAMA_HOST, OLLAMA_MODEL
 from app.system_prompt import build_context_prompt
 from app.tools import TOOL_SCHEMAS, TOOL_NAMES, dispatch_tool
 from app.news_cache import get_all_recent
@@ -21,20 +20,26 @@ CONTEXT_TIMEOUT = 180  # seconds — generous for local LLM
 
 # ── Ollama chat call ───────────────────────────────────────────────────────────
 
-async def _ollama_chat(messages: list[dict], use_tools: bool = True) -> dict:
+from app.config import GROQ_API_KEY, GROQ_MODEL
+
+async def _groq_chat(messages: list[dict], use_tools: bool = True) -> dict:
     payload = {
-        "model":    OLLAMA_MODEL,
+        "model":    GROQ_MODEL,
         "messages": messages,
         "stream":   False,
-        "options":  {"num_ctx": 4096, "temperature": 0.72},
+        "temperature": 0.72,
     }
     
-    # tinyllama does not support native tool calling
-    if use_tools and "tinyllama" not in OLLAMA_MODEL.lower():
+    if use_tools:
         payload["tools"] = TOOL_SCHEMAS
 
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
     async with httpx.AsyncClient(timeout=CONTEXT_TIMEOUT) as client:
-        r = await client.post(f"{OLLAMA_HOST}/api/chat", json=payload)
+        r = await client.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers)
         r.raise_for_status()
         return r.json()
 
@@ -85,8 +90,9 @@ async def run_agent(
     ]
 
     for _round in range(MAX_TOOL_ROUNDS):
-        resp   = await _ollama_chat(messages, use_tools=True)
-        msg    = resp.get("message", {})
+        resp   = await _groq_chat(messages, use_tools=True)
+        # Groq returns choices[0].message
+        msg    = resp.get("choices", [{}])[0].get("message", {})
         content = msg.get("content", "")
 
         # Native tool calls (Ollama structured format)
@@ -129,5 +135,6 @@ async def run_agent(
             })
 
     # Forced final answer after hitting MAX_TOOL_ROUNDS
-    final = await _ollama_chat(messages, use_tools=False)
-    return final.get("message", {}).get("content", "").strip() or "..."
+    final = await _groq_chat(messages, use_tools=False)
+    msg = final.get("choices", [{}])[0].get("message", {})
+    return msg.get("content", "").strip() or "..."

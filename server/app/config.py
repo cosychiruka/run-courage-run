@@ -3,9 +3,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-OLLAMA_HOST    = os.getenv("OLLAMA_HOST",    "http://localhost:11434")
-OLLAMA_MODEL   = os.getenv("OLLAMA_MODEL",   "phi3:mini")
-OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY", "")  # Bearer token for public Ollama endpoint
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL   = os.getenv("GROQ_MODEL",   "llama-3.1-8b-instant")
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 DB_PATH   = os.getenv("DB_PATH",   "./data/courage.db")
