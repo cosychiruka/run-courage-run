@@ -262,7 +262,7 @@ function EveningStoryController({ eventLine = '' }) {
                padding: eventLine ? '10px 18px' : '15px 25px',
                borderRadius: '50px',
                border: eventLine ? '2px solid rgba(150,0,255,0.6)' : '5px solid #000000',
-               whiteSpace: 'nowrap', WebkitTextStroke: eventLine ? 'none' : '1px black',
+               WebkitTextStroke: eventLine ? 'unset' : '1px black',
                zIndex: 100,
                boxShadow: eventLine
                  ? '0 4px 20px rgba(120,0,255,0.5)'

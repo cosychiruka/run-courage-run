@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { createVoiceService } from '../../services/voiceService';
+import { createVoiceService } from '../services/voiceService';
 
 /**
  * WorldVoiceButton — context-aware mic button for the 3D worlds.
