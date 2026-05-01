@@ -57,6 +57,7 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
         if (event.data instanceof ArrayBuffer) {
           await _playWav(event.data);
           onAudio?.();
+          onState?.('idle');
           return;
         }
 
@@ -72,7 +73,7 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
               break;
             case 'done':
               onReply?.(msg.reply);
-              onState?.('idle');
+              // Do NOT set idle here. The wav audio follows immediately and will set idle when done.
               break;
             case 'error':
               onError?.(msg.message);
@@ -92,20 +93,24 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
 
   // ── WAV playback via Web Audio API ─────────────────────────────────────────
 
-  async function _playWav(arrayBuffer) {
+  function _playWav(arrayBuffer) {
     onState?.('speaking');
     if (!audioCtx || audioCtx.state === 'closed') {
       audioCtx = new AudioContext({ sampleRate: TTS_SAMPLE_RATE });
     }
-    try {
-      const decoded = await audioCtx.decodeAudioData(arrayBuffer);
-      const src     = audioCtx.createBufferSource();
-      src.buffer    = decoded;
-      src.connect(audioCtx.destination);
-      src.start();
-    } catch (e) {
-      onError?.(`Audio playback error: ${e.message}`);
-    }
+    return new Promise(async (resolve) => {
+      try {
+        const decoded = await audioCtx.decodeAudioData(arrayBuffer);
+        const src     = audioCtx.createBufferSource();
+        src.buffer    = decoded;
+        src.connect(audioCtx.destination);
+        src.onended = resolve;
+        src.start();
+      } catch (e) {
+        onError?.(`Audio playback error: ${e.message}`);
+        resolve();
+      }
+    });
   }
 
   // ── MediaRecorder (microphone capture) ─────────────────────────────────────

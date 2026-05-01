@@ -109,7 +109,7 @@ async def synthesise(text: str, voice: str = KOKORO_VOICE) -> bytes:
     Runs kokoro in a thread.
     """
     def _run():
-        samples, sr = _get_kokoro().create(text, voice=voice, speed=1.05, lang="en-us")
+        samples, sr = _get_kokoro().create(text, voice=voice, speed=1.15, lang="en-us")
         buf = io.BytesIO()
         sf.write(buf, samples, sr, format="WAV", subtype="PCM_16")
         return buf.getvalue()
