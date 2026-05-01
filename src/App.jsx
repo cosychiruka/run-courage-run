@@ -614,7 +614,7 @@ export default function App() {
 
         {/* Enter 3D World — shows loading state while scene warms up */}
         <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
-          {(_active === 'evening' || _active === 'sunrise' || _active === 'disco') && voiceState === null && !world3DVisible && (
+          {(_active === 'evening' || _active === 'sunrise' || _active === 'disco' || _active === 'noon') && voiceState === null && !world3DVisible && (
             <button
               className={`enter-3d-btn brutal-btn brutal-btn--pink${world3DMounted ? ' enter-3d-btn--loading' : ''}`}
               onClick={() => { if (!world3DMounted) setWorld3DMounted(true); }}

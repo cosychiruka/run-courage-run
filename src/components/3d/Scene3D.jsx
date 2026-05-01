@@ -406,16 +406,16 @@ function Meteor() {
          {/* Bright inner glow popping through edges */}
          <mesh scale={[0.98, 0.98, 0.98]}>
             <icosahedronGeometry args={[2.5, 0]} />
-            <meshStandardMaterial color="#ffffff" emissive="#ff3300" emissiveIntensity={5} wireframe />
+            <meshStandardMaterial color="#ffffff" emissive="#ff3300" emissiveIntensity={5} />
          </mesh>
          {/* Trailing tail (pencil-stroked/wireframe overlapping cones) */}
          <mesh ref={trailRef} position={[-8, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
             <coneGeometry args={[2.2, 16, 8, 1, true]} />
-            <meshBasicMaterial color="#ff5500" transparent opacity={0.8} wireframe />
+            <meshBasicMaterial color="#ff5500" transparent opacity={0.8} />
          </mesh>
          <mesh position={[-12, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
             <coneGeometry args={[1.5, 24, 6, 1, true]} />
-            <meshBasicMaterial color="#ffcc00" transparent opacity={0.4} wireframe />
+            <meshBasicMaterial color="#ffcc00" transparent opacity={0.4} />
          </mesh>
          <pointLight color="#ff4400" intensity={8} distance={200} />
       </group>

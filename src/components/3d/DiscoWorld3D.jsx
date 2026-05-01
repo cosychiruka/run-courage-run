@@ -240,7 +240,7 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
       
       <Canvas dpr={[1, 1.5]} gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0, powerPreference: 'high-performance' }} style={{ width: '100%', height: '100%' }}>
         <PerspectiveCamera makeDefault position={[0, 5, 25]} fov={50} />
-        <OrbitControls target={[0, 2, -10]} minDistance={5} maxDistance={60} minPolarAngle={Math.PI / 8} maxPolarAngle={Math.PI / 2} enablePan={true} />
+        <OrbitControls target={[0, 2, -5]} minDistance={5} maxDistance={60} minPolarAngle={Math.PI / 8} maxPolarAngle={Math.PI / 2} enablePan={true} />
         <ReadySignal onReady={onReady} />
         
         {/* We reuse evening colors and objects but disable the moving Courage/Ghost animations */}
@@ -249,7 +249,7 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
         {/* The House and its 3D Banner attached right onto the wall above middle level */}
         <group position={[-2.5, -0.2, 0]}>
            <MemoHouse doorOpen={false} />
-           <TextileBanner position={[0, 4.5, 1.4]} rotation={[0, 0, 0]} />
+           <TextileBanner position={[0, 4.5, -1.9]} rotation={[0, Math.PI, 0]} />
         </group>
         
         {/* Pumping speakers on the dance floor */}
@@ -264,7 +264,10 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
 
         <StrawGround position={[0, 0, -9]} />
         
-        <Html position={[0, -0.5, -10]} center transform sprite zIndexRange={[100, 0]}>
+        {/* Dance floor spotlight directly under Courage */}
+        <pointLight position={[0, 0, -9.5]} color="#ff00ff" intensity={3} distance={10} />
+        
+        <Html position={[0, -0.5, -9.5]} center transform zIndexRange={[100, 0]}>
            <img src={courageDancingGif} alt="Courage Dancing" style={{ width: '250px', filter: 'drop-shadow(0px 10px 10px rgba(0,0,0,0.8))' }} />
         </Html>
         
