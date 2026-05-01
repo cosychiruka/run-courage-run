@@ -78,17 +78,21 @@ async def _ensure_ollama_model_bg():
     """
     On startup, check whether the configured model exists in Ollama.
     If not, trigger a pull via the Ollama REST API.
-    Runs entirely in the background — never blocks the server from starting.
+    Retries with backoff — handles Ollama being slow to start.
+    Runs entirely in the background — never blocks the server.
     """
     from app.config import OLLAMA_HOST, OLLAMA_MODEL
-    await asyncio.sleep(5)  # give Ollama a moment to fully boot
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            # Check if model already exists
-            resp = await client.get(f"{OLLAMA_HOST}/api/tags")
-            if resp.status_code == 200:
+    retry_delays = [5, 15, 30, 60, 120]  # seconds between attempts
+
+    for attempt, delay in enumerate(retry_delays, 1):
+        await asyncio.sleep(delay)
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.get(f"{OLLAMA_HOST}/api/tags")
+                if resp.status_code != 200:
+                    raise Exception(f"HTTP {resp.status_code}")
+
                 existing = [m["name"] for m in resp.json().get("models", [])]
-                # Ollama names: "phi3:mini" or "phi3" both match
                 model_base = OLLAMA_MODEL.split(":")[0]
                 already_have = any(
                     m == OLLAMA_MODEL or m.startswith(model_base)
@@ -98,34 +102,43 @@ async def _ensure_ollama_model_bg():
                     print(f"[OLLAMA] Model '{OLLAMA_MODEL}' already present ✓")
                     return
 
-        # Model not found — trigger pull (streaming)
-        print(f"[OLLAMA] Model '{OLLAMA_MODEL}' not found. Pulling now (this may take several minutes)...")
-        async with httpx.AsyncClient(timeout=600) as client:
-            async with client.stream(
-                "POST",
-                f"{OLLAMA_HOST}/api/pull",
-                json={"name": OLLAMA_MODEL, "stream": True},
-            ) as resp:
-                async for line in resp.aiter_lines():
-                    if line:
-                        try:
-                            data = __import__("json").loads(line)
-                            status = data.get("status", "")
-                            completed = data.get("completed", 0)
-                            total = data.get("total", 0)
-                            if total:
-                                pct = int(completed / total * 100)
-                                print(f"[OLLAMA] Pulling '{OLLAMA_MODEL}': {status} {pct}%")
-                            elif status:
-                                print(f"[OLLAMA] Pulling '{OLLAMA_MODEL}': {status}")
-                        except Exception:
-                            pass
-        print(f"[OLLAMA] Model '{OLLAMA_MODEL}' pull complete ✓ Courage has a brain!")
+            # Model not found — trigger pull
+            print(f"[OLLAMA] Pulling '{OLLAMA_MODEL}' (attempt {attempt}/{len(retry_delays)})...")
+            async with httpx.AsyncClient(timeout=600) as client:
+                async with client.stream(
+                    "POST",
+                    f"{OLLAMA_HOST}/api/pull",
+                    json={"name": OLLAMA_MODEL, "stream": True},
+                ) as resp:
+                    async for line in resp.aiter_lines():
+                        if line:
+                            try:
+                                data = __import__("json").loads(line)
+                                status = data.get("status", "")
+                                completed = data.get("completed", 0)
+                                total = data.get("total", 0)
+                                if total:
+                                    pct = int(completed / total * 100)
+                                    if pct % 10 == 0:  # log every 10%
+                                        print(f"[OLLAMA] {status} {pct}%")
+                                elif status:
+                                    print(f"[OLLAMA] {status}")
+                            except Exception:
+                                pass
+            print(f"[OLLAMA] '{OLLAMA_MODEL}' ready ✓ Courage has a brain!")
+            return  # success — stop retrying
 
-    except httpx.ConnectError:
-        print(f"[OLLAMA] Cannot reach Ollama at {OLLAMA_HOST} — LLM events will be skipped until it's up.")
-    except Exception as e:
-        print(f"[OLLAMA] Model pull failed: {e} — will retry on next redeploy.")
+        except httpx.ConnectError:
+            if attempt < len(retry_delays):
+                print(f"[OLLAMA] Not reachable at {OLLAMA_HOST} (attempt {attempt}) — retrying in {retry_delays[attempt]}s...")
+            else:
+                print(f"[OLLAMA] Cannot reach {OLLAMA_HOST} after {len(retry_delays)} attempts. Check OLLAMA_HOST env var.")
+        except Exception as e:
+            if attempt < len(retry_delays):
+                print(f"[OLLAMA] Error (attempt {attempt}): {e} — retrying in {retry_delays[attempt]}s...")
+            else:
+                print(f"[OLLAMA] Giving up after {len(retry_delays)} attempts: {e}")
+
 
 
 # ── Lifespan (startup / shutdown) ─────────────────────────────────────────────
