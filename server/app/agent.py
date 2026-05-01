@@ -46,8 +46,8 @@ async def _groq_chat(messages: list[dict], use_tools: bool = True) -> dict:
 
 # ── Qwen XML-style tool call extractor (fallback when native not present) ─────
 
-_FUNC_RE = re.compile(r"<function=(\w+)>(.*?)</function>", re.DOTALL)
-_PARAM_RE = re.compile(r"<parameter=(\w+)>(.*?)</parameter>", re.DOTALL)
+_FUNC_RE = re.compile(r"<?function=(\w+)>(.*?)</function>?", re.DOTALL)
+_PARAM_RE = re.compile(r"<?parameter=(\w+)>(.*?)</parameter>?", re.DOTALL)
 
 def _extract_xml_tools(text: str) -> list[dict]:
     calls = []
@@ -104,11 +104,31 @@ async def run_agent(
         all_calls = native_calls or xml_calls
 
         if not all_calls:
-            # No tool calls — this is the final response
-            return content.strip() or "..."
+            # No tool calls — this is the final response. Strip any stray tool tags before speaking.
+            final_text = _FUNC_RE.sub("", content).strip()
+            return final_text or "..."
 
-        # Execute each tool and feed results back
-        messages.append({"role": "assistant", "content": content, "tool_calls": native_calls or None})
+        # Construct assistant message for the tool call execution
+        ast_msg = {"role": "assistant", "content": content}
+        
+        if native_calls:
+            ast_msg["tool_calls"] = native_calls
+        elif xml_calls:
+            # If the model output raw XML, we MUST fake the native tool_calls structure
+            # otherwise Groq's API will reject the subsequent role="tool" messages with a 400 Bad Request.
+            ast_msg["tool_calls"] = [
+                {
+                    "id": f"call_{c['name']}",
+                    "type": "function",
+                    "function": {
+                        "name": c["name"],
+                        "arguments": json.dumps(c["arguments"])
+                    }
+                }
+                for c in xml_calls
+            ]
+            
+        messages.append(ast_msg)
 
         for call in all_calls:
             # Normalise across native + XML formats
@@ -137,4 +157,6 @@ async def run_agent(
     # Forced final answer after hitting MAX_TOOL_ROUNDS
     final = await _groq_chat(messages, use_tools=False)
     msg = final.get("choices", [{}])[0].get("message", {})
-    return msg.get("content", "").strip() or "..."
+    final_content = msg.get("content", "")
+    final_text = _FUNC_RE.sub("", final_content).strip()
+    return final_text or "..."
