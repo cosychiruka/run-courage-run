@@ -36,7 +36,10 @@ _TOOL_TAG_RE = re.compile(
 # ── Groq chat completion call ──────────────────────────────────────────────────
 
 async def _groq_chat(messages: list[dict], use_tools: bool = True, fast: bool = False) -> dict:
-    model = GROQ_MODEL_FAST if fast else GROQ_MODEL
+    # IMPORTANT: Only use fast (8b) model when NOT offering tools.
+    # llama-3.1-8b-instant does not reliably emit structured tool_calls —
+    # it leaks JSON args into the text content, which corrupts history and causes 400 errors.
+    model = GROQ_MODEL_FAST if (fast and not use_tools) else GROQ_MODEL
     payload = {
         "model":       model,
         "messages":    messages,
@@ -125,16 +128,38 @@ async def run_agent(
         twitter_summary=twitter_summary,
     )
 
+    def _sanitise_history(hist: list[dict]) -> list[dict]:
+        """
+        Remove any corrupted assistant messages from history.
+        The 8b model sometimes emits raw JSON tool args as text content instead of tool_calls.
+        These corrupt messages cause Groq to return 400 on the next turn.
+        Strategy: keep only user/assistant pairs where the assistant message has clean text (no raw JSON dumps).
+        """
+        safe = []
+        for m in hist:
+            role = m.get("role", "")
+            content = m.get("content", "") or ""
+            if role == "assistant":
+                # If content looks like a raw JSON dump (model leaking tool args), skip
+                stripped = content.strip()
+                if stripped.startswith("{") and stripped.endswith("}"):
+                    continue  # skip corrupted entry
+            safe.append(m)
+        return safe
+
+    clean_history = _sanitise_history(history)
+
     messages: list[dict] = [
         {"role": "system", "content": system},
-        *history,
+        *clean_history,
         {"role": "user", "content": user_message},
     ]
 
+
     for _round in range(MAX_TOOL_ROUNDS):
-        # Round 0 tries the fast model; if tools are needed, subsequent rounds use the smart model
-        use_fast = (_round == 0)
-        resp    = await _groq_chat(messages, use_tools=True, fast=use_fast)
+        # Always use 70b (GROQ_MODEL) when tools are enabled.
+        # 8b-instant cannot reliably emit structured tool_calls — it leaks JSON as text.
+        resp    = await _groq_chat(messages, use_tools=True, fast=False)
         choice  = resp.get("choices", [{}])[0]
         msg     = choice.get("message", {})
         content = msg.get("content") or ""
@@ -189,7 +214,8 @@ async def run_agent(
             return _clean(content)
 
     # ── Safety: force a final answer after MAX_TOOL_ROUNDS ────────────────────
-    final_resp = await _groq_chat(messages, use_tools=False, fast=False)
+    # Forced final answer: 8b-instant is fine here — no tools offered, just text generation
+    final_resp = await _groq_chat(messages, use_tools=False, fast=True)
     final_msg  = final_resp.get("choices", [{}])[0].get("message", {})
     return _clean(final_msg.get("content", "") or "The things I do for you people... something got lost. Try again?")
 
