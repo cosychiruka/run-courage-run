@@ -282,16 +282,36 @@ export default function App() {
     return () => clearInterval(id);
   }, [updateScene]);
 
-  // ── Scroll visibility ────────────────────────────────────────────────────
+  // ── Scroll visibility & Mobile Modal Fixes ────────────────────────────────
   const [scrolled, setScrolled] = useState(false);
   const [controlsExpanded, setControlsExpanded] = useState(false);
+
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
+      // Only track scroll if no full-screen modals are open
+      if (!newsOpen && !world3DVisible && !tourOpen && !helperVisible) {
+        setScrolled(window.scrollY > 50);
+      }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [newsOpen, world3DVisible, tourOpen, helperVisible]);
+
+  // Lock body scroll when a full-screen overlay is open
+  useEffect(() => {
+    const isModalOpen = newsOpen || world3DVisible || tourOpen || helperVisible;
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+      // On mobile, opening a bottom-anchored modal can sometimes trigger a scroll jump.
+      // We force scroll to top to keep the Hero section visible in the background.
+      if (window.scrollY > 50) {
+        window.scrollTo(0, 0);
+        setScrolled(false);
+      }
+    } else {
+      document.body.style.overflow = '';
+    }
+  }, [newsOpen, world3DVisible, tourOpen, helperVisible]);
 
   // Apply body class for scene override (so background reflects the cycled scene)
   useEffect(() => {
