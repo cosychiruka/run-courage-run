@@ -379,29 +379,48 @@ async def fetch_pair(country: str, category: str, max_results: int = 10) -> list
 
     # 1. Guardian — primary
     try:
+        print(f"[NEWS] Trying Guardian for {country}/{category}...")
         articles = await fetch_from_guardian(category, max_results)
         if articles:
+            print(f"[NEWS] Guardian OK: {len(articles)} articles for {country}/{category}")
             return articles
+        else:
+            print(f"[NEWS] Guardian returned 0 articles for {country}/{category}")
     except Exception as e:
         errors.append(f"guardian: {e}")
+        print(f"[NEWS] Guardian FAILED for {country}/{category}: {e}")
 
     # 2. NewsAPI — supplement
     if NEWSAPI_KEY:
         try:
+            print(f"[NEWS] Trying NewsAPI for {country}/{category}...")
             articles = await fetch_from_newsapi(country, category, max_results)
             if articles:
+                print(f"[NEWS] NewsAPI OK: {len(articles)} articles for {country}/{category}")
                 return articles
+            else:
+                print(f"[NEWS] NewsAPI returned 0 articles for {country}/{category}")
         except Exception as e:
             errors.append(f"newsapi: {e}")
+            print(f"[NEWS] NewsAPI FAILED for {country}/{category}: {e}")
+    else:
+        print(f"[NEWS] NewsAPI skipped — NEWSAPI_KEY not configured")
 
     # 3. GNews — last resort
     if GNEWS_API_KEY:
         try:
+            print(f"[NEWS] Trying GNews for {country}/{category}...")
             articles = await fetch_from_gnews(country, category, max_results)
             if articles:
+                print(f"[NEWS] GNews OK: {len(articles)} articles for {country}/{category}")
                 return articles
+            else:
+                print(f"[NEWS] GNews returned 0 articles for {country}/{category}")
         except Exception as e:
             errors.append(f"gnews: {e}")
+            print(f"[NEWS] GNews FAILED for {country}/{category}: {e}")
+    else:
+        print(f"[NEWS] GNews skipped — GNEWS_API_KEY not configured")
 
     print(f"[NEWS] All sources failed for {country}/{category}: {errors}")
     return []

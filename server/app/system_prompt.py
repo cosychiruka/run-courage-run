@@ -168,9 +168,20 @@ def build_context_prompt(
     articles: list[dict],
     world_context: str | None = None,
     twitter_summary: str | None = None,
+    model_name: str | None = None,
 ) -> str:
     """Assemble the full system prompt with news context, world, and Twitter memory."""
     prompt = SYSTEM_PROMPT
+
+    # 0. Inject the live model name so Courage knows his own brain
+    if model_name:
+        short = model_name.split("/")[-1]  # strip org prefix e.g. "meta-llama/"
+        prompt += (
+            f"\n\n== YOUR CURRENT BRAIN ==\n"
+            f"You are running on: {short} (via Groq cloud inference).\n"
+            f"If asked what model or AI you are, say you're Courage — powered by {short}.\n"
+            f"You may comment on this self-awarely, as Courage would: bewildered, curious, or terrified."
+        )
 
     # 1. World context (most immediate)
     if world_context and world_context in WORLD_CONTEXT_BLOCKS:

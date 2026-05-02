@@ -261,7 +261,9 @@ async def _fetch_article(args: dict) -> str:
 
 
 async def _get_x_rate_status(x_client) -> str:
+    print("[TWITTER] Tool: get_x_rate_status")
     if x_client is None:
+        print("[TWITTER] X client not configured")
         return "X client not configured (missing API keys)."
     status = x_client.get_rate_status()
     if not status:
@@ -272,42 +274,52 @@ async def _get_x_rate_status(x_client) -> str:
         reset_ts  = int(data.get("reset", 0))
         reset_in  = max(0, reset_ts - int(time.time()))
         lines.append(f"{endpoint}: {remaining} remaining, resets in {reset_in}s")
-    return "X Rate Limits:\n" + "\n".join(lines)
+    result = "X Rate Limits:\n" + "\n".join(lines)
+    print(f"[TWITTER] Rate status: {result}")
+    return result
 
 
 async def _get_my_tweets(args: dict, x_client) -> str:
+    print(f"[TWITTER] Tool: get_my_tweets args={args}")
     if x_client is None:
         return "X client not configured."
     max_results = int(args.get("max_results", 5))
     try:
         posts = x_client.get_my_recent_posts(max_results)
         if not posts or not posts.data:
+            print("[TWITTER] get_my_tweets: no posts returned")
             return "No recent posts found."
         lines = [f"- [{t.id}] {t.text}" for t in posts.data]
+        print(f"[TWITTER] get_my_tweets: found {len(posts.data)} posts")
         return "Recent @runcouragerun tweets:\n" + "\n".join(lines)
     except Exception as e:
+        print(f"[TWITTER] get_my_tweets FAILED: {e}")
         return f"Failed to fetch tweets: {e}"
 
 
 async def _get_mentions(args: dict, x_client) -> str:
+    print(f"[TWITTER] Tool: get_mentions args={args}")
     if x_client is None:
         return "X client not configured."
     max_results = int(args.get("max_results", 10))
     try:
         mentions = x_client.get_mentions(max_results)
         if not mentions or not mentions.data:
+            print("[TWITTER] get_mentions: no mentions returned")
             return "No recent mentions."
         lines = []
         for t in mentions.data:
             lines.append(f"- [{t.id}] {t.text}")
-            # Auto-record new mentions into memory
             await tw_mem.record_mention(str(t.id), str(getattr(t, "author_id", "unknown")), t.text)
+        print(f"[TWITTER] get_mentions: found {len(mentions.data)} mentions")
         return "Recent mentions:\n" + "\n".join(lines)
     except Exception as e:
+        print(f"[TWITTER] get_mentions FAILED: {e}")
         return f"Failed to fetch mentions: {e}"
 
 
 async def _post_tweet(args: dict, x_client, tweet_image_fn) -> str:
+    print(f"[TWITTER] Tool: post_tweet text='{args.get('text','')[:80]}...'")
     if x_client is None:
         return "X client not configured — tweet not sent."
     text        = args.get("text", "")
@@ -335,22 +347,25 @@ async def _post_tweet(args: dict, x_client, tweet_image_fn) -> str:
             reply_to=reply_to,
         )
         tweet_id = resp.data.get("id", "?")
-        # Auto-record the tweet to memory
         await tw_mem.record_tweet(str(tweet_id), text, reply_to)
         if reply_to:
             await tw_mem.mark_mention_replied(reply_to)
+        print(f"[TWITTER] Tweet posted OK: id={tweet_id}")
         return f"Tweet posted successfully! ID: {tweet_id}"
     except Exception as e:
+        print(f"[TWITTER] post_tweet FAILED: {e}")
         return f"Tweet failed: {e}"
 
 
 async def _get_twitter_trends(args: dict, x_client) -> str:
+    print(f"[TWITTER] Tool: get_twitter_trends args={args}")
     if x_client is None:
         return "X client not configured."
     woeid = int(args.get("woeid", 1))
     try:
         trends_raw = x_client.get_trends(woeid)
         if not trends_raw or not trends_raw[0]:
+            print("[TWITTER] get_trends: no trends data returned")
             return "No trends data available."
         trends = trends_raw[0][:20]  # Top 20
         lines = []
@@ -360,11 +375,12 @@ async def _get_twitter_trends(args: dict, x_client) -> str:
             vol_str = f"{vol:,}" if vol else "n/a"
             lines.append(f"- {t.name} ({vol_str} tweets)")
             trend_dicts.append({"name": t.name, "tweet_volume": vol})
-        # Auto-record to memory
         await tw_mem.record_trends(trend_dicts, woeid)
         label = {1: "Worldwide", 23424977: "United States", 23424975: "United Kingdom"}.get(woeid, f"WOEID {woeid}")
+        print(f"[TWITTER] get_trends OK: {len(trends)} trends for {label}")
         return f"Trending on Twitter ({label}):\n" + "\n".join(lines)
     except Exception as e:
+        print(f"[TWITTER] get_trends FAILED: {e}")
         return f"Failed to fetch trends: {e}"
 
 

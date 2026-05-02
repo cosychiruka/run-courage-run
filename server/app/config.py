@@ -12,7 +12,7 @@ DB_PATH   = os.getenv("DB_PATH",   "./data/courage.db")
 
 GNEWS_API_KEY     = os.getenv("GNEWS_API_KEY",    "")
 GUARDIAN_API_KEY  = os.getenv("GUARDIAN_API_KEY", "test")
-NEWSAPI_KEY       = os.getenv("NEWSAPI_KEY",       "")   # newsapi.org — server-side ONLY (CORS blocked in browser)
+NEWSAPI_KEY       = os.getenv("NEWSAPI_KEY") or os.getenv("NEWS_API_KEY", "")  # .env uses NEWS_API_KEY
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
 
 X_CONSUMER_KEY        = os.getenv("X_CONSUMER_KEY",        "")

@@ -126,6 +126,7 @@ async def run_agent(
         recent_articles,
         world_context=world_context,
         twitter_summary=twitter_summary,
+        model_name=GROQ_MODEL,
     )
 
     def _sanitise_history(hist: list[dict]) -> list[dict]:

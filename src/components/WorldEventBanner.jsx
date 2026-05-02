@@ -119,8 +119,13 @@ export default function WorldEventBanner({ event, world, onDismiss }) {
       {world === 'sunrise' && (
         <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🐕</div>
       )}
-      <span style={{ marginRight: '8px' }}>{actionEmoji}</span>
-      {event.message}
+      {world === 'evening' && (
+        <div style={{ fontSize: '1.8rem', marginBottom: '8px', filter: 'drop-shadow(0 0 8px rgba(0,255,80,0.6))' }}>👻</div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <span style={{ marginRight: '8px', fontSize: '1.2rem' }}>{actionEmoji}</span>
+        <span>{event.message}</span>
+      </div>
       {world === 'disco' && event.action === 'dj_shoutout' && (
         <span style={{ marginLeft: '8px', opacity: 0.7 }}>— DJ Courage</span>
       )}

@@ -65,11 +65,18 @@ class XRateLimitedClient:
 
     def _call(self, method, endpoint_key: str, **kwargs):
         self._wait_if_needed(endpoint_key)
-        resp = method(**kwargs)
-        # Extract headers if available
-        if hasattr(resp, "response") and resp.response is not None:
-            self._update_limits(dict(resp.response.headers), endpoint_key)
-        return resp
+        try:
+            resp = method(**kwargs)
+            # Extract headers if available
+            if hasattr(resp, "response") and resp.response is not None:
+                self._update_limits(dict(resp.response.headers), endpoint_key)
+            return resp
+        except Exception as e:
+            print(f"[X ERROR] {endpoint_key} call failed: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"[X ERROR] Response Headers: {e.response.headers}")
+                print(f"[X ERROR] Response Body: {e.response.text}")
+            raise e
 
     def get_rate_status(self) -> dict:
         keys = _r.keys("rate:*")
