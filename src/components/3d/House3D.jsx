@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { Instances, Instance } from '@react-three/drei';
+import { Instances, Instance, Html } from '@react-three/drei';
+import pumpfunPng from '../../assets/images/pump-fun-seeklogo.png';
 
 function Window({ position, rotation = [0, 0, 0], scale = 1 }) {
   const windowMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#fffb80', emissive: '#ffb52e', emissiveIntensity: 2.5 }), []);
@@ -68,27 +69,25 @@ export function House({ position = [0, 0, 0], rotation = [0, 0, 0], doorOpen = f
   const windowMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#fffb80', emissive: '#ffb52e', emissiveIntensity: 2.5 }), []);
   const brassMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#ffb52e', roughness: 0.3, metalness: 0.8 }), []);
 
-  const pumpfunTex = useMemo(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 512; canvas.height = 192;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, 512, 192);
-    ctx.fillStyle = 'rgba(10, 5, 20, 0.82)';
-    ctx.beginPath(); ctx.roundRect(6, 6, 500, 180, 22); ctx.fill();
-    ctx.strokeStyle = '#00ff88'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.roundRect(6, 6, 500, 180, 22); ctx.stroke();
-    ctx.font = 'bold 72px "Arial Black", Arial';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#00ff88';
-    ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 18;
-    ctx.fillText('pump.fun', 256, 82);
-    ctx.shadowBlur = 0;
-    ctx.font = '44px Arial';
-    ctx.fillText('🚀 on solana', 256, 148);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    return tex;
-  }, []);
+  // Glitch state: alternate between PumpFun logo and "Nowhere" sign
+  const [glitchMode, setGlitchMode] = useState(false);
+  const [glitching, setGlitching] = useState(false);
+  const glitchRef = useRef(null);
+  useEffect(() => {
+    const cycle = () => {
+      // Trigger glitch flash
+      setGlitching(true);
+      setTimeout(() => {
+        setGlitchMode(m => !m);
+        setGlitching(false);
+      }, 280);
+      // Next cycle: show logo 8-14s, then Nowhere 4-7s
+      const delay = glitchMode ? 4000 + Math.random() * 3000 : 8000 + Math.random() * 6000;
+      glitchRef.current = setTimeout(cycle, delay);
+    };
+    glitchRef.current = setTimeout(cycle, 10000);
+    return () => clearTimeout(glitchRef.current);
+  }, [glitchMode]);
   
   const chimneyCurve = useMemo(() => {
     class CustomCurve extends THREE.Curve {
@@ -214,11 +213,47 @@ export function House({ position = [0, 0, 0], rotation = [0, 0, 0], doorOpen = f
       <Window position={[1.2, 4.5, 2.15]} scale={0.8} />
       <Window position={[0, 7.0, 2.15]} scale={0.5} />
 
-      {/* PumpFun logo on front gable */}
-      <mesh position={[0, 7.8, 2.35]}>
-        <planeGeometry args={[3.8, 1.42]} />
-        <meshBasicMaterial map={pumpfunTex} transparent alphaTest={0.05} />
-      </mesh>
+      {/* PumpFun / Nowhere sign on front gable — Html overlay for click + glitch */}
+      <Html position={[0, 8.2, 2.4]} center occlude={false} zIndexRange={[0, 10]}>
+        <a
+          href="https://pump.fun/coin/$RCR"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Buy $RCR on pump.fun"
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
+            background: glitching
+              ? 'rgba(0,255,136,0.9)'
+              : glitchMode
+                ? 'rgba(10,5,20,0.88)'
+                : 'rgba(10,5,20,0.88)',
+            border: `2px solid ${glitchMode ? '#aaffcc' : '#00ff88'}`,
+            borderRadius: '10px',
+            padding: '5px 10px',
+            cursor: 'pointer',
+            textDecoration: 'none',
+            minWidth: '130px',
+            textAlign: 'center',
+            boxShadow: glitching
+              ? '0 0 18px 6px #00ff88, 0 0 40px 10px #00ffaa'
+              : '0 0 8px rgba(0,255,136,0.4)',
+            transition: 'box-shadow 0.1s',
+            filter: glitching ? 'hue-rotate(180deg) brightness(2)' : 'none',
+            userSelect: 'none',
+          }}
+        >
+          {glitchMode ? (
+            <span style={{ fontSize: '22px', fontWeight: 900, fontFamily: 'Arial Black, Arial', color: '#aaffcc', letterSpacing: '0.5px', lineHeight: 1.1 }}>
+              📍 NoWhere
+            </span>
+          ) : (
+            <>
+              <img src={pumpfunPng} alt="pump.fun" style={{ width: '36px', height: '36px', objectFit: 'contain', display: 'block' }} />
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#00ff88', fontFamily: 'Arial, sans-serif', letterSpacing: '0.5px' }}>pump.fun</span>
+            </>
+          )}
+        </a>
+      </Html>
       
       <pointLight position={[0, 2.5, 3.5]} intensity={5.5} distance={20} decay={2} color="#ffaa00" />
 

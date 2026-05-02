@@ -485,37 +485,28 @@
     top: -10px;
     left: -2px;
   }
+  /* Excited: 3-toe blob paws on arms */
+  .courage .body .leg.top .paw .finger { display: none !important; }
+  .courage .body .leg.top .paw { width: 22px; height: 14px; overflow: visible; }
+  .courage .body .leg.top .paw::before,
   .courage .body .leg.top .paw::after {
-    content: "";
-    width: 5px;
-    height: 7px;
+    content: '';
+    display: block !important;
+    width: 13px; height: 13px;
     background-color: var(--pink);
-    position: absolute;
-    bottom: -2px;
-    left: 5px;
     border-radius: 50%;
-  }
-  .courage .body .leg.top .paw .finger {
-    width: 8px;
-    height: 10px;
-    border-radius: 4px 4px 0 0;
-    position: absolute;
-    background-color: var(--pink);
-    border: 2px solid var(--black);
+    border: 1.5px solid var(--black);
     box-sizing: border-box;
-    border-bottom-color: transparent;
-    left: 4px;
-    top: -2px;
+    position: absolute;
+    bottom: 0;
   }
-  .courage .body .leg.top .paw .finger:nth-child(1) {
-    transform: rotate(-90deg);
-    top: 5px;
-    left: -1px;
+  .courage .body .leg.top .paw::before {
+    right: 44%;
+    box-shadow: inset 3px 0px 0 -1px var(--black), inset 3px 2px 0 -1px var(--black), inset 3px -2px 0 -1px var(--black);
   }
-  .courage .body .leg.top .paw .finger:nth-child(2) {
-    transform: rotate(90deg);
-    top: 5px;
-    left: 9px;
+  .courage .body .leg.top .paw::after {
+    left: 44%;
+    box-shadow: inset -3px 0px 0 -1px var(--black), inset -3px 2px 0 -1px var(--black), inset -3px -2px 0 -1px var(--black);
   }
   .courage .body .leg.top.left .paw {
     transform: rotate(35deg);
@@ -567,37 +558,28 @@
     bottom: -10px;
     left: -2px;
   }
+  /* Excited: 3-toe blob paws on feet */
+  .courage .body .leg.bottom .paw .finger { display: none !important; }
+  .courage .body .leg.bottom .paw { width: 26px; height: 14px; overflow: visible; }
+  .courage .body .leg.bottom .paw::before,
   .courage .body .leg.bottom .paw::after {
-    content: "";
-    width: 5px;
-    height: 7px;
+    content: '';
+    display: block !important;
+    width: 13px; height: 13px;
     background-color: var(--pink);
-    position: absolute;
-    bottom: -2px;
-    left: 5px;
     border-radius: 50%;
-  }
-  .courage .body .leg.bottom .paw .finger {
-    width: 8px;
-    height: 10px;
-    border-radius: 4px 4px 0 0;
-    position: absolute;
-    background-color: var(--pink);
-    border: 2px solid var(--black);
+    border: 1.5px solid var(--black);
     box-sizing: border-box;
-    border-bottom-color: transparent;
-    left: 4px;
-    top: -2px;
+    position: absolute;
+    bottom: 0;
   }
-  .courage .body .leg.bottom .paw .finger:nth-child(1) {
-    transform: rotate(-90deg);
-    top: 5px;
-    left: -1px;
+  .courage .body .leg.bottom .paw::before {
+    right: 44%;
+    box-shadow: inset 3px 0px 0 -1px var(--black), inset 3px 2px 0 -1px var(--black), inset 3px -2px 0 -1px var(--black);
   }
-  .courage .body .leg.bottom .paw .finger:nth-child(2) {
-    transform: rotate(90deg);
-    top: 5px;
-    left: 9px;
+  .courage .body .leg.bottom .paw::after {
+    left: 44%;
+    box-shadow: inset -3px 0px 0 -1px var(--black), inset -3px 2px 0 -1px var(--black), inset -3px -2px 0 -1px var(--black);
   }
   .courage .body .leg.bottom.left .paw {
     transform: rotate(160deg);

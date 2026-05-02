@@ -529,10 +529,10 @@ function StylizedCloud({ position, scale = 1, opacity = 0.5, speed = 0.05, morni
 export function Scene({ scene = 'evening', showStory = true, selfieFlyTexture = null, selfieFlyLabel = '', selfieFlyPreviewUrl = null, eventLine = '' }) {
   const isSunrise = scene === 'sunrise';
   const isNoon = scene === 'noon';
-  const ambientColor = isNoon ? '#ffffff' : isSunrise ? '#ff9944' : '#bd80e8';
-  const ambientIntensity = isNoon ? 1.4 : isSunrise ? 0.8 : 0.4;
-  const dirLightColor = isNoon ? '#ffffff' : isSunrise ? '#ffcc66' : '#ffccf5';
-  const dirLightIntensity = isNoon ? 4.5 : isSunrise ? 2.0 : 2.8;
+  const ambientColor = isNoon ? '#ffffff' : isSunrise ? '#c8dff0' : '#bd80e8';
+  const ambientIntensity = isNoon ? 1.4 : isSunrise ? 0.9 : 0.4;
+  const dirLightColor = isNoon ? '#ffffff' : isSunrise ? '#ffe8a0' : '#ffccf5';
+  const dirLightIntensity = isNoon ? 4.5 : isSunrise ? 1.8 : 2.8;
   // Sun: directly overhead for noon, low-angle warm for sunrise
   const dirLightPos = isNoon ? [5, 40, 5] : isSunrise ? [20, 8, 10] : [40, 15, 10];
   
@@ -544,10 +544,10 @@ export function Scene({ scene = 'evening', showStory = true, selfieFlyTexture = 
       const gradient = context.createLinearGradient(0, 0, 0, 512);
       
       if (scene === 'sunrise') {
-        // Warm dawn: deep orange-red at zenith fading to peach-gold horizon
-        gradient.addColorStop(0.0, '#c44b00'); gradient.addColorStop(0.25, '#e8762a');
-        gradient.addColorStop(0.55, '#ffb347'); gradient.addColorStop(0.8, '#ffd88a');
-        gradient.addColorStop(1.0, '#fff0c0');
+        // Dawn: cool grey-blue sky at zenith, warm peach-gold near horizon, green ground
+        gradient.addColorStop(0.0, '#7ba7c2'); gradient.addColorStop(0.3, '#9dc4d8');
+        gradient.addColorStop(0.55, '#f4d0a0'); gradient.addColorStop(0.75, '#f9e0b0');
+        gradient.addColorStop(0.88, '#d4e8a0'); gradient.addColorStop(1.0, '#8fc56a');
       } else if (scene === 'noon') {
         // Bright midday: saturated sky blue at zenith to pale cyan horizon
         gradient.addColorStop(0.0, '#0e5fb5'); gradient.addColorStop(0.3, '#1e88e5');
@@ -566,7 +566,7 @@ export function Scene({ scene = 'evening', showStory = true, selfieFlyTexture = 
     return new THREE.CanvasTexture(canvas);
   }, [scene]);
 
-  const bgColor = isNoon ? '#1e88e5' : isSunrise ? '#e8762a' : '#0a001a';
+  const bgColor = isNoon ? '#1e88e5' : isSunrise ? '#9dc4d8' : '#0a001a';
 
   return (
     <>
@@ -579,6 +579,12 @@ export function Scene({ scene = 'evening', showStory = true, selfieFlyTexture = 
           <StylizedCloud position={[-40, 30, -50]} scale={1.2} morning={true} opacity={0.6} />
           <StylizedCloud position={[20, 45, -60]} scale={1.8} morning={true} speed={0.03} opacity={0.4} />
           <StylizedCloud position={[80, 25, -40]} scale={0.9} morning={true} speed={0.07} opacity={0.7} />
+          {/* Dawn sun: small glowing sphere at horizon */}
+          <mesh position={[30, 4, -80]}>
+            <sphereGeometry args={[3.5, 16, 16]} />
+            <meshStandardMaterial color="#ffe066" emissive="#ffcc00" emissiveIntensity={3} />
+          </mesh>
+          <pointLight position={[30, 4, -80]} color="#ffdd88" intensity={8} distance={200} decay={1} />
         </>
       )}
       {/* Noon: bright white-yellow sun sphere high in sky */}

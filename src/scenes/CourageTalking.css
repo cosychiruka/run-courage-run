@@ -70,7 +70,9 @@
 .courage.talking .leg.top.left .paw {
   top: auto !important;
   bottom: -12px !important;
-  left: 1px;
+  left: -2px;
+  width: 22px !important;
+  height: 14px !important;
   transform: rotate(10deg);
 }
 
@@ -82,8 +84,10 @@
 .courage.talking .leg.top.right .paw {
   top: auto !important;
   bottom: -12px !important;
-  right: 1px;
+  right: -2px;
   left: auto;
+  width: 22px !important;
+  height: 14px !important;
   transform: rotate(-10deg);
 }
 
@@ -158,21 +162,31 @@
   z-index: 1;                    /* behind upper teeth */
 }
 
-/* Actively talking — lower jaw snaps open/shut on pivot */
-.courage.talking .mouth.is-talking::after {
-  animation: jawPivot 0.34s ease-in-out infinite;
-}
-/* Keep mouth container static */
+/* Cartoonish talking — container stretches wide/narrow + jaw snaps aggressively */
 .courage.talking .mouth.is-talking {
-  animation: none;
+  animation: talkMouthRubber 0.22s ease-in-out infinite !important;
+  transform-origin: center top;
+}
+
+@keyframes talkMouthRubber {
+  0%, 100% { transform: translateX(-50%) scaleX(1.00) scaleY(1.0); }
+  18%       { transform: translateX(-50%) scaleX(1.22) scaleY(0.9); }
+  42%       { transform: translateX(-50%) scaleX(0.88) scaleY(1.1); }
+  68%       { transform: translateX(-50%) scaleX(1.16) scaleY(0.92); }
+  88%       { transform: translateX(-50%) scaleX(0.93) scaleY(1.05); }
+}
+
+/* Faster, bigger jaw pivot in sync with the container pulse */
+.courage.talking .mouth.is-talking::after {
+  animation: jawPivot 0.22s ease-in-out infinite;
 }
 
 @keyframes jawPivot {
-  0%, 100% { transform: rotate(0deg); }
-  20%       { transform: rotate(32deg); }
-  48%       { transform: rotate(6deg); }
-  72%       { transform: rotate(36deg); }
-  90%       { transform: rotate(10deg); }
+  0%, 100% { transform: rotate(0deg) scaleY(1.0); }
+  18%       { transform: rotate(52deg) scaleY(1.25); }
+  40%       { transform: rotate(5deg)  scaleY(0.85); }
+  60%       { transform: rotate(46deg) scaleY(1.18); }
+  85%       { transform: rotate(8deg)  scaleY(0.9); }
 }
 
 /* Listening mode — jaw slightly open, no snap */
@@ -248,4 +262,37 @@
   0%, 100% { transform: translateX(0); }
   30%      { transform: translateX(10px) rotate(2deg); }
   60%      { transform: translateX(-6px) rotate(-1deg); }
+}
+
+/* ── Paws: 3-toe blobs on talking arms (inherit base from scared) ── */
+.courage.talking .leg .paw { overflow: visible; }
+.courage.talking .leg .paw .finger { display: none !important; }
+
+.courage.talking .leg.top .paw::before,
+.courage.talking .leg.top .paw::after {
+  content: '';
+  display: block !important;
+  width: 13px;
+  height: 13px;
+  background-color: var(--pink);
+  border-radius: 50%;
+  border: 1.5px solid var(--black);
+  box-sizing: border-box;
+  position: absolute;
+  bottom: 0;
+}
+.courage.talking .leg.top .paw::before {
+  right: 44%;
+  box-shadow:
+    inset 3px  0px 0 -1px var(--black),
+    inset 3px  2px 0 -1px var(--black),
+    inset 3px -2px 0 -1px var(--black);
+}
+.courage.talking .leg.top .paw::after {
+  display: block !important;
+  left: 44%;
+  box-shadow:
+    inset -3px  0px 0 -1px var(--black),
+    inset -3px  2px 0 -1px var(--black),
+    inset -3px -2px 0 -1px var(--black);
 }

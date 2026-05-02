@@ -129,7 +129,7 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
         <ReadySignal onReady={onReady} />
         <Scene
           scene={currentScene}
-          eventLine={event?.action === 'taunt' || event?.action === 'advance' || event?.action === 'thought_bubble' ? (event.message ?? '') : ''}
+          eventLine=""
         />
       </Canvas>
     </div>

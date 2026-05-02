@@ -470,52 +470,74 @@
     z-index: 2;
   }
 
-  /* Arms swing up toward face so hands cover mouth area */
+  /* Arms: joint LOWER on body so paws land just below mouth level, tilted inward */
+  .courage .body .leg.top {
+    top: 35px; /* was 20px — moves joint down so paw reaches mouth area */
+  }
   .courage .body .leg.top.left {
-    left: 12px;
-    transform: rotate(162deg);
-    animation: scaredTrembleL 0.25s ease-in-out infinite;
+    left: 10px;
+    transform: rotate(125deg);
+    animation: scaredTrembleL 0.22s ease-in-out infinite;
   }
   .courage .body .leg.top.right {
-    left: 58px;
-    transform: rotate(-162deg);
-    animation: scaredTrembleR 0.25s ease-in-out infinite;
+    left: 60px;
+    transform: rotate(-125deg);
+    animation: scaredTrembleR 0.22s ease-in-out infinite;
   }
 
   @keyframes scaredTrembleL {
-    0%, 100% { transform: rotate(160deg) translateX(0); }
-    50%       { transform: rotate(165deg) translateX(2px); }
+    0%, 100% { transform: rotate(122deg) translateX(0); }
+    50%       { transform: rotate(128deg) translateX(1px); }
   }
   @keyframes scaredTrembleR {
-    0%, 100% { transform: rotate(-160deg) translateX(0); }
-    50%       { transform: rotate(-165deg) translateX(-2px); }
+    0%, 100% { transform: rotate(-122deg) translateX(0); }
+    50%       { transform: rotate(-128deg) translateX(-1px); }
   }
 
   .courage .body .leg.top .paw {
-    width: 16px;
-    height: 13px;
+    width: 22px;
+    height: 14px;
     position: absolute;
     bottom: -6px;
-    left: -1px;
+    left: -3px;
+    overflow: visible;
   }
-  .courage .body .leg.top .paw::after { display: none; }
 
-  .courage .body .leg.top .paw .finger {
-    width: 8px;
-    height: 10px;
-    border-radius: 4px 4px 0 0;
-    position: absolute;
+  /* Hide old finger elements */
+  .courage .body .leg .paw .finger { display: none !important; }
+
+  /* Blob halves — same technique as Running Courage */
+  .courage .body .leg .paw::before,
+  .courage .body .leg .paw::after {
+    content: '';
+    display: block !important;
+    width: 13px;
+    height: 13px;
     background-color: var(--pink);
-    border: 2px solid var(--black);
+    border-radius: 50%;
+    border: 1.5px solid var(--black);
     box-sizing: border-box;
-    border-bottom-color: transparent;
+    position: absolute;
+    bottom: 0;
   }
-  .courage .body .leg.top .paw .finger:nth-child(1) { transform: rotate(-90deg); top: 5px; left: -1px; }
-  .courage .body .leg.top .paw .finger:nth-child(2) { transform: rotate(90deg); top: 5px; left: 9px; }
-  .courage .body .leg.top .paw .finger:nth-child(3) { top: -2px; left: 4px; }
+  .courage .body .leg .paw::before {
+    right: 44%;
+    box-shadow:
+      inset 3px  0px 0 -1px var(--black),
+      inset 3px  2px 0 -1px var(--black),
+      inset 3px -2px 0 -1px var(--black);
+  }
+  .courage .body .leg .paw::after {
+    left: 44%;
+    box-shadow:
+      inset -3px  0px 0 -1px var(--black),
+      inset -3px  2px 0 -1px var(--black),
+      inset -3px -2px 0 -1px var(--black);
+  }
 
-  .courage .body .leg.top.left .paw { transform: rotate(10deg); }
-  .courage .body .leg.top.right .paw { transform: rotate(-10deg); }
+  /* Paws tilted inward toward mouth center */
+  .courage .body .leg.top.left .paw  { transform: rotate(-30deg); }
+  .courage .body .leg.top.right .paw { transform: rotate( 30deg); }
 
 
   .courage .body .leg.bottom {
@@ -557,27 +579,20 @@
   }
   
   .courage .body .leg.bottom .paw {
-    width: 16px;
-    height: 13px;
+    width: 26px;
+    height: 14px;
     position: absolute;
     bottom: -8px;
-    left: 0px;
+    overflow: visible;
   }
-  .courage .body .leg.bottom .paw::after { display: none; }
-  
-  .courage .body .leg.bottom .paw .finger {
-    width: 8px;
-    height: 10px;
-    border-radius: 4px 4px 0 0;
-    position: absolute;
-    background-color: var(--pink);
-    border: 2px solid var(--black);
-    box-sizing: border-box;
-    border-bottom-color: transparent;
+  .courage .body .leg.bottom.left .paw {
+    left: -10px;
+    transform: rotate(-5deg);
   }
-  .courage .body .leg.bottom .paw .finger:nth-child(1) { transform: rotate(-90deg); top: 5px; left: -1px; }
-  .courage .body .leg.bottom .paw .finger:nth-child(2) { transform: rotate(90deg); top: 5px; left: 9px; }
-  .courage .body .leg.bottom .paw .finger:nth-child(3) { top: -2px; left: 4px; }
+  .courage .body .leg.bottom.right .paw {
+    left: 2px;
+    transform: rotate(5deg);
+  }
   .courage .body::after {
     content: "";
     width: 130%;

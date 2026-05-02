@@ -103,13 +103,33 @@ async def transcribe(audio_bytes: bytes) -> str:
 SAMPLE_RATE = 24000  # Kokoro default
 
 
+def _clean_for_tts(text: str) -> str:
+    """Strip markdown symbols and formatting noise before TTS."""
+    import re
+    # Remove markdown emphasis, headers, code fences
+    text = re.sub(r'\*+', '', text)          # asterisks
+    text = re.sub(r'_+', '', text)           # underscores
+    text = re.sub(r'#+\s*', '', text)        # hash headers
+    text = re.sub(r'`+', '', text)           # backticks
+    text = re.sub(r'~+', '', text)           # tildes
+    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)  # [text](url) → text
+    text = re.sub(r'<[^>]+>', '', text)      # HTML tags
+    # Remove emojis that TTS reads literally or skips awkwardly
+    text = re.sub(r'[^\x00-\x7F]', '', text)  # non-ASCII (emojis, etc)
+    # Collapse multiple spaces/newlines
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+
 async def synthesise(text: str, voice: str = KOKORO_VOICE) -> bytes:
     """
     Synthesise text → WAV bytes (24kHz mono PCM).
     Runs kokoro in a thread.
     """
+    text = _clean_for_tts(text)
+
     def _run():
-        samples, sr = _get_kokoro().create(text, voice=voice, speed=1.15, lang="en-us")
+        samples, sr = _get_kokoro().create(text, voice=voice, speed=1.1, lang="en-us")
         buf = io.BytesIO()
         sf.write(buf, samples, sr, format="WAV", subtype="PCM_16")
         return buf.getvalue()
@@ -123,6 +143,7 @@ async def synthesise_streaming(text: str, voice: str = KOKORO_VOICE) -> AsyncIte
     Splits on sentence boundaries, synthesises each independently.
     """
     import re
+    text = _clean_for_tts(text)
     # Split on sentence endings, keeping the delimiter
     sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
     if not sentences:

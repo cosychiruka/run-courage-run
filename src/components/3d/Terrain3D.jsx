@@ -27,21 +27,57 @@ export function Terrain({ scene = 'evening' }) {
     return tex;
   }, []);
 
+  // Noon: canvas grass texture with yellowish speckles for natural lawn look
+  const noonGrassTex = useMemo(() => {
+    if (scene !== 'noon') return null;
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#4caf50';
+    ctx.fillRect(0, 0, size, size);
+    // Yellowish grass patches
+    const patches = [
+      { color: '#8bc34a', count: 120, r: [4, 14] },
+      { color: '#cddc39', count: 60,  r: [3, 10] },
+      { color: '#388e3c', count: 80,  r: [5, 16] },
+      { color: '#aed581', count: 50,  r: [3, 9]  },
+    ];
+    patches.forEach(({ color, count, r }) => {
+      ctx.fillStyle = color;
+      for (let i = 0; i < count; i++) {
+        const x = Math.random() * size;
+        const y = Math.random() * size;
+        const radius = r[0] + Math.random() * (r[1] - r[0]);
+        ctx.globalAlpha = 0.45 + Math.random() * 0.45;
+        ctx.beginPath();
+        ctx.ellipse(x, y, radius, radius * (0.5 + Math.random() * 0.8), Math.random() * Math.PI, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+    ctx.globalAlpha = 1;
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(40, 40);
+    return tex;
+  }, [scene]);
+
   let terrainColor = '#70129c'; // evening — purple/gothic
-  if (scene === 'sunrise') terrainColor = '#7a5c2a'; // dawn — dusty amber earth
+  if (scene === 'sunrise') terrainColor = '#5b9e35'; // dawn — fresh morning green
   if (scene === 'noon')    terrainColor = '#4caf50'; // noon — vivid bright green
   if (scene === 'midnight') terrainColor = '#1a0d33';
 
   return (
     <mesh receiveShadow position={[0, -99.5, 0]}>
-      {/* Flattened large sphere to represent the curved horizon */}
       <sphereGeometry args={[100, 32, 32]} />
-      <meshStandardMaterial 
-        color={terrainColor} 
-        roughness={1.0} 
+      <meshStandardMaterial
+        color={terrainColor}
+        map={noonGrassTex ?? undefined}
+        roughness={1.0}
         metalness={0.0}
-        bumpMap={noiseBumpMap} 
-        bumpScale={0.12} 
+        bumpMap={noiseBumpMap}
+        bumpScale={0.12}
       />
     </mesh>
   );

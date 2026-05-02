@@ -124,7 +124,9 @@
 .courage.happy .leg.top.left .paw {
   top: auto !important;
   bottom: -4px !important;
-  left: -1px !important;
+  left: -3px !important;
+  width: 22px !important;
+  height: 14px !important;
   transform: rotate(5deg) !important;
 }
 
@@ -136,8 +138,10 @@
 .courage.happy .leg.top.right .paw {
   top: auto !important;
   bottom: -4px !important;
-  right: -1px !important;
+  right: -3px !important;
   left: auto !important;
+  width: 22px !important;
+  height: 14px !important;
   transform: rotate(-5deg) !important;
 }
 
@@ -176,8 +180,16 @@
 }
 .courage.happy .leg.bottom .paw {
   bottom: -8px !important;
-  left: 0px !important;
-  transform: rotate(0deg) !important;
+  width: 26px !important;
+  height: 14px !important;
+}
+.courage.happy .leg.bottom.left .paw {
+  left: -10px !important;
+  transform: rotate(-5deg) !important;
+}
+.courage.happy .leg.bottom.right .paw {
+  left: 2px !important;
+  transform: rotate(5deg) !important;
 }
 
 /* ── Relaxed body sway ── */
@@ -367,4 +379,46 @@
   40%  { height: 28px; border-radius: 0 0 26px 26px; }
   60%  { height: 16px; border-radius: 0 0 14px 14px; }
   100% { height: 10px; border-radius: 0 0 10px 10px; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   PAWS — 3-toe blob style (same technique as Running Courage)
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Hide old finger elements */
+.courage.happy .leg .paw .finger { display: none !important; }
+.courage.happy .leg .paw { overflow: visible; }
+
+/* Both blobs share a base style */
+.courage.happy .leg .paw::before,
+.courage.happy .leg .paw::after {
+  content: '';
+  display: block !important;
+  width: 13px;
+  height: 13px;
+  background-color: var(--pink);
+  border-radius: 50%;
+  border: 1.5px solid var(--black);
+  box-sizing: border-box;
+  position: absolute;
+  bottom: 0;
+}
+
+/* Left blob — 3 inset groove lines pointing toward the seam */
+.courage.happy .leg .paw::before {
+  right: 44%;
+  box-shadow:
+    inset 3px  0px 0 -1px var(--black),
+    inset 3px  2px 0 -1px var(--black),
+    inset 3px -2px 0 -1px var(--black);
+}
+
+/* Right blob — override base display:none, mirror groove lines */
+.courage.happy .leg .paw::after {
+  display: block !important;
+  left: 44%;
+  box-shadow:
+    inset -3px  0px 0 -1px var(--black),
+    inset -3px  2px 0 -1px var(--black),
+    inset -3px -2px 0 -1px var(--black);
 }
