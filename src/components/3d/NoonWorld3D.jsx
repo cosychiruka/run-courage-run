@@ -32,7 +32,7 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
     world: 'noon',
     active: visible,
     state: { euriel_state: 'arrived' },
-    intervalMs: 35_000,
+    intervalMs: 45_000,
   });
 
   // Map LLM event actions to cute narrative emoji moments

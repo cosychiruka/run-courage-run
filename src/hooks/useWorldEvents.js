@@ -86,8 +86,8 @@ export function useWorldEvents({
       }, delayMs);
     };
 
-    // First event after 3s warm-up (get narration quickly), then every intervalMs
-    schedulePoll(3000);
+    // First event after 10s warm-up (allow scene to settle), then every intervalMs
+    schedulePoll(10000);
 
     return () => clearTimeout(timerRef.current);
   }, [active, world, fetchEvent, fetchPresence, intervalMs]);
