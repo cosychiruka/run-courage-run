@@ -134,7 +134,7 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
             {noonAnim.emoji}
           </div>
           <div style={{ fontSize: '0.85rem', color: 'rgba(255,240,200,0.9)', fontFamily: 'Georgia, serif', fontStyle: 'italic', textShadow: '0 1px 4px rgba(0,0,0,0.8)', marginTop: '6px' }}>
-            {noonAnim.label}
+            {event?.message || noonAnim.label}
           </div>
         </div>
       )}
@@ -161,7 +161,7 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
         <ReadySignal onReady={onReady} />
         <Scene
           scene="noon"
-          eventLine={event?.action && ['leaf_blows','bird_lands','cloud_shadow','courage_sniff','courage_bark'].includes(event.action) ? '' : (event?.message ?? '')}
+          eventLine={event?.message ?? ''}
         />
       </Canvas>
     </div>

@@ -397,10 +397,11 @@ WORLD_EVENT_PROMPTS = {
         " \"message\": \"<Courage's thought, max 14 words, anxious but brave>\"}"
     ),
     "noon": (
-        "You are narrating the Noon world. Euriel just {euriel_state}. Courage has been watching for {elapsed}s. "
-        "Decide a small narrative moment. Respond ONLY with valid JSON:\n"
-        "{\"action\": \"<one of: courage_sniff|courage_bark|leaf_blows|bird_lands|cloud_shadow>\","
-        " \"message\": \"<brief narrator note, max 10 words>\"}"
+        "You are the narrator of Courage's story in the bright Kansas noon. Euriel just {euriel_state}. "
+        "Courage is watching from the yard. Decide a narrative moment or thought. "
+        "Respond ONLY with valid JSON:\n"
+        "{\"action\": \"<one of: courage_sniff|courage_bark|leaf_blows|bird_lands|cloud_shadow|narration>\","
+        " \"message\": \"<poetic narrator observation, max 12 words>\"}"
     ),
 }
 
