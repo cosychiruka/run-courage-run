@@ -21,13 +21,14 @@
   position: relative;
   z-index: 3;
   -webkit-animation: head 150ms steps(5) infinite alternate;
-          animation: head 150ms steps(5) infinite alternate;
+  animation: head 150ms steps(5) infinite alternate;
 }
 
 @-webkit-keyframes head {
   0% {
     transform: translateY(0);
   }
+
   100% {
     transform: translateY(10%);
   }
@@ -37,6 +38,7 @@
   0% {
     transform: translateY(0);
   }
+
   100% {
     transform: translateY(10%);
   }
@@ -76,6 +78,7 @@
   0% {
     transform: rotate(-22deg);
   }
+
   100% {
     transform: rotate(-30deg);
   }
@@ -85,12 +88,14 @@
   0% {
     transform: rotate(-22deg);
   }
+
   100% {
     transform: rotate(-30deg);
   }
 }
 
-.runnercourage-ear-left, .runnercourage-ear-right {
+.runnercourage-ear-left,
+.runnercourage-ear-right {
   position: absolute;
   width: 9px;
   height: 34px;
@@ -99,10 +104,11 @@
   transform-origin: bottom center;
   transform: rotate(-25deg);
   -webkit-animation: ear 150ms steps(5) infinite alternate;
-          animation: ear 150ms steps(5) infinite alternate;
+  animation: ear 150ms steps(5) infinite alternate;
 }
 
-.runnercourage-ear-left:after, .runnercourage-ear-right:after {
+.runnercourage-ear-left:after,
+.runnercourage-ear-right:after {
   content: " ";
   display: block;
   width: 14px;
@@ -123,13 +129,14 @@
 
 .runnercourage-ear-left:after {
   -webkit-animation: ear-left-after 150ms steps(5) infinite alternate;
-          animation: ear-left-after 150ms steps(5) infinite alternate;
+  animation: ear-left-after 150ms steps(5) infinite alternate;
 }
 
 @-webkit-keyframes ear-left-after {
   0% {
     transform: rotate(-40deg);
   }
+
   100% {
     transform: rotate(-50deg);
   }
@@ -139,6 +146,7 @@
   0% {
     transform: rotate(-40deg);
   }
+
   100% {
     transform: rotate(-50deg);
   }
@@ -152,13 +160,14 @@
 .runnercourage-ear-right:after {
   transform: rotate(-35deg);
   -webkit-animation: ear-right-after 150ms steps(5) infinite alternate;
-          animation: ear-right-after 150ms steps(5) infinite alternate;
+  animation: ear-right-after 150ms steps(5) infinite alternate;
 }
 
 @-webkit-keyframes ear-right-after {
   0% {
     transform: rotate(-30deg);
   }
+
   100% {
     transform: rotate(-45deg);
   }
@@ -168,6 +177,7 @@
   0% {
     transform: rotate(-30deg);
   }
+
   100% {
     transform: rotate(-45deg);
   }
@@ -177,7 +187,8 @@
    EYE ANIMATIONS
    ══════════════════════════════════════════════════════════════════════════ */
 
-.runnercourage-eye-front, .runnercourage-eye-rear {
+.runnercourage-eye-front,
+.runnercourage-eye-rear {
   width: 42px;
   height: 60px;
   border-radius: 50%;
@@ -188,7 +199,8 @@
   box-shadow: inset 0 -1px 0 3px black;
 }
 
-.runnercourage-eye-front:before, .runnercourage-eye-rear:before {
+.runnercourage-eye-front:before,
+.runnercourage-eye-rear:before {
   content: " ";
   display: block;
   position: absolute;
@@ -199,10 +211,11 @@
   border-radius: 50%;
   background-color: black;
   -webkit-animation: eye-pupil-front 7500ms ease-in-out infinite alternate;
-          animation: eye-pupil-front 7500ms ease-in-out infinite alternate;
+  animation: eye-pupil-front 7500ms ease-in-out infinite alternate;
 }
 
-.runnercourage-eye-front:after, .runnercourage-eye-rear:after {
+.runnercourage-eye-front:after,
+.runnercourage-eye-rear:after {
   content: " ";
   display: block;
   position: absolute;
@@ -226,12 +239,15 @@
   0% {
     transform: translateX(0);
   }
+
   40% {
     transform: translateX(0);
   }
+
   60% {
     transform: translate(20px, 5px);
   }
+
   100% {
     transform: translate(20px, 5px);
   }
@@ -241,12 +257,15 @@
   0% {
     transform: translateX(0);
   }
+
   40% {
     transform: translateX(0);
   }
+
   60% {
     transform: translate(20px, 5px);
   }
+
   100% {
     transform: translate(20px, 5px);
   }
@@ -310,7 +329,8 @@
   transform: translate(-50%, -50%) scaleY(0.8);
 }
 
-.runnercourage-nose-tip:after, .runnercourage-nose-tip:before {
+.runnercourage-nose-tip:after,
+.runnercourage-nose-tip:before {
   content: " ";
   display: block;
   position: absolute;
@@ -378,7 +398,7 @@
   box-shadow: -5px -5px 0 -5px black, -7px 0px 0 -5px black, -3px 5px 0 -4px black, 0px 5px 0 -4px black;
   z-index: 2;
   -webkit-animation: head 150ms steps(5) infinite alternate;
-          animation: head 150ms steps(5) infinite alternate;
+  animation: head 150ms steps(5) infinite alternate;
 }
 
 .runnercourage-mouth:before {
@@ -420,7 +440,7 @@
   z-index: 1;
   left: 6px;
   -webkit-animation: body 150ms steps(5) infinite alternate;
-          animation: body 150ms steps(5) infinite alternate;
+  animation: body 150ms steps(5) infinite alternate;
 }
 
 .runnercourage-body:before {
@@ -449,6 +469,7 @@
   0% {
     transform: rotate(-5deg);
   }
+
   100% {
     transform: rotate(-15deg);
   }
@@ -458,6 +479,7 @@
   0% {
     transform: rotate(-5deg);
   }
+
   100% {
     transform: rotate(-15deg);
   }
@@ -467,7 +489,8 @@
    LEG ANIMATIONS
    ══════════════════════════════════════════════════════════════════════════ */
 
-.runnercourage-leg-back, .runnercourage-leg-front {
+.runnercourage-leg-back,
+.runnercourage-leg-front {
   position: absolute;
   border-radius: 0 0 50% 50%;
   width: 8px;
@@ -478,7 +501,10 @@
   z-index: -1;
 }
 
-.runnercourage-leg-back:after, .runnercourage-leg-back:before, .runnercourage-leg-front:after, .runnercourage-leg-front:before {
+.runnercourage-leg-back:after,
+.runnercourage-leg-back:before,
+.runnercourage-leg-front:after,
+.runnercourage-leg-front:before {
   content: " ";
   display: block;
   width: 90%;
@@ -490,12 +516,14 @@
   transform: translateY(-60%);
 }
 
-.runnercourage-leg-back:after, .runnercourage-leg-front:after {
+.runnercourage-leg-back:after,
+.runnercourage-leg-front:after {
   right: 50%;
   box-shadow: inset 3px 0px 0 -2px, inset 3px 2px 0 -2px, inset 3px -2px 0 -2px;
 }
 
-.runnercourage-leg-back:before, .runnercourage-leg-front:before {
+.runnercourage-leg-back:before,
+.runnercourage-leg-front:before {
   left: 50%;
   box-shadow: inset -3px 0px 0 -2px, inset -3px 2px 0 -2px, inset -3px -2px 0 -2px;
 }
@@ -507,13 +535,14 @@
   z-index: 1;
   box-shadow: inset 0px 7px #f09dd1, inset 0px 0px 0 2px;
   -webkit-animation: leg-back 150ms steps(5) infinite alternate;
-          animation: leg-back 150ms steps(5) infinite alternate;
+  animation: leg-back 150ms steps(5) infinite alternate;
 }
 
 @-webkit-keyframes leg-back {
   0% {
     transform: rotate(70deg);
   }
+
   100% {
     transform: rotate(-30deg);
   }
@@ -523,6 +552,7 @@
   0% {
     transform: rotate(70deg);
   }
+
   100% {
     transform: rotate(-30deg);
   }
@@ -533,13 +563,14 @@
   left: 55%;
   box-shadow: inset 0px 0px 0 2px, inset 0px 21px 0 -3px;
   -webkit-animation: leg-front 150ms steps(5) infinite alternate;
-          animation: leg-front 150ms steps(5) infinite alternate;
+  animation: leg-front 150ms steps(5) infinite alternate;
 }
 
 @-webkit-keyframes leg-front {
   0% {
     transform: rotate(-50deg);
   }
+
   100% {
     transform: rotate(50deg);
   }
@@ -549,6 +580,7 @@
   0% {
     transform: rotate(-50deg);
   }
+
   100% {
     transform: rotate(50deg);
   }
@@ -558,7 +590,8 @@
    ARM ANIMATIONS
    ══════════════════════════════════════════════════════════════════════════ */
 
-.runnercourage-arm-front, .runnercourage-arm-back {
+.runnercourage-arm-front,
+.runnercourage-arm-back {
   position: absolute;
   border-radius: 0 0 50% 50%;
   width: 8px;
@@ -569,7 +602,10 @@
   z-index: 1;
 }
 
-.runnercourage-arm-front:after, .runnercourage-arm-front:before, .runnercourage-arm-back:after, .runnercourage-arm-back:before {
+.runnercourage-arm-front:after,
+.runnercourage-arm-front:before,
+.runnercourage-arm-back:after,
+.runnercourage-arm-back:before {
   content: " ";
   display: block;
   width: 90%;
@@ -581,12 +617,14 @@
   transform: translateY(-60%);
 }
 
-.runnercourage-arm-front:after, .runnercourage-arm-back:after {
+.runnercourage-arm-front:after,
+.runnercourage-arm-back:after {
   right: 50%;
   box-shadow: inset 3px 0px 0 -2px, inset 3px 2px 0 -2px, inset 3px -2px 0 -2px;
 }
 
-.runnercourage-arm-front:before, .runnercourage-arm-back:before {
+.runnercourage-arm-front:before,
+.runnercourage-arm-back:before {
   left: 50%;
   box-shadow: inset -3px 0px 0 -2px, inset -3px 2px 0 -2px, inset -3px -2px 0 -2px;
 }
@@ -596,13 +634,14 @@
   left: 140%;
   transform: rotate(-130deg);
   -webkit-animation: arm-front 150ms steps(5) infinite alternate;
-          animation: arm-front 150ms steps(5) infinite alternate;
+  animation: arm-front 150ms steps(5) infinite alternate;
 }
 
 @-webkit-keyframes arm-front {
   0% {
     transform: rotate(-90deg);
   }
+
   100% {
     transform: rotate(-170deg);
   }
@@ -612,6 +651,7 @@
   0% {
     transform: rotate(-90deg);
   }
+
   100% {
     transform: rotate(-170deg);
   }
@@ -622,13 +662,14 @@
   top: 5px;
   right: 100%;
   -webkit-animation: arm-back 150ms steps(5) infinite alternate;
-          animation: arm-back 150ms steps(5) infinite alternate;
+  animation: arm-back 150ms steps(5) infinite alternate;
 }
 
 @-webkit-keyframes arm-back {
   0% {
     transform: rotate(150deg);
   }
+
   100% {
     transform: rotate(70deg);
   }
@@ -638,6 +679,7 @@
   0% {
     transform: rotate(150deg);
   }
+
   100% {
     transform: rotate(70deg);
   }
@@ -647,7 +689,8 @@
    TAIL ANIMATIONS
    ══════════════════════════════════════════════════════════════════════════ */
 
-.runnercourage-tail, .runnercourage-tail-black {
+.runnercourage-tail,
+.runnercourage-tail-black {
   position: absolute;
   top: 70%;
   right: 84%;
@@ -657,21 +700,26 @@
   z-index: -1;
 }
 
-.runnercourage-tail:before, .runnercourage-tail:after, .runnercourage-tail-black:before, .runnercourage-tail-black:after {
+.runnercourage-tail:before,
+.runnercourage-tail:after,
+.runnercourage-tail-black:before,
+.runnercourage-tail-black:after {
   content: " ";
   display: block;
   border: 10px solid transparent;
   position: absolute;
 }
 
-.runnercourage-tail:before, .runnercourage-tail-black:before {
+.runnercourage-tail:before,
+.runnercourage-tail-black:before {
   border-top: 10px solid #f09dd1;
   bottom: -14px;
   left: 0;
   transform: rotate(20deg);
 }
 
-.runnercourage-tail:after, .runnercourage-tail-black:after {
+.runnercourage-tail:after,
+.runnercourage-tail-black:after {
   border-bottom: 10px solid #f09dd1;
   top: -14px;
   left: 0;
@@ -694,7 +742,8 @@
    TEETH
    ══════════════════════════════════════════════════════════════════════════ */
 
-.runnercourage-tooth-top, .runnercourage-tooth-bottom {
+.runnercourage-tooth-top,
+.runnercourage-tooth-bottom {
   background-color: #f1f09e;
   border-radius: 20% 20% 40% 40%;
   width: 20px;
@@ -763,15 +812,26 @@
   width: 54px;
   height: 28px;
   border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(200,170,120,0.55) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(200, 170, 120, 0.55) 0%, transparent 70%);
   pointer-events: none;
   animation: dustPuff 0.9s ease-out forwards !important;
 }
 
 @keyframes dustPuff {
-  0%   { opacity: 0;   transform: scale(0.4) translateX(0px);   }
-  25%  { opacity: 0.9; transform: scale(1.3) translateX(-18px); }
-  100% { opacity: 0;   transform: scale(2.2) translateX(-38px); }
+  0% {
+    opacity: 0;
+    transform: scale(0.4) translateX(0px);
+  }
+
+  25% {
+    opacity: 0.9;
+    transform: scale(1.3) translateX(-18px);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(2.2) translateX(-38px);
+  }
 }
 
 /* Freeze all limb animations */
@@ -791,23 +851,34 @@
   animation: none !important;
 }
 
-/* Mouth semi-closed while listening — back pivot scissor jaw */
+/* Mouth mostly closed while listening */
 .runnercourage.is-talking .runnercourage-mouth {
-  transform-origin: 10% 10%;
-  transform: scaleY(0.4) rotate(0deg);
+  transform-origin: top center;
+  transform: scaleY(0.22);
 }
 
 /* Mouth opens and talks while speaking (overrides above) */
 .runnercourage.is-speaking .runnercourage-mouth {
-  transform-origin: 10% 10% !important;
-  animation: runnerTalkScissor 0.36s ease-in-out infinite !important;
+  transform-origin: top center;
+  animation: runnerTalk 0.36s ease-in-out infinite !important;
 }
 
-@keyframes runnerTalkScissor {
-  0%   { transform: scaleY(0.4) rotate(0deg);  }
-  40%  { transform: scaleY(1.0) rotate(12deg); }
-  60%  { transform: scaleY(1.0) rotate(12deg); }
-  100% { transform: scaleY(0.4) rotate(0deg);  }
+@keyframes runnerTalk {
+  0% {
+    transform: scaleY(0.22);
+  }
+
+  40% {
+    transform: scaleY(1.0);
+  }
+
+  60% {
+    transform: scaleY(1.0);
+  }
+
+  100% {
+    transform: scaleY(0.22);
+  }
 }
 
 /* Mobile brake removed */
@@ -830,9 +901,20 @@
 }
 
 @keyframes sniffHeadBob {
-  0%, 100% { transform: translateY(0)   rotate(0deg);   }
-  35%       { transform: translateY(8px) rotate(4deg);   } /* nose down */
-  70%       { transform: translateY(3px) rotate(-2deg);  }
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  35% {
+    transform: translateY(8px) rotate(4deg);
+  }
+
+  /* nose down */
+  70% {
+    transform: translateY(3px) rotate(-2deg);
+  }
 }
 
 /* Tail wag — he's happy sniffing */
@@ -841,6 +923,11 @@
 }
 
 @keyframes sniffTailWag {
-  0%   { transform: rotate(-17deg); }
-  100% { transform: rotate(10deg);  }
+  0% {
+    transform: rotate(-17deg);
+  }
+
+  100% {
+    transform: rotate(10deg);
+  }
 }
