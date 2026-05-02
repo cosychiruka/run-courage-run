@@ -18,10 +18,27 @@ import { fetchTopNews } from './services/newsService';
 import { analyzeSentiment } from './utils/sentimentUtils';
 import { createVoiceService } from './services/voiceService';
 
-const EveningWorld3D = lazy(() => import('./components/3d/EveningWorld3D'));
-const SunriseWorld3D = lazy(() => import('./components/3d/SunriseWorld3D'));
-const NoonWorld3D = lazy(() => import('./components/3d/NoonWorld3D'));
-const DiscoWorld3D = lazy(() => import('./components/3d/DiscoWorld3D'));
+// Wrapper to handle Vite dynamic import chunk errors after redeployments
+const lazyWithReload = (componentImport) => {
+  return lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (error) {
+      if (error.name === 'TypeError' || error.message.includes('fetch dynamically imported module') || error.message.includes('disallowed MIME type')) {
+        console.warn('[ChunkLoadError] New version deployed. Reloading page...', error);
+        window.location.reload(true);
+        // Return a dummy module so React doesn't immediately crash while reloading
+        return { default: () => null };
+      }
+      throw error;
+    }
+  });
+};
+
+const EveningWorld3D = lazyWithReload(() => import('./components/3d/EveningWorld3D'));
+const SunriseWorld3D = lazyWithReload(() => import('./components/3d/SunriseWorld3D'));
+const NoonWorld3D = lazyWithReload(() => import('./components/3d/NoonWorld3D'));
+const DiscoWorld3D = lazyWithReload(() => import('./components/3d/DiscoWorld3D'));
 import courageDancingGif from './assets/images/Courage.gif';
 
 export default function App() {
