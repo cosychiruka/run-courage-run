@@ -472,26 +472,26 @@
 
   /* Arms: joint LOWER on body so paws land just below mouth level, tilted inward */
   .courage .body .leg.top {
-    top: 35px; /* was 20px — moves joint down so paw reaches mouth area */
+    top: 35px;
   }
   .courage .body .leg.top.left {
     left: 10px;
-    transform: rotate(125deg);
+    transform: rotate(160deg);
     animation: scaredTrembleL 0.22s ease-in-out infinite;
   }
   .courage .body .leg.top.right {
     left: 60px;
-    transform: rotate(-125deg);
+    transform: rotate(-160deg);
     animation: scaredTrembleR 0.22s ease-in-out infinite;
   }
 
   @keyframes scaredTrembleL {
-    0%, 100% { transform: rotate(122deg) translateX(0); }
-    50%       { transform: rotate(128deg) translateX(1px); }
+    0%, 100% { transform: rotate(157deg) translateX(0); }
+    50%       { transform: rotate(163deg) translateX(1px); }
   }
   @keyframes scaredTrembleR {
-    0%, 100% { transform: rotate(-122deg) translateX(0); }
-    50%       { transform: rotate(-128deg) translateX(-1px); }
+    0%, 100% { transform: rotate(-157deg) translateX(0); }
+    50%       { transform: rotate(-163deg) translateX(-1px); }
   }
 
   .courage .body .leg.top .paw {
@@ -729,26 +729,22 @@
 
 /* Arms gesture — left and right with offset timing for natural feel */
 .courage.is-speaking .body .leg.top.left {
-  animation: scaredSpeakL 1.32s ease-in-out infinite !important;
-  transform-origin: bottom left !important;
+  animation: scaredSpeakL 0.85s ease-in-out infinite !important;
+  transform-origin: top center !important;
 }
 .courage.is-speaking .body .leg.top.right {
-  animation: scaredSpeakR 1.06s ease-in-out infinite 0.22s !important;
-  transform-origin: bottom right !important;
+  animation: scaredSpeakR 0.85s ease-in-out infinite 0.1s !important;
+  transform-origin: top center !important;
 }
 @keyframes scaredSpeakL {
-  0%, 100% { transform: rotate( -2deg); }
-  22%      { transform: rotate(-30deg) translateY( -8px); }
-  46%      { transform: rotate( -8deg) translateY( -2px); }
-  70%      { transform: rotate(-25deg) translateY( -6px); }
-  90%      { transform: rotate( -5deg); }
+  0%, 100% { transform: rotate(-28deg); }
+  40%      { transform: rotate(-38deg); }
+  70%      { transform: rotate(-22deg); }
 }
 @keyframes scaredSpeakR {
-  0%, 100% { transform: rotate(  2deg); }
-  18%      { transform: rotate( 20deg) translateY( -5px); }
-  42%      { transform: rotate( 36deg) translateY(-11px); }
-  64%      { transform: rotate( 13deg) translateY( -3px); }
-  84%      { transform: rotate( 30deg) translateY( -8px); }
+  0%, 100% { transform: rotate(28deg); }
+  40%      { transform: rotate(38deg); }
+  70%      { transform: rotate(22deg); }
 }
 
 /* Head nod — slightly behind the mouth rhythm for realism */
