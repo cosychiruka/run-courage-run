@@ -23,7 +23,12 @@ const DEFAULT_BACKEND = import.meta.env.VITE_BACKEND_URL ||
   (import.meta.env.PROD ? 'https://run-courage-run.sliplane.app' : 'http://localhost:8000');
 
 export function getBackendUrl() {
-  return localStorage.getItem('courage_backend_url') || DEFAULT_BACKEND;
+  const stored = localStorage.getItem('courage_backend_url');
+  // In production, ignore any stale localhost overrides in localStorage
+  if (import.meta.env.PROD && stored && stored.includes('localhost')) {
+    return DEFAULT_BACKEND;
+  }
+  return stored || DEFAULT_BACKEND;
 }
 
 const CACHE_TTL_MS  = 30 * 60 * 1000;  // 30 minutes — matches server Redis TTL

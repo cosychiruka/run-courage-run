@@ -45,8 +45,8 @@ export function useWorldEvents({
         const data = await res.json();
         if (data?.action && data.action !== 'idle') {
           setEvent(data);
-          // Auto-clear banner after 8s
-          setTimeout(() => setEvent(null), 8_000);
+          // Auto-clear banner after 12s (narrations can be long)
+          setTimeout(() => setEvent(null), 12000);
         }
       }
     } catch {
@@ -86,8 +86,8 @@ export function useWorldEvents({
       }, delayMs);
     };
 
-    // First event after 15s warm-up, then every intervalMs
-    schedulePoll(15_000);
+    // First event after 3s warm-up (get narration quickly), then every intervalMs
+    schedulePoll(3000);
 
     return () => clearTimeout(timerRef.current);
   }, [active, world, fetchEvent, fetchPresence, intervalMs]);
