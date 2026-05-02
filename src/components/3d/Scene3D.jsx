@@ -390,34 +390,30 @@ function SunriseStoryController({ selfieFlyTexture = null, selfieFlyLabel = '', 
       <group ref={courageRef}>
         <Html transform center eps={0.001} style={{ pointerEvents: 'none' }}>
            <CourageRunningAnimationComplete />
-           {/* Thought bubble: LLM line overrides HELP! — toggle, never both */}
-           {((phase === 1 || phase === 2) && seqRef.current === 0 || eventLine) && (
+           {/* Thought bubble: 'HELP!' only (LLM narration moved to screen center card) */}
+           {((phase === 1 || phase === 2) && seqRef.current === 0) && (
              <div style={{
                position: 'absolute', top: '-90px', left: '50%', transform: 'translateX(-50%)',
-               backgroundColor: eventLine ? 'rgba(10,40,80,0.92)' : '#ffffff',
-               color: eventLine ? '#d0eeff' : '#000000',
+               backgroundColor: '#ffffff',
+               color: '#000000',
                fontWeight: 900,
-               fontSize: eventLine ? '1.0rem' : '2rem',
-               padding: eventLine ? '10px 18px' : '15px 25px',
+               fontSize: '2rem',
+               padding: '15px 25px',
                borderRadius: '50px',
-               border: eventLine ? '2px solid rgba(100,200,255,0.6)' : '5px solid #000000',
+               border: '5px solid #000000',
                zIndex: 100,
-               boxShadow: eventLine
-                 ? '0 4px 20px rgba(50,150,255,0.4)'
-                 : '0 10px 0 rgba(0,0,0,0.2)',
+               boxShadow: '0 10px 0 rgba(0,0,0,0.2)',
                fontFamily: '"Comic Sans MS", cursive',
-               maxWidth: '220px', whiteSpace: 'normal', textAlign: 'center',
-               fontStyle: eventLine ? 'italic' : 'normal',
-               transition: 'all 0.3s ease',
+               maxWidth: '220px', whiteSpace: 'nowrap', textAlign: 'center',
              }}>
-               {eventLine || 'HELP!'}
+               HELP!
                <div style={{
                  position: 'absolute', bottom: '-18px', left: '50%',
                  transform: 'translateX(-50%) rotate(45deg)',
                  width: '20px', height: '20px',
-                 backgroundColor: eventLine ? 'rgba(10,40,80,0.92)' : '#ffffff',
-                 borderBottom: eventLine ? '2px solid rgba(100,200,255,0.6)' : '5px solid #000000',
-                 borderLeft:  eventLine ? '2px solid rgba(100,200,255,0.6)' : '5px solid #000000',
+                 backgroundColor: '#ffffff',
+                 borderBottom: '5px solid #000000',
+                 borderLeft: '5px solid #000000',
                  borderRadius: '3px',
                }} />
              </div>
