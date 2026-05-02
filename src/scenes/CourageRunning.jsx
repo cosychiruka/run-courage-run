@@ -1,5 +1,5 @@
 import './CourageRunning.css';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const CourageRunning = ({ voiceState = null, currentScene = 'sunrise' }) => {
   const isTalking   = voiceState !== null;

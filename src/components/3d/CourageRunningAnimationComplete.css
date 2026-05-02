@@ -811,3 +811,36 @@
 }
 
 /* Mobile brake removed */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SNIFFING / PLAYING ON LAWN — freeze running limbs
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Pause the fast running animations so he looks still while sniffing */
+.runnercourage.is-sniffing .runnercourage-arm-front,
+.runnercourage.is-sniffing .runnercourage-arm-back,
+.runnercourage.is-sniffing .runnercourage-leg-back,
+.runnercourage.is-sniffing .runnercourage-leg-front {
+  animation-play-state: paused !important;
+}
+
+/* Gentle head bob — he's sniffing the ground */
+.runnercourage.is-sniffing .runnercourage-head {
+  animation: sniffHeadBob 1.2s ease-in-out infinite !important;
+}
+
+@keyframes sniffHeadBob {
+  0%, 100% { transform: translateY(0)   rotate(0deg);   }
+  35%       { transform: translateY(8px) rotate(4deg);   } /* nose down */
+  70%       { transform: translateY(3px) rotate(-2deg);  }
+}
+
+/* Tail wag — he's happy sniffing */
+.runnercourage.is-sniffing .runnercourage-tail {
+  animation: sniffTailWag 0.5s ease-in-out infinite alternate !important;
+}
+
+@keyframes sniffTailWag {
+  0%   { transform: rotate(-17deg); }
+  100% { transform: rotate(10deg);  }
+}

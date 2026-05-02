@@ -1,13 +1,13 @@
 import './CourageRunningAnimationComplete.css';
 
-const CourageRunningAnimationComplete = ({ voiceState = null }) => {
+const CourageRunningAnimationComplete = ({ voiceState = null, isSniffing = false }) => {
   const isTalking   = voiceState !== null;
   const isListening = voiceState === 'listening';
   const isThinking  = voiceState === 'thinking';
   const isSpeaking  = voiceState === 'speaking';
 
   return (
-    <div className={`runnercourage${isTalking ? ' is-talking' : ''}${isListening ? ' is-listening' : ''}${isThinking ? ' is-thinking' : ''}${isSpeaking ? ' is-speaking' : ''}`}>
+    <div className={`runnercourage${isTalking ? ' is-talking' : ''}${isListening ? ' is-listening' : ''}${isThinking ? ' is-thinking' : ''}${isSpeaking ? ' is-speaking' : ''}${isSniffing ? ' is-sniffing' : ''}`}>
       <div className='runnercourage-head'>
         <div className='runnercourage-ear-left'></div>
         <div className='runnercourage-head-rear'></div>

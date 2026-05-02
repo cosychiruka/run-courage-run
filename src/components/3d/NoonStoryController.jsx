@@ -192,7 +192,7 @@ export function NoonStoryController({ eventLine = '' }) {
       {/* Courage — 2D animated character in Html billboard */}
       <group ref={courageRef}>
         <Html transform center eps={0.001} style={{ pointerEvents: 'none' }}>
-          <CourageRunningAnimationComplete />
+          <CourageRunningAnimationComplete isSniffing={phase >= 3 && phase <= 5} />
           {/* Speech bubble: show during chase or chill */}
           {phase >= 2 && phase <= 5 && seqRef.current === 1 && (
             <div style={{

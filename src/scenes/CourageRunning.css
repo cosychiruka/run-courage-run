@@ -791,10 +791,10 @@
   animation: none !important;
 }
 
-/* Restore the original mouth shape without squishing, just clip the bottom to look 'shut' */
+/* Restore the original mouth shape — squish to near-closed via scaleY from top pivot */
 .runnercourage.is-talking .runnercourage-mouth {
-  transform: none; /* remove any scale */
-  clip-path: inset(0 0 65% 0); /* trim bottom 65% of the wide open mouth so it looks closed */
+  transform-origin: top center;
+  transform: scaleY(0.22); /* near-closed: jaw tucked up */
 }
 
 /* Inject temporary jaw overlay while mouth is closed to cover gaps */
@@ -812,17 +812,18 @@
   z-index: 10;
 }
 
-/* Mouth opens and talks while speaking */
+/* Pivot jaw open while speaking — scaleY at top so the jaw swings down like a hinge */
 .runnercourage.is-speaking .runnercourage-mouth {
-  clip-path: unset !important; /* override the is-talking 65% clip so keyframes can go fully open */
+  transform-origin: top center !important;
+  clip-path: none !important; /* clear any clip so full jaw is visible */
   animation: runnerTalk 0.36s ease-in-out infinite !important;
 }
 
 @keyframes runnerTalk {
-  0%   { clip-path: inset(0 0 65% 0); }
-  40%  { clip-path: inset(0 0 0% 0);  } /* fully open original mouth */
-  60%  { clip-path: inset(0 0 0% 0);  }
-  100% { clip-path: inset(0 0 65% 0); }
+  0%   { transform: scaleY(0.22); } /* jaw closed */
+  40%  { transform: scaleY(1.0);  } /* jaw fully open */
+  60%  { transform: scaleY(1.0);  }
+  100% { transform: scaleY(0.22); } /* jaw closed */
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
