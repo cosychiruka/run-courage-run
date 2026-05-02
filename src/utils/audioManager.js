@@ -81,6 +81,7 @@ class AudioManager {
     source.onended = () => {
       if (this.currentTrack === name && !source.loop) {
         this.currentTrack = null;
+        if (typeof options.onEnded === 'function') options.onEnded();
       }
     };
 

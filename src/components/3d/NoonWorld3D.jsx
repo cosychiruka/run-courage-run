@@ -126,8 +126,8 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
       {/* Noon narrative emoji moment */}
       {visible && noonAnim && (
         <div style={{
-          position: 'fixed', bottom: '160px', left: '50%', transform: 'translateX(-50%)',
-          zIndex: 1003, textAlign: 'center', pointerEvents: 'none',
+          position: 'fixed', bottom: 'clamp(80px, 18vh, 160px)', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 10001, textAlign: 'center', pointerEvents: 'none',
           animation: 'noonAnimIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275) forwards',
         }}>
           <div style={{ fontSize: '4rem', lineHeight: 1, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }}>

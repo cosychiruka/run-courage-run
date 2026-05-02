@@ -4034,9 +4034,9 @@ div:where(.swal2-container) div:where(.swal2-popup) {
     gap: 8px;
   }
 
-  /* Voice button — bottom right, above music bar */
+  /* Voice button — bottom right, above grounded music bar (~56px) */
   .world-voice-btn {
-    bottom: 66px !important;
+    bottom: 70px !important;
     right: 12px !important;
   }
 
@@ -4062,32 +4062,34 @@ div:where(.swal2-container) div:where(.swal2-popup) {
    DISCO MUSIC PANEL — centered horizontally
    ══════════════════════════════════════════════════════════════════════════ */
 .disco-music-panel {
-  position: absolute;
-  bottom: 66px;           /* sits above the standard world3d-music-bar area */
+  position: fixed;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(10, 10, 18, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  padding: 14px 24px;
-  border-radius: 20px;
+  padding: 10px 24px;
+  border-radius: 20px 20px 0 0;
   border: 1px solid rgba(0, 255, 0, 0.3);
+  border-bottom: none;
   display: flex;
   align-items: center;
   gap: 18px;
   color: white;
   z-index: 1002;
-  box-shadow: 0 5px 20px rgba(0, 255, 0, 0.2);
+  box-shadow: 0 -3px 20px rgba(0, 255, 0, 0.2);
   pointer-events: all;
   white-space: nowrap;
 }
 
 @media (max-width: 768px) {
   .disco-music-panel {
-    bottom: 60px;
-    padding: 10px 16px;
-    gap: 12px;
-    font-size: 0.85rem;
+    bottom: 0;
+    padding: 8px 14px;
+    gap: 10px;
+    font-size: 0.8rem;
+    max-width: calc(100vw - 90px); /* leave room for voice button */
   }
 }
 
@@ -4108,7 +4110,13 @@ div:where(.swal2-container) div:where(.swal2-popup) {
    ══════════════════════════════════════════════════════════════════════════ */
 .world-voice-btn {
   position: fixed;
-  bottom: 70px;
+  bottom: 76px;
   right: 16px;
   z-index: 1002;
+}
+
+@keyframes voiceListeningPulse {
+  0%   { box-shadow: 0 0 0 0   rgba(255,0,0,0.5), 0 0 0 0   rgba(255,0,0,0.2); }
+  50%  { box-shadow: 0 0 0 12px rgba(255,0,0,0.2), 0 0 0 24px rgba(255,0,0,0.05); }
+  100% { box-shadow: 0 0 0 0   rgba(255,0,0,0),   0 0 0 0   rgba(255,0,0,0); }
 }

@@ -11,6 +11,7 @@ import SelfieUI from '../SelfieUI';
 import WorldVoiceButton from '../WorldVoiceButton';
 import WorldEventBanner from '../WorldEventBanner';
 import { useWorldEvents, registerPresence } from '../../hooks/useWorldEvents';
+import { captureAndShareSelfie } from '../../utils/screenshotUtils';
 
 const MemoHouse = React.memo(House);
 
@@ -267,14 +268,14 @@ const DANCE_PATTERNS = [
 // Module-level mutable speed ref — updated by event without triggering re-render
 const _discoSpeedMult = { current: 1.0 };
 
-function DancingGhost({ position, offsetTime = 0, patternIdx = 0, selfieTexture = null, selfieLabel = '', isSelfie = false }) {
+function DancingGhost({ position, offsetTime = 0, patternIdx = 0, selfieTexture = null, selfieLabel = '', selfiePreviewUrl = null, isSelfie = false }) {
   const groupRef = useRef(null);
   const ghostMat = useMemo(() => new THREE.MeshStandardMaterial({ 
     color: '#ffffff', emissive: '#d7d4ff', emissiveIntensity: 0.8,
     transparent: true, opacity: isSelfie ? 0.95 : 0.85, roughness: 0.8
   }), [isSelfie]);
   const selfieMat = useMemo(() => selfieTexture
-    ? new THREE.MeshStandardMaterial({ map: selfieTexture, roughness: 0.6, metalness: 0.1 })
+    ? new THREE.MeshBasicMaterial({ map: selfieTexture })
     : null,
   [selfieTexture]);
   const haloMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ff00ff', wireframe: true }), []);
@@ -337,6 +338,22 @@ function DancingGhost({ position, offsetTime = 0, patternIdx = 0, selfieTexture 
               ? <primitive object={selfieMat} attach="material" />
               : <primitive object={ghostMat} attach="material" />}
           </mesh>
+          {/* Photo overlay — same technique as Courage HTML/CSS in 3D scene */}
+          {selfiePreviewUrl && (
+            <Html position={[0, 0.85, 0]} center sprite occlude={false}>
+              <img
+                src={selfiePreviewUrl}
+                alt=""
+                style={{
+                  width: '110px', height: '110px',
+                  borderRadius: '50%', objectFit: 'cover',
+                  border: '5px solid #fff',
+                  boxShadow: '0 0 20px rgba(255,0,200,0.9)',
+                  pointerEvents: 'none',
+                }}
+              />
+            </Html>
+          )}
           {/* Rainbow halo ring around the face */}
           <mesh position={[0, 0.85, 0]} rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[0.68, 0.07, 8, 24]} />
@@ -387,8 +404,8 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
   const { event, clearEvent, presenceCount } = useWorldEvents({
     world: 'disco',
     active: visible,
-    state: { ghost_count: 5, elapsed: 0 },
-    intervalMs: 40_000,
+    state: { ghost_count: 5, elapsed: 0, current_track: DISCO_TRACKS[currentTrackIdx]?.title ?? '' },
+    intervalMs: 25_000,
   });
 
   // Presence heartbeat when selfie is active
@@ -425,28 +442,16 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
     if (!visible) _discoSpeedMult.current = 1.0;
   }, [visible]);
 
-  // Screenshot → share on X
+  // Screenshot → share on X (Web Share API on mobile, download + intent on desktop)
   const handleScreenshot = useCallback(() => {
-    // Find the WebGL canvas, grab it as PNG, open X share dialog
-    const glCanvas = document.querySelector('.world3d-overlay canvas');
-    if (!glCanvas) return;
-    try {
-      const dataUrl = glCanvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.download = 'monster-selfie-disco.png';
-      link.href = dataUrl;
-      link.click();
-      // Open X share intent after short delay
-      setTimeout(() => {
-        const text = encodeURIComponent(`👻 I became a Monster at the Nowhere High School Disco with @CourageMemeSOL! #CourageRunRun #MonsterSelfie #Web3`);
-        window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
-      }, 800);
-    } catch (e) {
-      // Canvas CORS — fallback to just opening X with text
-      const text = encodeURIComponent(`👻 I became a Monster at the Nowhere High School Disco with @CourageMemeSOL! #CourageRunRun #MonsterSelfie`);
-      window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
-    }
-  }, []);
+    captureAndShareSelfie({
+      previewUrl: selfie.previewUrl,
+      label: selfie.label,
+      worldName: 'Nowhere High School Disco',
+      monsterEmoji: '👻',
+      tweetText: `👻 I became a Monster at the Nowhere High School Disco with @runcouragerun! #CourageRunRun #MonsterSelfie #Web3`,
+    });
+  }, [selfie.previewUrl, selfie.label]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && visible) onClose(); };
@@ -467,7 +472,11 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
       const playNext = async () => {
          await audioManager.loadTrack(track.id, track.url);
          if (isPlaying) {
-            await audioManager.playTrack(track.id, { loop: true, volume: 0.5 });
+            await audioManager.playTrack(track.id, {
+              loop: false,
+              volume: 0.5,
+              onEnded: () => setCurrentTrackIdx(i => (i + 1) % DISCO_TRACKS.length),
+            });
          } else {
             audioManager.stopAllTracks();
          }
@@ -520,7 +529,7 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
       <Canvas
         frameloop={visible ? 'always' : 'demand'}
         dpr={[1, 1.5]}
-        gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0, powerPreference: 'high-performance' }}
+        gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
         style={{ width: '100%', height: '100%' }}
         onCreated={({ gl }) => { canvasRef.current = gl; }}
       >
@@ -535,7 +544,7 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
         {/* The House — the Scene terrain group is at Y:-2, so house offset is -0.2+2=1.8 net.
             We keep house group at Y:-0.2 relative to scene group (which sits at Y:-2 in Scene3D)
             House group local Y needs to be 0 so it sits on the terrain sphere top at Y=-0.5 approx */}
-        <group position={[-2.5, 0, 0]}>
+        <group position={[-2.5, -1.5, 0]}>
            <MemoHouse doorOpen={false} />
            {/* Banner: mounted on the BACK wall of the house (Z negative = behind house from camera).
                Only visible when user orbits to look at the party side. */}
@@ -578,6 +587,7 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
             patternIdx={0}
             selfieTexture={selfie.texture}
             selfieLabel={selfie.label}
+            selfiePreviewUrl={selfie.previewUrl}
             isSelfie={true}
           />
         ) : (

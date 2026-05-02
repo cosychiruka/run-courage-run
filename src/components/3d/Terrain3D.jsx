@@ -27,9 +27,9 @@ export function Terrain({ scene = 'evening' }) {
     return tex;
   }, []);
 
-  let terrainColor = '#70129c'; // evening
-  if (scene === 'sunrise') terrainColor = '#4a6b2c';
-  if (scene === 'noon') terrainColor = '#69a84f';
+  let terrainColor = '#70129c'; // evening — purple/gothic
+  if (scene === 'sunrise') terrainColor = '#7a5c2a'; // dawn — dusty amber earth
+  if (scene === 'noon')    terrainColor = '#4caf50'; // noon — vivid bright green
   if (scene === 'midnight') terrainColor = '#1a0d33';
 
   return (

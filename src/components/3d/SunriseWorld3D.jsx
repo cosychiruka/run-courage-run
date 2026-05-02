@@ -9,6 +9,7 @@ import SelfieUI from '../SelfieUI';
 import WorldVoiceButton from '../WorldVoiceButton';
 import WorldEventBanner from '../WorldEventBanner';
 import { useWorldEvents, registerPresence } from '../../hooks/useWorldEvents';
+import { captureAndShareSelfie } from '../../utils/screenshotUtils';
 
 const SUNRISE_TRACKS = [
   { id: 'shush-all-star',      url: '/audio/shush-all-star.mp3',       title: 'Shush All Star' },
@@ -56,21 +57,14 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
   }, [selfie.isActive, selfie.label]);
 
   const handleScreenshot = useCallback(() => {
-    const glCanvas = document.querySelector('.world3d-overlay canvas');
-    try {
-      const dataUrl = glCanvas?.toDataURL('image/png');
-      if (dataUrl) {
-        const link = document.createElement('a');
-        link.download = 'giant-fly-selfie-sunrise.png';
-        link.href = dataUrl;
-        link.click();
-      }
-    } catch { /* cross-origin, skip download */ }
-    setTimeout(() => {
-      const text = encodeURIComponent(`🪰 I became a Giant Fly chasing Courage at Sunrise! 🐕 Play with @CourageMemeSOL #CourageRunRun #GiantFlySelfie`);
-      window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
-    }, 700);
-  }, []);
+    captureAndShareSelfie({
+      previewUrl: selfie.previewUrl,
+      label: selfie.label,
+      worldName: 'Sunrise World',
+      monsterEmoji: '🪰',
+      tweetText: `🪰 I became a Giant Fly chasing Courage at Sunrise with @runcouragerun! #CourageRunRun #GiantFlySelfie`,
+    });
+  }, [selfie.previewUrl, selfie.label]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && visible) onClose(); };
@@ -153,7 +147,7 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
       <Canvas
         frameloop={visible ? 'always' : 'demand'}
         dpr={[1, 1.5]}
-        gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2, powerPreference: 'high-performance' }}
+        gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
         style={{ width: '100%', height: '100%' }}
         onCreated={({ gl }) => { canvasRef.current = gl; }}
       >
@@ -164,6 +158,7 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
           scene="sunrise"
           selfieFlyTexture={selfie.isActive ? selfie.texture : null}
           selfieFlyLabel={selfie.isActive ? selfie.label : ''}
+          selfieFlyPreviewUrl={selfie.isActive ? selfie.previewUrl : null}
           eventLine={event?.action === 'thought_bubble' ? (event.message ?? '') : ''}
         />
       </Canvas>

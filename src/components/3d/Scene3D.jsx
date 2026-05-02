@@ -14,7 +14,7 @@ const MemoWindmill = memo(Windmill);
 const MemoTruck = memo(Truck);
 const MemoTerrain = memo(Terrain);
 
-function GiantFly({ courageRef, sequenceRef, sequenceStartTime, offsetTime = 0, offsetPosition = [0, 0, 0], visible = true, phase = 0, selfieTexture = null, selfieLabel = '', isSelfie = false }) {
+function GiantFly({ courageRef, sequenceRef, sequenceStartTime, offsetTime = 0, offsetPosition = [0, 0, 0], visible = true, phase = 0, selfieTexture = null, selfieLabel = '', selfiePreviewUrl = null, isSelfie = false }) {
   const groupRef = useRef(null);
   const leftWingRef = useRef(null);
   const rightWingRef = useRef(null);
@@ -29,7 +29,7 @@ function GiantFly({ courageRef, sequenceRef, sequenceStartTime, offsetTime = 0, 
   }), [isSelfie]);
 
   const selfieMat = useMemo(() => selfieTexture
-    ? new THREE.MeshStandardMaterial({ map: selfieTexture, roughness: 0.5 })
+    ? new THREE.MeshBasicMaterial({ map: selfieTexture })
     : null,
   [selfieTexture]);
 
@@ -109,6 +109,22 @@ function GiantFly({ courageRef, sequenceRef, sequenceStartTime, offsetTime = 0, 
             <sphereGeometry args={[0.65, 16, 16]} />
             <primitive object={selfieMat} attach="material" />
           </mesh>
+          {/* Photo overlay — same technique as Courage HTML/CSS in 3D scene */}
+          {selfiePreviewUrl && (
+            <Html position={[0, 0.65, 0.3]} center sprite occlude={false}>
+              <img
+                src={selfiePreviewUrl}
+                alt=""
+                style={{
+                  width: '130px', height: '130px',
+                  borderRadius: '50%', objectFit: 'cover',
+                  border: '5px solid #fff',
+                  boxShadow: '0 0 20px rgba(0,255,136,0.9)',
+                  pointerEvents: 'none',
+                }}
+              />
+            </Html>
+          )}
           {/* Green halo ring */}
           <mesh position={[0, 0.65, 0.3]} rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[0.78, 0.07, 8, 24]} />
@@ -434,6 +450,7 @@ function SunriseStoryController({ selfieFlyTexture = null, selfieFlyLabel = '', 
            phase={phase}
            selfieTexture={selfieFlyTexture}
            selfieLabel={selfieFlyLabel}
+           selfiePreviewUrl={selfieFlyPreviewUrl}
            isSelfie={!!selfieFlyTexture}
          />
       </group>
@@ -509,15 +526,15 @@ function StylizedCloud({ position, scale = 1, opacity = 0.5, speed = 0.05, morni
   );
 }
 
-export function Scene({ scene = 'evening', showStory = true, selfieFlyTexture = null, selfieFlyLabel = '', eventLine = '' }) {
+export function Scene({ scene = 'evening', showStory = true, selfieFlyTexture = null, selfieFlyLabel = '', selfieFlyPreviewUrl = null, eventLine = '' }) {
   const isSunrise = scene === 'sunrise';
   const isNoon = scene === 'noon';
-  const ambientColor = isNoon ? '#fff9e6' : isSunrise ? '#88ccff' : '#bd80e8';
-  const ambientIntensity = isNoon ? 1.1 : isSunrise ? 0.7 : 0.4;
-  const dirLightColor = isNoon ? '#fff8d0' : isSunrise ? '#ffffff' : '#ffccf5';
-  const dirLightIntensity = isNoon ? 4.0 : 2.8;
-  // Sun position: directly overhead + slightly in front for noon
-  const dirLightPos = isNoon ? [5, 40, 5] : [40, 15, 10];
+  const ambientColor = isNoon ? '#ffffff' : isSunrise ? '#ff9944' : '#bd80e8';
+  const ambientIntensity = isNoon ? 1.4 : isSunrise ? 0.8 : 0.4;
+  const dirLightColor = isNoon ? '#ffffff' : isSunrise ? '#ffcc66' : '#ffccf5';
+  const dirLightIntensity = isNoon ? 4.5 : isSunrise ? 2.0 : 2.8;
+  // Sun: directly overhead for noon, low-angle warm for sunrise
+  const dirLightPos = isNoon ? [5, 40, 5] : isSunrise ? [20, 8, 10] : [40, 15, 10];
   
   const gradientTexture = useMemo(() => {
     const canvas = document.createElement('canvas');
@@ -527,11 +544,14 @@ export function Scene({ scene = 'evening', showStory = true, selfieFlyTexture = 
       const gradient = context.createLinearGradient(0, 0, 0, 512);
       
       if (scene === 'sunrise') {
-        gradient.addColorStop(0.0, '#1e90ff'); gradient.addColorStop(0.3, '#66bbff');
-        gradient.addColorStop(0.6, '#aaddff'); gradient.addColorStop(1.0, '#e0f6ff');
+        // Warm dawn: deep orange-red at zenith fading to peach-gold horizon
+        gradient.addColorStop(0.0, '#c44b00'); gradient.addColorStop(0.25, '#e8762a');
+        gradient.addColorStop(0.55, '#ffb347'); gradient.addColorStop(0.8, '#ffd88a');
+        gradient.addColorStop(1.0, '#fff0c0');
       } else if (scene === 'noon') {
-        gradient.addColorStop(0.0, '#2176c7'); gradient.addColorStop(0.35, '#4da3e8');
-        gradient.addColorStop(0.65, '#87ceeb'); gradient.addColorStop(1.0, '#c8eaff');
+        // Bright midday: saturated sky blue at zenith to pale cyan horizon
+        gradient.addColorStop(0.0, '#0e5fb5'); gradient.addColorStop(0.3, '#1e88e5');
+        gradient.addColorStop(0.6, '#64b5f6'); gradient.addColorStop(1.0, '#bbdefb');
       } else if (scene === 'midnight') {
         gradient.addColorStop(0.0, '#000000'); gradient.addColorStop(0.4, '#0a001a');
         gradient.addColorStop(0.7, '#1a0033'); gradient.addColorStop(1.0, '#2d1b69');
@@ -546,7 +566,7 @@ export function Scene({ scene = 'evening', showStory = true, selfieFlyTexture = 
     return new THREE.CanvasTexture(canvas);
   }, [scene]);
 
-  const bgColor = isNoon ? '#87ceeb' : '#0a001a';
+  const bgColor = isNoon ? '#1e88e5' : isSunrise ? '#e8762a' : '#0a001a';
 
   return (
     <>

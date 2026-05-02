@@ -29,8 +29,8 @@ const STATE_EMOJI = {
 };
 
 const STATE_LABEL = {
-  idle:      'Talk to Courage',
-  listening: 'Listening...',
+  idle:      'Tap to Talk',
+  listening: 'Tap to Send 🔴',
   thinking:  'Thinking...',
   speaking:  'Courage says...',
 };
@@ -83,7 +83,6 @@ export default function WorldVoiceButton({ worldContext, visible }) {
 
   const handlePress = useCallback(async () => {
     if (holdingRef.current) return;
-    // Check quota before allowing recording
     const q = quotaStatus();
     setQuota(q);
     if (!q.canSpeak) {
@@ -95,7 +94,7 @@ export default function WorldVoiceButton({ worldContext, visible }) {
     setTranscript('');
     setReply('');
     setExpanded(false);
-    quotaStart();  // start tracking active time
+    quotaStart();
     try {
       await svcRef.current?.start();
     } catch (e) {
@@ -108,7 +107,7 @@ export default function WorldVoiceButton({ worldContext, visible }) {
   const handleRelease = useCallback(async () => {
     if (!holdingRef.current) return;
     holdingRef.current = false;
-    quotaEnd();  // stop tracking, persist interval
+    quotaEnd();
     setQuota(quotaStatus());
     try {
       await svcRef.current?.stop(worldContext);
@@ -117,6 +116,17 @@ export default function WorldVoiceButton({ worldContext, visible }) {
       setVoiceState('idle');
     }
   }, [worldContext]);
+
+  // Tap-toggle: first tap starts listening, second tap sends
+  const handleTap = useCallback(async (e) => {
+    e.preventDefault();
+    if (voiceState === 'idle') {
+      await handlePress();
+    } else if (voiceState === 'listening') {
+      await handleRelease();
+    }
+    // Ignore taps while thinking or speaking
+  }, [voiceState, handlePress, handleRelease]);
 
   if (!visible) return null;
 
@@ -197,23 +207,20 @@ export default function WorldVoiceButton({ worldContext, visible }) {
       {/* Mic FAB */}
 
       <button
-        onMouseDown={handlePress}
-        onMouseUp={handleRelease}
-        onTouchStart={(e) => { e.preventDefault(); handlePress(); }}
-        onTouchEnd={(e) => { e.preventDefault(); handleRelease(); }}
+        onClick={handleTap}
         disabled={voiceState === 'thinking' || voiceState === 'speaking'}
         title={STATE_LABEL[voiceState]}
         style={{
-          width: '58px', height: '58px', borderRadius: '50%',
+          width: '60px', height: '60px', borderRadius: '50%',
           background: STATE_COLORS[voiceState] || STATE_COLORS.idle,
-          border: voiceState === 'listening' ? '3px solid #fff' : '3px solid rgba(255,255,255,0.3)',
+          border: voiceState === 'listening' ? '4px solid #fff' : '3px solid rgba(255,255,255,0.3)',
           cursor: isBusy && voiceState !== 'listening' ? 'wait' : 'pointer',
           fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: voiceState === 'listening'
-            ? '0 0 0 8px rgba(255,0,0,0.25), 0 6px 20px rgba(0,0,0,0.5)'
+            ? '0 0 0 10px rgba(255,0,0,0.3), 0 0 0 20px rgba(255,0,0,0.1), 0 6px 20px rgba(0,0,0,0.5)'
             : '0 6px 20px rgba(0,0,0,0.4)',
           transition: 'all 0.2s ease',
-          animation: voiceState === 'listening' ? 'selfieSpinner 2s linear infinite' : 'none',
+          animation: voiceState === 'listening' ? 'voiceListeningPulse 1.2s ease-in-out infinite' : 'none',
         }}
       >
         {STATE_EMOJI[voiceState]}

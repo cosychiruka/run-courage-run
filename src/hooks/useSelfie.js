@@ -82,6 +82,7 @@ export function useSelfie({ autoRemoveMs = 10 * 60 * 1000 } = {}) {
       }
 
       const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
       tex.needsUpdate = true;
       textureRef.current = tex;
       setTexture(tex);

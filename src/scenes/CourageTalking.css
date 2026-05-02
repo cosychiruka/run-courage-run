@@ -107,24 +107,23 @@
   50%       { transform: rotate(1deg)  translateX(1px);  }
 }
 
-/* ── Open mouth with teeth ── */
+/* ── Open mouth with teeth — upper jaw is fixed, lower jaw pivots ── */
 .courage.talking .mouth {
   position: absolute;
   bottom: 4px;
   left: 50%;
   transform: translateX(-50%);
   width: 48px;
-  height: 22px;
+  height: 12px;                  /* upper jaw height only */
   background: #111;
-  border-radius: 0 0 24px 24px;
+  border-radius: 2px 2px 0 0;
   border: 2px solid var(--black);
-  box-sizing: border-box;
-  overflow: hidden;
+  border-bottom: none;
+  overflow: visible;             /* lower jaw hangs below */
   z-index: 3;
-  transition: height 0.08s ease;
 }
 
-/* Upper teeth row */
+/* Upper teeth row — fixed, always visible */
 .courage.talking .mouth::before {
   content: '';
   position: absolute;
@@ -134,43 +133,55 @@
   height: 10px;
   background: repeating-linear-gradient(
     90deg,
-    #fff 0px,
-    #fff 7px,
-    #ccc 7px,
-    #ccc 8px
+    #fff 0px, #fff 7px,
+    #ccc 7px, #ccc 8px
   );
   border-radius: 0;
+  z-index: 2;
 }
 
-/* Lower lip / tongue hint */
+/* Lower jaw — rotates on pivot at top center (hinge/scissor effect) */
 .courage.talking .mouth::after {
   content: '';
   position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 28px;
-  height: 7px;
-  background: #e06060;
-  border-radius: 0 0 14px 14px;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  height: 26px;
+  /* Dark cavity + tongue gradient at bottom */
+  background: linear-gradient(to bottom, #111 35%, #c84040 70%, #e06060 100%);
+  border: 2px solid var(--black);
+  border-top: none;
+  border-radius: 0 0 22px 22px;
+  transform-origin: top center;
+  transform: rotate(0deg);
+  z-index: 1;                    /* behind upper teeth */
 }
 
-/* When actively talking — mouth cycles open/close */
+/* Actively talking — lower jaw snaps open/shut on pivot */
+.courage.talking .mouth.is-talking::after {
+  animation: jawPivot 0.34s ease-in-out infinite;
+}
+/* Keep mouth container static */
 .courage.talking .mouth.is-talking {
-  animation: talkMouth 0.38s ease-in-out infinite;
+  animation: none;
 }
 
-@keyframes talkMouth {
-  0%,  100% { height: 10px; border-radius: 0 0 8px 8px;  }
-  25%        { height: 26px; border-radius: 0 0 24px 24px; }
-  50%        { height: 14px; border-radius: 0 0 12px 12px; }
-  75%        { height: 28px; border-radius: 0 0 24px 24px; }
+@keyframes jawPivot {
+  0%, 100% { transform: rotate(0deg); }
+  20%       { transform: rotate(32deg); }
+  48%       { transform: rotate(6deg); }
+  72%       { transform: rotate(36deg); }
+  90%       { transform: rotate(10deg); }
 }
 
-/* Listening mode — slight mouth open, no cycling */
+/* Listening mode — jaw slightly open, no snap */
+.courage.talking .mouth.is-listening::after {
+  transform: rotate(12deg);
+  transition: transform 0.2s ease;
+}
 .courage.talking .mouth.is-listening {
-  height: 16px;
-  border-radius: 0 0 14px 14px;
+  animation: none;
 }
 
 /* ── Voice chat button — floats above the character ── */

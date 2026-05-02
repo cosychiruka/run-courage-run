@@ -91,12 +91,30 @@
   height: 48px !important;
   border-radius: 8px !important;
   background-color: var(--pink) !important;
-  box-shadow: inset 0 0 0 2px var(--black) !important;
+  /* Only side + bottom borders — no top border at body joint */
+  box-shadow:
+    inset 2px 0 0 0 var(--black),
+    inset -2px 0 0 0 var(--black),
+    inset 0 -2px 0 0 var(--black) !important;
   transform-origin: top center !important;
+  overflow: visible !important;
 }
 
 /* Hide the old angled connector */
 .courage.happy .leg.top::after { display: none !important; }
+
+/* Mask the joint — body-colour cap that hides the seam where arm meets body */
+.courage.happy .leg.top::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -3px;
+  right: -3px;
+  height: 10px;
+  background-color: var(--pink);
+  border-radius: 4px 4px 0 0;
+  z-index: 2;
+}
 
 /* Left arm */
 .courage.happy .leg.top.left {
@@ -126,13 +144,27 @@
 /* ── Clean Legs with pristine borders ── */
 .courage.happy .leg.bottom {
   background-color: var(--pink) !important;
-  box-shadow: inset 0 0 0 2px var(--black) !important;
+  box-shadow:
+    inset 2px 0 0 0 var(--black),
+    inset -2px 0 0 0 var(--black),
+    inset 0 -2px 0 0 var(--black) !important;
   width: 16px !important;
   height: 42px !important;
   border-radius: 8px !important;
 }
-/* Strip messy shadow artifact layer */
-.courage.happy .leg.bottom::after { display: none !important; }
+/* Top joint mask — same body-colour overlay trick */
+.courage.happy .leg.bottom::after {
+  content: '' !important;
+  display: block !important;
+  position: absolute !important;
+  top: -4px !important;
+  left: -3px !important;
+  right: -3px !important;
+  height: 10px !important;
+  background-color: var(--pink) !important;
+  border-radius: 4px 4px 0 0 !important;
+  z-index: 2 !important;
+}
 
 .courage.happy .leg.bottom.left {
   left: 18px !important;

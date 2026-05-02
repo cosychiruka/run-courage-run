@@ -1,8 +1,126 @@
 /**
  * screenshotUtils.js
- * Canvas-based news article card generator + download trigger.
- * No external dependencies — pure Canvas 2D API.
+ * Canvas-based card generators, screenshot capture, and share utilities.
+ * No external dependencies — pure Canvas 2D API + Web Share API.
  */
+
+/** Load an image from a URL/dataURL into an HTMLImageElement */
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+/**
+ * Capture the active WebGL canvas, optionally composite a selfie face,
+ * then share via Web Share API (mobile) or download + tweet intent (desktop).
+ *
+ * @param {object} opts
+ * @param {string|null} opts.previewUrl   - data URL of the circular selfie crop
+ * @param {string}      opts.label        - monster name label
+ * @param {string}      opts.worldName    - e.g. "Nowhere High School Disco"
+ * @param {string}      opts.monsterEmoji - e.g. "👻" | "🪰"
+ * @param {string}      opts.tweetText    - text to pre-fill in tweet
+ */
+export async function captureAndShareSelfie({ previewUrl, label, worldName, monsterEmoji = '👻', tweetText }) {
+  const glCanvas = document.querySelector('.world3d-overlay canvas');
+
+  // Build composite card canvas
+  const W = 800, H = 450;
+  const card = document.createElement('canvas');
+  card.width = W; card.height = H;
+  const ctx = card.getContext('2d');
+
+  // 1. Game screenshot as background (works when preserveDrawingBuffer: true)
+  if (glCanvas) {
+    try {
+      const gameImg = await loadImage(glCanvas.toDataURL('image/png'));
+      ctx.drawImage(gameImg, 0, 0, W, H);
+    } catch {
+      // Fallback background if canvas can't be read
+      const g = ctx.createLinearGradient(0, 0, W, H);
+      g.addColorStop(0, '#0d0820'); g.addColorStop(1, '#1a0a2e');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
+  }
+
+  // 2. Selfie circle overlay — top-right corner
+  if (previewUrl) {
+    try {
+      const size = 140;
+      const x = W - size - 20, y = 20;
+      const selfieImg = await loadImage(previewUrl);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(selfieImg, x, y, size, size);
+      ctx.restore();
+      // Pink border
+      ctx.strokeStyle = '#ff00cc';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+      ctx.stroke();
+    } catch { /* skip selfie overlay if image fails */ }
+  }
+
+  // 3. Branding strip at bottom
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  ctx.fillRect(0, H - 60, W, 60);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 17px "Comic Sans MS", cursive, sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.fillText(`${monsterEmoji} ${label || 'Monster'} at ${worldName}`, 20, H - 38);
+  ctx.fillStyle = 'rgba(255,0,204,0.9)';
+  ctx.textAlign = 'right';
+  ctx.fillText('@runcouragerun', W - 20, H - 38);
+
+  // 4. Share or download
+  const filename = `monster-selfie-${Date.now()}.png`;
+  const shareText = tweetText || `${monsterEmoji} I became a monster at ${worldName}! @runcouragerun #CourageRunRun #MonsterSelfie`;
+
+  return new Promise((resolve) => {
+    card.toBlob(async (blob) => {
+      if (!blob) { resolve(); return; }
+
+      // Try Web Share API first (native mobile share sheet with image)
+      if (navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: 'image/png' })] })) {
+        try {
+          await navigator.share({
+            files: [new File([blob], filename, { type: 'image/png' })],
+            text: shareText,
+          });
+          resolve();
+          return;
+        } catch {
+          // User cancelled or share failed — fall through to download
+        }
+      }
+
+      // Desktop fallback: download image + open X intent
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+      // Open X intent after short delay
+      setTimeout(() => {
+        const encoded = encodeURIComponent(shareText);
+        window.open(`https://twitter.com/intent/tweet?text=${encoded}`, '_blank');
+      }, 800);
+
+      resolve();
+    }, 'image/png');
+  });
+}
 
 const CARD_W = 800;
 const CARD_H = 420;

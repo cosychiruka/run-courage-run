@@ -305,6 +305,7 @@ async def search_newsapi(query: str, max_results: int = 10) -> list[dict]:
 
 async def fetch_from_gnews(country: str = "us", category: str = "general", max_results: int = 10) -> list[dict]:
     if not GNEWS_API_KEY:
+        print("[GNEWS] GNEWS_API_KEY is not set in environment — skipping GNews call")
         raise ValueError("GNEWS_API_KEY not configured")
     if not await consume_budget("gnews"):
         raise RuntimeError("GNews daily budget exhausted")
@@ -318,6 +319,8 @@ async def fetch_from_gnews(country: str = "us", category: str = "general", max_r
     }
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.get("https://gnews.io/api/v4/top-headlines", params=params)
+        if not r.is_success:
+            print(f"[GNEWS] HTTP {r.status_code} error — body: {r.text[:500]}")
         r.raise_for_status()
     return [_norm_gnews(a) for a in r.json().get("articles", [])]
 
@@ -331,6 +334,8 @@ async def search_gnews(query: str, max_results: int = 10) -> list[dict]:
     params = {"token": GNEWS_API_KEY, "lang": "en", "q": query, "max": max_results}
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.get("https://gnews.io/api/v4/search", params=params)
+        if not r.is_success:
+            print(f"[GNEWS] search HTTP {r.status_code} — body: {r.text[:500]}")
         r.raise_for_status()
     return [_norm_gnews(a) for a in r.json().get("articles", [])]
 
