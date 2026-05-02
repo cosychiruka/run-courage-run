@@ -34,7 +34,7 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
     world: 'sunrise',
     active: visible,
     state: { state: 'running' },
-    intervalMs: 45_000,
+    intervalMs: 17_000,
   });
 
   // Mobile GPU cleanup
