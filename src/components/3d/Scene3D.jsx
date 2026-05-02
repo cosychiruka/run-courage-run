@@ -310,7 +310,7 @@ function EveningStoryController({ eventLine = '' }) {
   );
 }
 
-function SunriseStoryController({ selfieFlyTexture = null, selfieFlyLabel = '', eventLine = '' }) {
+function SunriseStoryController({ selfieFlyTexture = null, selfieFlyLabel = '', selfieFlyPreviewUrl = null, eventLine = '' }) {
   const courageRef = useRef(null);
   const houseRef = useRef(null);
   const [doorOpen, setDoorOpen] = useState(false);
@@ -621,7 +621,7 @@ export function Scene({ scene = 'evening', showStory = true, selfieFlyTexture = 
         <MemoTerrain scene={scene} />
         {showStory && (
           scene === 'noon' ? <NoonStoryController eventLine={eventLine} /> :
-          scene === 'sunrise' ? <SunriseStoryController selfieFlyTexture={selfieFlyTexture} selfieFlyLabel={selfieFlyLabel} eventLine={eventLine} /> : <EveningStoryController eventLine={eventLine} />
+          scene === 'sunrise' ? <SunriseStoryController selfieFlyTexture={selfieFlyTexture} selfieFlyLabel={selfieFlyLabel} selfieFlyPreviewUrl={selfieFlyPreviewUrl} eventLine={eventLine} /> : <EveningStoryController eventLine={eventLine} />
         )}
       </group>
     </>

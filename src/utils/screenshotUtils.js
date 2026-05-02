@@ -37,8 +37,7 @@ export async function captureAndShareSelfie({ previewUrl, label, worldName, mons
   // 1. Game screenshot as background (works when preserveDrawingBuffer: true)
   if (glCanvas) {
     try {
-      const gameImg = await loadImage(glCanvas.toDataURL('image/png'));
-      ctx.drawImage(gameImg, 0, 0, W, H);
+      ctx.drawImage(glCanvas, 0, 0, W, H);
     } catch {
       // Fallback background if canvas can't be read
       const g = ctx.createLinearGradient(0, 0, W, H);
