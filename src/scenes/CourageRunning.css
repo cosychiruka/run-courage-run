@@ -836,7 +836,7 @@
   width: 54px;
   height: 28px;
   border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(247, 245, 205, 0.835) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(200, 170, 120, 0.55) 0%, transparent 70%);
   pointer-events: none;
   animation: dustPuff 0.9s ease-out forwards !important;
 }
@@ -913,37 +913,56 @@
   animation: none !important;
 }
 
-/* Restore the original mouth shape — squish to semi-closed via scaleY from back pivot (scissor jaw) */
+/* Restore the original mouth shape — squish to near-closed via scaleY from top pivot */
 .runnercourage.is-talking .runnercourage-mouth {
-  transform-origin: 10% 10%;
-  transform: scaleY(0.4) rotate(0deg);
-  /* semi-closed: teeth visible */
+  transform-origin: top center;
+  transform: scaleY(0.22);
+  /* near-closed: jaw tucked up */
 }
 
-/* Mouth opens and talks while speaking — hinging from the back like a scissor jaw */
+/* Inject temporary jaw overlay while mouth is closed to cover gaps */
+.runnercourage.is-talking:not(.is-speaking) .runnercourage-mouth::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 38%;
+  background: #f09dd1;
+  border-top: 1.5px solid #000;
+  border-bottom-left-radius: 40px;
+  border-bottom-right-radius: 40px;
+  z-index: 10;
+}
+
+/* Pivot jaw open while speaking — scaleY at top so the jaw swings down like a hinge */
 .runnercourage.is-speaking .runnercourage-mouth {
-  transform-origin: 10% 10% !important;
+  transform-origin: top center !important;
   clip-path: none !important;
-  animation: runnerTalkScissor 0.36s ease-in-out infinite !important;
+  /* clear any clip so full jaw is visible */
+  animation: runnerTalk 0.36s ease-in-out infinite !important;
 }
 
-@keyframes runnerTalkScissor {
+@keyframes runnerTalk {
   0% {
-    transform: scaleY(0.4) rotate(0deg);
+    transform: scaleY(0.22);
   }
 
+  /* jaw closed */
   40% {
-    transform: scaleY(1.0) rotate(12deg);
+    transform: scaleY(1.0);
   }
 
-  /* jaw swings down and open */
+  /* jaw fully open */
   60% {
-    transform: scaleY(1.0) rotate(12deg);
+    transform: scaleY(1.0);
   }
 
   100% {
-    transform: scaleY(0.4) rotate(0deg);
+    transform: scaleY(0.22);
   }
+
+  /* jaw closed */
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
