@@ -46,14 +46,14 @@ const WORLD_STYLES = {
     maxWidth: '360px', textAlign: 'center', lineHeight: 1.6,
   },
   noon: {
-    position: 'fixed', bottom: '90px', right: '24px',
-    background: 'rgba(40,25,0,0.9)', backdropFilter: 'blur(6px)',
-    border: '1px solid rgba(255,180,0,0.4)', borderRadius: '12px',
-    padding: '12px 20px', color: '#fff5cc', zIndex: 1002,
-    boxShadow: '0 4px 20px rgba(255,180,0,0.25)',
-    fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontStyle: 'italic',
-    maxWidth: '280px', lineHeight: 1.5,
-    textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+    position: 'fixed', top: '50%', left: '50%',
+    transform: 'translate(-50%, -60%)',
+    background: 'rgba(20, 70, 140, 0.92)', backdropFilter: 'blur(10px)',
+    border: '2px solid rgba(100,210,255,0.6)', borderRadius: '24px',
+    padding: '18px 32px', color: '#e0faff', zIndex: 1002,
+    boxShadow: '0 8px 40px rgba(40,140,255,0.4)',
+    fontFamily: '"Comic Sans MS", cursive', fontSize: '1.05rem', fontStyle: 'italic',
+    maxWidth: '360px', textAlign: 'center', lineHeight: 1.6,
   },
 };
 

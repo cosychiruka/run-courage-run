@@ -216,11 +216,11 @@ export function NoonStoryController({ eventLine = '' }) {
           {eventLine && (
             <div style={{
               position: 'absolute', top: '-90px', left: '50%', transform: 'translateX(-50%)',
-              backgroundColor: 'rgba(255,230,100,0.95)', color: '#1a1a00',
+              backgroundColor: 'rgba(20, 70, 140, 0.92)', color: '#e0faff',
               fontWeight: 700, fontSize: '1rem', padding: '10px 16px',
-              borderRadius: '20px', border: '2px solid rgba(180,140,0,0.6)',
+              borderRadius: '20px', border: '2px solid rgba(100,210,255,0.6)',
               maxWidth: '200px', whiteSpace: 'normal', textAlign: 'center',
-              zIndex: 101, fontStyle: 'italic', boxShadow: '0 3px 12px rgba(180,140,0,0.3)',
+              zIndex: 101, fontStyle: 'italic', boxShadow: '0 3px 12px rgba(40,140,255,0.3)',
               fontFamily: '"Comic Sans MS", cursive',
             }}>
               {eventLine}
@@ -228,9 +228,9 @@ export function NoonStoryController({ eventLine = '' }) {
                 position: 'absolute', bottom: '-12px', left: '50%',
                 transform: 'translateX(-50%) rotate(45deg)',
                 width: '14px', height: '14px',
-                backgroundColor: 'rgba(255,230,100,0.95)',
-                borderBottom: '2px solid rgba(180,140,0,0.6)',
-                borderLeft: '2px solid rgba(180,140,0,0.6)',
+                backgroundColor: 'rgba(20, 70, 140, 0.92)',
+                borderBottom: '2px solid rgba(100,210,255,0.6)',
+                borderLeft: '2px solid rgba(100,210,255,0.6)',
                 borderRadius: '2px',
               }} />
             </div>
