@@ -31,13 +31,13 @@ export function NoonStoryController({ eventLine = '' }) {
 
     let p = 0;
     // 60s Loop
-    if (t < 5)        p = 0; // Wait inside
-    else if (t < 10)  p = 1; // Euriel walks to truck
-    else if (t < 15)  p = 2; // Truck drives off, Courage comes out
-    else if (t < 40)  p = 3; // Truck is gone. Courage chills or plays
-    else if (t < 45)  p = 4; // Truck drives back
-    else if (t < 50)  p = 5; // Euriel walks back to house
-    else if (t < 55)  p = 6; // Courage walks back inside
+    if (t < 5) p = 0; // Wait inside
+    else if (t < 10) p = 1; // Euriel walks to truck
+    else if (t < 15) p = 2; // Truck drives off, Courage comes out
+    else if (t < 40) p = 3; // Truck is gone. Courage chills or plays
+    else if (t < 45) p = 4; // Truck drives back
+    else if (t < 50) p = 5; // Euriel walks back to house
+    else if (t < 55) p = 6; // Courage walks back inside
     else {
       startTimeRef.current = state.clock.elapsedTime;
       p = 0;
