@@ -57,6 +57,7 @@ export default function App() {
   const [newsCategory, setNewsCategory] = useState(
     () => localStorage.getItem('courage_category') || 'general'
   );
+  const [tourOpen, setTourOpen] = useState(false);
 
   // ── Explosion ──────────────────────────────────────────────────────────────
   const [explosionPhase, setExplosionPhase] = useState(null);
@@ -559,7 +560,6 @@ export default function App() {
 
 
   // ── Tour modal (info button) ───────────────────────────────────────────────
-  const [tourOpen, setTourOpen] = useState(false);
 
   // ── TV toggle ──────────────────────────────────────────────────────────────
   const toggleHelperSection = useCallback(() => {
