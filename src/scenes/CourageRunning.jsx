@@ -11,15 +11,34 @@ const CourageRunning = ({ voiceState = null, currentScene = 'sunrise' }) => {
   const [showThought, setShowThought] = useState(false);
   const [thoughtText, setThoughtText] = useState('');
   const [runningDirection, setRunningDirection] = useState('right');
+  const [isPaused, setIsPaused] = useState(false);
+  const lastPosRef = useRef('');
 
-  // Track running direction based on animation phase
+  // Track running direction and pause state based on animation phase
   useEffect(() => {
     const checkDirection = () => {
       const runner = document.querySelector('.runnercourage');
       if (runner) {
         const transform = window.getComputedStyle(runner).transform;
+        
+        // Pause check
+        if (transform === lastPosRef.current && transform !== 'none') {
+          setIsPaused(true);
+        } else {
+          setIsPaused(false);
+        }
+        lastPosRef.current = transform;
+
         // Check if running to the right (positive translateX) or left (negative)
-        if (transform.includes('translateX(')) {
+        // Usually returns a matrix like matrix(a, b, c, d, tx, ty)
+        if (transform.includes('matrix(')) {
+          const parts = transform.split(',');
+          if (parts.length >= 6) {
+            const a = parseFloat(parts[0].split('(')[1]);
+            // If scaleX/rotateY is flipped, 'a' is negative
+            setRunningDirection(a < 0 ? 'left' : 'right');
+          }
+        } else if (transform.includes('translateX(')) {
           const match = transform.match(/translateX\(([^)]+)\)/);
           if (match) {
             const value = parseFloat(match[1]);
@@ -82,7 +101,7 @@ const CourageRunning = ({ voiceState = null, currentScene = 'sunrise' }) => {
   return (
     <div 
       id="courageCharacter"
-      className={`runnercourage${isTalking ? ' is-talking' : ''}${isListening ? ' is-listening' : ''}${isThinking ? ' is-thinking' : ''}${isSpeaking ? ' is-speaking' : ''}`}
+      className={`runnercourage${isTalking ? ' is-talking' : ''}${isListening ? ' is-listening' : ''}${isThinking ? ' is-thinking' : ''}${isSpeaking ? ' is-speaking' : ''}${isPaused && !isTalking ? ' is-paused' : ''}`}
     >
       <div className='runnercourage-head'>
         <div className='runnercourage-ear-left'></div>

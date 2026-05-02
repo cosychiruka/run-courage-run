@@ -18,8 +18,9 @@
 // ── Config ────────────────────────────────────────────────────────────────────
 
 // Set VITE_BACKEND_URL in your .env to point at the running server.
-// Falls back to localhost dev URL. Users can also set it via AISettings.
-const DEFAULT_BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+// Falls back to Sliplane in production, or localhost dev URL in dev.
+const DEFAULT_BACKEND = import.meta.env.VITE_BACKEND_URL || 
+  (import.meta.env.PROD ? 'https://run-courage-run.sliplane.app' : 'http://localhost:8000');
 
 export function getBackendUrl() {
   return localStorage.getItem('courage_backend_url') || DEFAULT_BACKEND;

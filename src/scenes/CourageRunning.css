@@ -14,32 +14,32 @@
 }
 
 @keyframes runLoop {
-  0% {
+  0%, 15% {
     transform: translateX(10vw) rotateY(0deg);
   }
-  50% {
+  35%, 50% {
     transform: translateX(55vw) rotateY(0deg); /* Move further to the right on desktop */
   }
-  51% {
+  51%, 65% {
     transform: translateX(55vw) rotateY(180deg); /* Rotate at the right end */
   }
-  100% {
+  85%, 100% {
     transform: translateX(10vw) rotateY(180deg); /* Return to the start, less left movement */
   }
 }
 
 @media (max-width: 768px) {
   @keyframes runLoop {
-    0% {
+    0%, 15% {
       transform: translateX(10vw) rotateY(0deg);
     }
-    50% {
+    35%, 50% {
       transform: translateX(70vw) rotateY(0deg); /* Mobile: keep original right position */
     }
-    51% {
+    51%, 65% {
       transform: translateX(70vw) rotateY(180deg); /* Rotate at the right end */
     }
-    100% {
+    85%, 100% {
       transform: translateX(10vw) rotateY(180deg); /* Return to the start */
     }
   }
@@ -735,6 +735,45 @@
   0%   { opacity: 0;   transform: scale(0.4) translateX(0px);   }
   25%  { opacity: 0.9; transform: scale(1.3) translateX(-18px); }
   100% { opacity: 0;   transform: scale(2.2) translateX(-38px); }
+}
+
+/* ── STOPPED LIMBS WHEN REACHING DOOR OR CAR ── */
+.runnercourage.is-paused .runnercourage-head,
+.runnercourage.is-paused .runnercourage-ear-left,
+.runnercourage.is-paused .runnercourage-ear-right,
+.runnercourage.is-paused .runnercourage-body,
+.runnercourage.is-paused .runnercourage-leg-back,
+.runnercourage.is-paused .runnercourage-leg-front,
+.runnercourage.is-paused .runnercourage-arm-front,
+.runnercourage.is-paused .runnercourage-arm-back,
+.runnercourage.is-paused .runnercourage-mouth {
+  animation-play-state: paused !important;
+}
+
+/* ── RUNNING DUST EFFECT (ONLY WHEN RUNNING) ── */
+.runnercourage:not(.is-paused):not(.is-talking)::before {
+  content: "";
+  position: absolute;
+  bottom: 0px;
+  left: -20px;
+  width: 30px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(220, 190, 150, 0.6) 0%, transparent 70%);
+  pointer-events: none;
+  animation: runningDust 0.4s infinite linear;
+  z-index: -2;
+}
+
+@keyframes runningDust {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.5) translateX(0) translateY(5px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2) translateX(-40px) translateY(-5px);
+  }
 }
 
 /* Freeze all limb animations (but let head/ears move when speaking) */

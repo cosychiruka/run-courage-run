@@ -116,9 +116,10 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_load_voice_models_bg())
 
 
+        from app.config import GROQ_MODEL
         print("\n" + "="*50)
         print("🐕 COURAGE AI BACKEND — READY")
-        print("🧠 AI ENGINE:    Groq (Llama 3 Cloud)")
+        print(f"🧠 AI ENGINE:    Groq ({GROQ_MODEL})")
         print(f"🗄️ REDIS_URL:   {REDIS_URL.split('@')[-1] if '@' in REDIS_URL else REDIS_URL}")
         print(f"🌐 FRONTEND:    {FRONTEND_ORIGIN}")
         print("="*50 + "\n")
