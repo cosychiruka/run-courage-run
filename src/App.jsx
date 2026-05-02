@@ -13,6 +13,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Footer from './components/Footer';
 import WelcomeTour from './components/WelcomeTour';
 import ThinkingOverlay from './components/ThinkingOverlay';
+import { quotaStart, quotaEnd, quotaCancel, quotaStatus, formatTime, formatResetIn } from './services/voiceQuota';
 import { fetchTopNews } from './services/newsService';
 import { analyzeSentiment } from './utils/sentimentUtils';
 import { createVoiceService } from './services/voiceService';
@@ -97,7 +98,14 @@ export default function App() {
   const [voiceState, setVoiceState] = useState(null);
   const [voiceTranscript, setVoiceTranscript] = useState('');
   const [voiceToolLog, setVoiceToolLog] = useState([]);
+  const [voiceQuota, setVoiceQuota] = useState(() => quotaStatus());
   const voiceSvcRef = useRef(null);
+
+  // Refresh quota display every 5 seconds
+  useEffect(() => {
+    const t = setInterval(() => setVoiceQuota(quotaStatus()), 5000);
+    return () => clearInterval(t);
+  }, []);
 
   // Midnight refusal speech bubble (shown briefly, then auto-switches scene)
   const [midnightMsg, setMidnightMsg] = useState(false);
@@ -114,6 +122,13 @@ export default function App() {
     }
 
     if (voiceState === 'idle') {
+      // Check quota before starting
+      const q = quotaStatus();
+      setVoiceQuota(q);
+      if (!q.canSpeak) {
+        // Show a friendly block — don't even open the mic
+        return;
+      }
       // Start recording
       if (!voiceSvcRef.current) {
         voiceSvcRef.current = createVoiceService({
@@ -134,8 +149,10 @@ export default function App() {
         });
       }
       try {
+        quotaStart();
         await voiceSvcRef.current.start();
       } catch (e) {
+        quotaCancel();
         console.warn('[Voice] mic error:', e);
         setVoiceState('idle');
       }
@@ -144,6 +161,8 @@ export default function App() {
 
     if (voiceState === 'listening') {
       // Stop recording → send to backend
+      quotaEnd();
+      setVoiceQuota(quotaStatus());
       await voiceSvcRef.current?.stop();
       return;
     }
@@ -657,23 +676,24 @@ export default function App() {
         {voiceState !== null && (
           <div className={`mic-drop-wrap mic-drop-wrap--${voiceState}`} onClick={handleVoiceClick} role="button" aria-label="Voice chat control">
             <div className="mic-drop-icon">
-              {voiceState === 'idle' && '🎙️'}
-              {voiceState === 'listening' && '🔴'}
-              {voiceState === 'thinking' && '⏳'}
-              {voiceState === 'speaking' && '🔊'}
+              {!voiceQuota.canSpeak      && '🛑'}
+              {voiceQuota.canSpeak && voiceState === 'idle'      && '🎙️'}
+              {voiceQuota.canSpeak && voiceState === 'listening' && '🔴'}
+              {voiceQuota.canSpeak && voiceState === 'thinking'  && '⏳'}
+              {voiceQuota.canSpeak && voiceState === 'speaking'  && '🔊'}
             </div>
             <div className="mic-drop-label">
-              {voiceState === 'idle' && 'Tap to speak'}
-              {voiceState === 'listening' && 'Listening…'}
-              {voiceState === 'thinking' && 'Thinking…'}
-              {voiceState === 'speaking' && 'Tap to stop'}
+              {!voiceQuota.canSpeak && `Courage needs a break! Back ${formatResetIn(voiceQuota.resetInSecs)}`}
+              {voiceQuota.canSpeak && voiceState === 'idle'      && `Tap to speak · ${formatTime(voiceQuota.remainingSecs)} left`}
+              {voiceQuota.canSpeak && voiceState === 'listening' && 'Listening…'}
+              {voiceQuota.canSpeak && voiceState === 'thinking'  && 'Thinking…'}
+              {voiceQuota.canSpeak && voiceState === 'speaking'  && 'Tap to stop'}
             </div>
             <div className="mic-drop-cord" />
             {/* Close button */}
             <button className="voice-exit-btn" onClick={(e) => { e.stopPropagation(); handleVoiceClose(); }} title="Exit voice chat" aria-label="Exit voice chat">✕</button>
           </div>
         )}
-
 
         {explosionReady && !explosionPhase && (
           <button className="explosion-trigger-btn" onClick={triggerExplosion}>

@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createVoiceService } from '../services/voiceService';
 import ThinkingOverlay from './ThinkingOverlay';
+import { quotaStart, quotaEnd, quotaCancel, quotaStatus, formatTime, formatResetIn } from '../services/voiceQuota';
 
 /**
  * WorldVoiceButton — context-aware mic button for the 3D worlds.
@@ -41,8 +42,15 @@ export default function WorldVoiceButton({ worldContext, visible }) {
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState(false);
   const [toolLog, setToolLog] = useState([]);
+  const [quota, setQuota] = useState(() => quotaStatus());
   const svcRef = useRef(null);
   const holdingRef = useRef(false);
+
+  // Refresh quota display every 5s
+  useEffect(() => {
+    const t = setInterval(() => setQuota(quotaStatus()), 5000);
+    return () => clearInterval(t);
+  }, []);
 
   // Build service once
   useEffect(() => {
@@ -75,14 +83,23 @@ export default function WorldVoiceButton({ worldContext, visible }) {
 
   const handlePress = useCallback(async () => {
     if (holdingRef.current) return;
+    // Check quota before allowing recording
+    const q = quotaStatus();
+    setQuota(q);
+    if (!q.canSpeak) {
+      setError(`Courage needs a rest! ${formatResetIn(q.resetInSecs)} you can chat again. 🐾`);
+      return;
+    }
     holdingRef.current = true;
     setError('');
     setTranscript('');
     setReply('');
     setExpanded(false);
+    quotaStart();  // start tracking active time
     try {
       await svcRef.current?.start();
     } catch (e) {
+      quotaCancel();
       setError('Mic error — allow microphone access');
       holdingRef.current = false;
     }
@@ -91,6 +108,8 @@ export default function WorldVoiceButton({ worldContext, visible }) {
   const handleRelease = useCallback(async () => {
     if (!holdingRef.current) return;
     holdingRef.current = false;
+    quotaEnd();  // stop tracking, persist interval
+    setQuota(quotaStatus());
     try {
       await svcRef.current?.stop(worldContext);
     } catch (e) {
@@ -147,7 +166,36 @@ export default function WorldVoiceButton({ worldContext, visible }) {
         </div>
       )}
 
+      {/* Quota indicator — always visible */}
+      <div style={{
+        background: 'rgba(10,0,20,0.85)', backdropFilter: 'blur(10px)',
+        border: `1px solid ${quota.canSpeak ? 'rgba(150,0,255,0.4)' : 'rgba(255,80,80,0.5)'}`,
+        borderRadius: '10px', padding: '6px 10px', minWidth: '120px',
+        fontSize: '0.72rem', color: quota.canSpeak ? '#cc99ff' : '#ff8888',
+        textAlign: 'center',
+      }}>
+        {quota.canSpeak ? (
+          <span>🎙 {formatTime(quota.remainingSecs)} left this hour</span>
+        ) : (
+          <span>⏳ Resting… back {formatResetIn(quota.resetInSecs)}</span>
+        )}
+        <div style={{
+          marginTop: '4px', height: '3px', borderRadius: '2px',
+          background: 'rgba(255,255,255,0.1)',
+        }}>
+          <div style={{
+            height: '100%', borderRadius: '2px',
+            width: `${Math.max(0, (quota.remainingSecs / 900) * 100)}%`,
+            background: quota.canSpeak
+              ? 'linear-gradient(90deg, #6600cc, #cc00ff)'
+              : 'rgba(255,80,80,0.5)',
+            transition: 'width 1s ease',
+          }} />
+        </div>
+      </div>
+
       {/* Mic FAB */}
+
       <button
         onMouseDown={handlePress}
         onMouseUp={handleRelease}
