@@ -775,6 +775,7 @@
 
 /* Mouth opens and talks while speaking */
 .runnercourage.is-speaking .runnercourage-mouth {
+  clip-path: unset !important; /* override the is-talking 65% clip so keyframes can go fully open */
   animation: runnerTalk 0.36s ease-in-out infinite !important;
 }
 
