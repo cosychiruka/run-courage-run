@@ -262,6 +262,7 @@ _TOOL_LABELS = {
     "fetch_article":        "📄 Reading full article...",
     "get_x_rate_status":    "🐦 Checking Twitter rate limits...",
     "get_my_tweets":        "🐦 Reading my recent tweets...",
+    "get_my_profile":       "🐦 Checking my Twitter profile...",
     "get_mentions":         "🔔 Checking Twitter mentions...",
     "post_tweet":           "✉️ Posting tweet...",
     "search_tweets":        "🔍 Searching Twitter...",
