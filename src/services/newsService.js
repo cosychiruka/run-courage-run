@@ -20,7 +20,7 @@
 // Set VITE_BACKEND_URL in your .env to point at the running server.
 // Falls back to Sliplane in production, or localhost dev URL in dev.
 const DEFAULT_BACKEND = import.meta.env.VITE_BACKEND_URL || 
-  (import.meta.env.PROD ? 'https://runcouragerun.life' : 'http://localhost:8000');
+  (import.meta.env.PROD ? 'https://runcouragerun.fun' : 'http://localhost:8000');
 
 export function getBackendUrl() {
   const stored = localStorage.getItem('courage_backend_url');
