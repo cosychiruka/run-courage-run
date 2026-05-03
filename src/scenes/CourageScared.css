@@ -470,28 +470,30 @@
     z-index: 2;
   }
 
-  /* Arms: joint LOWER on body so paws land just below mouth level, tilted inward */
+  /* Arms sit lower on the body so the paw tips land at mouth height */
   .courage .body .leg.top {
-    top: 35px;
+    top: 42px;
   }
   .courage .body .leg.top.left {
     left: 10px;
-    transform: rotate(160deg);
+    transform-origin: top center !important;
+    transform: rotate(130deg);
     animation: scaredTrembleL 0.22s ease-in-out infinite;
   }
   .courage .body .leg.top.right {
     left: 60px;
-    transform: rotate(-160deg);
+    transform-origin: top center !important;
+    transform: rotate(-130deg);
     animation: scaredTrembleR 0.22s ease-in-out infinite;
   }
 
   @keyframes scaredTrembleL {
-    0%, 100% { transform: rotate(157deg) translateX(0); }
-    50%       { transform: rotate(163deg) translateX(1px); }
+    0%, 100% { transform: rotate(127deg); }
+    50%       { transform: rotate(133deg) translateX(1px); }
   }
   @keyframes scaredTrembleR {
-    0%, 100% { transform: rotate(-157deg) translateX(0); }
-    50%       { transform: rotate(-163deg) translateX(-1px); }
+    0%, 100% { transform: rotate(-127deg); }
+    50%       { transform: rotate(-133deg) translateX(-1px); }
   }
 
   .courage .body .leg.top .paw {
@@ -535,9 +537,9 @@
       inset -3px -2px 0 -1px var(--black);
   }
 
-  /* Paws tilted inward toward mouth center */
-  .courage .body .leg.top.left .paw  { transform: rotate(-30deg); }
-  .courage .body .leg.top.right .paw { transform: rotate( 30deg); }
+  /* Paw tips angled sharply inward so they press toward the mouth */
+  .courage .body .leg.top.left .paw  { transform: rotate(-50deg); }
+  .courage .body .leg.top.right .paw { transform: rotate( 50deg); }
 
 
   .courage .body .leg.bottom {
