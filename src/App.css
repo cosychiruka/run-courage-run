@@ -110,7 +110,6 @@ body {
   border-top: 3px solid #333333;
   border-bottom: 3px solid #333333;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  color: #fff !important;
   z-index: 100;
 }
 
@@ -237,13 +236,9 @@ h1 {
   font-size: 2.7rem;
   text-align: center;
   animation: cartoon3dBounce 4s infinite ease-in-out;
-  /* Looping animation with bounce */
   transform-origin: center;
-  /* Rotates around the center point */
   display: inline-block;
-  /* Inline block for better control over the animation */
   perspective: 1200px;
-  /* Adds perspective to give more depth to the animation */
 }
 
 @keyframes cartoon3dBounce {
@@ -384,6 +379,9 @@ h1 {
 }
 
 @keyframes float {
+  0%, 100% {
+    transform: skew(5deg, 2deg);
+  }
   50% {
     transform: scaleY(1.01) skew(-5deg, -2deg);
   }
@@ -426,7 +424,12 @@ h1 {
   transform: rotate(-5deg);
   z-index: -1;
 }
-  */
+.enter-3d-button-wrap {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+  z-index: 10;
+}
 
 
 /* content-area is no longer used as a fixed overlay */
@@ -3828,15 +3831,33 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   }
 
   .hero-center {
-    transform: translateY(-1rem);
-    /* Less aggressive push up */
+    transform: translateY(-2rem);
+  }
+
+  .couragesign {
+    font-size: 2.2rem !important;
+    text-shadow: 2px 2px 0px #444 !important;
+    font-family: 'Comic Sans MS', cursive, sans-serif !important;
   }
 
   .enter-3d-btn {
-    bottom: calc(30%);
-    left: 50%;
-    transform: translateX(-50%);
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    margin: 1.5rem auto 0 !important;
+    padding: 10px 24px !important;
+    font-size: 0.9rem !important;
+    background: rgba(235, 87, 193, 0.9) !important;
+    border: 2px solid #fff !important;
+    box-shadow: 4px 4px 0px #333 !important;
+    border-radius: 12px !important;
+    display: block !important;
+    width: fit-content !important;
     animation: enter3dPulse 3s ease-in-out infinite 0.6s;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
   }
 }
 
@@ -4055,6 +4076,11 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   
   .about-section .landing-card {
     margin-bottom: 0;
+  }
+
+  /* Ensure menubar fonts are cartoonish on mobile */
+  .bone-nav h1, .couragesign {
+    font-family: 'Comic Sans MS', cursive, sans-serif !important;
   }
 }
 

@@ -675,6 +675,31 @@ export default function App() {
               Animated Self Aware Meme &mdash; He&rsquo;s alive, Interact
             </div>
           )}
+
+          {/* Enter 3D World — moved higher for better mobile UX */}
+          <div className="enter-3d-button-wrap">
+            {(_active === 'evening' || _active === 'sunrise' || _active === 'disco' || _active === 'noon') && voiceState === null && !world3DVisible && (
+              <button
+                className={`enter-3d-btn brutal-btn brutal-btn--pink${world3DMounted ? ' enter-3d-btn--loading' : ''}`}
+                onClick={() => { if (!world3DMounted) setWorld3DMounted(true); }}
+                aria-label="Enter 3D world"
+              >
+                {world3DMounted ? '⏳ Loading…' : `${_active.charAt(0).toUpperCase() + _active.slice(1)} 3D`}
+              </button>
+            )}
+          </div>
+
+          {/* Voice controls — restore! */}
+          {voiceState === null && (
+            <button
+              className="voice-entry-btn"
+              onClick={handleVoiceEntry}
+              title="Talk to Courage"
+              aria-label="Start voice chat with Courage"
+            >
+              🎙️
+            </button>
+          )}
         </div>
 
         {/* Courage character — fills hero */}
@@ -686,31 +711,6 @@ export default function App() {
               {newsEmotion === 'scared' && '😱 NGMI'}
               {newsEmotion === 'neutral' && "🐕 chillin'"}
             </div>
-          )}
-        </div>
-
-        {/* Voice controls — OUTSIDE character-stage so pointer-events:none doesn't block them */}
-        {voiceState === null && (
-          <button
-            className="voice-entry-btn"
-            onClick={handleVoiceEntry}
-            title="Talk to Courage"
-            aria-label="Start voice chat with Courage"
-          >
-            🎙️
-          </button>
-        )}
-
-        {/* Enter 3D World — shows loading state while scene warms up */}
-        <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
-          {(_active === 'evening' || _active === 'sunrise' || _active === 'disco' || _active === 'noon') && voiceState === null && !world3DVisible && (
-            <button
-              className={`enter-3d-btn brutal-btn brutal-btn--pink${world3DMounted ? ' enter-3d-btn--loading' : ''}`}
-              onClick={() => { if (!world3DMounted) setWorld3DMounted(true); }}
-              aria-label="Enter 3D world"
-            >
-              {world3DMounted ? '⏳ Loading…' : `🚪 Enter 3D World (${_active})`}
-            </button>
           )}
         </div>
 
