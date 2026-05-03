@@ -380,6 +380,15 @@ async def _get_twitter_trends(args: dict, x_client) -> str:
         print(f"[TWITTER] get_trends OK: {len(trends)} trends for {label}")
         return f"Trending on Twitter ({label}):\n" + "\n".join(lines)
     except Exception as e:
+        err_str = str(e)
+        if "453" in err_str or "403" in err_str or "subset of X API" in err_str:
+            print("[TWITTER] get_trends: endpoint not available on current X plan (requires Pro)")
+            return (
+                "The Twitter trends endpoint (v1.1/trends/place) requires an X API Pro plan "
+                "and is not available on the current Basic/Free tier. "
+                "I can still post tweets, read mentions, and check news. "
+                "For sports trends, try fetching sports news instead with get_news(category='sports')."
+            )
         print(f"[TWITTER] get_trends FAILED: {e}")
         return f"Failed to fetch trends: {e}"
 
