@@ -69,9 +69,9 @@ export function House({ position = [0, 0, 0], rotation = [0, 0, 0], doorOpen = f
   const windowMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#fffb80', emissive: '#ffb52e', emissiveIntensity: 2.5 }), []);
   const brassMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#ffb52e', roughness: 0.3, metalness: 0.8 }), []);
 
-  // Glitch state: alternate between PumpFun logo and "Nowhere" sign
   const [glitchMode, setGlitchMode] = useState(false);
   const [glitching, setGlitching] = useState(false);
+  const [hasVisited, setHasVisited] = useState(() => localStorage.getItem('courage_visited_pumpfun') === 'true');
   const glitchRef = useRef(null);
   useEffect(() => {
     const cycle = () => {
@@ -214,20 +214,29 @@ export function House({ position = [0, 0, 0], rotation = [0, 0, 0], doorOpen = f
       <Window position={[0, 7.0, 2.15]} scale={0.5} />
 
       {/* PumpFun / Nowhere sign on front gable — Html overlay for click + glitch */}
-      <Html position={[0, 8.2, 2.4]} center occlude={false} zIndexRange={[0, 10]}>
+      <Html 
+        position={[0, 8.2, 2.4]} 
+        center 
+        occlude={false} 
+        zIndexRange={[0, 10]}
+        transform
+        scale={0.08}
+      >
         <a
           href="https://pump.fun/coin/$RCR"
           target="_blank"
           rel="noopener noreferrer"
           title="Buy $RCR on pump.fun"
+          onClick={() => {
+            localStorage.setItem('courage_visited_pumpfun', 'true');
+            setHasVisited(true);
+          }}
           style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
             background: glitching
               ? 'rgba(0,255,136,0.9)'
-              : glitchMode
-                ? 'rgba(10,5,20,0.88)'
-                : 'rgba(10,5,20,0.88)',
-            border: `2px solid ${glitchMode ? '#aaffcc' : '#00ff88'}`,
+              : 'rgba(10,5,20,0.88)',
+            border: `2px solid ${glitchMode ? (hasVisited ? '#ff80d5' : '#aaffcc') : (hasVisited ? '#eb57c1' : '#00ff88')}`,
             borderRadius: '10px',
             padding: '5px 10px',
             cursor: 'pointer',
@@ -236,20 +245,35 @@ export function House({ position = [0, 0, 0], rotation = [0, 0, 0], doorOpen = f
             textAlign: 'center',
             boxShadow: glitching
               ? '0 0 18px 6px #00ff88, 0 0 40px 10px #00ffaa'
-              : '0 0 8px rgba(0,255,136,0.4)',
-            transition: 'box-shadow 0.1s',
+              : `0 0 8px ${hasVisited ? 'rgba(235,87,193,0.4)' : 'rgba(0,255,136,0.4)'}`,
+            transition: 'all 0.2s',
             filter: glitching ? 'hue-rotate(180deg) brightness(2)' : 'none',
             userSelect: 'none',
           }}
         >
           {glitchMode ? (
-            <span style={{ fontSize: '22px', fontWeight: 900, fontFamily: 'Arial Black, Arial', color: '#aaffcc', letterSpacing: '0.5px', lineHeight: 1.1 }}>
+            <span style={{ 
+              fontSize: '22px', 
+              fontWeight: 900, 
+              fontFamily: 'Arial Black, Arial', 
+              color: hasVisited ? '#ff80d5' : '#aaffcc', 
+              letterSpacing: '0.5px', 
+              lineHeight: 1.1 
+            }}>
               📍 NoWhere
             </span>
           ) : (
             <>
               <img src={pumpfunPng} alt="pump.fun" style={{ width: '36px', height: '36px', objectFit: 'contain', display: 'block' }} />
-              <span style={{ fontSize: '11px', fontWeight: 700, color: '#00ff88', fontFamily: 'Arial, sans-serif', letterSpacing: '0.5px' }}>pump.fun</span>
+              <span style={{ 
+                fontSize: '11px', 
+                fontWeight: 700, 
+                color: hasVisited ? '#eb57c1' : '#00ff88', 
+                fontFamily: 'Arial, sans-serif', 
+                letterSpacing: '0.5px' 
+              }}>
+                pump.fun
+              </span>
             </>
           )}
         </a>
