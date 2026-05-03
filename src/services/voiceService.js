@@ -11,7 +11,7 @@
 const _WS_BASE = import.meta.env.VITE_BACKEND_WS ||
                  (typeof __VITE_BACKEND_WS__ !== 'undefined' ? __VITE_BACKEND_WS__ : null) ||
                  (import.meta.env.PROD
-                   ? 'wss://runcouragerun.life/ws/voice'
+                   ? 'wss://runcouragerun.fun/ws/voice'
                    : 'ws://localhost:8000/ws/voice');
 
 /** Stable session ID — persists across page refreshes so conversation history survives. */
