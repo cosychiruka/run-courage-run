@@ -61,9 +61,9 @@ TOOL_SCHEMAS = [
             "name": "get_news",
             "description": (
                 "Retrieve recent news articles for a SINGLE country+category pair. "
-                "Returns up to 5 articles. "
+                "Returns up to 10 articles by default — set limit lower if you only need a few. "
                 "Call this MULTIPLE times with different categories to get broad coverage: "
-                "general, technology, business, sports, science, health. "
+                "general, technology, business, sports, science, health, entertainment. "
                 "Always call this before discussing any news topic — never invent headlines."
             ),
             "parameters": {
@@ -71,6 +71,7 @@ TOOL_SCHEMAS = [
                 "properties": {
                     "country":  {"type": "string",  "default": "us",      "description": "ISO country code, e.g. 'us', 'gb'"},
                     "category": {"type": "string",  "default": "general", "description": "One of: general, technology, business, sports, science, health, entertainment"},
+                    "limit":    {"type": "integer", "default": 10,        "description": "Number of articles to return (1-10)"},
                     "refresh":  {"type": "boolean", "default": False,     "description": "Force fresh API fetch even if cache is warm"},
                 },
                 "required": [],
@@ -309,7 +310,7 @@ async def _get_news(args: dict) -> str:
     country  = args.get("country",  "us")
     category = args.get("category", "general")
     refresh  = args.get("refresh",  False)
-    limit    = 5  # Always 5 per category — enforced here
+    limit    = max(1, min(int(args.get("limit", 10)), 10))
 
     articles = None
     if not refresh:

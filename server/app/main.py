@@ -325,6 +325,11 @@ async def voice_ws(ws: WebSocket, session: str = ""):
                     await ws.send_text(json.dumps({"type": "pong"}))
                     continue
 
+                if kind == "voice_cancel":
+                    audio_buffer.clear()
+                    await ws.send_text(json.dumps({"type": "cancelled"}))
+                    continue
+
                 if kind == "voice_end":
                     if not audio_buffer:
                         await ws.send_text(json.dumps({"type": "error", "message": "No audio data received. Please hold the button to record."}))

@@ -220,7 +220,7 @@ async def get_all_recent(limit: int = 20) -> list[dict]:
 
 
 # ── Redis cache helpers ────────────────────────────────────────────────────────
-CACHE_TTL = 1800  # 30 minutes — up from 10 min to dramatically cut API calls
+CACHE_TTL = 1200  # 20 minutes — balances freshness vs API budget
 
 async def cache_articles(articles: list[dict], country: str, category: str):
     r = await get_redis()
@@ -465,7 +465,9 @@ DISCOVERY_PAIRS = [
     ("us", "general"),
     ("us", "technology"),
     ("us", "business"),
-    ("gb", "general"),   # UK coverage via Guardian (Guardian covers UK well)
+    ("us", "sports"),
+    ("us", "entertainment"),
+    ("gb", "general"),   # UK coverage via Guardian
 ]
 
 async def discovery_round():

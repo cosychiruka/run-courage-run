@@ -189,7 +189,7 @@ export default function App() {
       } else if (voiceState === 'listening') {
         quotaEnd();
         setVoiceQuota(quotaStatus());
-        await voiceSvcRef.current?.stop();
+        await voiceSvcRef.current?.stop();  // auto-cancels if audio < silence threshold
       } else if (voiceState === 'speaking' || voiceState === 'thinking') {
         setVoiceState('idle');
         setVoiceTranscript('');
@@ -211,6 +211,14 @@ export default function App() {
     setVoiceReply('');
     setTweetCards([]);
     setTweetQuery('');
+  }, []);
+
+  const handleVoiceCancel = useCallback(async (e) => {
+    if (e) { e.stopPropagation(); e.preventDefault(); }
+    if (isTransitioningRef.current) return;
+    quotaCancel();
+    await voiceSvcRef.current?.cancel();
+    setVoiceState('idle');
   }, []);
 
   // ── Ghost repulse signal (incremented on Courage click at midnight) ────────
@@ -710,12 +718,23 @@ export default function App() {
             {voiceState === null && ''}
             {voiceState !== null && !voiceQuota.canSpeak && `Courage needs a break! Back ${formatTime(voiceQuota.resetInSecs)}`}
             {voiceState === 'idle' && voiceQuota.canSpeak && `Tap to speak · ${formatTime(voiceQuota.remainingSecs)} left`}
-            {voiceState === 'listening' && 'Listening…'}
+            {voiceState === 'listening' && 'Tap to send'}
             {voiceState === 'thinking' && 'Thinking…'}
             {voiceState === 'speaking' && 'Tap to stop'}
           </div>
 
-          {voiceState !== null && (
+          {voiceState === 'listening' && (
+            <button
+              className="voice-cancel-btn"
+              onClick={(e) => { e.stopPropagation(); handleVoiceCancel(e); }}
+              title="Cancel recording"
+              aria-label="Cancel recording"
+            >
+              ✕
+            </button>
+          )}
+
+          {voiceState !== null && voiceState !== 'listening' && (
             <button
               className="voice-exit-btn"
               onClick={(e) => { e.stopPropagation(); handleVoiceClose(); }}
