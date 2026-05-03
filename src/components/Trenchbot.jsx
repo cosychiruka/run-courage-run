@@ -213,7 +213,10 @@ const Trenchbot = ({ seedMessage }) => {
     rec.onerror  = () => setIsListening(false);
     rec.onresult = (e) => {
       const transcript = e.results[0][0].transcript;
-      setInput(transcript);
+      if (transcript.trim()) {
+        setInput(transcript);
+        handleSendMessage(transcript);
+      }
     };
     try { rec.start(); } catch { setIsListening(false); }
   }, [isListening]);

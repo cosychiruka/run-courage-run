@@ -116,6 +116,7 @@ export default function App() {
   // 'idle' | 'listening' | 'thinking' | 'speaking' | null (normal scene)
   const [voiceState, setVoiceState] = useState(null);
   const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [voiceReply, setVoiceReply] = useState('');
   const [voiceToolLog, setVoiceToolLog] = useState([]);
   const [voiceQuota, setVoiceQuota] = useState(() => quotaStatus());
   const [tweetCards, setTweetCards] = useState([]);
@@ -150,7 +151,7 @@ export default function App() {
           voiceSvcRef.current = createVoiceService({
             onState: (s) => { setVoiceState(s); if (s !== 'thinking') setVoiceToolLog([]); },
             onTranscript: (t) => { setVoiceTranscript(t); setVoiceToolLog([]); },
-            onReply: (r) => console.log('[Voice] reply:', r),
+            onReply: (r) => setVoiceReply(r),
             onAudio: () => {},
             onError: (e) => { console.warn('[Voice]', e); setVoiceState('idle'); setVoiceToolLog([]); },
             onToolCall: (ev) => {
@@ -177,8 +178,10 @@ export default function App() {
         quotaEnd();
         setVoiceQuota(quotaStatus());
         await voiceSvcRef.current?.stop();
-      } else if (voiceState === 'speaking') {
+      } else if (voiceState === 'speaking' || voiceState === 'thinking') {
         setVoiceState('idle');
+        setVoiceTranscript('');
+        setVoiceReply('');
       }
       // 'thinking' — ignore, let it finish
     } finally {
@@ -192,6 +195,8 @@ export default function App() {
     voiceSvcRef.current?.destroy();
     voiceSvcRef.current = null;
     setVoiceState(null);
+    setVoiceTranscript('');
+    setVoiceReply('');
     setTweetCards([]);
     setTweetQuery('');
   }, []);
@@ -254,6 +259,11 @@ export default function App() {
       return;
     }
     setVoiceState('idle');
+    // Auto-trigger the start recording flow
+    setTimeout(() => {
+      const btn = document.querySelector('.mic-drop-wrap');
+      if (btn) btn.click();
+    }, 100);
   }, [sceneOverride, scene]);
 
   const cycleScene = useCallback(() => {
@@ -710,24 +720,42 @@ export default function App() {
 
         {/* Mic drop — OUTSIDE character-stage so pointer-events:none doesn't block it */}
         {voiceState !== null && (
-          <div className={`mic-drop-wrap mic-drop-wrap--${voiceState}`} onClick={handleVoiceClick} role="button" aria-label="Voice chat control">
-            <div className="mic-drop-icon">
-              {!voiceQuota.canSpeak      && '🛑'}
-              {voiceQuota.canSpeak && voiceState === 'idle'      && '🎙️'}
-              {voiceQuota.canSpeak && voiceState === 'listening' && '🔴'}
-              {voiceQuota.canSpeak && voiceState === 'thinking'  && '⏳'}
-              {voiceQuota.canSpeak && voiceState === 'speaking'  && '🔊'}
+          <>
+            <div className={`mic-drop-wrap mic-drop-wrap--${voiceState}`} onClick={handleVoiceClick} role="button" aria-label="Voice chat control">
+              <div className="mic-drop-icon">
+                {!voiceQuota.canSpeak      && '🛑'}
+                {voiceQuota.canSpeak && voiceState === 'idle'      && '🎙️'}
+                {voiceQuota.canSpeak && voiceState === 'listening' && '🔴'}
+                {voiceQuota.canSpeak && voiceState === 'thinking'  && '⏳'}
+                {voiceQuota.canSpeak && voiceState === 'speaking'  && '🔊'}
+              </div>
+              <div className="mic-drop-label">
+                {!voiceQuota.canSpeak && `Courage needs a break! Back ${formatTime(voiceQuota.resetInSecs)}`}
+                {voiceQuota.canSpeak && voiceState === 'idle'      && `Tap to speak · ${formatTime(voiceQuota.remainingSecs)} left`}
+                {voiceQuota.canSpeak && voiceState === 'listening' && 'Listening…'}
+                {voiceQuota.canSpeak && voiceState === 'thinking'  && 'Thinking…'}
+                {voiceQuota.canSpeak && voiceState === 'speaking'  && 'Tap to stop'}
+              </div>
+              <div className="mic-drop-cord" />
+              <button className="voice-exit-btn" onClick={handleVoiceClose} title="Exit voice chat" aria-label="Exit voice chat">✕</button>
             </div>
-            <div className="mic-drop-label">
-              {!voiceQuota.canSpeak && `Courage needs a break! Back ${formatResetIn(voiceQuota.resetInSecs)}`}
-              {voiceQuota.canSpeak && voiceState === 'idle'      && `Tap to speak · ${formatTime(voiceQuota.remainingSecs)} left`}
-              {voiceQuota.canSpeak && voiceState === 'listening' && 'Listening…'}
-              {voiceQuota.canSpeak && voiceState === 'thinking'  && 'Thinking…'}
-              {voiceQuota.canSpeak && voiceState === 'speaking'  && 'Tap to stop'}
-            </div>
-            <div className="mic-drop-cord" />
-            <button className="voice-exit-btn" onClick={handleVoiceClose} title="Exit voice chat" aria-label="Exit voice chat">✕</button>
-          </div>
+
+            {/* Voice Chat Speech Bubbles */}
+            {(voiceTranscript || voiceReply) && (
+              <div className="voice-bubbles-container">
+                {voiceTranscript && (
+                  <div className="voice-bubble user-bubble">
+                    {voiceTranscript}
+                  </div>
+                )}
+                {voiceReply && (
+                  <div className="voice-bubble bot-bubble">
+                    {voiceReply}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         {/* Tweet card hologram — floats above Courage during/after Twitter searches */}

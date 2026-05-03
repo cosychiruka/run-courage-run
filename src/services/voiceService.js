@@ -161,7 +161,7 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
 
   function _stopRecording() {
     return new Promise((resolve) => {
-      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+      if (!mediaRecorder || mediaRecorder.state !== 'recording') {
         resolve();
         return;
       }
