@@ -444,10 +444,16 @@
   .courage .body .leg.top {
     position: absolute;
     z-index: 4;
-    top: 10px !important;
-    width: 15px !important;
-    height: 48px !important;
-    border-radius: 8px !important;
+    top: 20px;
+    width: 15px;
+    height: 48px;
+    border-radius: 8px;
+    background-color: var(--pink);
+    /* No top border at body joint — sides + bottom only */
+    box-shadow:
+      inset 2px 0 0 0 var(--black),
+      inset -2px 0 0 0 var(--black),
+      inset 0 -2px 0 0 var(--black);
     transform-origin: top center;
   }
   /* Mask joint seam with body-colour cap */
@@ -466,25 +472,25 @@
 
   /* Arms sit lower on the body so the paw tips land at mouth height */
   .courage .body .leg.top.left {
-    left: 18px;
+    left: 25px;
     transform-origin: bottom center !important;
-    transform: rotate(65deg) translateY(-8px);
+    transform: rotate(75deg) translateY(-12px);
     animation: scaredTrembleL 0.22s ease-in-out infinite;
   }
   .courage .body .leg.top.right {
-    left: 35px;
+    left: 45px;
     transform-origin: bottom center !important;
-    transform: rotate(-65deg) translateY(-8px);
+    transform: rotate(-75deg) translateY(-12px);
     animation: scaredTrembleR 0.22s ease-in-out infinite;
   }
 
   @keyframes scaredTrembleL {
-    0%, 100% { transform: rotate(63deg) translateY(-8px) translateX(-1px); }
-    50%       { transform: rotate(67deg) translateY(-8px) translateX(1px); }
+    0%, 100% { transform: rotate(73deg) translateY(-12px) translateX(-1px); }
+    50%       { transform: rotate(77deg) translateY(-12px) translateX(1px); }
   }
   @keyframes scaredTrembleR {
-    0%, 100% { transform: rotate(-63deg) translateY(-8px) translateX(-1px); }
-    50%       { transform: rotate(-67deg) translateY(-8px) translateX(1px); }
+    0%, 100% { transform: rotate(-73deg) translateY(-12px) translateX(-1px); }
+    50%       { transform: rotate(-77deg) translateY(-12px) translateX(1px); }
   }
 
   .courage .body .leg.top .paw {

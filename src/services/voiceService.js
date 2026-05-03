@@ -34,7 +34,6 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
   let stream = null;
   let connected = false;
   let _worldContext = null;
-  let audioBuffer = []; // Buffer for audio chunks during reconnection
 
   // Build WS URL with session ID so backend restores per-user history on reconnect
   const sessionId = _getSessionId();
@@ -51,15 +50,6 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
       ws.onopen = () => {
         connected = true;
         console.log('[Voice] WebSocket connected successfully');
-        
-        // Send any buffered audio chunks
-        while (audioBuffer.length > 0) {
-          const chunk = audioBuffer.shift();
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(chunk);
-          }
-        }
-        
         resolve();
       };
 
@@ -70,34 +60,12 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
         console.error('[Voice] ReadyState:', ws.readyState);
         onError?.('WebSocket error — is the backend running?');
         reject(e);
-        // Attempt to reconnect after 5 seconds
-        setTimeout(() => {
-          if (!connected) {
-            console.log('[Voice] Attempting WebSocket reconnect...');
-            connect().then(() => {
-              console.log('[Voice] WebSocket reconnected successfully');
-            }).catch((e) => {
-              console.error('[Voice] WebSocket reconnect failed:', e);
-            });
-          }
-        }, 5000);
       };
 
       ws.onclose = (e) => {
         connected = false;
         onState?.('idle');
         console.log('[Voice] WebSocket closed:', e.code, e.reason);
-        // Attempt to reconnect after 5 seconds
-        setTimeout(() => {
-          if (!connected) {
-            console.log('[Voice] Attempting WebSocket reconnect...');
-            connect().then(() => {
-              console.log('[Voice] WebSocket reconnected successfully');
-            }).catch((e) => {
-              console.error('[Voice] WebSocket reconnect failed:', e);
-            });
-          }
-        }, 5000);
       };
 
       ws.onmessage = async (event) => {
@@ -221,17 +189,8 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
     }
 
     mediaRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) {
-        if (ws?.readyState === WebSocket.OPEN) {
-          ws.send(e.data);  // binary chunk
-        } else {
-          // Buffer audio chunks during reconnection
-          audioBuffer.push(e.data);
-          // Limit buffer size to prevent memory issues
-          if (audioBuffer.length > 50) {
-            audioBuffer.shift(); // Remove oldest chunk
-          }
-        }
+      if (e.data.size > 0 && ws?.readyState === WebSocket.OPEN) {
+        ws.send(e.data);  // binary chunk
       }
     };
 
@@ -373,7 +332,6 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
     audioCtx?.close();
     ws = null;
     connected = false;
-    audioBuffer = []; // Clear audio buffer
   }
 
   return { start, stop, destroy, setWorldContext };
