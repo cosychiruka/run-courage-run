@@ -14,7 +14,6 @@ from typing import Optional
 from PIL import Image, ImageDraw, ImageFont
 
 from app.config import REDIS_URL
-from app.news_cache import fetch_full_article
 
 CARD_TTL = 3600  # 1 hour — reuse rendered card for the same URL
 

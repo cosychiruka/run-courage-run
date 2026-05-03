@@ -12,7 +12,6 @@ Flow:
 import io
 import tempfile
 import asyncio
-import numpy as np
 import soundfile as sf
 from pathlib import Path
 from typing import AsyncIterator

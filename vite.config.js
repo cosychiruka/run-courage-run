@@ -22,7 +22,7 @@ export default defineConfig({
     __VITE_BACKEND_WS__: JSON.stringify(
       process.env.VITE_BACKEND_WS || 
       (process.env.NODE_ENV === 'production' 
-        ? 'wss://run-courage-run.sliplane.app/ws/voice' 
+        ? 'wss://runcouragerun.life/ws/voice' 
         : 'ws://localhost:8000/ws/voice')
     )
   },
