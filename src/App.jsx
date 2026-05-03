@@ -690,8 +690,8 @@ export default function App() {
           )}
         </div>
 
-        {/* Voice controls — separate elements as per original design 3hrs ago */}
-        {voiceState === null && !world3DVisible && (
+        {/* Voice controls — separate elements, hidden as soon as 3D world mounts */}
+        {voiceState === null && !world3DMounted && !world3DVisible && (
           <button
             className="voice-entry-btn"
             onClick={handleVoiceEntry}
@@ -703,7 +703,7 @@ export default function App() {
         )}
 
         {/* Mic drop — ACTIVE state */}
-        {voiceState !== null && !world3DVisible && (
+        {voiceState !== null && !world3DMounted && !world3DVisible && (
           <div className={`mic-drop-wrap mic-drop-wrap--${voiceState}`} onClick={handleVoiceClick} role="button" aria-label="Voice chat control">
             <div className="mic-drop-icon">
               {!voiceQuota.canSpeak      && '🛑'}
