@@ -153,6 +153,12 @@ class XRateLimitedClient:
     def reply_to_tweet(self, text: str, reply_to_id: str, media_ids: list[str] | None = None):
         return self.create_tweet(text, media_ids=media_ids, reply_to=reply_to_id)
 
+    def get_my_profile(self):
+        """Fetch @runcouragerun's own profile info."""
+        return self.client.get_me(
+            user_fields=["username", "name", "description", "public_metrics", "profile_image_url", "created_at"],
+        )
+
 
 # ── Module-level singleton ─────────────────────────────────────────────────────
 

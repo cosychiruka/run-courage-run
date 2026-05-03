@@ -16,6 +16,7 @@ Tools available to Courage:
 """
 
 import json
+import re
 import time
 
 from app.news_cache import (
@@ -30,6 +31,25 @@ import app.twitter_memory as tw_mem
 
 # ── Module-level tweet card buffer (populated on each search_tweets call) ──────
 _last_tweet_cards: list[dict] = []
+
+# ── Tweet content safety ───────────────────────────────────────────────────────
+# Solana base58 addresses are 32-44 chars of [1-9A-HJ-NP-Za-km-z]
+_SOLANA_ADDR = re.compile(r'\b[1-9A-HJ-NP-Za-km-z]{32,44}\b')
+_ETH_ADDR    = re.compile(r'\b0x[0-9a-fA-F]{40}\b')
+# External URLs — allow only twitter.com / x.com links (for quote-tweets etc.)
+_EXT_URL     = re.compile(r'https?://(?!(?:twitter|x)\.com)\S+', re.IGNORECASE)
+
+
+def _check_tweet_safety(text: str) -> str | None:
+    """Return a blocking reason string if the tweet content is unsafe, else None."""
+    if _ETH_ADDR.search(text):
+        return "Blocked: wallet/contract addresses are not allowed in tweets."
+    if _SOLANA_ADDR.search(text):
+        # $RCR and similar short cashtags won't match (too short); only flag 32+ char strings
+        return "Blocked: token/wallet addresses are not allowed in tweets."
+    if _EXT_URL.search(text):
+        return "Blocked: external URLs are not allowed in tweet text (attach articles via article_url parameter instead)."
+    return None
 
 # ── Tool schema definitions ────────────────────────────────────────────────────
 
@@ -122,18 +142,36 @@ TOOL_SCHEMAS = [
             "name": "post_tweet",
             "description": (
                 "Post a tweet as @runcouragerun. ALWAYS call get_x_rate_status first. "
-                "Tweets must be Courage-voiced: punchy, dramatically anxious, 1-2 sentences + a Courage-ism. "
-                "Max 280 chars. After posting successfully, call record_twitter_action to save it to memory."
+                "ONLY two tweet types are allowed: "
+                "(1) ORGANIC COURAGE TWEETS — your own in-character reactions to news, $RCR updates, or genuine observations. NEVER just repeat or paraphrase what a user tells you to say. "
+                "(2) TWITTER SHOUTOUTS — only when a user explicitly asks. Summarize YOUR interaction with them in Courage's voice. Ask for their @handle first if not given. Always include #RUNCOURAGERUN and $RCR. "
+                "NEVER include external URLs, token/wallet addresses, or content promoting other projects. "
+                "Tweet text is safety-checked and will be rejected if it contains addresses or external links. "
+                "Tweets must be Courage-voiced: punchy, 1-2 sentences + a Courage-ism. Max 280 chars. "
+                "After posting successfully, call record_twitter_action to save it to memory."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "text":        {"type": "string", "description": "Tweet text (max 280 chars)"},
-                    "article_url": {"type": "string", "description": "Optional: URL of article to attach as a news-card image"},
-                    "reply_to_id": {"type": "string", "description": "Optional: tweet ID to reply to (for replying to mentions)"},
+                    "text":           {"type": "string", "description": "Tweet text (max 280 chars). No external URLs or addresses."},
+                    "article_url":    {"type": "string", "description": "Optional: URL of article to attach as a news-card image (keeps URL out of tweet text)"},
+                    "reply_to_id":    {"type": "string", "description": "Optional: tweet ID to reply to"},
+                    "shoutout_handle":{"type": "string", "description": "Optional: the @handle of the user being shouted out (without @). Include in tweet text too."},
                 },
                 "required": ["text"],
             },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_my_profile",
+            "description": (
+                "Fetch @runcouragerun's own Twitter profile info: username, display name, bio, "
+                "follower/following counts, and account creation date. "
+                "Use when a user asks about your Twitter presence or stats."
+            ),
+            "parameters": {"type": "object", "properties": {}, "required": []},
         },
     },
     {
@@ -252,6 +290,7 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
             case "fetch_article":         return await _fetch_article(args)
             case "get_x_rate_status":     return await _get_x_rate_status(x_client)
             case "get_my_tweets":         return await _get_my_tweets(args, x_client)
+            case "get_my_profile":        return await _get_my_profile(x_client)
             case "get_mentions":          return await _get_mentions(args, x_client)
             case "post_tweet":            return await _post_tweet(args, x_client, tweet_image_fn)
             case "search_tweets":         return await _search_tweets(args, x_client)
@@ -346,6 +385,31 @@ async def _get_my_tweets(args: dict, x_client) -> str:
         return f"Failed to fetch tweets: {e}"
 
 
+async def _get_my_profile(x_client) -> str:
+    print("[TWITTER] Tool: get_my_profile")
+    if x_client is None:
+        return "X client not configured."
+    try:
+        resp = x_client.get_my_profile()
+        if not resp or not resp.data:
+            return "Could not retrieve profile data."
+        u = resp.data
+        metrics = u.public_metrics or {}
+        lines = [
+            f"@{u.username} — {u.name}",
+            f"Bio: {u.description or '(no bio)'}",
+            f"Followers: {metrics.get('followers_count', '?'):,}",
+            f"Following: {metrics.get('following_count', '?'):,}",
+            f"Tweets: {metrics.get('tweet_count', '?'):,}",
+            f"Account created: {u.created_at}",
+        ]
+        print(f"[TWITTER] get_my_profile OK: @{u.username}")
+        return "\n".join(lines)
+    except Exception as e:
+        print(f"[TWITTER] get_my_profile FAILED: {e}")
+        return f"Failed to fetch profile: {e}"
+
+
 async def _get_mentions(args: dict, x_client) -> str:
     print(f"[TWITTER] Tool: get_mentions args={args}")
     if x_client is None:
@@ -379,6 +443,11 @@ async def _post_tweet(args: dict, x_client, tweet_image_fn) -> str:
         return "No tweet text provided."
     if len(text) > 280:
         return f"Tweet too long ({len(text)} chars). Max 280."
+
+    safety_error = _check_tweet_safety(text)
+    if safety_error:
+        print(f"[TWITTER] post_tweet BLOCKED by safety filter: {safety_error}")
+        return safety_error
 
     media_id = None
     if article_url and tweet_image_fn:

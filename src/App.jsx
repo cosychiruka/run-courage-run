@@ -159,8 +159,8 @@ export default function App() {
           voiceSvcRef.current = createVoiceService({
             onState: (s) => { setVoiceState(s); if (s !== 'thinking') setVoiceToolLog([]); },
             onTranscript: (t) => { setVoiceTranscript(t); setVoiceToolLog([]); },
-            {/* Cleaned regex to strip AI-generated asterisks from Courage's voice replies */}
             onReply: (r) => {
+              // Cleaned regex to strip AI-generated asterisks from Courage's voice replies
               const cleaned = r.replace(/\*.*?\*/g, '').trim();
               setVoiceReply(cleaned);
             },
