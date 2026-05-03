@@ -141,52 +141,12 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
   // ── MediaRecorder (microphone capture) ─────────────────────────────────────
 
   async function _startRecording() {
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch (error) {
-      throw new Error('Microphone access denied. Please allow microphone access.');
-    }
-    
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
       ? 'audio/webm;codecs=opus'
       : 'audio/ogg;codecs=opus';
 
     mediaRecorder = new MediaRecorder(stream, { mimeType });
-
-    // Audio level monitoring
-    let audioContext = null;
-    let analyser = null;
-    let levelCheckInterval = null;
-    let silentFrames = 0;
-    
-    try {
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      analyser = audioContext.createAnalyser();
-      const source = audioContext.createMediaStreamSource(stream);
-      source.connect(analyser);
-      analyser.fftSize = 256;
-      
-      // Check audio levels every 500ms
-      levelCheckInterval = setInterval(() => {
-        if (!analyser) return;
-        
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(dataArray);
-        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-        
-        if (average < 5) {
-          silentFrames++;
-          if (silentFrames >= 3) {
-            console.warn('[Voice] No audio detected - check microphone');
-            onError?.('No audio detected. Please check your microphone.');
-          }
-        } else {
-          silentFrames = 0; // Reset counter when audio is detected
-        }
-      }, 500);
-    } catch (error) {
-      console.warn('[Voice] Audio monitoring not available:', error);
-    }
 
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0 && ws?.readyState === WebSocket.OPEN) {
@@ -194,68 +154,20 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
       }
     };
 
-    // Clean up function
-    const cleanup = () => {
-      if (levelCheckInterval) {
-        clearInterval(levelCheckInterval);
-        levelCheckInterval = null;
-      }
-      if (audioContext && audioContext.state !== 'closed') {
-        audioContext.close();
-      }
-    };
-
-    // Store cleanup for later use
-    mediaRecorder._cleanup = cleanup;
-
     // Collect 250ms chunks for low-latency streaming
     mediaRecorder.start(250);
     onState?.('listening');
   }
 
   function _stopRecording() {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       if (!mediaRecorder || mediaRecorder.state === 'inactive') {
         resolve();
         return;
       }
-      
-      // Set a timeout to prevent hanging
-      const timeout = setTimeout(() => {
-        console.warn('[Voice] MediaRecorder stop timeout - forcing cleanup');
-        cleanup();
-        resolve();
-      }, 2000);
-      
-      const cleanup = () => {
-        clearTimeout(timeout);
-        // Clean up audio monitoring
-        if (mediaRecorder && mediaRecorder._cleanup) {
-          mediaRecorder._cleanup();
-        }
-        stream?.getTracks().forEach(t => {
-          try {
-            t.stop();
-          } catch (e) {
-            console.warn('[Voice] Error stopping audio track:', e);
-          }
-        });
-        stream = null;
-        mediaRecorder = null;
-      };
-      
-      mediaRecorder.onstop = () => {
-        cleanup();
-        resolve();
-      };
-      
-      try {
-        mediaRecorder.stop();
-      } catch (error) {
-        console.error('[Voice] Error stopping MediaRecorder:', error);
-        cleanup();
-        reject(error);
-      }
+      mediaRecorder.onstop = resolve;
+      mediaRecorder.stop();
+      stream?.getTracks().forEach(t => t.stop());
     });
   }
 
