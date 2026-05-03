@@ -164,7 +164,7 @@ export default function App() {
               const cleaned = r.replace(/\*.*?\*/g, '').trim();
               setVoiceReply(cleaned);
             },
-            onAudio: () => {},
+            onAudio: () => { },
             onError: (e) => { console.warn('[Voice]', e); setVoiceState('idle'); setVoiceToolLog([]); },
             onToolCall: (ev) => {
               if (ev.type === 'call') {
@@ -234,7 +234,7 @@ export default function App() {
     setWorld3DMounted(false);
     setWorld3DVisible(false);
     document.body.classList.remove('world3d-active');
-    
+
     // Reset CSS Courage animation
     setTimeout(() => {
       const currentScene = sceneOverride || scene;
@@ -391,14 +391,14 @@ export default function App() {
     // Disco landing page logic
     if (activeScene === 'disco') {
       return (
-         <div className="disco-landing-scene">
-            <div className="disco-ball">
-               <div className="disco-sparkle"></div>
-               <div className="disco-sparkle s2"></div>
-               <div className="disco-sparkle s3"></div>
-            </div>
-            <img src={courageDancingGif} alt="Courage Dancing" className="courage-disco-gif" />
-         </div>
+        <div className="disco-landing-scene">
+          <div className="disco-ball">
+            <div className="disco-sparkle"></div>
+            <div className="disco-sparkle s2"></div>
+            <div className="disco-sparkle s3"></div>
+          </div>
+          <img src={courageDancingGif} alt="Courage Dancing" className="courage-disco-gif" />
+        </div>
       );
     }
 
@@ -422,7 +422,7 @@ export default function App() {
     return <CourageRunning voiceState={isTalking ? voiceState : null} currentScene={activeScene} />;
   }, [scene, sceneOverride, newsEmotion, newsOpen, explosionPhase, handleRepulse, courageX, courageTrans, voiceState, world3DVisible]);
 
-  
+
   const loadNews = useCallback(async (country = newsCountry, category = newsCategory) => {
     setNewsLoading(true);
     try {
@@ -611,12 +611,12 @@ export default function App() {
 
       {/* ── Scene ambient effects — suspended when 3D world is visible */}
       {!world3DVisible && (
-        <SceneEffects 
-          scene={sceneOverride || scene} 
-          repulseSignal={repulseSignal} 
-          onCourageMove={handleCourageMove} 
+        <SceneEffects
+          scene={sceneOverride || scene}
+          repulseSignal={repulseSignal}
+          onCourageMove={handleCourageMove}
         />
-      )}  
+      )}
 
       {/* ── Typewriter scene hints ── */}
       <HeroHints scene={_active} scrolled={scrolled} />
@@ -668,7 +668,7 @@ export default function App() {
           </div>
           <div className={`hero-text-block${heroTextVisible ? '' : ' hero-text-block--hidden'}`}>
             <p className="hero-tagline">Self Aware Meme <br /> Living on Solana</p>
-            <p className="hero-quote">He knows his a meme. He breaks the 4th wall. <br /> He&rsquo;s a runner!</p>
+            <p className="hero-quote">He knows he&rsquo;s a meme.<br /> He breaks the 4th wall.<br /> He&rsquo;s a runner!</p>
           </div>
           {aliveTextVisible && (
             <div className="hero-alive-text" aria-live="polite">
@@ -691,7 +691,7 @@ export default function App() {
         </div>
 
         {/* Unified Voice Control Mic — stays mounted for fluid transitions */}
-        <div 
+        <div
           className={`mic-control-unified ${voiceState === null ? 'mic-idle' : `mic-active mic-active--${voiceState}`}`}
           onClick={voiceState === null ? handleVoiceEntry : handleVoiceClick}
           role="button"
@@ -714,7 +714,7 @@ export default function App() {
             {voiceState === 'thinking' && 'Thinking…'}
             {voiceState === 'speaking' && 'Tap to stop'}
           </div>
-          
+
           {voiceState !== null && (
             <button
               className="voice-exit-btn"
@@ -760,8 +760,8 @@ export default function App() {
         {voiceReply && voiceState !== null && (
           <div className="voice-bubbles-container">
             <div className="voice-bubble bot-bubble">
-              <button 
-                className="bubble-close-btn" 
+              <button
+                className="bubble-close-btn"
                 onClick={() => setVoiceReply('')}
                 aria-label="Close bubble"
               >
@@ -938,8 +938,8 @@ export default function App() {
       {/* ── Sticky action bar (always visible at bottom of viewport) ── */}
       <div className={`sticky-actions${scrolled ? ' sticky-actions--hidden' : ''}${controlsExpanded ? ' sticky-actions--expanded' : ''}`}>
         {/* Mobile Toggle Button */}
-        <button 
-          className="hero-btn mobile-only-toggle" 
+        <button
+          className="hero-btn mobile-only-toggle"
           onClick={() => setControlsExpanded(!controlsExpanded)}
           aria-label={controlsExpanded ? "Collapse menu" : "Expand menu"}
         >
