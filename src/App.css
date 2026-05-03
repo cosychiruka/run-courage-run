@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Outfit:wght@400;700;900&display=swap');
+
 :root {
   --color_base: #191919;
   --color_pen: #fff;
@@ -13,7 +15,7 @@
 }
 
 body {
-  font-family: 'Comic Sans MS', sans-serif;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
   background-color: #1c1c1c !important;
   background-repeat: no-repeat !important;
   background-position: center center !important;
@@ -3254,13 +3256,13 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   /* Entry mic button: align with character head on mobile
      Character floor = 110px, scaled height ~179px, head at ~135px above floor */
   .voice-entry-btn {
-    bottom: calc(25% + 250px);
-    /* FIXED: was 110px + 135px - TOO HIGH */
-    left: calc(5%);
-    /* FIXED: was 2% + 42px - TOO FAR RIGHT */
-    width: 30px;
-    height: 30px;
+    bottom: calc(110px + 60px); 
+    /* Lowered resting position for mobile */
+    left: calc(8%);
+    width: 34px;
+    height: 34px;
     padding: 0.5em;
+    z-index: 200;
   }
 }
 
@@ -3835,7 +3837,6 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   }
 
   .couragesign {
-    font-size: 2.2rem !important;
     text-shadow: 2px 2px 0px #444 !important;
     font-family: 'Comic Sans MS', cursive, sans-serif !important;
   }
@@ -4080,7 +4081,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 
   /* Ensure menubar fonts are cartoonish on mobile */
   .bone-nav h1, .couragesign {
-    font-family: 'Comic Sans MS', cursive, sans-serif !important;
+    font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
   }
 }
 

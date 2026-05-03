@@ -689,17 +689,6 @@ export default function App() {
             )}
           </div>
 
-          {/* Voice controls — restore! */}
-          {voiceState === null && (
-            <button
-              className="voice-entry-btn"
-              onClick={handleVoiceEntry}
-              title="Talk to Courage"
-              aria-label="Start voice chat with Courage"
-            >
-              🎙️
-            </button>
-          )}
         </div>
 
         {/* Courage character — fills hero */}
@@ -713,6 +702,18 @@ export default function App() {
             </div>
           )}
         </div>
+
+        {/* Voice controls — OUTSIDE character-stage & hero-center */}
+        {voiceState === null && (
+          <button
+            className="voice-entry-btn"
+            onClick={handleVoiceEntry}
+            title="Talk to Courage"
+            aria-label="Start voice chat with Courage"
+          >
+            🎙️
+          </button>
+        )}
 
         {/* Midnight refusal bubble */}
         {midnightMsg && (
