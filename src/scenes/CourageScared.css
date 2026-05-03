@@ -471,29 +471,26 @@
   }
 
   /* Arms sit lower on the body so the paw tips land at mouth height */
-  .courage .body .leg.top {
-    top: 42px;
-  }
   .courage .body .leg.top.left {
-    left: 10px;
-    transform-origin: top center !important;
-    transform: rotate(130deg);
+    left: 25px;
+    transform-origin: bottom center !important;
+    transform: rotate(45deg) translateY(-8px);
     animation: scaredTrembleL 0.22s ease-in-out infinite;
   }
   .courage .body .leg.top.right {
-    left: 60px;
-    transform-origin: top center !important;
-    transform: rotate(-130deg);
+    left: 45px;
+    transform-origin: bottom center !important;
+    transform: rotate(-45deg) translateY(-8px);
     animation: scaredTrembleR 0.22s ease-in-out infinite;
   }
 
   @keyframes scaredTrembleL {
-    0%, 100% { transform: rotate(127deg); }
-    50%       { transform: rotate(133deg) translateX(1px); }
+    0%, 100% { transform: rotate(43deg) translateY(-8px) translateX(-1px); }
+    50%       { transform: rotate(47deg) translateY(-8px) translateX(1px); }
   }
   @keyframes scaredTrembleR {
-    0%, 100% { transform: rotate(-127deg); }
-    50%       { transform: rotate(-133deg) translateX(-1px); }
+    0%, 100% { transform: rotate(-43deg) translateY(-8px) translateX(-1px); }
+    50%       { transform: rotate(-47deg) translateY(-8px) translateX(1px); }
   }
 
   .courage .body .leg.top .paw {
