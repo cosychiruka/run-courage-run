@@ -2581,8 +2581,8 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 /* ── Mic entry button — floats above Courage's head, fixed so it tracks the character ── */
 .voice-entry-btn {
   position: fixed;
-  bottom: calc(25% + 190px);
-  left: calc(10%);
+  bottom: calc(10% + 185px);
+  left: 38vw;
   font-size: 1.3rem;
   background: rgba(20, 241, 149, 0.1);
   border: 1.5px solid rgba(20, 241, 149, 0.4);
@@ -2593,6 +2593,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   display: flex;
   align-items: center;
   justify-content: center;
+  filter: drop-shadow(0 0 5px rgba(20, 241, 149, 0.3));
   transition: background 0.2s, transform 0.15s;
   z-index: 20;
   animation: entryBtnPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -3273,8 +3274,8 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   }
 
   .voice-entry-btn {
-    bottom: calc(20% + 135px);
-    left: calc(8%);
+    bottom: calc(30% + 145px);
+    left: 15vw;
     width: 36px;
     height: 36px;
     padding: 0.5em;
