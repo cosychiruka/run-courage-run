@@ -161,14 +161,14 @@
   .courage .head .eye-container .eye::after {
     content: "";
     width: 100%;
-    height: 30%;
+    height: 100%;
     position: absolute;
     top: 0;
+    left: 0;
     background-color: var(--dark-pink);
-    -webkit-clip-path: polygon(0% 0%, 100% 0%, 100% 60%, 0% 100%);
-            clip-path: polygon(0% 0%, 100% 0%, 100% 60%, 0% 100%);
-    -webkit-animation: blink 8s infinite ease-in-out;
-            animation: blink 8s infinite ease-in-out;
+    clip-path: none !important;
+    -webkit-clip-path: none !important;
+    animation: blink 8s infinite ease-in-out;
   }
   .courage .head .eye-container .eye .blood-vessel {
     position: absolute;
@@ -256,8 +256,8 @@
     animation: move 0.2s infinite ease-in-out reverse;
   }
   .courage .head .eye-container .eye.right::after {
-    -webkit-clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 60%);
-            clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 60%);
+    clip-path: none !important;
+    -webkit-clip-path: none !important;
   }
   .courage .head .eye-container .eye.right .blood-vessel:nth-child(1) {
     width: 9px;
@@ -572,7 +572,7 @@
     animation: tremble 0.2s infinite ease-in-out;
   }
   .courage .body .leg.bottom.right {
-    left: 54px;
+    left: 48px;
     transform: rotate(-15deg);
     animation: tremble 0.2s infinite ease-in-out reverse;
   }
@@ -631,10 +631,10 @@
   }
   @keyframes blink {
     0%, 70%, 100% {
-      transform: translate(0px, -100%);
+      transform: translateY(-100%);
     }
     75%, 95% {
-      transform: translate(0, 0);
+      transform: translateY(0);
     }
   }
   @-webkit-keyframes move {

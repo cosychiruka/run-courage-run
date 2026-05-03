@@ -3504,7 +3504,8 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 .enter-3d-btn {
   position: fixed;
   bottom: calc(30%);
-  left: calc(45%);
+  left: 50%;
+  transform: translateX(-50%);
   background: linear-gradient(135deg, #240046, #b90082, #ff1a9c);
   color: #fff;
   border: 1px solid rgba(255, 26, 156, 0.7);
@@ -3543,12 +3544,12 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 @keyframes enter3dPop {
   from {
     opacity: 0;
-    transform: scale(0.5) translateY(12px);
+    transform: scale(0.5) translate(-50%, 12px);
   }
 
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: scale(1) translate(-50%, 0);
   }
 }
 

@@ -698,53 +698,58 @@ export default function App() {
           )}
         </div>
 
-        {/* Unified Voice Control Mic — stays mounted for fluid transitions */}
-        <div
-          className={`mic-control-unified ${voiceState === null ? 'mic-idle' : `mic-active mic-active--${voiceState}`}`}
-          onClick={voiceState === null ? handleVoiceEntry : handleVoiceClick}
-          role="button"
-          aria-label="Voice chat control"
-        >
-          <div className="mic-drop-cord" />
-          <div className="mic-drop-icon">
-            {voiceState === null && '🎙️'}
-            {voiceState !== null && !voiceQuota.canSpeak && '🛑'}
-            {voiceState === 'idle' && voiceQuota.canSpeak && '🎙️'}
-            {voiceState === 'listening' && '🔴'}
-            {voiceState === 'thinking' && '⏳'}
-            {voiceState === 'speaking' && <span style={{ filter: 'brightness(2) grayscale(1)' }}>🔊</span>}
-          </div>
-          <div className="mic-drop-label">
-            {voiceState === null && ''}
-            {voiceState !== null && !voiceQuota.canSpeak && `Courage needs a break! Back ${formatTime(voiceQuota.resetInSecs)}`}
-            {voiceState === 'idle' && voiceQuota.canSpeak && `Tap to speak · ${formatTime(voiceQuota.remainingSecs)} left`}
-            {voiceState === 'listening' && 'Tap to send'}
-            {voiceState === 'thinking' && 'Thinking…'}
-            {voiceState === 'speaking' && 'Tap to stop'}
-          </div>
+        {/* Voice controls — separate elements as per original design 3hrs ago */}
+        {voiceState === null && !world3DVisible && (
+          <button
+            className="voice-entry-btn"
+            onClick={handleVoiceEntry}
+            title="Talk to Courage"
+            aria-label="Start voice chat with Courage"
+          >
+            🎙️
+          </button>
+        )}
 
-          {voiceState === 'listening' && (
-            <button
-              className="voice-cancel-btn"
-              onClick={(e) => { e.stopPropagation(); handleVoiceCancel(e); }}
-              title="Cancel recording"
-              aria-label="Cancel recording"
-            >
-              ✕
-            </button>
-          )}
+        {/* Mic drop — ACTIVE state */}
+        {voiceState !== null && !world3DVisible && (
+          <div className={`mic-drop-wrap mic-drop-wrap--${voiceState}`} onClick={handleVoiceClick} role="button" aria-label="Voice chat control">
+            <div className="mic-drop-icon">
+              {!voiceQuota.canSpeak      && '🛑'}
+              {voiceQuota.canSpeak && voiceState === 'idle'      && '🎙️'}
+              {voiceQuota.canSpeak && voiceState === 'listening' && '🔴'}
+              {voiceQuota.canSpeak && voiceState === 'thinking'  && '⏳'}
+              {voiceQuota.canSpeak && voiceState === 'speaking'  && <span style={{ filter: 'brightness(2) grayscale(1)' }}>🔊</span>}
+            </div>
+            <div className="mic-drop-label">
+              {!voiceQuota.canSpeak && `Courage needs a break! Back ${formatTime(voiceQuota.resetInSecs)}`}
+              {voiceQuota.canSpeak && voiceState === 'idle'      && `Tap to speak · ${formatTime(voiceQuota.remainingSecs)} left`}
+              {voiceQuota.canSpeak && voiceState === 'listening' && 'Tap to send'}
+              {voiceQuota.canSpeak && voiceState === 'thinking'  && 'Thinking…'}
+              {voiceQuota.canSpeak && voiceState === 'speaking'  && 'Tap to stop'}
+            </div>
+            <div className="mic-drop-cord" />
+            
+            {voiceState === 'listening' && (
+              <button
+                className="voice-cancel-btn"
+                onClick={(e) => { e.stopPropagation(); handleVoiceCancel(e); }}
+                title="Cancel recording"
+                aria-label="Cancel recording"
+              >
+                ✕
+              </button>
+            )}
 
-          {voiceState !== null && voiceState !== 'listening' && (
-            <button
-              className="voice-exit-btn"
-              onClick={(e) => { e.stopPropagation(); handleVoiceClose(); }}
-              title="Close Chat"
+            <button 
+              className="voice-exit-btn" 
+              onClick={(e) => { e.stopPropagation(); handleVoiceClose(); }} 
+              title="Exit voice chat" 
               aria-label="Exit voice chat"
             >
               ✕
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Enter 3D World — restored to original bottom position */}
         <div className="enter-3d-button-wrap">
