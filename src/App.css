@@ -2581,7 +2581,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 /* ── Mic entry button — floats above Courage's head, fixed so it tracks the character ── */
 .voice-entry-btn {
   position: fixed;
-  bottom: calc(10% + 185px);
+  bottom: calc(30% + 150px);
   left: 38vw;
   font-size: 1.3rem;
   background: rgba(20, 241, 149, 0.1);
@@ -4258,4 +4258,4 @@ div:where(.swal2-container) div:where(.swal2-popup) {
     max-height: 180px;
   }
 }
-
+

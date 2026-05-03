@@ -10,7 +10,9 @@
       "Bash(printf \"# Backend WebSocket URL \\(voice chat\\)\\\\nVITE_BACKEND_WS=ws://localhost:8000/ws/voice\\\\n\")",
       "Bash(\"c:/Users/cosyc/CourageTheCowardlyDog/.env.example\")",
       "Bash(xargs ls *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(sed -n '2582,2645p')",
+      "Bash(sed -n '2582,2645p' src/App.css)"
     ]
   }
 }
