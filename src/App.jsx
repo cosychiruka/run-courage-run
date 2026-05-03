@@ -667,7 +667,7 @@ export default function App() {
             Live on Solana
           </div>
           <div className={`hero-text-block${heroTextVisible ? '' : ' hero-text-block--hidden'}`}>
-            <p className="hero-tagline">Self Aware Meme <br /> Living on Solana</p>
+            <p className="hero-tagline">Self-Aware Meme <br /> Living on Solana</p>
             <p className="hero-quote">He knows he&rsquo;s a meme.<br /> He breaks the 4th wall.<br /> He&rsquo;s a runner!</p>
           </div>
           {aliveTextVisible && (
@@ -706,25 +706,25 @@ export default function App() {
         {voiceState !== null && !world3DMounted && !world3DVisible && (
           <div className={`mic-drop-wrap mic-drop-wrap--${voiceState}`} onClick={handleVoiceClick} role="button" aria-label="Voice chat control">
             <div className="mic-drop-icon">
-              {!voiceQuota.canSpeak      && '🛑'}
-              {voiceQuota.canSpeak && voiceState === 'idle'      && '🎙️'}
+              {!voiceQuota.canSpeak && '🛑'}
+              {voiceQuota.canSpeak && voiceState === 'idle' && '🎙️'}
               {voiceQuota.canSpeak && voiceState === 'listening' && '🔴'}
-              {voiceQuota.canSpeak && voiceState === 'thinking'  && '⏳'}
-              {voiceQuota.canSpeak && voiceState === 'speaking'  && <span style={{ filter: 'brightness(2) grayscale(1)' }}>🔊</span>}
+              {voiceQuota.canSpeak && voiceState === 'thinking' && '⏳'}
+              {voiceQuota.canSpeak && voiceState === 'speaking' && <span style={{ filter: 'brightness(2) grayscale(1)' }}>🔊</span>}
             </div>
             <div className="mic-drop-label">
               {!voiceQuota.canSpeak && `Courage needs a break! Back ${formatTime(voiceQuota.resetInSecs)}`}
-              {voiceQuota.canSpeak && voiceState === 'idle'      && `Tap to speak · ${formatTime(voiceQuota.remainingSecs)} left`}
+              {voiceQuota.canSpeak && voiceState === 'idle' && `Tap to speak · ${formatTime(voiceQuota.remainingSecs)} left`}
               {voiceQuota.canSpeak && voiceState === 'listening' && 'Listening…'}
-              {voiceQuota.canSpeak && voiceState === 'thinking'  && 'Thinking…'}
-              {voiceQuota.canSpeak && voiceState === 'speaking'  && 'Tap to stop'}
+              {voiceQuota.canSpeak && voiceState === 'thinking' && 'Thinking…'}
+              {voiceQuota.canSpeak && voiceState === 'speaking' && 'Tap to stop'}
             </div>
             <div className="mic-drop-cord" />
 
             <button
               className="voice-exit-btn"
               onClick={(e) => { e.stopPropagation(); handleVoiceClose(); }}
-              title="Exit voice chat" 
+              title="Exit voice chat"
               aria-label="Exit voice chat"
             >
               ✕
