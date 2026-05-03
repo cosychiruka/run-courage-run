@@ -159,8 +159,8 @@ export default function App() {
           voiceSvcRef.current = createVoiceService({
             onState: (s) => { setVoiceState(s); if (s !== 'thinking') setVoiceToolLog([]); },
             onTranscript: (t) => { setVoiceTranscript(t); setVoiceToolLog([]); },
+            {/* Cleaned regex to strip AI-generated asterisks from Courage's voice replies */}
             onReply: (r) => {
-              // Clean asterisks (e.g. *whimpers*) from the display text
               const cleaned = r.replace(/\*.*?\*/g, '').trim();
               setVoiceReply(cleaned);
             },
@@ -740,7 +740,7 @@ export default function App() {
                 {voiceQuota.canSpeak && voiceState === 'idle'      && '🎙️'}
                 {voiceQuota.canSpeak && voiceState === 'listening' && '🔴'}
                 {voiceQuota.canSpeak && voiceState === 'thinking'  && '⏳'}
-                {voiceQuota.canSpeak && voiceState === 'speaking'  && '🔊'}
+                {voiceQuota.canSpeak && voiceState === 'speaking'  && <span style={{ filter: 'brightness(2) grayscale(1)' }}>🔊</span>}
               </div>
               <div className="mic-drop-label">
                 {!voiceQuota.canSpeak && `Courage needs a break! Back ${formatTime(voiceQuota.resetInSecs)}`}

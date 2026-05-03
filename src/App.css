@@ -3154,9 +3154,10 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   }
 
   .hero-tagline {
-    font-size: 1.45rem !important;
+    font-size: 1.6rem !important;
     font-weight: 700;
     margin-bottom: 0.5rem;
+    font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
   }
 
   .sticky-actions {
@@ -3259,13 +3260,14 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   /* Entry mic button: align with character head on mobile
      Character floor = 110px, scaled height ~179px, head at ~135px above floor */
   .voice-entry-btn {
-    bottom: calc(110px + 60px); 
-    /* Lowered resting position for mobile */
+    bottom: calc(20% + 135px); 
+    /* Matched to listening resting position */
     left: calc(8%);
-    width: 34px;
-    height: 34px;
+    width: 36px;
+    height: 36px;
     padding: 0.5em;
     z-index: 200;
+    transition: bottom 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 }
 
@@ -3840,10 +3842,10 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   }
 
   .couragesign {
-    font-size: 2.6rem !important;
+    font-size: 1.65rem !important;
     text-shadow: 2px 2px 0px #444 !important;
     font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
-    letter-spacing: -1px;
+    letter-spacing: -0.5px;
   }
 
   .enter-3d-btn {
