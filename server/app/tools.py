@@ -15,16 +15,12 @@ Tools available to Courage:
 
 import json
 import time
-from typing import Any
 
 from app.news_cache import (
-    get_cached_articles, get_all_recent,
-    fetch_from_gnews, fetch_from_guardian,
-    fetch_full_article, save_full_content,
+    get_cached_articles, fetch_full_article, save_full_content,
     save_articles, cache_articles,
     fetch_pair,
 )
-from app.config import GNEWS_API_KEY
 import app.twitter_memory as tw_mem
 
 # ── Tool schema definitions ────────────────────────────────────────────────────
@@ -135,11 +131,42 @@ TOOL_SCHEMAS = [
     {
         "type": "function",
         "function": {
+            "name": "search_tweets",
+            "description": (
+                "Search recent tweets (last 7 days) by keyword, hashtag, cashtag, or phrase. "
+                "Use this to find what people are saying about a topic RIGHT NOW on X/Twitter. "
+                "Great for: '$RCR' (your token), '#Courage', 'Solana meme', 'crypto news', sports results, "
+                "breaking news reactions, or ANY topic a user asks about. "
+                "Filters out retweets by default for signal over noise. "
+                "Returns up to 20 tweets with author, text, and engagement stats. "
+                "Query syntax: 'keyword', '#hashtag', '$cashtag', '\"exact phrase\"', 'word1 OR word2', '-exclude'. "
+                "Example: '$RCR Solana -is:retweet lang:en'"
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "X/Twitter search query. Append '-is:retweet' to exclude retweets. Append 'lang:en' for English only.",
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "default": 15,
+                        "description": "Number of tweets to return (10-50)",
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_twitter_trends",
             "description": (
-                "Discover what topics are currently trending on Twitter/X. "
-                "Use this to find viral news, crypto meme trends, and pop-culture moments worth tweeting about. "
-                "After reviewing trends, call record_twitter_action to save interesting ones to memory."
+                "Attempt to fetch trending topics. NOTE: This endpoint requires X Pro plan "
+                "and will likely return an error on the current plan. "
+                "Use search_tweets with relevant keywords as a better alternative."
             ),
             "parameters": {
                 "type": "object",
@@ -207,6 +234,7 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
             case "get_my_tweets":         return await _get_my_tweets(args, x_client)
             case "get_mentions":          return await _get_mentions(args, x_client)
             case "post_tweet":            return await _post_tweet(args, x_client, tweet_image_fn)
+            case "search_tweets":         return await _search_tweets(args, x_client)
             case "get_twitter_trends":    return await _get_twitter_trends(args, x_client)
             case "get_twitter_memory":    return await _get_twitter_memory()
             case "record_twitter_action": return await _record_twitter_action(args)
@@ -355,6 +383,45 @@ async def _post_tweet(args: dict, x_client, tweet_image_fn) -> str:
     except Exception as e:
         print(f"[TWITTER] post_tweet FAILED: {e}")
         return f"Tweet failed: {e}"
+
+
+async def _search_tweets(args: dict, x_client) -> str:
+    query = args.get("query", "").strip()
+    max_results = max(10, min(int(args.get("max_results", 15)), 50))
+    print(f"[TWITTER] Tool: search_tweets query={query!r} max={max_results}")
+    if x_client is None:
+        return "X client not configured."
+    if not query:
+        return "No query provided."
+    try:
+        resp = x_client.search_recent(query=query, max_results=max_results)
+        if not resp or not resp.data:
+            return f"No tweets found for: {query}"
+
+        # Build username lookup from includes
+        user_map = {}
+        if resp.includes and "users" in resp.includes:
+            for u in resp.includes["users"]:
+                user_map[u.id] = u.username
+
+        lines = [f"Recent tweets matching '{query}':\n"]
+        for tweet in resp.data:
+            author = user_map.get(tweet.author_id, f"user_{tweet.author_id}")
+            metrics = tweet.public_metrics or {}
+            likes = metrics.get("like_count", 0)
+            rts   = metrics.get("retweet_count", 0)
+            lines.append(
+                f"@{author}: {tweet.text[:200]}"
+                + (f" [❤️{likes} 🔁{rts}]" if likes or rts else "")
+            )
+        print(f"[TWITTER] search_tweets OK: {len(resp.data)} tweets")
+        return "\n".join(lines)
+    except Exception as e:
+        err = str(e)
+        if "403" in err or "401" in err:
+            return f"Search access denied (check plan permissions): {e}"
+        print(f"[TWITTER] search_tweets FAILED: {e}")
+        return f"Search failed: {e}"
 
 
 async def _get_twitter_trends(args: dict, x_client) -> str:

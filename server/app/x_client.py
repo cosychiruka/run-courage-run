@@ -90,8 +90,10 @@ class XRateLimitedClient:
             "/tweets/search/recent",
             query=query,
             since_id=since_id,
-            max_results=max_results,
-            tweet_fields=["created_at", "author_id", "conversation_id"],
+            max_results=max(10, min(max_results, 100)),  # v2 requires 10-100
+            tweet_fields=["created_at", "author_id", "text", "public_metrics"],
+            expansions=["author_id"],
+            user_fields=["username", "name"],
         )
 
     # ── Own account ────────────────────────────────────────────────────────────

@@ -14,7 +14,7 @@ import httpx
 from typing import Optional, Callable, Awaitable
 
 from app.system_prompt import build_context_prompt
-from app.tools import TOOL_SCHEMAS, TOOL_NAMES, dispatch_tool
+from app.tools import TOOL_SCHEMAS, dispatch_tool
 from app.news_cache import get_all_recent
 from app.twitter_memory import init_twitter_db, get_twitter_summary
 
@@ -229,6 +229,7 @@ _TOOL_LABELS = {
     "get_my_tweets":        "🐦 Reading my recent tweets...",
     "get_mentions":         "🔔 Checking Twitter mentions...",
     "post_tweet":           "✉️ Posting tweet...",
+    "search_tweets":        "🔍 Searching Twitter...",
     "get_twitter_trends":   "📈 Discovering trending topics...",
     "get_twitter_memory":   "🗄️ Recalling Twitter history...",
     "record_twitter_action":"💾 Saving to memory...",
