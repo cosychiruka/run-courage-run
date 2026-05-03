@@ -130,6 +130,14 @@ export default function App() {
     return () => clearInterval(t);
   }, []);
 
+  // Auto-hide voice reply bubble after 8 seconds
+  useEffect(() => {
+    if (voiceReply) {
+      const t = setTimeout(() => setVoiceReply(''), 8000);
+      return () => clearTimeout(t);
+    }
+  }, [voiceReply]);
+
   // Midnight refusal speech bubble (shown briefly, then auto-switches scene)
   const [midnightMsg, setMidnightMsg] = useState(false);
   const midnightTimerRef = useRef(null);
@@ -151,7 +159,11 @@ export default function App() {
           voiceSvcRef.current = createVoiceService({
             onState: (s) => { setVoiceState(s); if (s !== 'thinking') setVoiceToolLog([]); },
             onTranscript: (t) => { setVoiceTranscript(t); setVoiceToolLog([]); },
-            onReply: (r) => setVoiceReply(r),
+            onReply: (r) => {
+              // Clean asterisks (e.g. *whimpers*) from the display text
+              const cleaned = r.replace(/\*.*?\*/g, '').trim();
+              setVoiceReply(cleaned);
+            },
             onAudio: () => {},
             onError: (e) => { console.warn('[Voice]', e); setVoiceState('idle'); setVoiceToolLog([]); },
             onToolCall: (ev) => {
@@ -740,19 +752,21 @@ export default function App() {
               <button className="voice-exit-btn" onClick={handleVoiceClose} title="Exit voice chat" aria-label="Exit voice chat">✕</button>
             </div>
 
-            {/* Voice Chat Speech Bubbles */}
-            {(voiceTranscript || voiceReply) && (
+            {/* Voice Chat Speech Bubbles — Modern Transparent Layout */}
+            {voiceReply && (
               <div className="voice-bubbles-container">
-                {voiceTranscript && (
-                  <div className="voice-bubble user-bubble">
-                    {voiceTranscript}
-                  </div>
-                )}
-                {voiceReply && (
-                  <div className="voice-bubble bot-bubble">
+                <div className="voice-bubble bot-bubble">
+                  <button 
+                    className="bubble-close-btn" 
+                    onClick={() => setVoiceReply('')}
+                    aria-label="Close bubble"
+                  >
+                    ✕
+                  </button>
+                  <div className="bubble-content">
                     {voiceReply}
                   </div>
-                )}
+                </div>
               </div>
             )}
           </>
