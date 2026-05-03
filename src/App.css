@@ -235,10 +235,10 @@ h1 {
   position: relative;
   color: azure;
   margin: 0;
-  font-size: 2.7rem;
+  font-size: 2.9rem;
   text-align: center;
   font-family: 'Bangers', cursive !important;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   animation: cartoon3dBounce 4s infinite ease-in-out;
   transform-origin: center;
   display: inline-block;
@@ -384,9 +384,12 @@ h1 {
 }
 
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: skew(5deg, 2deg);
   }
+
   50% {
     transform: scaleY(1.01) skew(-5deg, -2deg);
   }
@@ -3920,12 +3923,21 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 
 /* ── World Event Banner ───────────────────────────────────────────────────── */
 @keyframes worldEventIn {
-  0%   { opacity: 0; transform: translateY(12px) scale(0.9); }
-  100% { opacity: 1; transform: translateY(0)    scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.9);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Resets transform-origin for center-positioned banners */
-.world-event-center { transform-origin: center center; }
+.world-event-center {
+  transform-origin: center center;
+}
 
 /* ── World Presence Badge ─────────────────────────────────────────────────── */
 .world-presence-badge {
@@ -3940,7 +3952,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: rgba(255,255,255,0.85);
+  color: rgba(255, 255, 255, 0.85);
   font-size: 0.78rem;
   font-family: "Comic Sans MS", cursive;
   z-index: 999;
@@ -3958,15 +3970,35 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 }
 
 @keyframes presencePulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.5; transform: scale(1.4); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(1.4);
+  }
 }
 
 /* ── Noon Narrative Emoji Overlay ─────────────────────────────────────────── */
 @keyframes noonAnimIn {
-  0%   { opacity: 0; transform: translateX(-50%) translateY(20px) scale(0.7); }
-  60%  { opacity: 1; transform: translateX(-50%) translateY(-6px)  scale(1.05); }
-  100% { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px) scale(0.7);
+  }
+
+  60% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-6px) scale(1.05);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
 }
 
 /* ── Mobile canvas safety ─────────────────────────────────────────────────── */
@@ -4051,6 +4083,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 
 /* ── Selfie FAB mobile sizing fix ──────────────────────────────────────────── */
 @media (max-width: 768px) {
+
   /* Selfie FAB: compact on mobile, clear of music bar */
   .world3d-overlay button[class=""],
   .world3d-overlay button {
@@ -4083,13 +4116,14 @@ div:where(.swal2-container) div:where(.swal2-popup) {
     grid-template-columns: 1fr !important;
     gap: 0.75rem;
   }
-  
+
   .about-section .landing-card {
     margin-bottom: 0;
   }
 
   /* Ensure menubar fonts are cartoonish on mobile */
-  .bone-nav h1, .couragesign {
+  .bone-nav h1,
+  .couragesign {
     font-family: 'Bangers', cursive !important;
     font-size: 1.5rem !important;
   }
@@ -4126,7 +4160,8 @@ div:where(.swal2-container) div:where(.swal2-popup) {
     padding: 8px 14px;
     gap: 10px;
     font-size: 0.8rem;
-    max-width: calc(100vw - 90px); /* leave room for voice button */
+    max-width: calc(100vw - 90px);
+    /* leave room for voice button */
   }
 }
 
@@ -4153,9 +4188,17 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 }
 
 @keyframes voiceListeningPulse {
-  0%   { box-shadow: 0 0 0 0   rgba(255,0,0,0.5), 0 0 0 0   rgba(255,0,0,0.2); }
-  50%  { box-shadow: 0 0 0 12px rgba(255,0,0,0.2), 0 0 0 24px rgba(255,0,0,0.05); }
-  100% { box-shadow: 0 0 0 0   rgba(255,0,0,0),   0 0 0 0   rgba(255,0,0,0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.5), 0 0 0 0 rgba(255, 0, 0, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 0 12px rgba(255, 0, 0, 0.2), 0 0 0 24px rgba(255, 0, 0, 0.05);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0), 0 0 0 0 rgba(255, 0, 0, 0);
+  }
 }
 
 /* ── Voice Chat Speech Bubbles — Modern Premium Glassmorphism ────────────────── */
@@ -4181,7 +4224,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   font-weight: 500;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  box-shadow: 
+  box-shadow:
     0 10px 40px rgba(0, 0, 0, 0.4),
     inset 0 0 0 1px rgba(255, 255, 255, 0.1);
   animation: bubblePopEntrance 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
@@ -4203,16 +4246,19 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 }
 
 .bubble-content {
-  padding-right: 15px; /* space for scroll if needed */
+  padding-right: 15px;
+  /* space for scroll if needed */
 }
 
 /* Custom scrollbar for bubble */
 .voice-bubble::-webkit-scrollbar {
   width: 4px;
 }
+
 .voice-bubble::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .voice-bubble::-webkit-scrollbar-thumb {
   background: rgba(235, 87, 193, 0.4);
   border-radius: 10px;
@@ -4238,13 +4284,14 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 }
 
 @keyframes bubblePopEntrance {
-  from { 
-    opacity: 0; 
+  from {
+    opacity: 0;
     transform: scale(0.9) translateY(20px);
     filter: blur(5px);
   }
-  to { 
-    opacity: 1; 
+
+  to {
+    opacity: 1;
     transform: scale(1) translateY(0);
     filter: blur(0);
   }
@@ -4255,10 +4302,10 @@ div:where(.swal2-container) div:where(.swal2-popup) {
     top: 12%;
     width: 95%;
   }
+
   .voice-bubble {
     font-size: 1rem;
     padding: 1rem 1.2rem;
     max-height: 180px;
   }
 }
-
