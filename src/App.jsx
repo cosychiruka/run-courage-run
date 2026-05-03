@@ -213,14 +213,6 @@ export default function App() {
     setTweetQuery('');
   }, []);
 
-  const handleVoiceCancel = useCallback(async (e) => {
-    if (e) { e.stopPropagation(); e.preventDefault(); }
-    if (isTransitioningRef.current) return;
-    quotaCancel();
-    await voiceSvcRef.current?.cancel();
-    setVoiceState('idle');
-  }, []);
-
   // ── Ghost repulse signal (incremented on Courage click at midnight) ────────
   const [repulseSignal, setRepulseSignal] = useState(0);
 
@@ -723,26 +715,15 @@ export default function App() {
             <div className="mic-drop-label">
               {!voiceQuota.canSpeak && `Courage needs a break! Back ${formatTime(voiceQuota.resetInSecs)}`}
               {voiceQuota.canSpeak && voiceState === 'idle'      && `Tap to speak · ${formatTime(voiceQuota.remainingSecs)} left`}
-              {voiceQuota.canSpeak && voiceState === 'listening' && 'Tap to send'}
+              {voiceQuota.canSpeak && voiceState === 'listening' && 'Listening…'}
               {voiceQuota.canSpeak && voiceState === 'thinking'  && 'Thinking…'}
               {voiceQuota.canSpeak && voiceState === 'speaking'  && 'Tap to stop'}
             </div>
             <div className="mic-drop-cord" />
-            
-            {voiceState === 'listening' && (
-              <button
-                className="voice-cancel-btn"
-                onClick={(e) => { e.stopPropagation(); handleVoiceCancel(e); }}
-                title="Cancel recording"
-                aria-label="Cancel recording"
-              >
-                ✕
-              </button>
-            )}
 
-            <button 
-              className="voice-exit-btn" 
-              onClick={(e) => { e.stopPropagation(); handleVoiceClose(); }} 
+            <button
+              className="voice-exit-btn"
+              onClick={(e) => { e.stopPropagation(); handleVoiceClose(); }}
               title="Exit voice chat" 
               aria-label="Exit voice chat"
             >
