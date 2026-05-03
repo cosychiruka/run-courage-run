@@ -667,8 +667,8 @@ export default function App() {
             Live on Solana
           </div>
           <div className={`hero-text-block${heroTextVisible ? '' : ' hero-text-block--hidden'}`}>
-            <p className="hero-tagline">Self-Aware Living Meme on Solana</p>
-            <p className="hero-quote">"He knows his a meme. He breaks the 4th wall. He's a runner!"</p>
+            <p className="hero-tagline">Self Aware Meme <br /> Living on Solana</p>
+            <p className="hero-quote">He knows his a meme. He breaks the 4th wall. <br /> He&rsquo;s a runner!</p>
           </div>
           {aliveTextVisible && (
             <div className="hero-alive-text" aria-live="polite">
@@ -690,17 +690,42 @@ export default function App() {
           )}
         </div>
 
-        {/* Voice controls — OUTSIDE character-stage & hero-center */}
-        {voiceState === null && (
-          <button
-            className="voice-entry-btn"
-            onClick={handleVoiceEntry}
-            title="Talk to Courage"
-            aria-label="Start voice chat with Courage"
-          >
-            🎙️
-          </button>
-        )}
+        {/* Unified Voice Control Mic — stays mounted for fluid transitions */}
+        <div 
+          className={`mic-control-unified ${voiceState === null ? 'mic-idle' : `mic-active mic-active--${voiceState}`}`}
+          onClick={voiceState === null ? handleVoiceEntry : handleVoiceClick}
+          role="button"
+          aria-label="Voice chat control"
+        >
+          <div className="mic-drop-cord" />
+          <div className="mic-drop-icon">
+            {voiceState === null && '🎙️'}
+            {voiceState !== null && !voiceQuota.canSpeak && '🛑'}
+            {voiceState === 'idle' && voiceQuota.canSpeak && '🎙️'}
+            {voiceState === 'listening' && '🔴'}
+            {voiceState === 'thinking' && '⏳'}
+            {voiceState === 'speaking' && <span style={{ filter: 'brightness(2) grayscale(1)' }}>🔊</span>}
+          </div>
+          <div className="mic-drop-label">
+            {voiceState === null && ''}
+            {voiceState !== null && !voiceQuota.canSpeak && `Courage needs a break! Back ${formatTime(voiceQuota.resetInSecs)}`}
+            {voiceState === 'idle' && voiceQuota.canSpeak && `Tap to speak · ${formatTime(voiceQuota.remainingSecs)} left`}
+            {voiceState === 'listening' && 'Listening…'}
+            {voiceState === 'thinking' && 'Thinking…'}
+            {voiceState === 'speaking' && 'Tap to stop'}
+          </div>
+          
+          {voiceState !== null && (
+            <button
+              className="voice-exit-btn"
+              onClick={(e) => { e.stopPropagation(); handleVoiceClose(); }}
+              title="Close Chat"
+              aria-label="Exit voice chat"
+            >
+              ✕
+            </button>
+          )}
+        </div>
 
         {/* Enter 3D World — restored to original bottom position */}
         <div className="enter-3d-button-wrap">
@@ -731,46 +756,22 @@ export default function App() {
           />
         )}
 
-        {/* Mic drop — OUTSIDE character-stage so pointer-events:none doesn't block it */}
-        {voiceState !== null && (
-          <>
-            <div className={`mic-drop-wrap mic-drop-wrap--${voiceState}`} onClick={handleVoiceClick} role="button" aria-label="Voice chat control">
-              <div className="mic-drop-icon">
-                {!voiceQuota.canSpeak      && '🛑'}
-                {voiceQuota.canSpeak && voiceState === 'idle'      && '🎙️'}
-                {voiceQuota.canSpeak && voiceState === 'listening' && '🔴'}
-                {voiceQuota.canSpeak && voiceState === 'thinking'  && '⏳'}
-                {voiceQuota.canSpeak && voiceState === 'speaking'  && <span style={{ filter: 'brightness(2) grayscale(1)' }}>🔊</span>}
+        {/* Voice Chat Speech Bubbles — Modern Transparent Layout */}
+        {voiceReply && voiceState !== null && (
+          <div className="voice-bubbles-container">
+            <div className="voice-bubble bot-bubble">
+              <button 
+                className="bubble-close-btn" 
+                onClick={() => setVoiceReply('')}
+                aria-label="Close bubble"
+              >
+                ✕
+              </button>
+              <div className="bubble-content">
+                {voiceReply}
               </div>
-              <div className="mic-drop-label">
-                {!voiceQuota.canSpeak && `Courage needs a break! Back ${formatTime(voiceQuota.resetInSecs)}`}
-                {voiceQuota.canSpeak && voiceState === 'idle'      && `Tap to speak · ${formatTime(voiceQuota.remainingSecs)} left`}
-                {voiceQuota.canSpeak && voiceState === 'listening' && 'Listening…'}
-                {voiceQuota.canSpeak && voiceState === 'thinking'  && 'Thinking…'}
-                {voiceQuota.canSpeak && voiceState === 'speaking'  && 'Tap to stop'}
-              </div>
-              <div className="mic-drop-cord" />
-              <button className="voice-exit-btn" onClick={handleVoiceClose} title="Exit voice chat" aria-label="Exit voice chat">✕</button>
             </div>
-
-            {/* Voice Chat Speech Bubbles — Modern Transparent Layout */}
-            {voiceReply && (
-              <div className="voice-bubbles-container">
-                <div className="voice-bubble bot-bubble">
-                  <button 
-                    className="bubble-close-btn" 
-                    onClick={() => setVoiceReply('')}
-                    aria-label="Close bubble"
-                  >
-                    ✕
-                  </button>
-                  <div className="bubble-content">
-                    {voiceReply}
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
+          </div>
         )}
 
         {/* Tweet card hologram — floats above Courage during/after Twitter searches */}

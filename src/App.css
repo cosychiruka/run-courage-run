@@ -2578,25 +2578,61 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   transform: translateX(-50%);
 }
 
-/* ── Mic entry button — floats above Courage's head, fixed so it tracks the character ── */
-.voice-entry-btn {
+/* ── Unified Voice Control — stays mounted for fluid transitions ── */
+.mic-control-unified {
   position: fixed;
-  /* Desktop: Scared/Happy fixed at bottom:10% + character height ~185px = head level */
-  bottom: calc(25% + 190px);
-  left: calc(10%);
+  bottom: calc(10% + 185px);
+  left: 38vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  z-index: 1002;
+  user-select: none;
+  transition: all 0.65s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform, bottom, left, opacity;
+}
+
+.mic-idle .mic-drop-icon {
   font-size: 1.3rem;
   background: rgba(20, 241, 149, 0.1);
   border: 1.5px solid rgba(20, 241, 149, 0.4);
   border-radius: 50%;
   width: 38px;
   height: 38px;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s, transform 0.15s;
-  z-index: 20;
-  animation: entryBtnPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  filter: drop-shadow(0 0 5px rgba(20, 241, 149, 0.3));
+}
+
+.mic-idle .mic-drop-cord, .mic-idle .mic-drop-label {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mic-active .mic-drop-icon {
+  font-size: 2.2rem;
+  width: auto;
+  height: auto;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.mic-active .mic-drop-cord, .mic-active .mic-drop-label {
+  opacity: 1;
+  pointer-events: all;
+  transition: opacity 0.4s ease;
+}
+
+.mic-active--listening .mic-drop-icon {
+  filter: drop-shadow(0 0 14px rgba(255, 69, 69, 0.95));
+}
+
+.mic-active--speaking .mic-drop-icon {
+  filter: drop-shadow(0 0 14px rgba(20, 241, 149, 1));
 }
 
 .voice-entry-btn:hover {
@@ -3153,11 +3189,27 @@ div:where(.swal2-container) div:where(.swal2-popup) {
     grid-template-columns: 1fr;
   }
 
+  .hero-text-block {
+    max-width: 360px;
+    margin: 0 auto;
+  }
+
   .hero-tagline {
-    font-size: 1.6rem !important;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
+    font-size: 1.85rem !important;
+    font-weight: 900;
+    margin-bottom: 0.8rem;
+    font-family: 'Comic Neue', 'Comic Sans MS', cursive, 'Bangers', sans-serif !important;
+    font-style: normal !important;
+    line-height: 1.2;
+  }
+
+  .hero-quote {
+    font-size: 1.15rem !important;
+    font-weight: 500;
+    font-family: 'Comic Neue', 'Comic Sans MS', cursive, 'Bangers', sans-serif !important;
+    font-style: normal !important;
+    line-height: 1.4;
+    opacity: 0.9;
   }
 
   .sticky-actions {
@@ -3257,17 +3309,9 @@ div:where(.swal2-container) div:where(.swal2-popup) {
     transform-origin: bottom left;
   }
 
-  /* Entry mic button: align with character head on mobile
-     Character floor = 110px, scaled height ~179px, head at ~135px above floor */
-  .voice-entry-btn {
-    bottom: calc(20% + 135px); 
-    /* Matched to listening resting position */
-    left: calc(8%);
-    width: 36px;
-    height: 36px;
-    padding: 0.5em;
-    z-index: 200;
-    transition: bottom 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  .mic-control-unified {
+    left: 15vw;
+    bottom: calc(30% + 145px);
   }
 }
 
@@ -3275,20 +3319,13 @@ div:where(.swal2-container) div:where(.swal2-popup) {
    MIC DROP — descends to Courage's head level when voice chat is active
    ══════════════════════════════════════════════════════════════════════════ */
 
-.mic-drop-wrap {
-  position: fixed;
-  /* horizontally: center over where Courage brakes (~39vw, character is 200px wide) */
-  left: 38vw;
-  /* vertically: Courage is bottom:10%, character height 230px, head near top → ~185px above floor */
-  bottom: calc(10% + 185px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  z-index: 30;
-  animation: micDescend 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  user-select: none;
+.mic-active {
+  animation: micActivePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes micActivePop {
+  0% { transform: scale(0.8); }
+  100% { transform: scale(1); }
 }
 
 @keyframes micDescend {
@@ -3377,8 +3414,8 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 @media (max-width: 500px) {
   .mic-drop-wrap {
     left: 15vw;
-    bottom: calc(20% + 135px);
-    /* floor 110px + scaled head height 135px */
+    bottom: calc(30% + 145px);
+    /* Raised to match resting position */
   }
 }
 
@@ -3842,10 +3879,11 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   }
 
   .couragesign {
-    font-size: 1.65rem !important;
-    text-shadow: 2px 2px 0px #444 !important;
-    font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
-    letter-spacing: -0.5px;
+    font-size: 1.25rem !important;
+    text-shadow: 1px 1px 0px #444 !important;
+    font-family: 'Comic Neue', 'Comic Sans MS', cursive, 'Bangers', sans-serif !important;
+    letter-spacing: 0px;
+    font-style: normal !important;
   }
 
   .enter-3d-btn {
