@@ -8,9 +8,11 @@ Tools available to Courage:
   - get_my_tweets         : fetch @runcouragerun's recent posts
   - get_mentions          : fetch mentions and replies
   - post_tweet            : post a tweet (or reply)
+  - search_tweets         : search recent tweets by keyword/hashtag/cashtag
   - get_twitter_trends    : discover trending topics on X/Twitter
   - get_twitter_memory    : recall Courage's stored Twitter activity history
   - record_twitter_action : save a tweet/mention/trend to long-term memory
+  - check_api_credits     : check remaining API budget (Groq tokens, X searches, news)
 """
 
 import json
@@ -20,8 +22,14 @@ from app.news_cache import (
     get_cached_articles, fetch_full_article, save_full_content,
     save_articles, cache_articles,
     fetch_pair,
+    get_cached_tweet_search, cache_tweet_search,
+    get_budget_status,
 )
+from app.config import REDIS_URL
 import app.twitter_memory as tw_mem
+
+# ── Module-level tweet card buffer (populated on each search_tweets call) ──────
+_last_tweet_cards: list[dict] = []
 
 # ── Tool schema definitions ────────────────────────────────────────────────────
 
@@ -215,6 +223,18 @@ TOOL_SCHEMAS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "check_api_credits",
+            "description": (
+                "Check how many AI tokens and API credits remain today. "
+                "Call this when you feel like you've been searching a lot, when users ask about your energy or capacity, "
+                "or when you want to know if you can keep using tools. Reports Groq tokens used, X search quota, and news budgets."
+            ),
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
 ]
 
 # ── Tool name lookup ───────────────────────────────────────────────────────────
@@ -238,6 +258,7 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
             case "get_twitter_trends":    return await _get_twitter_trends(args, x_client)
             case "get_twitter_memory":    return await _get_twitter_memory()
             case "record_twitter_action": return await _record_twitter_action(args)
+            case "check_api_credits":     return await _check_api_credits(x_client)
             case _:                       return f"Unknown tool: {name}"
     except Exception as e:
         return f"Tool error ({name}): {e}"
@@ -386,6 +407,7 @@ async def _post_tweet(args: dict, x_client, tweet_image_fn) -> str:
 
 
 async def _search_tweets(args: dict, x_client) -> str:
+    global _last_tweet_cards
     query = args.get("query", "").strip()
     max_results = max(10, min(int(args.get("max_results", 15)), 50))
     print(f"[TWITTER] Tool: search_tweets query={query!r} max={max_results}")
@@ -393,6 +415,13 @@ async def _search_tweets(args: dict, x_client) -> str:
         return "X client not configured."
     if not query:
         return "No query provided."
+
+    # 1. Cache hit — skip API call entirely
+    cached = await get_cached_tweet_search(query)
+    if cached:
+        print(f"[TWITTER] Cache HIT: {query!r}")
+        return cached
+
     try:
         resp = x_client.search_recent(query=query, max_results=max_results)
         if not resp or not resp.data:
@@ -405,6 +434,7 @@ async def _search_tweets(args: dict, x_client) -> str:
                 user_map[u.id] = u.username
 
         lines = [f"Recent tweets matching '{query}':\n"]
+        _last_tweet_cards = []
         for tweet in resp.data:
             author = user_map.get(tweet.author_id, f"user_{tweet.author_id}")
             metrics = tweet.public_metrics or {}
@@ -414,8 +444,25 @@ async def _search_tweets(args: dict, x_client) -> str:
                 f"@{author}: {tweet.text[:200]}"
                 + (f" [❤️{likes} 🔁{rts}]" if likes or rts else "")
             )
+            # Populate tweet card buffer (top 3 for hologram display)
+            if len(_last_tweet_cards) < 3:
+                _last_tweet_cards.append({
+                    "author":   author,
+                    "handle":   f"@{author}",
+                    "text":     tweet.text[:280],
+                    "likes":    likes,
+                    "retweets": rts,
+                    "tweet_id": str(tweet.id),
+                })
+
+        result = "\n".join(lines)
         print(f"[TWITTER] search_tweets OK: {len(resp.data)} tweets")
-        return "\n".join(lines)
+
+        # 2. Cache result for 15 min + save to search memory
+        await cache_tweet_search(query, result)
+        await tw_mem.record_search(query, result[:500])
+
+        return result
     except Exception as e:
         err = str(e)
         if "403" in err or "401" in err:
@@ -489,3 +536,29 @@ async def _record_twitter_action(args: dict) -> str:
             return "Nothing to record — check action_type and required fields."
     except Exception as e:
         return f"Memory write failed: {e}"
+
+
+async def _check_api_credits(x_client) -> str:
+    import datetime
+    try:
+        import redis as _sync_redis
+        r = _sync_redis.from_url(REDIS_URL, decode_responses=True)
+        today = datetime.date.today().isoformat()
+        groq_tokens = int(r.get(f"groq:tokens:{today}") or 0)
+        groq_calls  = int(r.get(f"groq:calls:{today}") or 0)
+        search_limit = r.hgetall("rate:/tweets/search/recent") or {}
+        search_rem   = search_limit.get("remaining", "unknown")
+    except Exception:
+        groq_tokens = groq_calls = 0
+        search_rem = "unknown"
+
+    budget = await get_budget_status()
+    lines = [
+        "== API CREDIT REPORT ==",
+        f"AI brain (Groq): {groq_tokens:,} tokens / {groq_calls} calls used today",
+        f"X search quota: {search_rem} requests remaining this 15-min window",
+        f"GNews: {budget['gnews']['used']}/{budget['gnews']['limit']} calls today",
+        f"NewsAPI: {budget['newsapi']['used']}/{budget['newsapi']['limit']} calls today",
+        f"Guardian: unlimited (no counter)",
+    ]
+    return "\n".join(lines)

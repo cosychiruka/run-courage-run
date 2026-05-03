@@ -11,7 +11,7 @@
 const _WS_BASE = import.meta.env.VITE_BACKEND_WS ||
                  (typeof __VITE_BACKEND_WS__ !== 'undefined' ? __VITE_BACKEND_WS__ : null) ||
                  (import.meta.env.PROD
-                   ? 'wss://run-courage-run.sliplane.app/ws/voice'
+                   ? 'wss://runcouragerun.life/ws/voice'
                    : 'ws://localhost:8000/ws/voice');
 
 /** Stable session ID — persists across page refreshes so conversation history survives. */
@@ -27,7 +27,7 @@ function _getSessionId() {
 // 24kHz mono PCM — matches Kokoro TTS output
 const TTS_SAMPLE_RATE = 24000;
 
-export function createVoiceService({ onState, onTranscript, onReply, onAudio, onError, onToolCall } = {}) {
+export function createVoiceService({ onState, onTranscript, onReply, onAudio, onError, onToolCall, onTweetCard } = {}) {
   let ws = null;
   let mediaRecorder = null;
   let audioCtx = null;
@@ -100,6 +100,9 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
             case 'error':
               onError?.(msg.message);
               onState?.('idle');
+              break;
+            case 'tweet_card':
+              onTweetCard?.(msg.tweets, msg.query);
               break;
             case 'pong':
               break;

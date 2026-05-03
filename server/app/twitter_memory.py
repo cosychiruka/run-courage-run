@@ -13,8 +13,6 @@ been up to on Twitter?"
 """
 
 import time
-import json
-import asyncio
 import aiosqlite
 from typing import Optional
 
@@ -44,6 +42,13 @@ CREATE TABLE IF NOT EXISTS tw_trends (
     tweet_volume INTEGER,
     woeid       INTEGER DEFAULT 1,
     captured_at REAL NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tw_searches (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    query       TEXT NOT NULL,
+    result_peek TEXT,
+    searched_at REAL NOT NULL
 );
 """
 
@@ -93,6 +98,24 @@ async def record_trends(trends: list[dict], woeid: int = 1):
         await db.commit()
 
 
+async def record_search(query: str, result_peek: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO tw_searches (query, result_peek, searched_at) VALUES (?,?,?)",
+            (query, result_peek, time.time()),
+        )
+        await db.commit()
+
+
+async def get_recent_searches(limit: int = 10) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM tw_searches ORDER BY searched_at DESC LIMIT ?", (limit,)
+        ) as cur:
+            return [dict(r) for r in await cur.fetchall()]
+
+
 # ── Read helpers ───────────────────────────────────────────────────────────────
 
 async def get_recent_tweets(limit: int = 10) -> list[dict]:
@@ -139,6 +162,7 @@ async def get_twitter_summary() -> str:
     tweets   = await get_recent_tweets(5)
     mentions = await get_recent_mentions(5)
     trends   = await get_recent_trends(10)
+    searches = await get_recent_searches(5)
 
     lines = ["== MY TWITTER ACTIVITY (from memory) =="]
 
@@ -161,5 +185,12 @@ async def get_twitter_summary() -> str:
     if trends:
         unique_topics = list({t["topic"] for t in trends})[:10]
         lines.append(f"\nTrends I've discovered: {', '.join(unique_topics)}")
+
+    if searches:
+        lines.append(f"\nMy recent Twitter searches (check these before searching again):")
+        for s in searches:
+            age_min = int((time.time() - s["searched_at"]) / 60)
+            age_str = f"{age_min}m ago" if age_min < 60 else f"{age_min // 60}h ago"
+            lines.append(f"  - \"{s['query']}\" ({age_str})")
 
     return "\n".join(lines)

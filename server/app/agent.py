@@ -10,11 +10,13 @@ Features:
 
 import json
 import re
+import datetime
 import httpx
+import redis as _sync_redis
 from typing import Optional, Callable, Awaitable
 
 from app.system_prompt import build_context_prompt
-from app.tools import TOOL_SCHEMAS, dispatch_tool
+from app.tools import TOOL_SCHEMAS, dispatch_tool, _last_tweet_cards
 from app.news_cache import get_all_recent
 from app.twitter_memory import init_twitter_db, get_twitter_summary
 
@@ -22,6 +24,29 @@ from app.config import GROQ_API_KEY, GROQ_MODEL, GROQ_MODEL_FAST
 
 MAX_TOOL_ROUNDS = 8
 CONTEXT_TIMEOUT = 60
+
+# ── Groq token tracking ────────────────────────────────────────────────────────
+_token_redis: Optional[_sync_redis.Redis] = None
+
+def _init_token_tracker(redis_url: str):
+    global _token_redis
+    try:
+        _token_redis = _sync_redis.from_url(redis_url, decode_responses=True)
+    except Exception as e:
+        print(f"[TOKENS] Token tracker init failed: {e}")
+
+def _track_groq_usage(usage: dict):
+    if not _token_redis or not usage:
+        return
+    try:
+        today = datetime.date.today().isoformat()
+        tokens = usage.get("total_tokens", 0)
+        _token_redis.incrby(f"groq:tokens:{today}", tokens)
+        _token_redis.incrby(f"groq:calls:{today}", 1)
+        _token_redis.expire(f"groq:tokens:{today}", 86400)
+        _token_redis.expire(f"groq:calls:{today}", 86400)
+    except Exception:
+        pass
 
 # Emit callback type: async fn(msg: dict) -> None
 WsEmit = Optional[Callable[[dict], Awaitable[None]]]
@@ -64,7 +89,9 @@ async def _groq_chat(messages: list[dict], use_tools: bool = True, fast: bool = 
             headers=headers,
         )
         r.raise_for_status()
-        return r.json()
+        resp = r.json()
+        _track_groq_usage(resp.get("usage", {}))
+        return resp
 
 
 # ── Helper: scrub any leaked tool syntax from text ────────────────────────────
@@ -199,6 +226,14 @@ async def run_agent(
                 # Stream tool_result event to frontend after done
                 if ws_emit:
                     await ws_emit({"type": "tool_result", "tool": name, "summary": result[:120]})
+
+                # Emit tweet card hologram data if a Twitter search just ran
+                if name == "search_tweets" and _last_tweet_cards and ws_emit:
+                    await ws_emit({
+                        "type":   "tweet_card",
+                        "tweets": list(_last_tweet_cards),
+                        "query":  raw_args.get("query", ""),
+                    })
 
                 messages.append({
                     "role":         "tool",

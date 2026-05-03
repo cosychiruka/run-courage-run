@@ -13,6 +13,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Footer from './components/Footer';
 import WelcomeTour from './components/WelcomeTour';
 import ThinkingOverlay from './components/ThinkingOverlay';
+import TweetCardHologram from './components/TweetCardHologram';
 import { quotaStart, quotaEnd, quotaCancel, quotaStatus, formatTime, formatResetIn } from './services/voiceQuota';
 import { fetchTopNews } from './services/newsService';
 import { analyzeSentiment } from './utils/sentimentUtils';
@@ -117,7 +118,10 @@ export default function App() {
   const [voiceTranscript, setVoiceTranscript] = useState('');
   const [voiceToolLog, setVoiceToolLog] = useState([]);
   const [voiceQuota, setVoiceQuota] = useState(() => quotaStatus());
+  const [tweetCards, setTweetCards] = useState([]);
+  const [tweetQuery, setTweetQuery] = useState('');
   const voiceSvcRef = useRef(null);
+  const isTransitioningRef = useRef(false);
 
   // Refresh quota display every 5 seconds
   useEffect(() => {
@@ -132,69 +136,64 @@ export default function App() {
   const [world3DMounted, setWorld3DMounted] = useState(false);
   const [world3DVisible, setWorld3DVisible] = useState(false);
 
-  const handleVoiceClick = useCallback(async () => {
-    // Enter voice mode if not already in it
-    if (voiceState === null) {
-      setVoiceState('idle');
-      return;
-    }
-
-    if (voiceState === 'idle') {
-      // Check quota before starting
-      const q = quotaStatus();
-      setVoiceQuota(q);
-      if (!q.canSpeak) {
-        // Show a friendly block — don't even open the mic
-        return;
-      }
-      // Start recording
-      if (!voiceSvcRef.current) {
-        voiceSvcRef.current = createVoiceService({
-          onState: (s) => { setVoiceState(s); if (s !== 'thinking') setVoiceToolLog([]); },
-          onTranscript: (t) => { setVoiceTranscript(t); setVoiceToolLog([]); console.log('[Voice] transcript:', t); },
-          onReply: (r) => console.log('[Voice] reply:', r),
-          onAudio: () => { },
-          onError: (e) => { console.warn('[Voice]', e); setVoiceState('idle'); setVoiceToolLog([]); },
-          onToolCall: (ev) => {
-            if (ev.type === 'call') {
-              setVoiceToolLog(prev => [...prev, { type: 'call', tool: ev.tool, label: ev.label }]);
-            } else {
-              setVoiceToolLog(prev => prev.map(e =>
-                e.tool === ev.tool && e.type === 'call' ? { ...e, type: 'result' } : e
-              ));
-            }
-          },
-        });
-      }
-      try {
-        quotaStart();
-        await voiceSvcRef.current.start();
-      } catch (e) {
-        quotaCancel();
-        console.warn('[Voice] mic error:', e);
+  const handleVoiceClick = useCallback(async (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (isTransitioningRef.current) return;
+    isTransitioningRef.current = true;
+    try {
+      if (voiceState === 'idle') {
+        const q = quotaStatus();
+        setVoiceQuota(q);
+        if (!q.canSpeak) return;
+        if (!voiceSvcRef.current) {
+          voiceSvcRef.current = createVoiceService({
+            onState: (s) => { setVoiceState(s); if (s !== 'thinking') setVoiceToolLog([]); },
+            onTranscript: (t) => { setVoiceTranscript(t); setVoiceToolLog([]); },
+            onReply: (r) => console.log('[Voice] reply:', r),
+            onAudio: () => {},
+            onError: (e) => { console.warn('[Voice]', e); setVoiceState('idle'); setVoiceToolLog([]); },
+            onToolCall: (ev) => {
+              if (ev.type === 'call') {
+                setVoiceToolLog(prev => [...prev, { type: 'call', tool: ev.tool, label: ev.label }]);
+              } else {
+                setVoiceToolLog(prev => prev.map(e =>
+                  e.tool === ev.tool && e.type === 'call' ? { ...e, type: 'result' } : e
+                ));
+              }
+            },
+            onTweetCard: (tweets, query) => { setTweetCards(tweets || []); setTweetQuery(query || ''); },
+          });
+        }
+        try {
+          quotaStart();
+          await voiceSvcRef.current.start();
+        } catch (err) {
+          quotaCancel();
+          console.warn('[Voice] mic error:', err);
+          setVoiceState('idle');
+        }
+      } else if (voiceState === 'listening') {
+        quotaEnd();
+        setVoiceQuota(quotaStatus());
+        await voiceSvcRef.current?.stop();
+      } else if (voiceState === 'speaking') {
         setVoiceState('idle');
       }
-      return;
-    }
-
-    if (voiceState === 'listening') {
-      // Stop recording → send to backend
-      quotaEnd();
-      setVoiceQuota(quotaStatus());
-      await voiceSvcRef.current?.stop();
-      return;
-    }
-
-    if (voiceState === 'speaking') {
-      // User wants to interrupt — reset to idle
-      setVoiceState('idle');
+      // 'thinking' — ignore, let it finish
+    } finally {
+      setTimeout(() => { isTransitioningRef.current = false; }, 350);
     }
   }, [voiceState]);
 
-  const handleVoiceClose = useCallback(() => {
+  const handleVoiceClose = useCallback((e) => {
+    if (e) { e.stopPropagation(); e.preventDefault(); }
+    if (isTransitioningRef.current) return;
     voiceSvcRef.current?.destroy();
     voiceSvcRef.current = null;
     setVoiceState(null);
+    setTweetCards([]);
+    setTweetQuery('');
   }, []);
 
   // ── Ghost repulse signal (incremented on Courage click at midnight) ────────
@@ -727,10 +726,16 @@ export default function App() {
               {voiceQuota.canSpeak && voiceState === 'speaking'  && 'Tap to stop'}
             </div>
             <div className="mic-drop-cord" />
-            {/* Close button */}
-            <button className="voice-exit-btn" onClick={(e) => { e.stopPropagation(); handleVoiceClose(); }} title="Exit voice chat" aria-label="Exit voice chat">✕</button>
+            <button className="voice-exit-btn" onClick={handleVoiceClose} title="Exit voice chat" aria-label="Exit voice chat">✕</button>
           </div>
         )}
+
+        {/* Tweet card hologram — floats above Courage during/after Twitter searches */}
+        <TweetCardHologram
+          tweets={tweetCards}
+          visible={tweetCards.length > 0 && voiceState !== null}
+          query={tweetQuery}
+        />
 
         {explosionReady && !explosionPhase && (
           <button className="explosion-trigger-btn" onClick={triggerExplosion}>

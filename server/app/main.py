@@ -12,7 +12,6 @@ Endpoints:
 """
 
 import json
-import base64
 import asyncio
 import time
 from contextlib import asynccontextmanager
@@ -26,12 +25,12 @@ import httpx
 
 from app.config import FRONTEND_ORIGIN, REDIS_URL
 from app.news_cache import (
-    init_db, discovery_round, get_all_recent, get_recent_articles,
+    init_db, discovery_round, get_recent_articles,
     get_cached_articles, fetch_pair, search_newsapi, search_gnews,
     get_budget_status,
 )
 from app.voice import load_models, transcribe, synthesise
-from app.agent import run_agent
+from app.agent import run_agent, _init_token_tracker
 from app.x_client import make_x_client
 from app.tweet_image import render_news_card, render_card_for_url
 from app.twitter_memory import init_twitter_db
@@ -124,6 +123,9 @@ async def lifespan(app: FastAPI):
 
         asyncio.create_task(_load_voice_models_bg())
 
+        # Groq token tracker (fire-and-forget, never raises)
+        _init_token_tracker(REDIS_URL)
+        print("[STARTUP] Groq token tracker initialized.")
 
         from app.config import GROQ_MODEL
         print("\n" + "="*50)
@@ -470,7 +472,7 @@ async def world_event(payload: dict):
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
         return JSONResponse(json.loads(raw))
-    except Exception as e:
+    except Exception:
         # Fallback safe defaults per world
         defaults = {
             "disco": {"action": "dj_shoutout", "message": "Nowhere High is ON FIRE tonight!", "hue": None},

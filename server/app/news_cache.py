@@ -14,6 +14,7 @@ Cache layers:
   SQLite — durable store, survives Redis restart, powers AI context
 """
 
+import hashlib
 import json
 import time
 import datetime
@@ -239,6 +240,30 @@ async def get_cached_articles(country: str = "us", category: str = "general") ->
         return None
 
 
+# ── Tweet search cache (15-min TTL) ──────────────────────────────────────────
+TWEET_CACHE_TTL = 900  # 15 minutes
+
+async def cache_tweet_search(query: str, result: str, ttl: int = TWEET_CACHE_TTL):
+    r = await get_redis()
+    if not r:
+        return
+    key = f"tweets:q:{hashlib.md5(query.lower().strip().encode()).hexdigest()[:14]}"
+    try:
+        await r.set(key, result, ex=ttl)
+    except Exception:
+        pass
+
+async def get_cached_tweet_search(query: str) -> Optional[str]:
+    r = await get_redis()
+    if not r:
+        return None
+    key = f"tweets:q:{hashlib.md5(query.lower().strip().encode()).hexdigest()[:14]}"
+    try:
+        return await r.get(key)
+    except Exception:
+        return None
+
+
 # ── Guardian fetch (primary — 5000/day, no budget counter needed) ─────────────
 
 async def fetch_from_guardian(category: str = "general", max_results: int = 10) -> list[dict]:
@@ -409,7 +434,7 @@ async def fetch_pair(country: str, category: str, max_results: int = 10) -> list
             errors.append(f"newsapi: {e}")
             print(f"[NEWS] NewsAPI FAILED for {country}/{category}: {e}")
     else:
-        print(f"[NEWS] NewsAPI skipped — NEWSAPI_KEY not configured")
+        print("[NEWS] NewsAPI skipped — NEWSAPI_KEY not configured")
 
     # 3. GNews — last resort
     if GNEWS_API_KEY:
@@ -425,7 +450,7 @@ async def fetch_pair(country: str, category: str, max_results: int = 10) -> list
             errors.append(f"gnews: {e}")
             print(f"[NEWS] GNews FAILED for {country}/{category}: {e}")
     else:
-        print(f"[NEWS] GNews skipped — GNEWS_API_KEY not configured")
+        print("[NEWS] GNews skipped — GNEWS_API_KEY not configured")
 
     print(f"[NEWS] All sources failed for {country}/{category}: {errors}")
     return []
