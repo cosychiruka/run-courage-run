@@ -29,8 +29,8 @@ const STATE_EMOJI = {
 };
 
 const STATE_LABEL = {
-  idle:      'Tap to Talk',
-  listening: 'Tap to Send 🔴',
+  idle:      'Hold to Talk',
+  listening: 'Release to Send 🔴',
   thinking:  'Thinking...',
   speaking:  'Courage says...',
 };
@@ -117,16 +117,31 @@ export default function WorldVoiceButton({ worldContext, visible }) {
     }
   }, [worldContext]);
 
-  // Tap-toggle: first tap starts listening, second tap sends
-  const handleTap = useCallback(async (e) => {
+  // Press-and-hold: mouse down starts, mouse up sends - eliminates double-tap confusion
+  const handleMouseDown = useCallback(async (e) => {
     e.preventDefault();
-    if (voiceState === 'idle') {
-      await handlePress();
-    } else if (voiceState === 'listening') {
-      await handleRelease();
-    }
-    // Ignore taps while thinking or speaking
-  }, [voiceState, handlePress, handleRelease]);
+    if (voiceState !== 'idle') return;
+    await handlePress();
+  }, [voiceState, handlePress]);
+
+  const handleMouseUp = useCallback(async (e) => {
+    e.preventDefault();
+    if (voiceState !== 'listening') return;
+    await handleRelease();
+  }, [voiceState, handleRelease]);
+
+  // Touch events for mobile
+  const handleTouchStart = useCallback(async (e) => {
+    e.preventDefault();
+    if (voiceState !== 'idle') return;
+    await handlePress();
+  }, [voiceState, handlePress]);
+
+  const handleTouchEnd = useCallback(async (e) => {
+    e.preventDefault();
+    if (voiceState !== 'listening') return;
+    await handleRelease();
+  }, [voiceState, handleRelease]);
 
   if (!visible) return null;
 
@@ -207,7 +222,12 @@ export default function WorldVoiceButton({ worldContext, visible }) {
       {/* Mic FAB */}
 
       <button
-        onClick={handleTap}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp} // Cancel recording if mouse leaves button
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd} // Cancel recording if touch is cancelled
         disabled={voiceState === 'thinking' || voiceState === 'speaking'}
         title={STATE_LABEL[voiceState]}
         style={{
@@ -221,6 +241,9 @@ export default function WorldVoiceButton({ worldContext, visible }) {
             : '0 6px 20px rgba(0,0,0,0.4)',
           transition: 'all 0.2s ease',
           animation: voiceState === 'listening' ? 'voiceListeningPulse 1.2s ease-in-out infinite' : 'none',
+          userSelect: 'none', // Prevent text selection during recording
+          WebkitUserSelect: 'none',
+          WebkitTouchCallout: 'none',
         }}
       >
         {STATE_EMOJI[voiceState]}

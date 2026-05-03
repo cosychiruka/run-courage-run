@@ -136,54 +136,57 @@ export default function App() {
   const [world3DMounted, setWorld3DMounted] = useState(false);
   const [world3DVisible, setWorld3DVisible] = useState(false);
 
-  const handleVoiceClick = useCallback(async (e) => {
+  // Press-and-hold pattern for main scene
+  const handleVoiceMouseDown = useCallback(async (e) => {
     e.stopPropagation();
     e.preventDefault();
-    if (isTransitioningRef.current) return;
+    if (isTransitioningRef.current || voiceState !== 'idle') return;
     isTransitioningRef.current = true;
+    
     try {
-      if (voiceState === 'idle') {
-        const q = quotaStatus();
-        setVoiceQuota(q);
-        if (!q.canSpeak) return;
-        if (!voiceSvcRef.current) {
-          voiceSvcRef.current = createVoiceService({
-            onState: (s) => { setVoiceState(s); if (s !== 'thinking') setVoiceToolLog([]); },
-            onTranscript: (t) => { setVoiceTranscript(t); setVoiceToolLog([]); },
-            onReply: (r) => console.log('[Voice] reply:', r),
-            onAudio: () => {},
-            onError: (e) => { console.warn('[Voice]', e); setVoiceState('idle'); setVoiceToolLog([]); },
-            onToolCall: (ev) => {
-              if (ev.type === 'call') {
-                setVoiceToolLog(prev => [...prev, { type: 'call', tool: ev.tool, label: ev.label }]);
-              } else {
-                setVoiceToolLog(prev => prev.map(e =>
-                  e.tool === ev.tool && e.type === 'call' ? { ...e, type: 'result' } : e
-                ));
-              }
-            },
-            onTweetCard: (tweets, query) => { setTweetCards(tweets || []); setTweetQuery(query || ''); },
-          });
-        }
-        try {
-          quotaStart();
-          await voiceSvcRef.current.start();
-        } catch (err) {
-          quotaCancel();
-          console.warn('[Voice] mic error:', err);
-          setVoiceState('idle');
-        }
-      } else if (voiceState === 'listening') {
-        quotaEnd();
-        setVoiceQuota(quotaStatus());
-        await voiceSvcRef.current?.stop();
-      } else if (voiceState === 'speaking') {
-        setVoiceState('idle');
+      const q = quotaStatus();
+      setVoiceQuota(q);
+      if (!q.canSpeak) return;
+      
+      if (!voiceSvcRef.current) {
+        voiceSvcRef.current = createVoiceService({
+          onState: (s) => { setVoiceState(s); if (s !== 'thinking') setVoiceToolLog([]); },
+          onTranscript: (t) => { setVoiceTranscript(t); setVoiceToolLog([]); },
+          onReply: (r) => console.log('[Voice] reply:', r),
+          onAudio: () => {},
+          onError: (e) => { console.warn('[Voice]', e); setVoiceState('idle'); setVoiceToolLog([]); },
+          onToolCall: (ev) => {
+            if (ev.type === 'call') {
+              setVoiceToolLog(prev => [...prev, { type: 'call', tool: ev.tool, label: ev.label }]);
+            } else {
+              setVoiceToolLog(prev => prev.map(e =>
+                e.tool === ev.tool && e.type === 'call' ? { ...e, type: 'result' } : e
+              ));
+            }
+          },
+          onTweetCard: (tweets, query) => { setTweetCards(tweets || []); setTweetQuery(query || ''); },
+        });
       }
-      // 'thinking' — ignore, let it finish
+      
+      quotaStart();
+      await voiceSvcRef.current.start();
+    } catch (err) {
+      quotaCancel();
+      console.warn('[Voice] mic error:', err);
+      setVoiceState('idle');
     } finally {
       setTimeout(() => { isTransitioningRef.current = false; }, 350);
     }
+  }, [voiceState]);
+
+  const handleVoiceMouseUp = useCallback(async (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (voiceState !== 'listening') return;
+    
+    quotaEnd();
+    setVoiceQuota(quotaStatus());
+    await voiceSvcRef.current?.stop();
   }, [voiceState]);
 
   const handleVoiceClose = useCallback((e) => {
@@ -710,7 +713,18 @@ export default function App() {
 
         {/* Mic drop — OUTSIDE character-stage so pointer-events:none doesn't block it */}
         {voiceState !== null && (
-          <div className={`mic-drop-wrap mic-drop-wrap--${voiceState}`} onClick={handleVoiceClick} role="button" aria-label="Voice chat control">
+          <div 
+            className={`mic-drop-wrap mic-drop-wrap--${voiceState}`} 
+            onMouseDown={handleVoiceMouseDown}
+            onMouseUp={handleVoiceMouseUp}
+            onMouseLeave={handleVoiceMouseUp}
+            onTouchStart={handleVoiceMouseDown}
+            onTouchEnd={handleVoiceMouseUp}
+            onTouchCancel={handleVoiceMouseUp}
+            role="button" 
+            aria-label="Voice chat control"
+            style={{ userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
+          >
             <div className="mic-drop-icon">
               {!voiceQuota.canSpeak      && '🛑'}
               {voiceQuota.canSpeak && voiceState === 'idle'      && '🎙️'}
@@ -720,8 +734,8 @@ export default function App() {
             </div>
             <div className="mic-drop-label">
               {!voiceQuota.canSpeak && `Courage needs a break! Back ${formatResetIn(voiceQuota.resetInSecs)}`}
-              {voiceQuota.canSpeak && voiceState === 'idle'      && `Tap to speak · ${formatTime(voiceQuota.remainingSecs)} left`}
-              {voiceQuota.canSpeak && voiceState === 'listening' && 'Listening…'}
+              {voiceQuota.canSpeak && voiceState === 'idle'      && `Hold to speak · ${formatTime(voiceQuota.remainingSecs)} left`}
+              {voiceQuota.canSpeak && voiceState === 'listening' && 'Release to send'}
               {voiceQuota.canSpeak && voiceState === 'thinking'  && 'Thinking…'}
               {voiceQuota.canSpeak && voiceState === 'speaking'  && 'Tap to stop'}
             </div>

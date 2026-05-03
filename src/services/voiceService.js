@@ -34,6 +34,7 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
   let stream = null;
   let connected = false;
   let _worldContext = null;
+  let audioBuffer = []; // Buffer for audio chunks during reconnection
 
   // Build WS URL with session ID so backend restores per-user history on reconnect
   const sessionId = _getSessionId();
@@ -50,6 +51,15 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
       ws.onopen = () => {
         connected = true;
         console.log('[Voice] WebSocket connected successfully');
+        
+        // Send any buffered audio chunks
+        while (audioBuffer.length > 0) {
+          const chunk = audioBuffer.shift();
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(chunk);
+          }
+        }
+        
         resolve();
       };
 
@@ -60,12 +70,34 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
         console.error('[Voice] ReadyState:', ws.readyState);
         onError?.('WebSocket error — is the backend running?');
         reject(e);
+        // Attempt to reconnect after 5 seconds
+        setTimeout(() => {
+          if (!connected) {
+            console.log('[Voice] Attempting WebSocket reconnect...');
+            connect().then(() => {
+              console.log('[Voice] WebSocket reconnected successfully');
+            }).catch((e) => {
+              console.error('[Voice] WebSocket reconnect failed:', e);
+            });
+          }
+        }, 5000);
       };
 
       ws.onclose = (e) => {
         connected = false;
         onState?.('idle');
         console.log('[Voice] WebSocket closed:', e.code, e.reason);
+        // Attempt to reconnect after 5 seconds
+        setTimeout(() => {
+          if (!connected) {
+            console.log('[Voice] Attempting WebSocket reconnect...');
+            connect().then(() => {
+              console.log('[Voice] WebSocket reconnected successfully');
+            }).catch((e) => {
+              console.error('[Voice] WebSocket reconnect failed:', e);
+            });
+          }
+        }, 5000);
       };
 
       ws.onmessage = async (event) => {
@@ -141,18 +173,81 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
   // ── MediaRecorder (microphone capture) ─────────────────────────────────────
 
   async function _startRecording() {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (error) {
+      throw new Error('Microphone access denied. Please allow microphone access.');
+    }
+    
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
       ? 'audio/webm;codecs=opus'
       : 'audio/ogg;codecs=opus';
 
     mediaRecorder = new MediaRecorder(stream, { mimeType });
 
+    // Audio level monitoring
+    let audioContext = null;
+    let analyser = null;
+    let levelCheckInterval = null;
+    let silentFrames = 0;
+    
+    try {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+      analyser.fftSize = 256;
+      
+      // Check audio levels every 500ms
+      levelCheckInterval = setInterval(() => {
+        if (!analyser) return;
+        
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        
+        if (average < 5) {
+          silentFrames++;
+          if (silentFrames >= 3) {
+            console.warn('[Voice] No audio detected - check microphone');
+            onError?.('No audio detected. Please check your microphone.');
+          }
+        } else {
+          silentFrames = 0; // Reset counter when audio is detected
+        }
+      }, 500);
+    } catch (error) {
+      console.warn('[Voice] Audio monitoring not available:', error);
+    }
+
     mediaRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0 && ws?.readyState === WebSocket.OPEN) {
-        ws.send(e.data);  // binary chunk
+      if (e.data.size > 0) {
+        if (ws?.readyState === WebSocket.OPEN) {
+          ws.send(e.data);  // binary chunk
+        } else {
+          // Buffer audio chunks during reconnection
+          audioBuffer.push(e.data);
+          // Limit buffer size to prevent memory issues
+          if (audioBuffer.length > 50) {
+            audioBuffer.shift(); // Remove oldest chunk
+          }
+        }
       }
     };
+
+    // Clean up function
+    const cleanup = () => {
+      if (levelCheckInterval) {
+        clearInterval(levelCheckInterval);
+        levelCheckInterval = null;
+      }
+      if (audioContext && audioContext.state !== 'closed') {
+        audioContext.close();
+      }
+    };
+
+    // Store cleanup for later use
+    mediaRecorder._cleanup = cleanup;
 
     // Collect 250ms chunks for low-latency streaming
     mediaRecorder.start(250);
@@ -160,14 +255,48 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
   }
 
   function _stopRecording() {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       if (!mediaRecorder || mediaRecorder.state === 'inactive') {
         resolve();
         return;
       }
-      mediaRecorder.onstop = resolve;
-      mediaRecorder.stop();
-      stream?.getTracks().forEach(t => t.stop());
+      
+      // Set a timeout to prevent hanging
+      const timeout = setTimeout(() => {
+        console.warn('[Voice] MediaRecorder stop timeout - forcing cleanup');
+        cleanup();
+        resolve();
+      }, 2000);
+      
+      const cleanup = () => {
+        clearTimeout(timeout);
+        // Clean up audio monitoring
+        if (mediaRecorder && mediaRecorder._cleanup) {
+          mediaRecorder._cleanup();
+        }
+        stream?.getTracks().forEach(t => {
+          try {
+            t.stop();
+          } catch (e) {
+            console.warn('[Voice] Error stopping audio track:', e);
+          }
+        });
+        stream = null;
+        mediaRecorder = null;
+      };
+      
+      mediaRecorder.onstop = () => {
+        cleanup();
+        resolve();
+      };
+      
+      try {
+        mediaRecorder.stop();
+      } catch (error) {
+        console.error('[Voice] Error stopping MediaRecorder:', error);
+        cleanup();
+        reject(error);
+      }
     });
   }
 
@@ -244,6 +373,7 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
     audioCtx?.close();
     ws = null;
     connected = false;
+    audioBuffer = []; // Clear audio buffer
   }
 
   return { start, stop, destroy, setWorldContext };
