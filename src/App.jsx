@@ -676,19 +676,6 @@ export default function App() {
             </div>
           )}
 
-          {/* Enter 3D World — moved higher for better mobile UX */}
-          <div className="enter-3d-button-wrap">
-            {(_active === 'evening' || _active === 'sunrise' || _active === 'disco' || _active === 'noon') && voiceState === null && !world3DVisible && (
-              <button
-                className={`enter-3d-btn brutal-btn brutal-btn--pink${world3DMounted ? ' enter-3d-btn--loading' : ''}`}
-                onClick={() => { if (!world3DMounted) setWorld3DMounted(true); }}
-                aria-label="Enter 3D world"
-              >
-                {world3DMounted ? '⏳ Loading…' : `${_active.charAt(0).toUpperCase() + _active.slice(1)} 3D`}
-              </button>
-            )}
-          </div>
-
         </div>
 
         {/* Courage character — fills hero */}
@@ -714,6 +701,19 @@ export default function App() {
             🎙️
           </button>
         )}
+
+        {/* Enter 3D World — restored to original bottom position */}
+        <div className="enter-3d-button-wrap">
+          {(_active === 'evening' || _active === 'sunrise' || _active === 'disco' || _active === 'noon') && voiceState === null && !world3DVisible && (
+            <button
+              className={`enter-3d-btn brutal-btn brutal-btn--pink${world3DMounted ? ' enter-3d-btn--loading' : ''}`}
+              onClick={() => { if (!world3DMounted) setWorld3DMounted(true); }}
+              aria-label="Enter 3D world"
+            >
+              {world3DMounted ? '⏳ Loading…' : `${_active.charAt(0).toUpperCase() + _active.slice(1)} 3D`}
+            </button>
+          )}
+        </div>
 
         {/* Midnight refusal bubble */}
         {midnightMsg && (

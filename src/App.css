@@ -241,6 +241,7 @@ h1 {
   transform-origin: center;
   display: inline-block;
   perspective: 1200px;
+  will-change: transform;
 }
 
 @keyframes cartoon3dBounce {
@@ -3153,7 +3154,9 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   }
 
   .hero-tagline {
-    font-size: 1.15rem;
+    font-size: 1.45rem !important;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
   }
 
   .sticky-actions {
@@ -3837,28 +3840,17 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   }
 
   .couragesign {
+    font-size: 2.6rem !important;
     text-shadow: 2px 2px 0px #444 !important;
-    font-family: 'Comic Sans MS', cursive, sans-serif !important;
+    font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif !important;
+    letter-spacing: -1px;
   }
 
   .enter-3d-btn {
-    position: relative !important;
-    bottom: auto !important;
-    left: auto !important;
-    transform: none !important;
-    margin: 1.5rem auto 0 !important;
-    padding: 10px 24px !important;
-    font-size: 0.9rem !important;
-    background: rgba(235, 87, 193, 0.9) !important;
-    border: 2px solid #fff !important;
-    box-shadow: 4px 4px 0px #333 !important;
-    border-radius: 12px !important;
-    display: block !important;
-    width: fit-content !important;
+    bottom: calc(30%);
+    left: 50%;
+    transform: translateX(-50%);
     animation: enter3dPulse 3s ease-in-out infinite 0.6s;
-    font-weight: 900;
-    letter-spacing: 1px;
-    text-transform: uppercase;
   }
 }
 
@@ -4166,11 +4158,11 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 .voice-bubble {
   padding: 1.2rem 1.5rem;
   border-radius: 1.2rem;
-  font-family: 'Outfit', 'Inter', 'Comic Sans MS', sans-serif;
+  font-family: 'Outfit', 'Inter', 'Comic Neue', 'Comic Sans MS', sans-serif;
   font-size: 1.15rem;
   font-weight: 500;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   box-shadow: 
     0 10px 40px rgba(0, 0, 0, 0.4),
     inset 0 0 0 1px rgba(255, 255, 255, 0.1);
@@ -4181,6 +4173,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   position: relative;
   pointer-events: all;
   transition: opacity 0.3s ease, transform 0.3s ease;
+  will-change: transform, opacity;
 }
 
 .bot-bubble {
