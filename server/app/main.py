@@ -102,8 +102,17 @@ async def lifespan(app: FastAPI):
 
         # X client (optional — graceful if keys missing)
         print("[STARTUP] Setting up X client...")
+        from app.config import (
+            X_CONSUMER_KEY, X_CONSUMER_SECRET,
+            X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET, X_BEARER_TOKEN,
+        )
+        print(f"[X] Consumer Key:        {'SET ✓' if X_CONSUMER_KEY else 'MISSING ✗'}")
+        print(f"[X] Consumer Secret:     {'SET ✓' if X_CONSUMER_SECRET else 'MISSING ✗'}")
+        print(f"[X] Access Token:        {'SET ✓' if X_ACCESS_TOKEN else 'MISSING ✗'}")
+        print(f"[X] Access Token Secret: {'SET ✓' if X_ACCESS_TOKEN_SECRET else 'MISSING ✗'}")
+        print(f"[X] Bearer Token:        {'SET ✓' if X_BEARER_TOKEN else 'MISSING ✗'}")
         x_client = make_x_client()
-        print("[STARTUP] X client setup completed.")
+        print(f"[STARTUP] X client: {'ACTIVE ✓' if x_client else 'DISABLED (keys missing or init failed)'}")
 
         # Background jobs — 30 min interval
         scheduler.add_job(discovery_round, "interval", minutes=30, id="discovery")
@@ -157,6 +166,24 @@ app.add_middleware(
 async def health():
     budget = await get_budget_status()
     return {"status": "ok", "x_enabled": x_client is not None, "budget": budget}
+
+
+@app.get("/api/x-status")
+async def x_status():
+    from app.config import (
+        X_CONSUMER_KEY, X_CONSUMER_SECRET,
+        X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET, X_BEARER_TOKEN,
+    )
+    return {
+        "x_client_active": x_client is not None,
+        "keys": {
+            "X_CONSUMER_KEY":        bool(X_CONSUMER_KEY),
+            "X_CONSUMER_SECRET":     bool(X_CONSUMER_SECRET),
+            "X_ACCESS_TOKEN":        bool(X_ACCESS_TOKEN),
+            "X_ACCESS_TOKEN_SECRET": bool(X_ACCESS_TOKEN_SECRET),
+            "X_BEARER_TOKEN":        bool(X_BEARER_TOKEN),
+        },
+    }
 
 
 @app.get("/api/news")
