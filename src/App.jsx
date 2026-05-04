@@ -18,6 +18,7 @@ import { quotaStart, quotaEnd, quotaCancel, quotaStatus, formatTime, formatReset
 import { fetchTopNews } from './services/newsService';
 import { analyzeSentiment } from './utils/sentimentUtils';
 import { createVoiceService } from './services/voiceService';
+import { audioManager } from './utils/audioManager';
 
 // Wrapper to handle Vite dynamic import chunk errors after redeployments
 const lazyWithReload = (componentImport) => {
@@ -231,6 +232,7 @@ export default function App() {
   const [sceneOverride, setSceneOverride] = useState(null);
 
   const handleClose3D = useCallback(() => {
+    audioManager.softCleanup(); // stop audio immediately before React processes state updates
     setWorld3DMounted(false);
     setWorld3DVisible(false);
     document.body.classList.remove('world3d-active');

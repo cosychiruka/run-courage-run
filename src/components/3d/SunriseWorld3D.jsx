@@ -100,8 +100,10 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
 
   useEffect(() => {
     if (!visible || !audioLoaded) return;
-    playTrack(currentTrackIdx);
-    return () => audioManager.softCleanup();
+    let cancelled = false;
+    const run = async () => { if (!cancelled) await playTrack(currentTrackIdx); };
+    run();
+    return () => { cancelled = true; audioManager.softCleanup(); };
   }, [visible, audioLoaded, currentTrackIdx, playTrack]);
 
   const handleNext = useCallback(() => setCurrentTrackIdx(i => (i + 1) % SUNRISE_TRACKS.length), []);

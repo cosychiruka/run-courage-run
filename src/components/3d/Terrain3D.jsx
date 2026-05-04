@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 
 export function Terrain({ scene = 'evening' }) {
@@ -62,6 +62,9 @@ export function Terrain({ scene = 'evening' }) {
     tex.repeat.set(40, 40);
     return tex;
   }, [scene]);
+
+  useEffect(() => { return () => { noiseBumpMap.dispose(); }; }, [noiseBumpMap]);
+  useEffect(() => { return () => { noonGrassTex?.dispose(); }; }, [noonGrassTex]);
 
   let terrainColor = '#70129c'; // evening — purple/gothic
   if (scene === 'sunrise') terrainColor = '#5b9e35'; // dawn — fresh morning green

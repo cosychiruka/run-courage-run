@@ -566,6 +566,8 @@ export function Scene({ scene = 'evening', showStory = true, selfieFlyTexture = 
     return new THREE.CanvasTexture(canvas);
   }, [scene]);
 
+  useEffect(() => { return () => { gradientTexture.dispose(); }; }, [gradientTexture]);
+
   const bgColor = isNoon ? '#1e88e5' : isSunrise ? '#9dc4d8' : '#0a001a';
 
   return (

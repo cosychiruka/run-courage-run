@@ -214,6 +214,7 @@ function TextileBanner({ position, rotation }) {
      
      texRef.current.image = canvas;
      texRef.current.needsUpdate = true;
+     return () => { texRef.current?.dispose(); };
   }, []);
   return (
      <mesh position={position} rotation={rotation}>
