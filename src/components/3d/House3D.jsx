@@ -220,7 +220,7 @@ export function House({ position = [0, 0, 0], rotation = [0, 0, 0], doorOpen = f
         occlude={false} 
         zIndexRange={[0, 10]}
         transform
-        scale={0.08}
+        scale={0.22}
       >
         <a
           href="https://pump.fun/coin/$RCR"
@@ -237,8 +237,8 @@ export function House({ position = [0, 0, 0], rotation = [0, 0, 0], doorOpen = f
               ? 'rgba(0,255,136,0.9)'
               : 'rgba(10,5,20,0.88)',
             border: `2px solid ${glitchMode ? (hasVisited ? '#ff80d5' : '#aaffcc') : (hasVisited ? '#eb57c1' : '#00ff88')}`,
-            borderRadius: '10px',
-            padding: '5px 10px',
+            borderRadius: '12px',
+            padding: '8px 16px',
             cursor: 'pointer',
             textDecoration: 'none',
             minWidth: '130px',
@@ -253,7 +253,7 @@ export function House({ position = [0, 0, 0], rotation = [0, 0, 0], doorOpen = f
         >
           {glitchMode ? (
             <span style={{ 
-              fontSize: '22px', 
+              fontSize: '24px', 
               fontWeight: 900, 
               fontFamily: 'Arial Black, Arial', 
               color: hasVisited ? '#ff80d5' : '#aaffcc', 

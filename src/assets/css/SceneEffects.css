@@ -158,45 +158,57 @@
 
 .scene-ghost {
   position: absolute;
-  width: 44px;
-  height: 56px;
-  background: rgba(215, 225, 255, 0.88);
+  width: 48px;
+  height: 64px;
+  background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.95) 0%, rgba(215, 225, 255, 0.8) 70%, rgba(180, 200, 255, 0.6) 100%);
   border-radius: 50% 50% 0 0 / 60% 60% 0 0;
-  filter: blur(0.4px) drop-shadow(0 0 10px rgba(150, 170, 255, 0.9));
-  /* float only uses translateY — left is managed by React/transition */
-  animation: ghostFloat 4s ease-in-out infinite, ghostFadeIn 1.5s ease-out both;
+  backdrop-filter: blur(2px);
+  box-shadow: inset -2px -4px 8px rgba(0, 0, 0, 0.1), inset 2px 4px 8px rgba(255, 255, 255, 0.5);
+  filter: drop-shadow(0 0 15px rgba(150, 170, 255, 0.6));
+  animation: ghostFloat 4s ease-in-out infinite, ghostFadeIn 1s ease-out both;
   cursor: pointer;
   z-index: 6;
-  /* transition for left is set inline by React per phase */
 }
 
 /* Scalloped bottom */
 .scene-ghost::before {
   content: '';
   position: absolute;
-  bottom: -10px;
-  left: -4px;
-  width: calc(100% + 8px);
-  height: 18px;
+  bottom: -12px;
+  left: 0;
+  width: 100%;
+  height: 20px;
   background: inherit;
   clip-path: polygon(
-    0% 0%, 18% 100%, 36% 25%,
-    54% 100%, 72% 25%,
-    90% 100%, 100% 50%, 100% 0%
+    0% 0%, 20% 100%, 40% 30%,
+    60% 100%, 80% 30%,
+    100% 100%, 100% 0%
   );
 }
 
 .ghost-eye {
   position: absolute;
-  width: 9px;
-  height: 10px;
-  background: #1a1a44;
-  border-radius: 50% 50% 40% 40%;
+  width: 10px;
+  height: 11px;
+  background: #0a0a30;
+  border-radius: 50%;
   top: 36%;
   transition: all 0.2s ease;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
 }
-.ghost-eye.left  { left: 22%; }
-.ghost-eye.right { right: 22%; }
+.ghost-eye::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 3px;
+  height: 3px;
+  background: #fff;
+  border-radius: 50%;
+  opacity: 0.8;
+}
+.ghost-eye.left  { left: 24%; }
+.ghost-eye.right { right: 24%; }
 
 .ghost-mouth {
   position: absolute;
@@ -246,8 +258,13 @@
   border: none;
 }
 .scene-ghost.scared-face {
-  filter: blur(0.4px) drop-shadow(0 0 14px rgba(200, 100, 100, 0.5));
-  animation: ghostFloat 4s ease-in-out infinite, ghostScared 0.3s ease-out;
+  filter: drop-shadow(0 0 20px rgba(150, 200, 255, 0.9));
+  animation: ghostFloat 3.5s ease-in-out infinite, ghostScared 0.35s ease-out, ghostShiver 0.2s infinite;
+}
+@keyframes ghostShiver {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(-1px, 1px) rotate(-1deg); }
+  75% { transform: translate(1px, -1px) rotate(1deg); }
 }
 @keyframes ghostScared {
   0%  { transform: scale(1) rotate(0deg); }
@@ -258,9 +275,13 @@
 
 /* ── Angry face (on click) — red tint, angled brows ── */
 .scene-ghost.angry {
-  background: rgba(255, 190, 190, 0.92);
-  filter: blur(0.4px) drop-shadow(0 0 14px rgba(255, 60, 60, 0.85));
-  animation: ghostFloat 4s ease-in-out infinite, ghostAngryShake 0.4s ease-out;
+  background: radial-gradient(circle at 35% 35%, rgba(255, 230, 230, 0.98), rgba(255, 100, 100, 0.85));
+  filter: drop-shadow(0 0 25px rgba(255, 0, 0, 0.8));
+  animation: ghostFloat 2s ease-in-out infinite, ghostAngryShake 0.4s ease-out, ghostPulse 1s infinite alternate;
+}
+@keyframes ghostPulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
 }
 @keyframes ghostAngryShake {
   0%, 100% { transform: translateX(0); }

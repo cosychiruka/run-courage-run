@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, startTransition, lazy, Suspense } from "react";
+﻿import React, { useState, useEffect, useCallback, useRef, startTransition, lazy, Suspense } from "react";
 import "./App.css";
 import { FaTv, FaNewspaper } from "react-icons/fa";
 import HomePage from "./components/HomePage";
@@ -13,40 +13,22 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Footer from './components/Footer';
 import WelcomeTour from './components/WelcomeTour';
 import ThinkingOverlay from './components/ThinkingOverlay';
-import TweetCardHologram from './components/TweetCardHologram';
 import { quotaStart, quotaEnd, quotaCancel, quotaStatus, formatTime, formatResetIn } from './services/voiceQuota';
 import { fetchTopNews } from './services/newsService';
 import { analyzeSentiment } from './utils/sentimentUtils';
 import { createVoiceService } from './services/voiceService';
 
-// Wrapper to handle Vite dynamic import chunk errors after redeployments
-const lazyWithReload = (componentImport) => {
-  return lazy(async () => {
-    try {
-      return await componentImport();
-    } catch (error) {
-      if (error.name === 'TypeError' || error.message.includes('fetch dynamically imported module') || error.message.includes('disallowed MIME type')) {
-        console.warn('[ChunkLoadError] New version deployed. Reloading page...', error);
-        window.location.reload(true);
-        // Return a dummy module so React doesn't immediately crash while reloading
-        return { default: () => null };
-      }
-      throw error;
-    }
-  });
-};
-
-const EveningWorld3D = lazyWithReload(() => import('./components/3d/EveningWorld3D'));
-const SunriseWorld3D = lazyWithReload(() => import('./components/3d/SunriseWorld3D'));
-const NoonWorld3D = lazyWithReload(() => import('./components/3d/NoonWorld3D'));
-const DiscoWorld3D = lazyWithReload(() => import('./components/3d/DiscoWorld3D'));
+const EveningWorld3D = lazy(() => import('./components/3d/EveningWorld3D'));
+const SunriseWorld3D = lazy(() => import('./components/3d/SunriseWorld3D'));
+const NoonWorld3D = lazy(() => import('./components/3d/NoonWorld3D'));
+const DiscoWorld3D = lazy(() => import('./components/3d/DiscoWorld3D'));
 import courageDancingGif from './assets/images/Courage.gif';
 
 export default function App() {
   const [scene, setScene] = useState('');
   const [helperVisible, setHelperVisible] = useState(false);
 
-  // ── News ───────────────────────────────────────────────────────────────────
+  // ΓöÇΓöÇ News ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const [newsOpen, setNewsOpen] = useState(false);
   const [articles, setArticles] = useState([]);
   const [articleIndex, setArticleIndex] = useState(0);
@@ -58,19 +40,18 @@ export default function App() {
   const [newsCategory, setNewsCategory] = useState(
     () => localStorage.getItem('courage_category') || 'general'
   );
-  const [tourOpen, setTourOpen] = useState(false);
 
-  // ── Explosion ──────────────────────────────────────────────────────────────
+  // ΓöÇΓöÇ Explosion ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const [explosionPhase, setExplosionPhase] = useState(null);
   const [explosionReady, setExplosionReady] = useState(false);
   const scaredTimerRef = useRef(null);
 
-  // ── Hero text visibility ──────────────────────────────────────────────────
-  // • First visit: wait for WelcomeTour dismissal, then hide after 60s
-  // • Returning visit: start 60s timer immediately
-  // • After first hide: flash text back for 5s every 60s
-  // • Thought bubble fires once, right after the first hide
-  // • "Alive" message fires once, 500ms after first hide, for 5s
+  // ΓöÇΓöÇ Hero text visibility ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ΓÇó First visit: wait for WelcomeTour dismissal, then hide after 60s
+  // ΓÇó Returning visit: start 60s timer immediately
+  // ΓÇó After first hide: flash text back for 5s every 60s
+  // ΓÇó Thought bubble fires once, right after the first hide
+  // ΓÇó "Alive" message fires once, 500ms after first hide, for 5s
   const isFirstVisit = !localStorage.getItem('courage_toured');
   const [tourDismissed, setTourDismissed] = useState(!isFirstVisit);
   const [heroTextVisible, setHeroTextVisible] = useState(true);
@@ -112,31 +93,19 @@ export default function App() {
     };
   }, [tourDismissed]);
 
-  // ── Voice chat state ──────────────────────────────────────────────────────
+  // ΓöÇΓöÇ Voice chat state ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   // 'idle' | 'listening' | 'thinking' | 'speaking' | null (normal scene)
   const [voiceState, setVoiceState] = useState(null);
   const [voiceTranscript, setVoiceTranscript] = useState('');
-  const [voiceReply, setVoiceReply] = useState('');
   const [voiceToolLog, setVoiceToolLog] = useState([]);
   const [voiceQuota, setVoiceQuota] = useState(() => quotaStatus());
-  const [tweetCards, setTweetCards] = useState([]);
-  const [tweetQuery, setTweetQuery] = useState('');
   const voiceSvcRef = useRef(null);
-  const isTransitioningRef = useRef(false);
 
   // Refresh quota display every 5 seconds
   useEffect(() => {
     const t = setInterval(() => setVoiceQuota(quotaStatus()), 5000);
     return () => clearInterval(t);
   }, []);
-
-  // Auto-hide voice reply bubble after 8 seconds
-  useEffect(() => {
-    if (voiceReply) {
-      const t = setTimeout(() => setVoiceReply(''), 8000);
-      return () => clearTimeout(t);
-    }
-  }, [voiceReply]);
 
   // Midnight refusal speech bubble (shown briefly, then auto-switches scene)
   const [midnightMsg, setMidnightMsg] = useState(false);
@@ -145,78 +114,75 @@ export default function App() {
   const [world3DMounted, setWorld3DMounted] = useState(false);
   const [world3DVisible, setWorld3DVisible] = useState(false);
 
-  const handleVoiceClick = useCallback(async (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (isTransitioningRef.current) return;
-    isTransitioningRef.current = true;
-    try {
-      if (voiceState === 'idle') {
-        const q = quotaStatus();
-        setVoiceQuota(q);
-        if (!q.canSpeak) return;
-        if (!voiceSvcRef.current) {
-          voiceSvcRef.current = createVoiceService({
-            onState: (s) => { setVoiceState(s); if (s !== 'thinking') setVoiceToolLog([]); },
-            onTranscript: (t) => { setVoiceTranscript(t); setVoiceToolLog([]); },
-            onReply: (r) => {
-              // Cleaned regex to strip AI-generated asterisks from Courage's voice replies
-              const cleaned = r.replace(/\*.*?\*/g, '').trim();
-              setVoiceReply(cleaned);
-            },
-            onAudio: () => { },
-            onError: (e) => { console.warn('[Voice]', e); setVoiceState('idle'); setVoiceToolLog([]); },
-            onToolCall: (ev) => {
-              if (ev.type === 'call') {
-                setVoiceToolLog(prev => [...prev, { type: 'call', tool: ev.tool, label: ev.label }]);
-              } else {
-                setVoiceToolLog(prev => prev.map(e =>
-                  e.tool === ev.tool && e.type === 'call' ? { ...e, type: 'result' } : e
-                ));
-              }
-            },
-            onTweetCard: (tweets, query) => { setTweetCards(tweets || []); setTweetQuery(query || ''); },
-          });
-        }
-        try {
-          quotaStart();
-          await voiceSvcRef.current.start();
-        } catch (err) {
-          quotaCancel();
-          console.warn('[Voice] mic error:', err);
-          setVoiceState('idle');
-        }
-      } else if (voiceState === 'listening') {
-        quotaEnd();
-        setVoiceQuota(quotaStatus());
-        await voiceSvcRef.current?.stop();  // auto-cancels if audio < silence threshold
-      } else if (voiceState === 'speaking' || voiceState === 'thinking') {
-        setVoiceState('idle');
-        setVoiceTranscript('');
-        setVoiceReply('');
+  const handleVoiceClick = useCallback(async () => {
+    // Enter voice mode if not already in it
+    if (voiceState === null) {
+      setVoiceState('idle');
+      return;
+    }
+
+    if (voiceState === 'idle') {
+      // Check quota before starting
+      const q = quotaStatus();
+      setVoiceQuota(q);
+      if (!q.canSpeak) {
+        // Show a friendly block ΓÇö don't even open the mic
+        return;
       }
-      // 'thinking' — ignore, let it finish
-    } finally {
-      setTimeout(() => { isTransitioningRef.current = false; }, 350);
+      // Start recording
+      if (!voiceSvcRef.current) {
+        voiceSvcRef.current = createVoiceService({
+          onState: (s) => { setVoiceState(s); if (s !== 'thinking') setVoiceToolLog([]); },
+          onTranscript: (t) => { setVoiceTranscript(t); setVoiceToolLog([]); console.log('[Voice] transcript:', t); },
+          onReply: (r) => console.log('[Voice] reply:', r),
+          onAudio: () => { },
+          onError: (e) => { console.warn('[Voice]', e); setVoiceState('idle'); setVoiceToolLog([]); },
+          onToolCall: (ev) => {
+            if (ev.type === 'call') {
+              setVoiceToolLog(prev => [...prev, { type: 'call', tool: ev.tool, label: ev.label }]);
+            } else {
+              setVoiceToolLog(prev => prev.map(e =>
+                e.tool === ev.tool && e.type === 'call' ? { ...e, type: 'result' } : e
+              ));
+            }
+          },
+        });
+      }
+      try {
+        quotaStart();
+        await voiceSvcRef.current.start();
+      } catch (e) {
+        quotaCancel();
+        console.warn('[Voice] mic error:', e);
+        setVoiceState('idle');
+      }
+      return;
+    }
+
+    if (voiceState === 'listening') {
+      // Stop recording ΓåÆ send to backend
+      quotaEnd();
+      setVoiceQuota(quotaStatus());
+      await voiceSvcRef.current?.stop();
+      return;
+    }
+
+    if (voiceState === 'speaking') {
+      // User wants to interrupt ΓÇö reset to idle
+      setVoiceState('idle');
     }
   }, [voiceState]);
 
-  const handleVoiceClose = useCallback((e) => {
-    if (e) { e.stopPropagation(); e.preventDefault(); }
-    if (isTransitioningRef.current) return;
+  const handleVoiceClose = useCallback(() => {
     voiceSvcRef.current?.destroy();
     voiceSvcRef.current = null;
     setVoiceState(null);
-    setVoiceTranscript('');
-    setVoiceReply('');
-    setTweetCards([]);
-    setTweetQuery('');
   }, []);
 
-  // ── Ghost repulse signal (incremented on Courage click at midnight) ────────
+  // ΓöÇΓöÇ Ghost repulse signal (incremented on Courage click at midnight) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const [repulseSignal, setRepulseSignal] = useState(0);
 
-  // ── Courage position — animated by ghost chase (midnight only) ───────────
+  // ΓöÇΓöÇ Courage position ΓÇö animated by ghost chase (midnight only) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const [courageX, setCourageX] = useState(10);   // % viewport
   const [courageTrans, setCourageTrans] = useState('left 0s');
 
@@ -225,16 +191,16 @@ export default function App() {
     setCourageTrans(trans);
   }, []);
 
-  // ── Scene override (user-controlled cycle) ────────────────────────────────
+  // ΓöÇΓöÇ Scene override (user-controlled cycle) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const SCENE_CYCLE = ['sunrise', 'noon', 'evening', 'midnight', 'disco', null];
-  const SCENE_LABELS = { sunrise: '☀️', noon: '🌤', evening: '🌆', midnight: '🌙', disco: '🕺', null: '🕐' };
+  const SCENE_LABELS = { sunrise: 'ΓÿÇ∩╕Å', noon: '≡ƒîñ', evening: '≡ƒîå', midnight: '≡ƒîÖ', disco: '≡ƒò║', null: '≡ƒòÉ' };
   const [sceneOverride, setSceneOverride] = useState(null);
 
   const handleClose3D = useCallback(() => {
     setWorld3DMounted(false);
     setWorld3DVisible(false);
     document.body.classList.remove('world3d-active');
-
+    
     // Reset CSS Courage animation
     setTimeout(() => {
       const currentScene = sceneOverride || scene;
@@ -253,7 +219,7 @@ export default function App() {
     }, 100);
   }, [scene, sceneOverride]);
 
-  // Entry point for mic button — blocks midnight with a speech bubble then auto-switches scene
+  // Entry point for mic button ΓÇö blocks midnight with a speech bubble then auto-switches scene
   // Declared after sceneOverride to avoid TDZ in the dependency array
   const handleVoiceEntry = useCallback(() => {
     const activeScene = sceneOverride || scene;
@@ -271,11 +237,6 @@ export default function App() {
       return;
     }
     setVoiceState('idle');
-    // Auto-trigger the start recording flow
-    setTimeout(() => {
-      const btn = document.querySelector('.mic-drop-wrap');
-      if (btn) btn.click();
-    }, 100);
   }, [sceneOverride, scene]);
 
   const cycleScene = useCallback(() => {
@@ -285,7 +246,7 @@ export default function App() {
     });
   }, []);
 
-  // ── Scene / time ───────────────────────────────────────────────────────────
+  // ΓöÇΓöÇ Scene / time ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const updateScene = useCallback(() => {
     const h = new Date().getHours();
     const h1 = document.querySelector('h1.couragesign');
@@ -304,36 +265,16 @@ export default function App() {
     return () => clearInterval(id);
   }, [updateScene]);
 
-  // ── Scroll visibility & Mobile Modal Fixes ────────────────────────────────
+  // ΓöÇΓöÇ Scroll visibility ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const [scrolled, setScrolled] = useState(false);
   const [controlsExpanded, setControlsExpanded] = useState(false);
-
   useEffect(() => {
     const handleScroll = () => {
-      // Only track scroll if no full-screen modals are open
-      if (!newsOpen && !world3DVisible && !tourOpen && !helperVisible) {
-        setScrolled(window.scrollY > 50);
-      }
+      setScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [newsOpen, world3DVisible, tourOpen, helperVisible]);
-
-  // Lock body scroll when a full-screen overlay is open
-  useEffect(() => {
-    const isModalOpen = newsOpen || world3DVisible || tourOpen || helperVisible;
-    if (isModalOpen) {
-      document.body.style.overflow = 'hidden';
-      // On mobile, opening a bottom-anchored modal can sometimes trigger a scroll jump.
-      // We force scroll to top to keep the Hero section visible in the background.
-      if (window.scrollY > 50) {
-        window.scrollTo(0, 0);
-        setScrolled(false);
-      }
-    } else {
-      document.body.style.overflow = '';
-    }
-  }, [newsOpen, world3DVisible, tourOpen, helperVisible]);
+  }, []);
 
   // Apply body class for scene override (so background reflects the cycled scene)
   useEffect(() => {
@@ -351,7 +292,7 @@ export default function App() {
     }
   }, [sceneOverride, updateScene, scene]);
 
-  // ── Scared timer → explosion ready ────────────────────────────────────────
+  // ΓöÇΓöÇ Scared timer ΓåÆ explosion ready ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   useEffect(() => {
     const isCurrentlyScared = newsEmotion === 'scared' && newsOpen;
     clearTimeout(scaredTimerRef.current);
@@ -360,7 +301,7 @@ export default function App() {
     return () => clearTimeout(scaredTimerRef.current);
   }, [newsEmotion, newsOpen]);
 
-  // ── Explosion sequence ─────────────────────────────────────────────────────
+  // ΓöÇΓöÇ Explosion sequence ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const triggerExplosion = useCallback(() => {
     if (explosionPhase) return;
     setExplosionReady(false);
@@ -374,9 +315,9 @@ export default function App() {
     setTimeout(() => setExplosionPhase(null), 4200);
   }, [explosionPhase]);
 
-  // ── Courage scene ──────────────────────────────────────────────────────────
-  //    Day  (sunrise / noon)    → CourageRunning (happy animated dog)
-  //    Night (evening/midnight) → CourageScared  (pieces dog, can explode)
+  // ΓöÇΓöÇ Courage scene ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  //    Day  (sunrise / noon)    ΓåÆ CourageRunning (happy animated dog)
+  //    Night (evening/midnight) ΓåÆ CourageScared  (pieces dog, can explode)
   //    News override still applies on top
   const handleRepulse = useCallback(() => {
     setRepulseSignal(s => s + 1);
@@ -391,14 +332,14 @@ export default function App() {
     // Disco landing page logic
     if (activeScene === 'disco') {
       return (
-        <div className="disco-landing-scene">
-          <div className="disco-ball">
-            <div className="disco-sparkle"></div>
-            <div className="disco-sparkle s2"></div>
-            <div className="disco-sparkle s3"></div>
-          </div>
-          <img src={courageDancingGif} alt="Courage Dancing" className="courage-disco-gif" />
-        </div>
+         <div className="disco-landing-scene">
+            <div className="disco-ball">
+               <div className="disco-sparkle"></div>
+               <div className="disco-sparkle s2"></div>
+               <div className="disco-sparkle s3"></div>
+            </div>
+            <img src={courageDancingGif} alt="Courage Dancing" className="courage-disco-gif" />
+         </div>
       );
     }
 
@@ -415,14 +356,14 @@ export default function App() {
       return <CourageHappy explosionPhase={null} onFrightened={() => { }} voiceState={isTalking ? voiceState : null} />;
     }
 
-    // Time-based scenes — each character receives voiceState so it can brake/talk in place
+    // Time-based scenes ΓÇö each character receives voiceState so it can brake/talk in place
     const chaseStyle = { left: `${courageX}%`, transition: courageTrans };
     if (!newsOpen && isNight) return <CourageScared explosionPhase={null} onFrightened={handleRepulse} style={chaseStyle} voiceState={isTalking ? voiceState : null} />;
     if (!newsOpen && isNoon) return <CourageHappy explosionPhase={null} onFrightened={() => { }} voiceState={isTalking ? voiceState : null} />;
     return <CourageRunning voiceState={isTalking ? voiceState : null} currentScene={activeScene} />;
   }, [scene, sceneOverride, newsEmotion, newsOpen, explosionPhase, handleRepulse, courageX, courageTrans, voiceState, world3DVisible]);
 
-
+  
   const loadNews = useCallback(async (country = newsCountry, category = newsCategory) => {
     setNewsLoading(true);
     try {
@@ -504,15 +445,15 @@ export default function App() {
       { file: 'https://imgur.com/XhCBo5v.mp4', type: 'video', desc: 'Pie Eustas' },
       { file: 'https://imgur.com/M6UJsWs.jpeg', type: 'image', desc: 'Courage The Memish Dog' },
       { file: 'https://imgur.com/pfadmDi.gif', type: 'image', desc: 'CTO Courage' },
-      { file: ep('Courage the Cowardly Dog S01E01 A Night at the Katz Motel.mkv'), type: 'archive', desc: '📺 S1E01 – Katz Motel' },
-      { file: ep('Courage the Cowardly Dog S01E02 Cajun Granny Stew.mkv'), type: 'archive', desc: '📺 S1E02 – Cajun Granny Stew' },
-      { file: ep('Courage the Cowardly Dog S01E05 King Ramses\' Curse.mkv'), type: 'archive', desc: '📺 S1E05 – King Ramses\' Curse' },
-      { file: ep('Courage the Cowardly Dog S01E08 Freaky Fred.mkv'), type: 'archive', desc: '📺 S1E08 – Freaky Fred' },
-      { file: ep('Courage the Cowardly Dog S01E13 The Great Fusilli.mkv'), type: 'archive', desc: '📺 S1E13 – The Great Fusilli' },
-      { file: ep('Courage the Cowardly Dog S02E01 The House of Discontent.mkv'), type: 'archive', desc: '📺 S2E01 – House of Discontent' },
-      { file: ep('Courage the Cowardly Dog S03E01 The Demon in the Mattress.mkv'), type: 'archive', desc: '📺 S3E01 – Demon in the Mattress' },
-      { file: ep('Courage the Cowardly Dog S04E01 Remembrance of Fred.mkv'), type: 'archive', desc: '📺 S4E01 – Remembrance of Fred' },
-      { file: `${ARCHIVE}?autoplay=1`, type: 'archive', desc: '📺 Browse All Episodes' },
+      { file: ep('Courage the Cowardly Dog S01E01 A Night at the Katz Motel.mkv'), type: 'archive', desc: '≡ƒô║ S1E01 ΓÇô Katz Motel' },
+      { file: ep('Courage the Cowardly Dog S01E02 Cajun Granny Stew.mkv'), type: 'archive', desc: '≡ƒô║ S1E02 ΓÇô Cajun Granny Stew' },
+      { file: ep('Courage the Cowardly Dog S01E05 King Ramses\' Curse.mkv'), type: 'archive', desc: '≡ƒô║ S1E05 ΓÇô King Ramses\' Curse' },
+      { file: ep('Courage the Cowardly Dog S01E08 Freaky Fred.mkv'), type: 'archive', desc: '≡ƒô║ S1E08 ΓÇô Freaky Fred' },
+      { file: ep('Courage the Cowardly Dog S01E13 The Great Fusilli.mkv'), type: 'archive', desc: '≡ƒô║ S1E13 ΓÇô The Great Fusilli' },
+      { file: ep('Courage the Cowardly Dog S02E01 The House of Discontent.mkv'), type: 'archive', desc: '≡ƒô║ S2E01 ΓÇô House of Discontent' },
+      { file: ep('Courage the Cowardly Dog S03E01 The Demon in the Mattress.mkv'), type: 'archive', desc: '≡ƒô║ S3E01 ΓÇô Demon in the Mattress' },
+      { file: ep('Courage the Cowardly Dog S04E01 Remembrance of Fred.mkv'), type: 'archive', desc: '≡ƒô║ S4E01 ΓÇô Remembrance of Fred' },
+      { file: `${ARCHIVE}?autoplay=1`, type: 'archive', desc: '≡ƒô║ Browse All Episodes' },
     ];
     let channel = 0;
 
@@ -553,7 +494,7 @@ export default function App() {
           if (overlay) {
             overlay.dataset.src = item.file; overlay.dataset.desc = item.desc;
             const label = overlay.querySelector('.archive-play-label');
-            if (label) label.textContent = item.desc.replace('📺 ', '');
+            if (label) label.textContent = item.desc.replace('≡ƒô║ ', '');
             overlay.classList.remove('hide');
           }
         } else {
@@ -580,14 +521,15 @@ export default function App() {
   }, [animation]);
 
 
-  // ── Tour modal (info button) ───────────────────────────────────────────────
+  // ΓöÇΓöÇ Tour modal (info button) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  const [tourOpen, setTourOpen] = useState(false);
 
-  // ── TV toggle ──────────────────────────────────────────────────────────────
+  // ΓöÇΓöÇ TV toggle ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const toggleHelperSection = useCallback(() => {
     setHelperVisible(p => !p);
   }, []);
 
-  // ── Background click → Courage fright ────────────────────────────────────
+  // ΓöÇΓöÇ Background click ΓåÆ Courage fright ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const handleBackgroundClick = useCallback((e) => {
     if (e.target.id === 'app-background' && !explosionPhase) {
       const el = document.getElementById('courageCharacter');
@@ -598,7 +540,7 @@ export default function App() {
     }
   }, [explosionPhase]);
 
-  // ── Disable explode when CourageRunning is shown (no explosion div parts) ──
+  // ΓöÇΓöÇ Disable explode when CourageRunning is shown (no explosion div parts) ΓöÇΓöÇ
   const _active = sceneOverride || scene;
   const _isNight = _active === 'evening' || _active === 'midnight';
   const _isNoon = _active === 'noon';
@@ -609,36 +551,32 @@ export default function App() {
   return (
     <div className="app-container" id="app-background" onClick={handleBackgroundClick}>
 
-      {/* ── Scene ambient effects — suspended when 3D world is visible */}
+      {/* ΓöÇΓöÇ Scene ambient effects ΓÇö suspended when 3D world is visible */}
       {!world3DVisible && (
-        <SceneEffects
-          scene={sceneOverride || scene}
-          repulseSignal={repulseSignal}
-          onCourageMove={handleCourageMove}
+        <SceneEffects 
+          scene={sceneOverride || scene} 
+          repulseSignal={repulseSignal} 
+          onCourageMove={handleCourageMove} 
         />
-      )}
+      )}  
 
-      {/* ── Typewriter scene hints ── */}
+      {/* ΓöÇΓöÇ Typewriter scene hints ΓöÇΓöÇ */}
       <HeroHints scene={_active} scrolled={scrolled} />
 
-      {/* ── News ticker ── */}
+      {/* ΓöÇΓöÇ News ticker ΓöÇΓöÇ */}
       <div className="news-ticker-bar">
         <div className="news-ticker-track">
-          RUN COURAGE RUN &nbsp;|&nbsp; $RCR — LIVING IN YOUR BROWSER, SER &nbsp;|&nbsp;
+          RUN COURAGE RUN &nbsp;|&nbsp; $RCR ΓÇö LIVING IN YOUR BROWSER, SER &nbsp;|&nbsp;
           NOT FINANCIAL ADVICE &nbsp;|&nbsp; WATERED DOWN NEWS FOR THE DEGENS &nbsp;|&nbsp;
           THE THINGS I DO FOR YOU PEOPLE &nbsp;|&nbsp; WAGMI &nbsp;|&nbsp;
         </div>
       </div>
 
-      {/* ── Navigation ── */}
+      {/* ΓöÇΓöÇ Navigation ΓöÇΓöÇ */}
       <nav className="bone-nav">
         <div className="circle left top" /><div className="circle left bottom" />
         <div className="halloctober__banner p-flex">
-          <h1 className="couragesign shiny-glass">
-            <a href="https://pump.fun/coin/$RCR" target="_blank" rel="noopener noreferrer" className="couragesign-link">
-              RUN COURAGE, <span className="couragesign-emphasis">RUN!!!</span>
-            </a>
-          </h1>
+          <h1 className="couragesign shiny-glass">Run Courage Run</h1>
           <div className="fog p-circle" />
         </div>
         <button
@@ -646,11 +584,11 @@ export default function App() {
           onClick={cycleScene}
           title={sceneOverride ? `Scene: ${sceneOverride}` : 'Scene: auto (time-based)'}
         >
-          {SCENE_LABELS[String(sceneOverride)] ?? '🕐'}
+          {SCENE_LABELS[String(sceneOverride)] ?? '≡ƒòÉ'}
         </button>
         <div className="circle right top" /><div className="circle right bottom" />
 
-        {/* Thought bubble inside nav — absolutely anchored to the scene button */}
+        {/* Thought bubble inside nav ΓÇö absolutely anchored to the scene button */}
         {showSceneTip && (
           <div className="scene-thought-bubble" aria-hidden="true">
             <div className="thought-trail">
@@ -663,7 +601,7 @@ export default function App() {
         )}
       </nav>
 
-      {/* ── Hero section ── */}
+      {/* ΓöÇΓöÇ Hero section ΓöÇΓöÇ */}
       <section className={`hero-section${scrolled ? ' hero-section--hidden' : ''}`}>
         <div className="hero-center">
           <div className={`hero-badge${scrolled ? ' hero-badge--hidden' : ''}`}>
@@ -671,86 +609,49 @@ export default function App() {
             Live on Solana
           </div>
           <div className={`hero-text-block${heroTextVisible ? '' : ' hero-text-block--hidden'}`}>
-            <div className="desktop-only">
-              <p className="hero-title">Self-Aware Living Meme on Solana</p>
-              <p className="hero-tagline">"He knows his a meme. He breaks the 4th wall. He's a runner!"</p>
-            </div>
-            <div className="mobile-only">
-              <p className="hero-title">Self-Aware Meme <br /> Living on Solana</p>
-              <p className="hero-tagline">He knows he&rsquo;s a meme.<br /> He breaks the 4th wall.<br /> He&rsquo;s a runner!</p>
-            </div>
+            <p className="hero-tagline">Self-Aware Living Meme on Solana</p>
+            <p className="hero-quote">"He knows his a meme. He breaks the 4th wall. He's a runner!"</p>
           </div>
           {aliveTextVisible && (
             <div className="hero-alive-text" aria-live="polite">
               Animated Self Aware Meme &mdash; He&rsquo;s alive, Interact
             </div>
           )}
-
         </div>
 
-        {/* Courage character — fills hero */}
+        {/* Courage character ΓÇö fills hero */}
         <div className="character-stage">
           {renderCourageScene()}
           {newsOpen && voiceState === null && (
             <div className={`emotion-chip emotion-chip--${newsEmotion}`}>
-              {newsEmotion === 'happy' && '🚀 WAGMI'}
-              {newsEmotion === 'scared' && '😱 NGMI'}
-              {newsEmotion === 'neutral' && "🐕 chillin'"}
+              {newsEmotion === 'happy' && '≡ƒÜÇ WAGMI'}
+              {newsEmotion === 'scared' && '≡ƒÿ▒ NGMI'}
+              {newsEmotion === 'neutral' && "≡ƒÉò chillin'"}
             </div>
           )}
         </div>
 
-        {/* Voice controls — separate elements, hidden as soon as 3D world mounts */}
-        {voiceState === null && !world3DMounted && !world3DVisible && (
+        {/* Voice controls ΓÇö OUTSIDE character-stage so pointer-events:none doesn't block them */}
+        {voiceState === null && (
           <button
             className="voice-entry-btn"
             onClick={handleVoiceEntry}
             title="Talk to Courage"
             aria-label="Start voice chat with Courage"
           >
-            🎙️
+            ≡ƒÄÖ∩╕Å
           </button>
         )}
 
-        {/* Mic drop — ACTIVE state */}
-        {voiceState !== null && !world3DMounted && !world3DVisible && (
-          <div className={`mic-drop-wrap mic-drop-wrap--${voiceState}`} onClick={handleVoiceClick} role="button" aria-label="Voice chat control">
-            <div className="mic-drop-icon">
-              {!voiceQuota.canSpeak && '🛑'}
-              {voiceQuota.canSpeak && voiceState === 'idle' && '🎙️'}
-              {voiceQuota.canSpeak && voiceState === 'listening' && '🔴'}
-              {voiceQuota.canSpeak && voiceState === 'thinking' && '⏳'}
-              {voiceQuota.canSpeak && voiceState === 'speaking' && <span style={{ filter: 'brightness(2) grayscale(1)' }}>🔊</span>}
-            </div>
-            <div className="mic-drop-label">
-              {!voiceQuota.canSpeak && `Courage needs a break! Back ${formatTime(voiceQuota.resetInSecs)}`}
-              {voiceQuota.canSpeak && voiceState === 'idle' && `Tap to speak · ${formatTime(voiceQuota.remainingSecs)} left`}
-              {voiceQuota.canSpeak && voiceState === 'listening' && 'Listening…'}
-              {voiceQuota.canSpeak && voiceState === 'thinking' && 'Thinking…'}
-              {voiceQuota.canSpeak && voiceState === 'speaking' && 'Tap to stop'}
-            </div>
-            <div className="mic-drop-cord" />
-
-            <button
-              className="voice-exit-btn"
-              onClick={(e) => { e.stopPropagation(); handleVoiceClose(); }}
-              title="Exit voice chat"
-              aria-label="Exit voice chat"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-
-        {/* Enter 3D World — restored to original bottom position */}
-        <div className="enter-3d-button-wrap">
+        {/* Enter 3D World ΓÇö shows loading state while scene warms up */}
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
           {(_active === 'evening' || _active === 'sunrise' || _active === 'disco' || _active === 'noon') && voiceState === null && !world3DVisible && (
             <button
               className={`enter-3d-btn brutal-btn brutal-btn--pink${world3DMounted ? ' enter-3d-btn--loading' : ''}`}
               onClick={() => { if (!world3DMounted) setWorld3DMounted(true); }}
               aria-label="Enter 3D world"
             >
-              {world3DMounted ? '⏳ Loading…' : `${_active.charAt(0).toUpperCase() + _active.slice(1)} 3D`}
+              {world3DMounted ? 'ΓÅ│ LoadingΓÇª' : `≡ƒÜ¬ Enter 3D World (${_active})`}
             </button>
           )}
         </div>
@@ -762,7 +663,7 @@ export default function App() {
           </div>
         )}
 
-        {/* Thinking overlay — shows during agent tool calls */}
+        {/* Thinking overlay ΓÇö shows during agent tool calls */}
         {voiceState === 'thinking' && (
           <ThinkingOverlay
             visible={true}
@@ -771,43 +672,41 @@ export default function App() {
           />
         )}
 
-        {/* Voice Chat Speech Bubbles — Modern Transparent Layout */}
-        {voiceReply && voiceState !== null && (
-          <div className="voice-bubbles-container">
-            <div className="voice-bubble bot-bubble">
-              <button
-                className="bubble-close-btn"
-                onClick={() => setVoiceReply('')}
-                aria-label="Close bubble"
-              >
-                ✕
-              </button>
-              <div className="bubble-content">
-                {voiceReply}
-              </div>
+        {/* Mic drop ΓÇö OUTSIDE character-stage so pointer-events:none doesn't block it */}
+        {voiceState !== null && (
+          <div className={`mic-drop-wrap mic-drop-wrap--${voiceState}`} onClick={handleVoiceClick} role="button" aria-label="Voice chat control">
+            <div className="mic-drop-icon">
+              {!voiceQuota.canSpeak      && '≡ƒ¢æ'}
+              {voiceQuota.canSpeak && voiceState === 'idle'      && '≡ƒÄÖ∩╕Å'}
+              {voiceQuota.canSpeak && voiceState === 'listening' && '≡ƒö┤'}
+              {voiceQuota.canSpeak && voiceState === 'thinking'  && 'ΓÅ│'}
+              {voiceQuota.canSpeak && voiceState === 'speaking'  && '≡ƒöè'}
             </div>
+            <div className="mic-drop-label">
+              {!voiceQuota.canSpeak && `Courage needs a break! Back ${formatResetIn(voiceQuota.resetInSecs)}`}
+              {voiceQuota.canSpeak && voiceState === 'idle'      && `Tap to speak ┬╖ ${formatTime(voiceQuota.remainingSecs)} left`}
+              {voiceQuota.canSpeak && voiceState === 'listening' && 'ListeningΓÇª'}
+              {voiceQuota.canSpeak && voiceState === 'thinking'  && 'ThinkingΓÇª'}
+              {voiceQuota.canSpeak && voiceState === 'speaking'  && 'Tap to stop'}
+            </div>
+            <div className="mic-drop-cord" />
+            {/* Close button */}
+            <button className="voice-exit-btn" onClick={(e) => { e.stopPropagation(); handleVoiceClose(); }} title="Exit voice chat" aria-label="Exit voice chat">Γ£ò</button>
           </div>
         )}
 
-        {/* Tweet card hologram — floats above Courage during/after Twitter searches */}
-        <TweetCardHologram
-          tweets={tweetCards}
-          visible={tweetCards.length > 0 && voiceState !== null}
-          query={tweetQuery}
-        />
-
         {explosionReady && !explosionPhase && (
           <button className="explosion-trigger-btn" onClick={triggerExplosion}>
-            💥 HE'S GONNA BLOW
+            ≡ƒÆÑ HE'S GONNA BLOW
           </button>
         )}
       </section>
 
-      {/* ── TV overlay modal — clean and simplified ── */}
+      {/* ΓöÇΓöÇ TV overlay modal ΓÇö clean and simplified ΓöÇΓöÇ */}
       {helperVisible && (
         <div className="tv-overlay" onClick={toggleHelperSection}>
           <div className="tv-overlay-inner" onClick={e => e.stopPropagation()}>
-            <button className="tv-overlay-close" onClick={toggleHelperSection}>✕</button>
+            <button className="tv-overlay-close" onClick={toggleHelperSection}>Γ£ò</button>
             <ErrorBoundary fallbackText="TV crashed. Please refresh.">
               <HomePage CryptoTv={CryptoTv} onNewsClick={() => { toggleHelperSection(); handleOpenNews(); }} />
             </ErrorBoundary>
@@ -815,27 +714,27 @@ export default function App() {
         </div>
       )}
 
-      {/* ── Landing content ── */}
+      {/* ΓöÇΓöÇ Landing content ΓöÇΓöÇ */}
       <div className="landing-wrapper">
 
         {/* About */}
         <section className="landing-section about-section container">
           <div className="landing-card glass-panel">
             <div className="comic-banner">
-              <h2 className="landing-heading"><span className="icon-dog-wag">🐕</span> Who is $RCR?</h2>
+              <h2 className="landing-heading">≡ƒÉò Who is $RCR?</h2>
             </div>
             <p>
-              Tribute to Courage the Cowardly Dog — Cartoon Network 1999–2002. Always watching the TV and reading Newspapers. He faced
+              Tribute to Courage the Cowardly Dog ΓÇö Cartoon Network 1999ΓÇô2002. Always watching the TV and reading Newspapers. He faced
               every monster for Muriel, and he&rsquo;d face them all again. We re-animated Courage to life making him self-aware in a interactable 3D world. He lives entirely
               inside your browser.
             </p>
           </div>
           <div className="landing-card glass-panel">
             <div className="comic-banner comic-banner--yellow">
-              <h2 className="landing-heading"><span className="icon-tv-flicker">📺</span> What does he do?</h2>
+              <h2 className="landing-heading">≡ƒô║ What does he do?</h2>
             </div>
             <p>
-              Treat this as his mini browser world. Tap him to trigger reactions. Evading monsters inside and outside the house. Change scenes in menubar. Courage fetches real news every hour — good headlines make him wag, bad ones make him
+              Treat this as his mini browser world. Tap him to trigger reactions. Evading monsters inside and outside the house. Change scenes in menubar. Courage fetches real news every hour ΓÇö good headlines make him wag, bad ones make him
               literally <strong>explode from fear</strong> then reassemble. Just a scared dog doing his best.
             </p>
           </div>
@@ -844,26 +743,26 @@ export default function App() {
         {/* Tokenomics */}
         <section className="landing-section container glass-panel" style={{ padding: '2rem' }}>
           <div className="comic-banner">
-            <h2 className="landing-heading"><span className="icon-chart-grow">📊</span> Tokenomics</h2>
+            <h2 className="landing-heading">≡ƒôè Tokenomics</h2>
           </div>
           <div className="token-grid">
             <div className="token-card">
-              <span className="token-icon icon-pill-bounce">💊</span>
+              <span className="token-icon">≡ƒÆè</span>
               <span className="token-label">Total Supply</span>
               <span className="token-value">1,000,000,000</span>
             </div>
             <div className="token-card">
-              <span className="token-icon icon-fire-glow">🔥</span>
+              <span className="token-icon">≡ƒöÑ</span>
               <span className="token-label">Liquidity</span>
               <span className="token-value">Locked</span>
             </div>
             <div className="token-card">
-              <span className="token-icon icon-chart-line">📈</span>
+              <span className="token-icon">≡ƒôê</span>
               <span className="token-label">Tax</span>
               <span className="token-value">0.5%</span>
             </div>
             <div className="token-card">
-              <span className="token-icon icon-dog-wag">🐕</span>
+              <span className="token-icon">≡ƒÉò</span>
               <span className="token-label">Dev Wallet</span>
               <span className="token-value">0% (he's a dog)</span>
             </div>
@@ -873,26 +772,26 @@ export default function App() {
         {/* Buy $RCR CTA */}
         <section className="landing-section container glass-panel" style={{ textAlign: 'center', padding: '2rem' }}>
           <div className="comic-banner comic-banner--pink">
-            <h2 className="landing-heading"><span className="icon-paw-step">🐾</span> Get $RCR</h2>
+            <h2 className="landing-heading">≡ƒÉ╛ Get $RCR</h2>
           </div>
-          <p className="buy-cta-sub">Trade on Solana — Ser.</p>
+          <p className="buy-cta-sub">Trade on Solana ΓÇö Ser.</p>
           <div className="buy-cta-row">
-            <a href="#" className="brutal-btn brutal-btn--dark">🔭 DexScreener</a>
-            <a href="#" className="brutal-btn brutal-btn--pink">🐾 Buy $RCR</a>
+            <a href="#" className="brutal-btn brutal-btn--dark">≡ƒö¡ DexScreener</a>
+            <a href="#" className="brutal-btn brutal-btn--pink">≡ƒÉ╛ Buy $RCR</a>
           </div>
         </section>
 
         {/* How to buy */}
         <section className="landing-section howtobuy-section container glass-panel">
           <div className="comic-banner wiggle">
-            <h2 className="landing-heading section-title"><span className="icon-cart-bounce">🛒</span> How to Get $RCR</h2>
+            <h2 className="landing-heading section-title">≡ƒ¢Æ How to Get $RCR</h2>
           </div>
           <div className="steps-list">
             <div className="step-item">
               <span className="step-num">1</span>
               <div>
                 <strong>Get a Solana Wallet</strong>
-                <p>Download Phantom or Backpack — free and takes 2 minutes</p>
+                <p>Download Phantom or Backpack ΓÇö free and takes 2 minutes</p>
               </div>
             </div>
             <div className="step-item">
@@ -922,17 +821,17 @@ export default function App() {
         {/* Community */}
         <section className="landing-section container glass-panel" style={{ padding: '2rem' }}>
           <div className="comic-banner comic-banner--pink">
-            <h2 className="landing-heading"><span className="icon-globe-spin">🌐</span> Join the Pack</h2>
+            <h2 className="landing-heading">≡ƒîÉ Join the Pack</h2>
           </div>
           <p className="community-sub">The most anxious community in crypto</p>
           <div className="community-links" style={{ display: 'flex', justifyContent: 'center', gap: '2rem' }}>
-            <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer" className="brutal-btn brutal-btn--blue">𝕏 Twitter</a>
-            <a href="#" className="brutal-btn brutal-btn--pink">✈️ Telegram</a>
+            <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer" className="brutal-btn brutal-btn--blue">≡¥òÅ Twitter</a>
+            <a href="#" className="brutal-btn brutal-btn--pink">Γ£ê∩╕Å Telegram</a>
           </div>
         </section>
       </div>
 
-      {/* ── NewsTV overlay ── */}
+      {/* ΓöÇΓöÇ NewsTV overlay ΓöÇΓöÇ */}
       {newsOpen && (
         <NewsTV
           articles={articles}
@@ -950,30 +849,23 @@ export default function App() {
         />
       )}
 
-      {/* ── Sticky action bar (always visible at bottom of viewport) ── */}
+      {/* ΓöÇΓöÇ Sticky action bar (always visible at bottom of viewport) ΓöÇΓöÇ */}
       <div className={`sticky-actions${scrolled ? ' sticky-actions--hidden' : ''}${controlsExpanded ? ' sticky-actions--expanded' : ''}`}>
         {/* Mobile Toggle Button */}
-        <button
-          className="hero-btn mobile-only-toggle"
+        <button 
+          className="hero-btn mobile-only-toggle" 
           onClick={() => setControlsExpanded(!controlsExpanded)}
           aria-label={controlsExpanded ? "Collapse menu" : "Expand menu"}
         >
-          {controlsExpanded ? '✕' : '☰'}
+          {controlsExpanded ? 'Γ£ò' : 'Γÿ░'}
         </button>
 
         <div className="sticky-actions-inner">
           <button className="hero-btn" onClick={toggleHelperSection}>
-            <div className="tv-icon-wrapper">
-              <FaTv />
-              <div className="tv-screen-static" />
-            </div>
-            {helperVisible ? 'Hide TV' : 'Watch TV'}
+            <FaTv /> {helperVisible ? 'Hide TV' : 'Watch TV'}
           </button>
           <button className="hero-btn hero-btn--news" onClick={handleOpenNews}>
-            <div className="newspaper-icon-wrapper">
-              <FaNewspaper />
-            </div>
-            Read News
+            <FaNewspaper /> Read News
           </button>
           <button
             className="hero-btn hero-btn--explode"
@@ -981,7 +873,7 @@ export default function App() {
             disabled={explodeDisabled}
             title={explodeDisabled ? 'Switch to night scene or open news first' : 'Boom!'}
           >
-            <span className="explode-icon">💥</span> Explode!
+            ≡ƒÆÑ Explode!
           </button>
           <button
             className="sticky-info-btn"
@@ -996,7 +888,7 @@ export default function App() {
 
       <Footer />
 
-      {/* ── 3D World portals — mounts silently in background, fades in when ready ── */}
+      {/* ΓöÇΓöÇ 3D World portals ΓÇö mounts silently in background, fades in when ready ΓöÇΓöÇ */}
       {world3DMounted && (
         <Suspense fallback={null}>
           {(_active === 'evening' || _active === 'midnight') && (
@@ -1033,7 +925,7 @@ export default function App() {
         </Suspense>
       )}
 
-      {/* ── First-time visitor welcome tour ── */}
+      {/* ΓöÇΓöÇ First-time visitor welcome tour ΓöÇΓöÇ */}
       <WelcomeTour
         forceOpen={tourOpen}
         onClose={() => {

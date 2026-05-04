@@ -467,23 +467,24 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
   }, [visible, audioLoaded]);
 
   useEffect(() => {
-    if (visible && audioLoaded) {
-      const track = DISCO_TRACKS[currentTrackIdx];
-      const playNext = async () => {
-         await audioManager.loadTrack(track.id, track.url);
-         if (isPlaying) {
-            await audioManager.playTrack(track.id, {
-              loop: false,
-              volume: 0.5,
-              onEnded: () => setCurrentTrackIdx(i => (i + 1) % DISCO_TRACKS.length),
-            });
-         } else {
-            audioManager.stopAllTracks();
-         }
-      };
-      playNext();
-    }
-    return () => audioManager.softCleanup();
+    if (!(visible && audioLoaded)) return;
+    let cancelled = false;
+    const track = DISCO_TRACKS[currentTrackIdx];
+    const playNext = async () => {
+      await audioManager.loadTrack(track.id, track.url);
+      if (cancelled) return;
+      if (isPlaying) {
+        await audioManager.playTrack(track.id, {
+          loop: false,
+          volume: 0.5,
+          onEnded: () => setCurrentTrackIdx(i => (i + 1) % DISCO_TRACKS.length),
+        });
+      } else {
+        audioManager.stopAllTracks();
+      }
+    };
+    playNext();
+    return () => { cancelled = true; audioManager.softCleanup(); };
   }, [visible, audioLoaded, currentTrackIdx, isPlaying]);
 
   return (
@@ -495,15 +496,15 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
       {visible && (
          <div className="disco-music-panel">
             <div style={{ fontSize: '2rem' }}>💿</div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-               <span style={{ fontSize: '0.7rem', color: '#00FF00', fontWeight: 'bold' }}>DJ Courage's Playlist</span>
-               <span style={{ fontSize: '1.1rem', fontWeight: 600 }}>{DISCO_TRACKS[currentTrackIdx].title}</span>
+            <div className="disco-music-info">
+               <span className="disco-music-label">DJ Courage's Playlist</span>
+               <span className="disco-music-title">{DISCO_TRACKS[currentTrackIdx].title}</span>
             </div>
-            <div style={{ display: 'flex', gap: '10px', marginLeft: '10px' }}>
-               <button onClick={() => setIsPlaying(!isPlaying)} style={{ background: '#333', border: 'none', color: '#00FF00', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '1.2rem' }}>
+            <div className="disco-music-controls">
+               <button className="disco-music-btn" onClick={() => setIsPlaying(!isPlaying)}>
                   {isPlaying ? '⏸' : '▶️'}
                </button>
-               <button onClick={() => setCurrentTrackIdx(i => (i + 1) % DISCO_TRACKS.length)} style={{ background: '#333', border: 'none', color: '#00FF00', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '1.2rem' }}>
+               <button className="disco-music-btn" onClick={() => setCurrentTrackIdx(i => (i + 1) % DISCO_TRACKS.length)}>
                   ⏭
                </button>
             </div>

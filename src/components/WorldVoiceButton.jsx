@@ -128,6 +128,16 @@ export default function WorldVoiceButton({ worldContext, visible }) {
     // Ignore taps while thinking or speaking
   }, [voiceState, handlePress, handleRelease]);
 
+  // Helper to render bold text and clean up markdown symbols
+  const formatText = (text) => {
+    if (!text) return '';
+    // Handle **bold** or __bold__
+    let processed = text.replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>');
+    // Remove other common MD artifacts like # or - if they leak in
+    processed = processed.replace(/^[#\-\*\s]+/, '');
+    return <span dangerouslySetInnerHTML={{ __html: processed }} />;
+  };
+
   if (!visible) return null;
 
   const isBusy = voiceState !== 'idle';
@@ -139,101 +149,68 @@ export default function WorldVoiceButton({ worldContext, visible }) {
         transcript={transcript}
         toolLog={toolLog}
       />
-      <div className="world-voice-btn" style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px',
-        userSelect: 'none',
-      }}>
-      {/* Transcript + Reply bubble */}
-      {expanded && (transcript || reply || error) && (
-        <div style={{
-          background: 'rgba(10,0,20,0.95)', backdropFilter: 'blur(12px)',
-          border: '2px solid rgba(150,0,255,0.6)', borderRadius: '16px',
-          padding: '14px 18px', maxWidth: '300px', color: '#fff',
-          boxShadow: '0 4px 20px rgba(120,0,255,0.3)',
-          animation: 'selfieButtonPulse 0s', // reuse existing keyframe name just for entrance
-        }}>
-          {transcript && (
-            <div style={{ fontSize: '0.8rem', color: '#aaa', marginBottom: '6px' }}>
-              <span style={{ color: '#9933ff' }}>You:</span> {transcript}
-            </div>
-          )}
-          {reply && (
-            <div style={{ fontSize: '0.9rem', lineHeight: 1.5 }}>
-              <span style={{ color: '#cc66ff' }}>🐕 Courage:</span> {reply}
-            </div>
-          )}
-          {error && (
-            <div style={{ fontSize: '0.8rem', color: '#ff6666' }}>⚠️ {error}</div>
-          )}
-          <button
-            onClick={() => setExpanded(false)}
-            style={{
-              position: 'absolute', top: '6px', right: '10px',
-              background: 'none', border: 'none', color: '#666',
-              cursor: 'pointer', fontSize: '0.8rem',
-            }}
-          >✕</button>
-        </div>
-      )}
-
-      {/* Quota indicator — always visible */}
-      <div style={{
-        background: 'rgba(10,0,20,0.85)', backdropFilter: 'blur(10px)',
-        border: `1px solid ${quota.canSpeak ? 'rgba(150,0,255,0.4)' : 'rgba(255,80,80,0.5)'}`,
-        borderRadius: '10px', padding: '6px 10px', minWidth: '120px',
-        fontSize: '0.72rem', color: quota.canSpeak ? '#cc99ff' : '#ff8888',
-        textAlign: 'center',
-      }}>
-        {quota.canSpeak ? (
-          <span>🎙 {formatTime(quota.remainingSecs)} left this hour</span>
-        ) : (
-          <span>⏳ Resting… back {formatResetIn(quota.resetInSecs)}</span>
+      <div className="world-chat-bubble-container">
+        {/* Transcript + Reply bubble */}
+        {expanded && (transcript || reply || error) && (
+          <div className="world-chat-bubble">
+            <button className="world-chat-close" onClick={() => setExpanded(false)}>✕</button>
+            {transcript && (
+              <div className="world-chat-user">
+                You: <span style={{ fontWeight: 500, color: '#666' }}>{transcript}</span>
+              </div>
+            )}
+            {reply && (
+              <div className="world-chat-text">
+                <span className="world-chat-courage">🐕 Courage:</span> {formatText(reply)}
+              </div>
+            )}
+            {error && (
+              <div style={{ fontSize: '0.8rem', color: '#ff6666', marginTop: '8px' }}>⚠️ {error}</div>
+            )}
+          </div>
         )}
-        <div style={{
-          marginTop: '4px', height: '3px', borderRadius: '2px',
-          background: 'rgba(255,255,255,0.1)',
-        }}>
-          <div style={{
-            height: '100%', borderRadius: '2px',
-            width: `${Math.max(0, (quota.remainingSecs / 900) * 100)}%`,
-            background: quota.canSpeak
-              ? 'linear-gradient(90deg, #6600cc, #cc00ff)'
-              : 'rgba(255,80,80,0.5)',
-            transition: 'width 1s ease',
-          }} />
+
+        {/* Quota indicator */}
+        <div className="world-quota-panel">
+          {quota.canSpeak ? (
+            <span>🎙 {formatTime(quota.remainingSecs)} left</span>
+          ) : (
+            <span>⏳ Resting… {formatResetIn(quota.resetInSecs)}</span>
+          )}
+          <div className="world-quota-bar">
+            <div className="world-quota-progress" style={{ width: `${Math.max(0, (quota.remainingSecs / 900) * 100)}%` }} />
+          </div>
         </div>
-      </div>
 
-      {/* Mic FAB */}
+        {/* Mic FAB */}
+        <button
+          onClick={handleTap}
+          disabled={voiceState === 'thinking' || voiceState === 'speaking'}
+          title={STATE_LABEL[voiceState]}
+          style={{
+            width: '60px', height: '60px', borderRadius: '50%',
+            background: STATE_COLORS[voiceState] || STATE_COLORS.idle,
+            border: voiceState === 'listening' ? '4px solid #fff' : '3px solid rgba(255,255,255,0.3)',
+            cursor: isBusy && voiceState !== 'listening' ? 'wait' : 'pointer',
+            fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: voiceState === 'listening'
+              ? '0 0 0 10px rgba(255,0,0,0.3), 0 0 0 20px rgba(255,0,0,0.1), 0 6px 20px rgba(0,0,0,0.5)'
+              : '0 6px 20px rgba(0,0,0,0.4)',
+            transition: 'all 0.2s ease',
+            animation: voiceState === 'listening' ? 'voiceListeningPulse 1.2s ease-in-out infinite' : 'none',
+          }}
+        >
+          {STATE_EMOJI[voiceState]}
+        </button>
 
-      <button
-        onClick={handleTap}
-        disabled={voiceState === 'thinking' || voiceState === 'speaking'}
-        title={STATE_LABEL[voiceState]}
-        style={{
-          width: '60px', height: '60px', borderRadius: '50%',
-          background: STATE_COLORS[voiceState] || STATE_COLORS.idle,
-          border: voiceState === 'listening' ? '4px solid #fff' : '3px solid rgba(255,255,255,0.3)',
-          cursor: isBusy && voiceState !== 'listening' ? 'wait' : 'pointer',
-          fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: voiceState === 'listening'
-            ? '0 0 0 10px rgba(255,0,0,0.3), 0 0 0 20px rgba(255,0,0,0.1), 0 6px 20px rgba(0,0,0,0.5)'
-            : '0 6px 20px rgba(0,0,0,0.4)',
-          transition: 'all 0.2s ease',
-          animation: voiceState === 'listening' ? 'voiceListeningPulse 1.2s ease-in-out infinite' : 'none',
-        }}
-      >
-        {STATE_EMOJI[voiceState]}
-      </button>
-
-      {/* Label */}
-      <div style={{
-        fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)',
-        textAlign: 'center', fontFamily: '"Comic Sans MS", cursive',
-        textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-      }}>
-        {STATE_LABEL[voiceState]}
-      </div>
+        {/* Label */}
+        <div style={{
+          fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)',
+          textAlign: 'center', fontFamily: '"Comic Sans MS", cursive',
+          textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+        }}>
+          {STATE_LABEL[voiceState]}
+        </div>
     </div>
     </>
   );

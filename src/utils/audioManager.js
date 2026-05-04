@@ -40,14 +40,18 @@ class AudioManager {
   /** Synchronously kill every playing source — no fade, instant. Safe to call before starting a new track. */
   stopImmediate() {
     this._stopping = true;
+    this.currentTrack = null; // disarm onended guards before iterating
     this.tracks.forEach((track) => {
       if (track.source) {
+        track.source.onended = null; // prevent onended from triggering state updates
+        if (track.gainNode) {
+          try { track.gainNode.disconnect(); } catch (_) {}
+          track.gainNode = null;
+        }
         try { track.source.stop(); } catch (_) {}
         track.source = null;
-        track.gainNode = null;
       }
     });
-    this.currentTrack = null;
     this._stopping = false;
   }
 
