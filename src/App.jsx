@@ -636,9 +636,9 @@ export default function App() {
       <nav className="bone-nav">
         <div className="circle left top" /><div className="circle left bottom" />
         <div className="halloctober__banner p-flex">
-          <h1 className="couragesign shiny-glass">
+          <h1 className="couragesign">
             <a href="https://pump.fun/coin/$RCR" target="_blank" rel="noopener noreferrer" className="couragesign-link">
-              RUN COURAGE, <span className="couragesign-emphasis">RUN!!!</span>
+                RUN COURAGE,<br className="mobile-only" /> <span className="couragesign-emphasis">RUN!!!</span>
             </a>
           </h1>
           <div className="fog p-circle" />
