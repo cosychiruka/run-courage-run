@@ -19,6 +19,7 @@ from app.system_prompt import build_context_prompt
 from app.tools import TOOL_SCHEMAS, dispatch_tool, _last_tweet_cards
 from app.news_cache import get_all_recent
 from app.twitter_memory import init_twitter_db, get_twitter_summary
+from app.goal_tracker import get_goal_progress_summary
 
 from app.config import GROQ_API_KEY, GROQ_MODEL, GROQ_MODEL_FAST
 
@@ -146,14 +147,16 @@ async def run_agent(
     # Ensure Twitter memory tables exist
     await init_twitter_db()
 
-    # Build rich system prompt: recent articles + Twitter memory
+    # Build rich system prompt: recent articles + Twitter memory + goal progress
     recent_articles  = await get_all_recent(limit=10)
     twitter_summary  = await get_twitter_summary()
+    goal_summary     = await get_goal_progress_summary()
     system           = build_context_prompt(
         recent_articles,
         world_context=world_context,
         twitter_summary=twitter_summary,
         model_name=GROQ_MODEL,
+        goal_summary=goal_summary,
     )
 
     def _sanitise_history(hist: list[dict]) -> list[dict]:
@@ -269,4 +272,5 @@ _TOOL_LABELS = {
     "get_twitter_trends":   "📈 Discovering trending topics...",
     "get_twitter_memory":   "🗄️ Recalling Twitter history...",
     "record_twitter_action":"💾 Saving to memory...",
+    "get_crypto_news":      "📈 Fetching crypto headlines...",
 }

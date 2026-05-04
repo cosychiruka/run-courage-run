@@ -56,8 +56,13 @@ export default function WorldVoiceButton({ worldContext, visible }) {
   useEffect(() => {
     const svc = createVoiceService({
       onState:      (s) => { setVoiceState(s); if (s !== 'thinking') setToolLog([]); },
-      onTranscript: (t) => { setTranscript(t); setExpanded(true); setToolLog([]); },
-      onReply:      (r) => { setReply(r); setExpanded(true); },
+      onTranscript: (t) => { setTranscript(t); setExpanded(false); setToolLog([]); },
+      onReply:      (r) => { 
+        setReply(r); 
+        setExpanded(true); 
+        // Auto-hide Courage's reply after 6 seconds
+        setTimeout(() => setExpanded(false), 6000);
+      },
       onAudio:      () => {},
       onError:      (e) => { setError(e); setVoiceState('idle'); setToolLog([]); },
       onToolCall:   (ev) => {
@@ -154,11 +159,6 @@ export default function WorldVoiceButton({ worldContext, visible }) {
         {expanded && (transcript || reply || error) && (
           <div className="world-chat-bubble">
             <button className="world-chat-close" onClick={() => setExpanded(false)}>✕</button>
-            {transcript && (
-              <div className="world-chat-user">
-                You: <span style={{ fontWeight: 500, color: '#666' }}>{transcript}</span>
-              </div>
-            )}
             {reply && (
               <div className="world-chat-text">
                 <span className="world-chat-courage">🐕 Courage:</span> {formatText(reply)}

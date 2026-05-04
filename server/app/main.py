@@ -14,6 +14,7 @@ Endpoints:
 import json
 import asyncio
 import time
+import datetime
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,7 +24,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import os
 import httpx
 
-from app.config import FRONTEND_ORIGIN, REDIS_URL
+from app.config import FRONTEND_ORIGIN, REDIS_URL, AUTONOMOUS_INTERVAL_MINUTES
 from app.news_cache import (
     init_db, discovery_round, get_recent_articles,
     get_cached_articles, fetch_pair, search_newsapi, search_gnews,
@@ -34,6 +35,9 @@ from app.agent import run_agent, _init_token_tracker
 from app.x_client import make_x_client
 from app.tweet_image import render_news_card, render_card_for_url
 from app.twitter_memory import init_twitter_db
+from app.goal_tracker import init_goal_db
+from app.crypto_news import crypto_discovery_round
+from app.autonomous_loop import autonomous_tick
 import redis.asyncio as aioredis
 
 # ── Shared HTTP client (persistent pool, not per-request) ─────────────────────
@@ -88,6 +92,7 @@ async def lifespan(app: FastAPI):
         print("[STARTUP] Initializing database...")
         await init_db()
         await init_twitter_db()
+        await init_goal_db()
         print("[STARTUP] Database initialized.")
 
         # Redis — for presence persistence across redeploys
@@ -113,13 +118,20 @@ async def lifespan(app: FastAPI):
         x_client = make_x_client()
         print(f"[STARTUP] X client: {'ACTIVE ✓' if x_client else 'DISABLED (keys missing or init failed)'}")
 
-        # Background jobs — 30 min interval
+        # Background jobs
         scheduler.add_job(discovery_round, "interval", minutes=30, id="discovery")
+        scheduler.add_job(crypto_discovery_round, "interval", minutes=30, id="crypto_discovery")
+        scheduler.add_job(
+            autonomous_tick, "interval",
+            minutes=AUTONOMOUS_INTERVAL_MINUTES, id="autonomous", jitter=60,
+            kwargs={"x_client": x_client, "tweet_image_fn": _tweet_image_fn},
+        )
         scheduler.start()
-        print("[STARTUP] Background scheduler started.")
+        print("[STARTUP] Background scheduler started (discovery + crypto + autonomous).")
 
         asyncio.create_task(discovery_round())
-        print("[STARTUP] Initial news discovery queued.")
+        asyncio.create_task(crypto_discovery_round())
+        print("[STARTUP] Initial news + crypto discovery queued.")
 
         asyncio.create_task(_load_voice_models_bg())
 
@@ -274,6 +286,15 @@ async def api_render_card(payload: dict):
 async def voice_ws(ws: WebSocket, session: str = ""):
     await ws.accept()
 
+    # Track this session as active (so autonomous loop can be conservative)
+    _session_id = session or f"anon_{int(time.time())}"
+    if _redis:
+        try:
+            await _redis.sadd("active_voice_sessions", _session_id)
+            await _redis.expire("active_voice_sessions", 3600)  # safety TTL
+        except Exception:
+            pass
+
     # ── Per-session history (isolated per user connection) ─────────────────────────
     # Each WebSocket connection gets its OWN history. If a session_id is provided
     # we also persist it in Redis so reconnections restore context.
@@ -401,6 +422,50 @@ async def voice_ws(ws: WebSocket, session: str = ""):
             await ws.send_text(json.dumps({"type": "error", "message": str(e)}))
         except Exception:
             pass
+    finally:
+        # Remove from active sessions — always runs on disconnect
+        if _redis:
+            try:
+                await _redis.srem("active_voice_sessions", _session_id)
+            except Exception:
+                pass
+
+        # Store compact visitor log entry — topic keywords only, no personal info
+        if _redis and history:
+            try:
+                user_turns = [m["content"][:50] for m in history if m.get("role") == "user"][:3]
+                log_entry = json.dumps({
+                    "ts": time.time(),
+                    "turn_count": len(history) // 2,
+                    "topics": user_turns,
+                })
+                await _redis.lpush("courage:visitor_log", log_entry)
+                await _redis.ltrim("courage:visitor_log", 0, 499)
+                await _redis.expire("courage:visitor_log", 86400)
+            except Exception:
+                pass
+
+
+# ── Goal Progress ─────────────────────────────────────────────────────────────
+
+@app.get("/api/goal_progress")
+async def goal_progress():
+    """Returns Courage's growth stats, bucket usage, and autonomous tweet count."""
+    from app.goal_tracker import get_goal_progress_summary, get_last_bucket_times
+    summary = await get_goal_progress_summary()
+    bucket_times = await get_last_bucket_times()
+    today = datetime.date.today().isoformat()
+    auto_tweets = 0
+    if _redis:
+        try:
+            auto_tweets = int(await _redis.get(f"courage:auto_tweets:{today}") or 0)
+        except Exception:
+            pass
+    return JSONResponse({
+        "summary": summary,
+        "bucket_last_used": bucket_times,
+        "auto_tweets_today": auto_tweets,
+    })
 
 
 # ── World Event Engine ─────────────────────────────────────────────────────────

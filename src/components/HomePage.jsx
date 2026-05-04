@@ -10,7 +10,7 @@ const HomePage = ({ CryptoTv, onNewsClick }) => {
   }, [CryptoTv]);
 
   return (
-    <section id="loan-and-bone-center">
+    <section id="tv-center">
       <ErrorBoundary fallbackText="TV couldn't load. Please refresh.">
         {/* helper-section starts hidden; toggled by hero Watch TV button */}
         <div id="helper-section">

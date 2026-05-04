@@ -394,6 +394,11 @@ export default function App() {
     if (activeScene === 'disco') {
       return (
         <div className="disco-landing-scene">
+          {/* Stage Curtains */}
+          <div className="stage-curtain left"></div>
+          <div className="stage-curtain right"></div>
+          <div className="disco-spotlight"></div>
+          
           <div className="disco-ball">
             <div className="disco-sparkle"></div>
             <div className="disco-sparkle s2"></div>

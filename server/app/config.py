@@ -36,3 +36,7 @@ KOKORO_VOICE  = "af_bella"  # more cartoonish voice
 GNEWS_DAILY_BUDGET        = int(os.getenv("GNEWS_DAILY_BUDGET",        "80"))
 NEWSAPI_DAILY_BUDGET      = int(os.getenv("NEWSAPI_DAILY_BUDGET",      "80"))
 GROQ_DAILY_TOKEN_BUDGET   = int(os.getenv("GROQ_DAILY_TOKEN_BUDGET",   "500000"))
+
+CRYPTOPANIC_API_KEY         = os.getenv("CRYPTOPANIC_API_KEY", "")
+COINGECKO_API_KEY           = os.getenv("COINGECKO_API_KEY", "")
+AUTONOMOUS_INTERVAL_MINUTES = int(os.getenv("AUTONOMOUS_INTERVAL_MINUTES", "18"))

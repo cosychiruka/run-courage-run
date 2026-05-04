@@ -18,6 +18,11 @@ Tools available to Courage:
 import json
 import re
 import time
+import tempfile
+import uuid
+import httpx
+from pathlib import Path
+from typing import Optional
 
 from app.news_cache import (
     get_cached_articles, fetch_full_article, save_full_content,
@@ -155,7 +160,8 @@ TOOL_SCHEMAS = [
                 "type": "object",
                 "properties": {
                     "text":           {"type": "string", "description": "Tweet text (max 280 chars). No external URLs or addresses."},
-                    "article_url":    {"type": "string", "description": "Optional: URL of article to attach as a news-card image (keeps URL out of tweet text)"},
+                    "article_url":    {"type": "string", "description": "Optional: URL of a news article to render as a card image and attach to the tweet"},
+                    "image_url":      {"type": "string", "description": "Optional: direct image URL to download and attach (e.g. crypto news thumbnail). Used when no article_url is available."},
                     "reply_to_id":    {"type": "string", "description": "Optional: tweet ID to reply to"},
                     "shoutout_handle":{"type": "string", "description": "Optional: the @handle of the user being shouted out (without @). Include in tweet text too."},
                 },
@@ -211,9 +217,9 @@ TOOL_SCHEMAS = [
         "function": {
             "name": "get_twitter_trends",
             "description": (
-                "Attempt to fetch trending topics. NOTE: This endpoint requires X Pro plan "
-                "and will likely return an error on the current plan. "
-                "Use search_tweets with relevant keywords as a better alternative."
+                "Fetch trending topics worldwide or by region using the X API. "
+                "Available on the current paid plan. Returns top trending topics with volume. "
+                "If an error occurs, use search_tweets with relevant keywords as a fallback."
             ),
             "parameters": {
                 "type": "object",
@@ -274,6 +280,32 @@ TOOL_SCHEMAS = [
             "parameters": {"type": "object", "properties": {}, "required": []},
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_crypto_news",
+            "description": (
+                "Fetch recent crypto and blockchain news headlines. "
+                "Sources: CryptoPanic (real-time aggregation) and CoinGecko (includes thumbnail images). "
+                "Use this for MACRO crypto stories: Bitcoin/Ethereum price moves, SEC regulatory rulings, "
+                "DeFi ecosystem events, major exchange news, market sentiment shifts. "
+                "NEVER use this to promote specific tokens, projects, or contract addresses. "
+                "React to these stories as Courage would — dramatic, brave, in character. "
+                "Some CoinGecko articles include image_url — pass that to post_tweet's image_url param when tweeting."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "limit": {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Number of headlines to return (1-20)",
+                    },
+                },
+                "required": [],
+            },
+        },
+    },
 ]
 
 # ── Tool name lookup ───────────────────────────────────────────────────────────
@@ -299,6 +331,7 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
             case "get_twitter_memory":    return await _get_twitter_memory()
             case "record_twitter_action": return await _record_twitter_action(args)
             case "check_api_credits":     return await _check_api_credits(x_client)
+            case "get_crypto_news":       return await _get_crypto_news(args)
             case _:                       return f"Unknown tool: {name}"
     except Exception as e:
         return f"Tool error ({name}): {e}"
@@ -432,12 +465,42 @@ async def _get_mentions(args: dict, x_client) -> str:
         return f"Failed to fetch mentions: {e}"
 
 
+async def _download_article_image(url: str) -> Optional[Path]:
+    """
+    Download an image to OS temp dir for Twitter upload.
+    Returns Path or None on any failure. Caller MUST delete the file when done.
+    Skips images larger than 5 MB.
+    """
+    if not url:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+            r = await client.get(url)
+        if not r.is_success:
+            return None
+        ct = r.headers.get("content-type", "")
+        if not ct.startswith("image/"):
+            return None
+        if len(r.content) > 5 * 1024 * 1024:
+            print(f"[TWEET IMAGE] Skipping oversized image ({len(r.content)} bytes)")
+            return None
+        ext_map = {"image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp"}
+        ext = ext_map.get(ct.split(";")[0].strip(), "jpg")
+        tmp_path = Path(tempfile.gettempdir()) / f"{uuid.uuid4().hex}.{ext}"
+        tmp_path.write_bytes(r.content)
+        return tmp_path
+    except Exception as e:
+        print(f"[TWEET IMAGE] Download failed: {e}")
+        return None
+
+
 async def _post_tweet(args: dict, x_client, tweet_image_fn) -> str:
     print(f"[TWITTER] Tool: post_tweet text='{args.get('text','')[:80]}...'")
     if x_client is None:
         return "X client not configured — tweet not sent."
     text        = args.get("text", "")
     article_url = args.get("article_url")
+    image_url   = args.get("image_url")
     reply_to    = args.get("reply_to_id")
 
     if not text:
@@ -451,15 +514,26 @@ async def _post_tweet(args: dict, x_client, tweet_image_fn) -> str:
         return safety_error
 
     media_id = None
-    if article_url and tweet_image_fn:
-        try:
-            img_bytes = await tweet_image_fn(article_url)
-            if img_bytes:
-                media_id = x_client.upload_media(img_bytes)
-        except Exception as e:
-            print(f"[TWEET IMAGE] Failed: {e}")
+    tmp_path: Optional[Path] = None
 
     try:
+        if article_url and tweet_image_fn:
+            # Render a PIL news card from the article URL
+            try:
+                img_bytes = await tweet_image_fn(article_url)
+                if img_bytes:
+                    media_id = x_client.upload_media(img_bytes)
+            except Exception as e:
+                print(f"[TWEET IMAGE] News card render failed: {e}")
+        elif image_url:
+            # Download article's own thumbnail (e.g. from crypto news)
+            try:
+                tmp_path = await _download_article_image(image_url)
+                if tmp_path:
+                    media_id = x_client.upload_media(tmp_path.read_bytes())
+            except Exception as e:
+                print(f"[TWEET IMAGE] Thumbnail upload failed: {e}")
+
         resp = x_client.create_tweet(
             text=text,
             media_ids=[media_id] if media_id else None,
@@ -474,6 +548,13 @@ async def _post_tweet(args: dict, x_client, tweet_image_fn) -> str:
     except Exception as e:
         print(f"[TWITTER] post_tweet FAILED: {e}")
         return f"Tweet failed: {e}"
+    finally:
+        # Always clean up temp image file regardless of outcome
+        if tmp_path and tmp_path.exists():
+            try:
+                tmp_path.unlink()
+            except Exception:
+                pass
 
 
 async def _search_tweets(args: dict, x_client) -> str:
@@ -565,15 +646,12 @@ async def _get_twitter_trends(args: dict, x_client) -> str:
         return f"Trending on Twitter ({label}):\n" + "\n".join(lines)
     except Exception as e:
         err_str = str(e)
-        if "453" in err_str or "403" in err_str or "subset of X API" in err_str:
-            print("[TWITTER] get_trends: endpoint not available on current X plan (requires Pro)")
-            return (
-                "The Twitter trends endpoint (v1.1/trends/place) requires an X API Pro plan "
-                "and is not available on the current Basic/Free tier. "
-                "I can still post tweets, read mentions, and check news. "
-                "For sports trends, try fetching sports news instead with get_news(category='sports')."
-            )
         print(f"[TWITTER] get_trends FAILED: {e}")
+        if "453" in err_str or "403" in err_str:
+            return (
+                f"Trends endpoint returned an access error ({e}). "
+                "Try searching for trending topics manually with search_tweets instead."
+            )
         return f"Failed to fetch trends: {e}"
 
 
@@ -632,3 +710,26 @@ async def _check_api_credits(x_client) -> str:
         f"Guardian: unlimited (no counter)",
     ]
     return "\n".join(lines)
+
+
+async def _get_crypto_news(args: dict) -> str:
+    from app.crypto_news import get_crypto_headlines
+    limit = max(1, min(int(args.get("limit", 10)), 20))
+    articles = await get_crypto_headlines(limit=limit)
+    if not articles:
+        return (
+            "No crypto news available right now. The blockchain ether is quiet... "
+            "*nervous gulp* Try again in a few minutes."
+        )
+    out = f"Crypto headlines ({len(articles)}):\n\n"
+    for i, a in enumerate(articles, 1):
+        out += f"[{i}] {a.get('title', 'No title')}\n"
+        out += f"    Source: {a.get('source_name', 'Unknown')}\n"
+        out += f"    URL: {a.get('url', '')}\n"
+        if a.get("image_url"):
+            out += f"    Image: {a['image_url']}\n"
+        desc = (a.get("description") or "")[:180]
+        if desc:
+            out += f"    {desc}\n"
+        out += "\n"
+    return out.strip()
