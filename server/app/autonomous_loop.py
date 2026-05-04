@@ -15,6 +15,7 @@ The server must never crash because of an autonomous tick.
 """
 
 import json
+import re
 import time
 import datetime
 import httpx
@@ -24,6 +25,7 @@ from app.twitter_memory import get_recent_tweets, get_unreplied_mentions
 from app.goal_tracker import (
     get_last_bucket_times, update_bucket_time,
     snapshot_goals, record_autonomous_decision,
+    update_autonomous_decision_executed,
 )
 
 # ── Bucket cooldowns (minutes between uses of the same bucket) ─────────────────
@@ -170,6 +172,14 @@ async def _gather_state(redis) -> dict:
         except Exception:
             pass
 
+    # Article URLs Courage has already covered (capped Redis list, 48h TTL)
+    covered_urls: list[str] = []
+    if redis:
+        try:
+            covered_urls = await redis.lrange("courage:covered_urls", 0, 19) or []
+        except Exception:
+            pass
+
     return {
         "recent_tweets":        recent_tweets,
         "unreplied_count":      unreplied_count,
@@ -179,6 +189,7 @@ async def _gather_state(redis) -> dict:
         "crypto_headlines":     crypto_headlines,
         "visitor_count":        visitor_count,
         "auto_tweets_today":    auto_tweets_today,
+        "covered_urls":         covered_urls,
         "time_utc":             datetime.datetime.utcnow().isoformat(),
     }
 
@@ -217,7 +228,10 @@ Decision rules (follow these strictly):
 Valid actions: TWEET_NEWS, TWEET_CRYPTO, REPLY_MENTIONS, RANDOM, WORLD_UPDATE, SOCIAL, SKIP
 
 Response format (exactly this JSON structure):
-{{"action": "TWEET_NEWS", "bucket": "NEWS", "reasoning": "Fresh Guardian story about X that I haven't reacted to"}}
+{{"action": "TWEET_NEWS", "bucket": "NEWS", "reasoning": "Fresh Guardian story about X that I haven't reacted to", "confidence": 0.85}}
+
+confidence: 0.0–1.0. High = clear obvious action. Low = uncertain, nothing great to post, or weak reasoning.
+Ticks with confidence < 0.5 are automatically skipped — be honest.
 """
 
 
@@ -296,11 +310,22 @@ async def _execute(decision: dict, state: dict, x_client, tweet_image_fn) -> str
         t.get("text", "")[:80] for t in state["recent_tweets"][:3]
     ) or "none yet"
 
+    # Inject already-covered URLs so Courage avoids re-posting the same stories
+    covered_note = ""
+    covered = state.get("covered_urls", [])
+    if covered:
+        covered_note = (
+            f"\n[Stories already covered this week — do NOT repeat these: "
+            + " | ".join(covered[:10])
+            + "]"
+        )
+
     proactive_prompt = (
         f"{base_prompt}\n\n"
         f"[Autonomous context — your own decision to act]\n"
         f"[Reasoning: {decision.get('reasoning', '')}]\n"
         f"[Recent tweets to avoid repeating: {recent_summary}]"
+        f"{covered_note}"
     )
 
     return await run_agent(
@@ -309,7 +334,8 @@ async def _execute(decision: dict, state: dict, x_client, tweet_image_fn) -> str
         x_client=x_client,
         tweet_image_fn=tweet_image_fn,
         world_context=None,
-        ws_emit=None,  # Background mode — no frontend WebSocket
+        ws_emit=None,        # Background mode — no frontend WebSocket
+        max_tool_rounds=4,   # Lighter cap for autonomous background work
     )
 
 
@@ -358,14 +384,21 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
             print(f"[AUTO] Decision step failed: {e}. Skipping tick.")
             return
 
-        action = decision.get("action", "SKIP")
-        bucket = decision.get("bucket", "SKIP")
-        reasoning = decision.get("reasoning", "")
-        print(f"[AUTO] Decision — action={action} bucket={bucket} | {reasoning}")
+        action     = decision.get("action", "SKIP")
+        bucket     = decision.get("bucket", "SKIP")
+        reasoning  = decision.get("reasoning", "")
+        confidence = float(decision.get("confidence", 1.0))
+        print(f"[AUTO] Decision — action={action} bucket={bucket} confidence={confidence:.2f} | {reasoning}")
 
-        # 4. Log the decision (best-effort)
+        # 4a. Confidence gate — skip weak decisions before burning execution resources
+        if confidence < 0.5:
+            print(f"[AUTO] Low confidence ({confidence:.2f}). Skipping tick.")
+            return
+
+        # 4b. Log the decision (best-effort); capture row id for later update
+        decision_id: int | None = None
         try:
-            await record_autonomous_decision(action, bucket, reasoning)
+            decision_id = await record_autonomous_decision(action, bucket, reasoning)
         except Exception as e:
             print(f"[AUTO] Decision logging failed (non-fatal): {e}")
 
@@ -377,8 +410,8 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
         if bucket in BUCKET_COOLDOWNS:
             try:
                 bucket_times = await get_last_bucket_times()
-                last_used = float(bucket_times.get(bucket, 0))
-                elapsed_min = (time.time() - last_used) / 60
+                last_used    = float(bucket_times.get(bucket, 0))
+                elapsed_min  = (time.time() - last_used) / 60
                 if elapsed_min < BUCKET_COOLDOWNS[bucket]:
                     print(
                         f"[AUTO] Bucket {bucket} still cooling "
@@ -388,7 +421,7 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
             except Exception:
                 pass  # If check fails, proceed anyway
 
-        # 6. Execute via run_agent
+        # 6. Execute via run_agent (max 4 tool rounds in autonomous mode)
         result = None
         try:
             result = await _execute(decision, state, x_client, tweet_image_fn)
@@ -397,13 +430,12 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
             print(f"[AUTO] Execution failed: {e}")
             return
 
-        # 7. Increment daily tweet counter
+        # 7. Increment daily autonomous tweet counter
         if redis:
             try:
-                today = datetime.date.today().isoformat()
-                key = f"courage:auto_tweets:{today}"
-                await redis.incr(key)
-                await redis.expire(key, 86400)
+                today_key = f"courage:auto_tweets:{datetime.date.today().isoformat()}"
+                await redis.incr(today_key)
+                await redis.expire(today_key, 86400)
             except Exception as e:
                 print(f"[AUTO] Tweet counter update failed (non-fatal): {e}")
 
@@ -414,22 +446,48 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
             except Exception as e:
                 print(f"[AUTO] Bucket time update failed (non-fatal): {e}")
 
-        # 9. Best-effort goal snapshot (grabs profile from X API)
-        if x_client:
+        # 9. Mark decision as executed — link to the tweet just posted (best-effort)
+        if decision_id and result:
+            try:
+                recent = await get_recent_tweets(1)
+                if recent:
+                    latest = recent[0]
+                    # Only claim this tweet if it was posted within the last 2 minutes
+                    if time.time() - float(latest.get("created_at", 0)) < 120:
+                        await update_autonomous_decision_executed(
+                            decision_id, latest.get("tweet_id", "")
+                        )
+            except Exception as e:
+                print(f"[AUTO] Decision executed-update failed (non-fatal): {e}")
+
+        # 10. Daily goal snapshot — one X API read per day, not per tick
+        today_str     = datetime.date.today().isoformat()
+        snapshot_flag = f"courage:goal_snapshot:{today_str}"
+        already_done  = False
+        if redis:
+            try:
+                already_done = bool(await redis.get(snapshot_flag))
+            except Exception:
+                pass
+
+        if not already_done and x_client:
             try:
                 resp = x_client.get_my_profile()
                 if resp and resp.data:
-                    u = resp.data
+                    u       = resp.data
                     metrics = u.public_metrics or {}
                     await snapshot_goals(
-                        follower_count=metrics.get("followers_count", 0),
-                        tweet_count=metrics.get("tweet_count", 0),
-                        following_count=metrics.get("following_count", 0),
+                        follower_count  = metrics.get("followers_count",  0),
+                        tweet_count     = metrics.get("tweet_count",      0),
+                        following_count = metrics.get("following_count",  0),
                     )
+                    if redis:
+                        await redis.set(snapshot_flag, "1", ex=86400)
+                    print("[AUTO] Daily goal snapshot taken.")
             except Exception as e:
                 print(f"[AUTO] Goal snapshot failed (non-fatal): {e}")
 
-        print(f"[AUTO] Tick complete.")
+        print("[AUTO] Tick complete.")
 
     except Exception as e:
         # Absolute last-resort safety net — NEVER crash the server

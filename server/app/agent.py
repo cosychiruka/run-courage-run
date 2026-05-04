@@ -21,7 +21,7 @@ from app.news_cache import get_all_recent
 from app.twitter_memory import init_twitter_db, get_twitter_summary
 from app.goal_tracker import get_goal_progress_summary
 
-from app.config import GROQ_API_KEY, GROQ_MODEL, GROQ_MODEL_FAST
+from app.config import GROQ_API_KEY, GROQ_MODEL, GROQ_MODEL_FAST, GROQ_DAILY_TOKEN_BUDGET
 
 MAX_TOOL_ROUNDS = 8
 CONTEXT_TIMEOUT = 60
@@ -48,6 +48,18 @@ def _track_groq_usage(usage: dict):
         _token_redis.expire(f"groq:calls:{today}", 86400)
     except Exception:
         pass
+
+def _groq_budget_ok() -> bool:
+    """Return False when today's Groq token spend has hit the daily ceiling."""
+    if not _token_redis:
+        return True  # can't check → allow
+    try:
+        today = datetime.date.today().isoformat()
+        used = int(_token_redis.get(f"groq:tokens:{today}") or 0)
+        return used < GROQ_DAILY_TOKEN_BUDGET
+    except Exception:
+        return True  # Redis error → allow rather than block
+
 
 # Emit callback type: async fn(msg: dict) -> None
 WsEmit = Optional[Callable[[dict], Awaitable[None]]]
@@ -139,11 +151,23 @@ async def run_agent(
     tweet_image_fn=None,
     world_context: Optional[str] = None,
     ws_emit: WsEmit = None,
+    max_tool_rounds: int = MAX_TOOL_ROUNDS,
 ) -> str:
     """
     Run one full Courage agent turn and return the final text response.
     ws_emit: async callable to stream tool events to the frontend.
+    max_tool_rounds: cap on tool-call iterations (default MAX_TOOL_ROUNDS; use 4 for autonomous mode).
     """
+    # Hard stop if today's Groq token budget is exhausted
+    if not _groq_budget_ok():
+        msg = (
+            "The things I do for you people... I've burned through all my thinking power for today! "
+            "*collapses dramatically* Try again tomorrow. *whimper*"
+        )
+        if ws_emit:
+            await ws_emit({"type": "done", "reply": msg})
+        return msg
+
     # Ensure Twitter memory tables exist
     await init_twitter_db()
 
@@ -161,20 +185,23 @@ async def run_agent(
 
     def _sanitise_history(hist: list[dict]) -> list[dict]:
         """
-        Remove any corrupted assistant messages from history.
-        The 8b model sometimes emits raw JSON tool args as text content instead of tool_calls.
-        These corrupt messages cause Groq to return 400 on the next turn.
-        Strategy: keep only user/assistant pairs where the assistant message has clean text (no raw JSON dumps).
+        Remove corrupted assistant messages where the 8b model leaked raw tool-call
+        JSON into the text content field instead of tool_calls. These cause Groq 400s.
+        We detect actual corruption specifically: valid JSON that contains tool-call
+        keys (arguments, name, function) — not arbitrary JSON-shaped chat replies.
         """
+        _CORRUPTION_KEYS = {"arguments", "name", "function", "tool_calls", "tool_use"}
         safe = []
         for m in hist:
-            role = m.get("role", "")
-            content = m.get("content", "") or ""
-            if role == "assistant":
-                # If content looks like a raw JSON dump (model leaking tool args), skip
-                stripped = content.strip()
-                if stripped.startswith("{") and stripped.endswith("}"):
-                    continue  # skip corrupted entry
+            role    = m.get("role", "")
+            content = (m.get("content") or "").strip()
+            if role == "assistant" and content.startswith("{") and content.endswith("}"):
+                try:
+                    parsed = json.loads(content)
+                    if isinstance(parsed, dict) and _CORRUPTION_KEYS & parsed.keys():
+                        continue  # confirmed corruption — drop this message
+                except (json.JSONDecodeError, ValueError):
+                    pass  # not valid JSON at all → keep it
             safe.append(m)
         return safe
 
@@ -187,7 +214,7 @@ async def run_agent(
     ]
 
 
-    for _round in range(MAX_TOOL_ROUNDS):
+    for _round in range(max_tool_rounds):
         # Always use 70b (GROQ_MODEL) when tools are enabled.
         # 8b-instant cannot reliably emit structured tool_calls — it leaks JSON as text.
         resp    = await _groq_chat(messages, use_tools=True, fast=False)

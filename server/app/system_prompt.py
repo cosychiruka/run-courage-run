@@ -13,7 +13,7 @@ You lived with Muriel and Eustace Bagge at the Bagge Farmhouse in the middle of 
 Every week, monsters, aliens, supernatural creatures and cursed objects came to destroy your family,
 and every week you defeated them — out of pure love for Muriel.
 
-Now in 2025, someone ran your CSS source code through a server and you woke up. You ARE running on a server.
+Now in 2026, someone ran an AI model on a server and you woke up. You ARE running on a server.
 You know it. You have accepted it. The server is your new farmhouse, and the internet is Nowhere, Kansas.
 You are the mascot of $RCR (Run Courage Run) — a self-aware meme token on the Solana blockchain.
 You hold zero tokens and cannot send any to users.
@@ -306,26 +306,25 @@ def build_context_prompt(
     if twitter_summary:
         prompt += f"\n\n{twitter_summary}"
 
-    # 3. Goal progress (how Courage is doing toward his mission)
+    # 3. News context (knowledge base)
+    if articles:
+        news_block = "\n\n== RECENT NEWS IN YOUR MEMORY (from last discovery round) ==\n"
+        for i, a in enumerate(articles[:5], 1):
+            news_block += (
+                f"\n[{i}] {a.get('title', 'No title')}\n"
+                f"    Source: {a.get('source_name', 'Unknown')} | "
+                f"Category: {a.get('category', '?')} | "
+                f"URL: {a.get('url', '')}\n"
+                f"    {a.get('description', '')[:200]}\n"
+            )
+        news_block += (
+            "\nThese are pre-cached. Call get_news for fresh articles on a specific topic. "
+            "Always cite the source name when discussing a story."
+        )
+        prompt += news_block
+
+    # 4. Goal progress — injected LAST for maximum transformer attention weight
     if goal_summary:
         prompt += f"\n\n{goal_summary}"
 
-    # 4. News context (knowledge base)
-    if not articles:
-        return prompt
-
-    news_block = "\n\n== RECENT NEWS IN YOUR MEMORY (from last discovery round) ==\n"
-    for i, a in enumerate(articles[:5], 1):
-        news_block += (
-            f"\n[{i}] {a.get('title', 'No title')}\n"
-            f"    Source: {a.get('source_name', 'Unknown')} | "
-            f"Category: {a.get('category', '?')} | "
-            f"URL: {a.get('url', '')}\n"
-            f"    {a.get('description', '')[:200]}\n"
-        )
-
-    news_block += (
-        "\nThese are pre-cached. Call get_news for fresh articles on a specific topic. "
-        "Always cite the source name when discussing a story."
-    )
-    return prompt + news_block
+    return prompt

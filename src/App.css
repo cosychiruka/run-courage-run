@@ -23,9 +23,9 @@ body {
   background-position: center center !important;
   background-attachment: fixed !important;
   /* Distant effect on a background image */
-  background-size: 150vmax;
+  background-size: cover;
   /* Start with a larger size to simulate a closer view */
-  animation: zoomOutEffect 4s ease-out forwards;
+  animation: zoomOutEffectDesktop 4s ease-out forwards;
 
   color: #FFF;
   margin: 0;
@@ -33,15 +33,21 @@ body {
   overflow-x: hidden;
 }
 
-@keyframes zoomOutEffect {
+@keyframes zoomOutEffectDesktop {
+  0% {
+    background-size: 110% auto;
+  }
+  100% {
+    background-size: cover;
+  }
+}
+
+@keyframes zoomOutEffectMobile {
   0% {
     background-size: 150vmax;
-    /* Start large for the "closer" effect */
   }
-
   100% {
-    background-size: 200vmax;
-    /* Zoom out to the full covering effect */
+    background-size: 100vmax;
   }
 }
 
@@ -49,25 +55,25 @@ body {
 /* Noon Scene */
 .noon {
   background-image: url('./assets/images/homestead-noon.webp');
-  background-size: 100vmax;
+  background-size: cover;
 }
 
 /* Evening Scene */
 .evening {
   background-image: url('./assets/images/homestead-evening.webp');
-  background-size: 100vmax;
+  background-size: cover;
 }
 
 /* Midnight Scene */
 .midnight {
   background-image: url('./assets/images/homestead-midnight.webp');
-  background-size: 100vmax;
+  background-size: cover;
 }
 
 /* Sunrise Scene */
 .sunrise {
   background-image: url('./assets/images/homestead-sunrise.webp');
-  background-size: 100vmax;
+  background-size: cover;
   background-position: 60% 20%;
 }
 
@@ -1788,15 +1794,24 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   }
 }
 
+@media (max-width: 768px) {
+  body {
+    /* cover fills the viewport properly on portrait mobile; kill the zoom animation */
+    background-size: 150vmax !important;
+    background-attachment: scroll !important;
+    /* 'fixed' causes iOS scroll glitch */
+    animation: zoomOutEffectMobile 4s ease-out forwards !important;
+  }
+}
 
 /* Responsive stacking layout for smaller screens */
 @media (max-width: 650px) {
   body {
     /* cover fills the viewport properly on portrait mobile; kill the zoom animation */
-    background-size: cover !important;
+    background-size: 150vmax !important;
     background-attachment: scroll !important;
     /* 'fixed' causes iOS scroll glitch */
-    animation: none !important;
+    animation: zoomOutEffectMobile 4s ease-out forwards !important;
   }
 
   #root {

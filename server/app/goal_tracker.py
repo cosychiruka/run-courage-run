@@ -91,6 +91,16 @@ async def record_autonomous_decision(action: str, bucket: str, reasoning: str) -
         return cur.lastrowid
 
 
+async def update_autonomous_decision_executed(decision_id: int, tweet_id: str):
+    """Mark a decision as executed and record the resulting tweet_id."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE autonomous_decisions SET executed=1, tweet_id=? WHERE id=?",
+            (tweet_id, decision_id),
+        )
+        await db.commit()
+
+
 # ── Read helpers ───────────────────────────────────────────────────────────────
 
 async def get_goal_progress_summary() -> str:

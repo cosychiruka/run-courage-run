@@ -162,10 +162,22 @@ async def _save_to_sqlite(articles: list[dict]):
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
+def _title_key(title: str) -> str:
+    """Normalised title key for deduplication across sources."""
+    import re as _re
+    return _re.sub(r"[^a-z0-9]", "", title.lower())[:40]
+
+
 async def get_crypto_headlines(limit: int = 10) -> list[dict]:
     """
     Fetch crypto news with caching.
-    Order: Redis cache → CryptoPanic → CoinGecko → []
+
+    Both sources are always attempted (never pure fallback) so that CoinGecko's
+    image-rich articles (thumb_2x) are always available for tweet image attachment.
+
+    Merge order: CoinGecko first (has images) → CryptoPanic fill-ins.
+    Deduplication by normalised title prefix so near-identical stories don't appear twice.
+    Cache: Redis key CRYPTO_CACHE_KEY, 30-min TTL.
     Never raises — returns [] on all failures.
     """
     r = await _get_redis()
@@ -179,35 +191,54 @@ async def get_crypto_headlines(limit: int = 10) -> list[dict]:
         except Exception:
             pass
 
-    # 2. Try CryptoPanic
-    articles: list[dict] = []
+    # 2. Fetch both sources independently (never short-circuit)
+    cp_articles: list[dict] = []
+    cg_articles: list[dict] = []
+
     if CRYPTOPANIC_API_KEY:
         try:
-            articles = await _fetch_cryptopanic(20)
-            print(f"[CRYPTO] CryptoPanic: {len(articles)} articles fetched")
+            cp_articles = await _fetch_cryptopanic(20)
+            print(f"[CRYPTO] CryptoPanic: {len(cp_articles)} articles")
         except Exception as e:
             print(f"[CRYPTO] CryptoPanic failed: {e}")
 
-    # 3. Fallback: CoinGecko
-    if not articles and COINGECKO_API_KEY:
+    if COINGECKO_API_KEY:
         try:
-            articles = await _fetch_coingecko(20)
-            print(f"[CRYPTO] CoinGecko: {len(articles)} articles fetched")
+            cg_articles = await _fetch_coingecko(15)
+            print(f"[CRYPTO] CoinGecko: {len(cg_articles)} articles")
         except Exception as e:
             print(f"[CRYPTO] CoinGecko failed: {e}")
 
-    if not articles:
+    # 3. Merge: CoinGecko first (image URLs), then CryptoPanic fill-ins
+    #    Deduplicate by normalised 40-char title prefix
+    seen: set[str] = set()
+    merged: list[dict] = []
+
+    for a in cg_articles:
+        key = _title_key(a.get("title", ""))
+        if key and key not in seen:
+            seen.add(key)
+            merged.append(a)
+
+    for a in cp_articles:
+        key = _title_key(a.get("title", ""))
+        if key and key not in seen:
+            seen.add(key)
+            merged.append(a)
+
+    if not merged:
         return []
 
-    # Cache in Redis + persist to SQLite
+    # 4. Cache in Redis + persist to SQLite
     if r:
         try:
-            await r.set(CRYPTO_CACHE_KEY, json.dumps(articles), ex=CRYPTO_CACHE_TTL)
+            await r.set(CRYPTO_CACHE_KEY, json.dumps(merged), ex=CRYPTO_CACHE_TTL)
         except Exception:
             pass
-    await _save_to_sqlite(articles)
+    await _save_to_sqlite(merged)
 
-    return articles[:limit]
+    print(f"[CRYPTO] Merged {len(merged)} unique articles ({len(cg_articles)} CG + {len(cp_articles)} CP)")
+    return merged[:limit]
 
 
 async def get_cached_crypto_headlines() -> list[dict]:

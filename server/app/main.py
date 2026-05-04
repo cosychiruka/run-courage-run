@@ -24,7 +24,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import os
 import httpx
 
-from app.config import FRONTEND_ORIGIN, REDIS_URL, AUTONOMOUS_INTERVAL_MINUTES
+from app.config import FRONTEND_ORIGIN, REDIS_URL, AUTONOMOUS_INTERVAL_MINUTES, DB_PATH
 from app.news_cache import (
     init_db, discovery_round, get_recent_articles,
     get_cached_articles, fetch_pair, search_newsapi, search_gnews,
@@ -34,10 +34,11 @@ from app.voice import load_models, transcribe, synthesise
 from app.agent import run_agent, _init_token_tracker
 from app.x_client import make_x_client
 from app.tweet_image import render_news_card, render_card_for_url
-from app.twitter_memory import init_twitter_db
+from app.twitter_memory import init_twitter_db, prune_old_data as prune_twitter_memory
 from app.goal_tracker import init_goal_db
 from app.crypto_news import crypto_discovery_round
 from app.autonomous_loop import autonomous_tick
+import aiosqlite
 import redis.asyncio as aioredis
 
 # ── Shared HTTP client (persistent pool, not per-request) ─────────────────────
@@ -93,6 +94,18 @@ async def lifespan(app: FastAPI):
         await init_db()
         await init_twitter_db()
         await init_goal_db()
+
+        # Verify all expected tables were created — surfaces silent failures immediately
+        try:
+            async with aiosqlite.connect(DB_PATH) as _db:
+                async with _db.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+                ) as _cur:
+                    _tables = [r[0] for r in await _cur.fetchall()]
+            print(f"[STARTUP] SQLite tables verified: {', '.join(_tables)}")
+        except Exception as _e:
+            print(f"[STARTUP] WARNING: Table verification failed: {_e}")
+
         print("[STARTUP] Database initialized.")
 
         # Redis — for presence persistence across redeploys
@@ -100,6 +113,9 @@ async def lifespan(app: FastAPI):
             _redis = aioredis.from_url(REDIS_URL, decode_responses=True)
             await _redis.ping()
             print("[STARTUP] Redis connected (presence will survive redeploys).")
+            # Clear any stale active_voice_sessions left by a previous crash
+            await _redis.delete("active_voice_sessions")
+            print("[STARTUP] Cleared stale active_voice_sessions.")
         except Exception as e:
             _redis = None
             print(f"[STARTUP] Redis unavailable ({e}) — presence falls back to in-memory.")
@@ -119,15 +135,16 @@ async def lifespan(app: FastAPI):
         print(f"[STARTUP] X client: {'ACTIVE ✓' if x_client else 'DISABLED (keys missing or init failed)'}")
 
         # Background jobs
-        scheduler.add_job(discovery_round, "interval", minutes=30, id="discovery")
-        scheduler.add_job(crypto_discovery_round, "interval", minutes=30, id="crypto_discovery")
+        scheduler.add_job(discovery_round,       "interval", minutes=30,  id="discovery")
+        scheduler.add_job(crypto_discovery_round,"interval", minutes=30,  id="crypto_discovery")
+        scheduler.add_job(prune_twitter_memory,  "interval", weeks=1,     id="memory_prune")
         scheduler.add_job(
             autonomous_tick, "interval",
             minutes=AUTONOMOUS_INTERVAL_MINUTES, id="autonomous", jitter=60,
             kwargs={"x_client": x_client, "tweet_image_fn": _tweet_image_fn},
         )
         scheduler.start()
-        print("[STARTUP] Background scheduler started (discovery + crypto + autonomous).")
+        print("[STARTUP] Background scheduler started (discovery + crypto + autonomous + weekly prune).")
 
         asyncio.create_task(discovery_round())
         asyncio.create_task(crypto_discovery_round())
@@ -450,21 +467,24 @@ async def voice_ws(ws: WebSocket, session: str = ""):
 
 @app.get("/api/goal_progress")
 async def goal_progress():
-    """Returns Courage's growth stats, bucket usage, and autonomous tweet count."""
+    """Returns Courage's growth stats, bucket usage, and tweet counters."""
     from app.goal_tracker import get_goal_progress_summary, get_last_bucket_times
-    summary = await get_goal_progress_summary()
+    summary      = await get_goal_progress_summary()
     bucket_times = await get_last_bucket_times()
-    today = datetime.date.today().isoformat()
-    auto_tweets = 0
+    today        = datetime.date.today().isoformat()
+    auto_tweets  = 0
+    total_tweets = 0
     if _redis:
         try:
-            auto_tweets = int(await _redis.get(f"courage:auto_tweets:{today}") or 0)
+            auto_tweets  = int(await _redis.get(f"courage:auto_tweets:{today}")  or 0)
+            total_tweets = int(await _redis.get(f"courage:total_tweets:{today}") or 0)
         except Exception:
             pass
     return JSONResponse({
-        "summary": summary,
-        "bucket_last_used": bucket_times,
-        "auto_tweets_today": auto_tweets,
+        "summary":            summary,
+        "bucket_last_used":   bucket_times,
+        "auto_tweets_today":  auto_tweets,
+        "total_tweets_today": total_tweets,
     })
 
 

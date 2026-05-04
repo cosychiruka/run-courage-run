@@ -154,6 +154,22 @@ async def get_recent_trends(limit: int = 20) -> list[dict]:
             return [dict(r) for r in await cur.fetchall()]
 
 
+async def prune_old_data(tweet_days: int = 30, trend_days: int = 60):
+    """
+    Delete old rows to keep the DB lean. Called weekly by APScheduler.
+    Tweets/mentions/searches: 30-day window. Trends: 60-day window (useful for patterns).
+    """
+    tweet_cutoff  = time.time() - (tweet_days  * 86400)
+    trend_cutoff  = time.time() - (trend_days  * 86400)
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM tw_tweets   WHERE created_at  < ?", (tweet_cutoff,))
+        await db.execute("DELETE FROM tw_mentions  WHERE created_at  < ?", (tweet_cutoff,))
+        await db.execute("DELETE FROM tw_searches  WHERE searched_at < ?", (tweet_cutoff,))
+        await db.execute("DELETE FROM tw_trends    WHERE captured_at < ?", (trend_cutoff,))
+        await db.commit()
+    print(f"[MEMORY] Pruned Twitter history older than {tweet_days}d (trends: {trend_days}d).")
+
+
 async def get_twitter_summary() -> str:
     """
     Build a concise plain-text summary of Courage's recent Twitter activity.

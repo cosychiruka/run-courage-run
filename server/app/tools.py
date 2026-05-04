@@ -18,6 +18,7 @@ Tools available to Courage:
 import json
 import re
 import time
+import datetime
 import tempfile
 import uuid
 import httpx
@@ -36,6 +37,19 @@ import app.twitter_memory as tw_mem
 
 # ── Module-level tweet card buffer (populated on each search_tweets call) ──────
 _last_tweet_cards: list[dict] = []
+
+# ── Async Redis singleton for tools (credits, covered URLs, tweet counter) ─────
+_tools_redis = None
+
+async def _get_tools_redis():
+    global _tools_redis
+    if _tools_redis is None:
+        try:
+            import redis.asyncio as aioredis
+            _tools_redis = aioredis.from_url(REDIS_URL, decode_responses=True)
+        except Exception:
+            pass
+    return _tools_redis
 
 # ── Tweet content safety ───────────────────────────────────────────────────────
 # Solana base58 addresses are 32-44 chars of [1-9A-HJ-NP-Za-km-z]
@@ -484,8 +498,13 @@ async def _download_article_image(url: str) -> Optional[Path]:
         if len(r.content) > 5 * 1024 * 1024:
             print(f"[TWEET IMAGE] Skipping oversized image ({len(r.content)} bytes)")
             return None
-        ext_map = {"image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp"}
-        ext = ext_map.get(ct.split(";")[0].strip(), "jpg")
+        # GIFs excluded — Twitter v1 upload requires special media_category for animated GIFs
+        _ALLOWED = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
+        ct_base = ct.split(";")[0].strip()
+        if ct_base not in _ALLOWED:
+            print(f"[TWEET IMAGE] Unsupported type {ct_base!r} — skipping")
+            return None
+        ext = _ALLOWED[ct_base]
         tmp_path = Path(tempfile.gettempdir()) / f"{uuid.uuid4().hex}.{ext}"
         tmp_path.write_bytes(r.content)
         return tmp_path
@@ -544,6 +563,28 @@ async def _post_tweet(args: dict, x_client, tweet_image_fn) -> str:
         if reply_to:
             await tw_mem.mark_mention_replied(reply_to)
         print(f"[TWITTER] Tweet posted OK: id={tweet_id}")
+
+        # Track covered article URL so autonomous loop avoids re-covering same story
+        if article_url:
+            try:
+                r_redis = await _get_tools_redis()
+                if r_redis:
+                    await r_redis.lpush("courage:covered_urls", article_url)
+                    await r_redis.ltrim("courage:covered_urls", 0, 29)   # capped at 30 entries
+                    await r_redis.expire("courage:covered_urls", 172800) # 48 h TTL
+            except Exception:
+                pass
+
+        # Increment total daily tweet counter (autonomous + interactive combined)
+        try:
+            r_redis = await _get_tools_redis()
+            if r_redis:
+                today_key = f"courage:total_tweets:{datetime.date.today().isoformat()}"
+                await r_redis.incr(today_key)
+                await r_redis.expire(today_key, 86400)
+        except Exception:
+            pass
+
         return f"Tweet posted successfully! ID: {tweet_id}"
     except Exception as e:
         print(f"[TWITTER] post_tweet FAILED: {e}")
@@ -687,27 +728,43 @@ async def _record_twitter_action(args: dict) -> str:
 
 
 async def _check_api_credits(x_client) -> str:
-    import datetime
+    from app.config import GROQ_DAILY_TOKEN_BUDGET, CRYPTOPANIC_DAILY_BUDGET, COINGECKO_DAILY_BUDGET
+    today = datetime.date.today().isoformat()
+
+    groq_tokens = groq_calls = 0
+    search_rem = "use get_x_rate_status for live data"
+    auto_tweets = total_tweets = 0
+    cp_used = cg_used = 0
+
     try:
-        import redis as _sync_redis
-        r = _sync_redis.from_url(REDIS_URL, decode_responses=True)
-        today = datetime.date.today().isoformat()
-        groq_tokens = int(r.get(f"groq:tokens:{today}") or 0)
-        groq_calls  = int(r.get(f"groq:calls:{today}") or 0)
-        search_limit = r.hgetall("rate:/tweets/search/recent") or {}
-        search_rem   = search_limit.get("remaining", "unknown")
+        r = await _get_tools_redis()
+        if r:
+            groq_tokens  = int(await r.get(f"groq:tokens:{today}") or 0)
+            groq_calls   = int(await r.get(f"groq:calls:{today}") or 0)
+            auto_tweets  = int(await r.get(f"courage:auto_tweets:{today}") or 0)
+            total_tweets = int(await r.get(f"courage:total_tweets:{today}") or 0)
+            cp_used      = int(await r.get(f"budget:cryptopanic:{today}") or 0)
+            cg_used      = int(await r.get(f"budget:coingecko:{today}") or 0)
+            rate_raw     = await r.hgetall("rate:/tweets/search/recent")
+            if rate_raw:
+                search_rem = rate_raw.get("remaining", search_rem)
     except Exception:
-        groq_tokens = groq_calls = 0
-        search_rem = "unknown"
+        pass
 
     budget = await get_budget_status()
+    groq_pct = int(groq_tokens / GROQ_DAILY_TOKEN_BUDGET * 100) if GROQ_DAILY_TOKEN_BUDGET else 0
+
     lines = [
         "== API CREDIT REPORT ==",
-        f"AI brain (Groq): {groq_tokens:,} tokens / {groq_calls} calls used today",
-        f"X search quota: {search_rem} requests remaining this 15-min window",
-        f"GNews: {budget['gnews']['used']}/{budget['gnews']['limit']} calls today",
-        f"NewsAPI: {budget['newsapi']['used']}/{budget['newsapi']['limit']} calls today",
-        f"Guardian: unlimited (no counter)",
+        f"AI brain (Groq):    {groq_tokens:,} / {GROQ_DAILY_TOKEN_BUDGET:,} tokens today ({groq_pct}%) — {groq_calls} calls",
+        f"X search quota:     {search_rem} remaining this window",
+        f"Auto tweets today:  {auto_tweets} / 25 (autonomous cap)",
+        f"Total tweets today: {total_tweets} (auto + interactive)",
+        f"GNews:     {budget['gnews']['used']}/{budget['gnews']['limit']} calls today",
+        f"NewsAPI:   {budget['newsapi']['used']}/{budget['newsapi']['limit']} calls today",
+        f"Guardian:  unlimited",
+        f"CryptoPanic: {cp_used} / {CRYPTOPANIC_DAILY_BUDGET} calls today",
+        f"CoinGecko:   {cg_used} / {COINGECKO_DAILY_BUDGET} calls today",
     ]
     return "\n".join(lines)
 

@@ -13,7 +13,8 @@
       "Bash(node -e ' *)",
       "Bash(sed -n '2582,2645p')",
       "Bash(sed -n '2582,2645p' src/App.css)",
-      "WebFetch(domain:cryptopanic.com)"
+      "WebFetch(domain:cryptopanic.com)",
+      "Bash(python -c ' *)"
     ]
   }
 }
