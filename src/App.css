@@ -1970,7 +1970,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   }
 
   .scene-toggle-btn {
-    right: 0.5rem !important;
+    right: 1rem !important;
   }
 
   .couragesign {
