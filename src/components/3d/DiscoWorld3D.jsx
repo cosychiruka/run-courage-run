@@ -471,21 +471,34 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
     if (!(visible && audioLoaded)) return;
     let cancelled = false;
     const track = DISCO_TRACKS[currentTrackIdx];
-    const playNext = async () => {
-      await audioManager.loadTrack(track.id, track.url);
-      if (cancelled) return;
+    
+    const playCurrentTrack = async () => {
+      console.log(`DiscoWorld3D: Loading track ${currentTrackIdx} - ${track.title}`);
+      const success = await audioManager.loadTrack(track.id, track.url);
+      if (cancelled || !success) return;
+      
       if (isPlaying) {
+        console.log(`DiscoWorld3D: Playing track ${track.title}`);
         await audioManager.playTrack(track.id, {
           loop: false,
           volume: 0.5,
-          onEnded: () => setCurrentTrackIdx(i => (i + 1) % DISCO_TRACKS.length),
+          onEnded: () => {
+            console.log(`DiscoWorld3D: Track ended, advancing to next...`);
+            setCurrentTrackIdx(i => (i + 1) % DISCO_TRACKS.length);
+          },
         });
       } else {
         audioManager.stopAllTracks();
       }
     };
-    playNext();
-    return () => { cancelled = true; audioManager.softCleanup(); };
+
+    playCurrentTrack();
+    
+    return () => { 
+      cancelled = true; 
+      // We don't call softCleanup here anymore because it kills the NEXT track's play attempt
+      // instead we rely on playTrack's internal stopImmediate().
+    };
   }, [visible, audioLoaded, currentTrackIdx, isPlaying]);
 
   return (

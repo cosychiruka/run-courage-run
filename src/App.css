@@ -1991,7 +1991,8 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   }
 
   .couragesign {
-    font-size: 1.2em !important;
+    font-size: 2.2rem !important;
+    font-family: 'Bangers', cursive !important;
   }
 
   .typo::before {
@@ -3950,12 +3951,25 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   }
 
   .couragesign {
-    font-size: 1.8rem !important;
-    text-shadow: 1.5px 1.5px 0px #444 !important;
+    font-size: 2.5rem !important;
+    text-shadow: 2px 2px 0px #000 !important;
     font-family: 'Bangers', cursive !important;
     letter-spacing: 0px;
     font-style: normal !important;
     animation: cartoon3dBounce 4s infinite ease-in-out, comicBulge 6s infinite ease-in-out !important;
+  }
+
+  .hero-title {
+    font-family: 'Bangers', cursive !important;
+    font-size: 2.8rem !important;
+    line-height: 1.1;
+    margin-bottom: 0.5rem;
+  }
+
+  .hero-tagline {
+    font-family: 'Comic Neue', cursive !important;
+    font-size: 1.2rem !important;
+    opacity: 0.9;
   }
 
   .enter-3d-btn {
@@ -4641,7 +4655,9 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 /* ── Selfie UI (Become a Monster) ── */
 .monster-fab {
   position: fixed;
-  bottom: 66px;
+  bottom: 80px;
+  left: 20px;
+  right: auto;
   background: #ffffff !important;
   border: 3px solid #eb57c1 !important;
   border-radius: 50px !important;
@@ -4669,7 +4685,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   align-items: flex-end;
   gap: 10px;
   position: fixed;
-  bottom: 140px;
+  bottom: 80px;
   right: 20px;
   z-index: 1001;
 }
@@ -4760,8 +4776,11 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 
 @media (max-width: 620px) {
   .disco-music-panel {
-    bottom: 180px;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
     padding: 8px 14px;
+    z-index: 1002;
   }
   
   .disco-music-title {
@@ -4770,12 +4789,40 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   }
   
   .world-chat-bubble-container {
-    bottom: 160px;
-    right: 10px;
+    bottom: 95px;
+    right: 15px;
+    gap: 6px;
   }
 
   .world-chat-bubble {
-    max-width: 85vw;
-    padding: 12px 16px;
+    max-width: 75vw;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+  }
+  
+  .world-chat-user, .world-chat-courage {
+    font-size: 0.65rem !important;
+    margin-bottom: 2px;
+  }
+
+  .world-quota-panel {
+    min-width: 100px !important;
+    padding: 4px 8px !important;
+    font-size: 0.65rem !important;
+  }
+
+  .monster-fab {
+    bottom: 95px !important;
+    left: 15px !important;
+    right: auto !important;
+    padding: 8px 16px !important;
+    font-size: 0.85rem !important;
+  }
+
+  .world3d-hint {
+    color: #ffffff !important;
+    bottom: 5px !important;
+    font-size: 0.65rem;
+    opacity: 0.8;
   }
 }
