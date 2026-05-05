@@ -121,25 +121,20 @@ async def _fetch_coindesk(limit: int = 20) -> list[dict]:
         print(f"[CRYPTO] CoinDesk daily budget reached ({used}/{COINDESK_DAILY_BUDGET})")
         return []
 
-    # Using the News V1 Article List endpoint (rich data)
-    url = "https://data-api.coindesk.com/news/v1/article/list"
-    params = {
-        "limit": limit,
-        "lang": "EN"
-    }
-    headers = {
-        "Authorization": f"Bearer {COINDESK_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.get(url, params=params, headers=headers)
-        if not r.is_success:
-            print(f"[CRYPTO] CoinDesk API error: {r.status_code} {r.text}")
-            return []
-
-    await _bump_budget("coindesk")
-    # Wrap in try-except as the 'Data' key might be missing on some error responses
     try:
+        url = "https://data-api.coindesk.com/news/v1/article/list"
+        params = {"limit": limit, "lang": "EN"}
+        headers = {
+            "Authorization": f"Bearer {COINDESK_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(url, params=params, headers=headers)
+            if not r.is_success:
+                print(f"[CRYPTO] CoinDesk API error: {r.status_code} {r.text}")
+                return []
+
+        await _bump_budget("coindesk")
         data = r.json()
         results = data.get("Data", [])
         return [_norm_coindesk(i) for i in results]

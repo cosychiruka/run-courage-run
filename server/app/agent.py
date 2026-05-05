@@ -96,15 +96,36 @@ async def _groq_chat(messages: list[dict], use_tools: bool = True, fast: bool = 
     }
 
     async with httpx.AsyncClient(timeout=CONTEXT_TIMEOUT) as client:
-        r = await client.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            json=payload,
-            headers=headers,
-        )
-        r.raise_for_status()
-        resp = r.json()
-        _track_groq_usage(resp.get("usage", {}))
-        return resp
+        try:
+            r = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                json=payload,
+                headers=headers,
+            )
+            r.raise_for_status()
+            resp = r.json()
+            _track_groq_usage(resp.get("usage", {}))
+            return resp
+        except httpx.HTTPStatusError as e:
+            # FALLBACK: If 70b (with tools) hits a 429 rate limit, try one last time with 8b (no tools)
+            # This ensures Courage can still answer even when the high-tier model is throttled.
+            if e.response.status_code == 429 and not fast and use_tools:
+                print(f"[GROQ] 429 Rate Limit on {model}. Attempting fallback to 8b (no tools)...")
+                # Strip tools from payload and switch to fast model
+                payload["model"] = GROQ_MODEL_FAST
+                payload.pop("tools", None)
+                payload.pop("tool_choice", None)
+                
+                r2 = await client.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    json=payload,
+                    headers=headers,
+                )
+                r2.raise_for_status()
+                resp = r2.json()
+                _track_groq_usage(resp.get("usage", {}))
+                return resp
+            raise e
 
 
 # ── Helper: scrub any leaked tool syntax from text ────────────────────────────
