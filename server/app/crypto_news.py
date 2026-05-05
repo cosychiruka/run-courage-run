@@ -159,19 +159,34 @@ async def _fetch_coingecko(limit: int = 20) -> list[dict]:
         return []
 
     headers = {"x-cg-demo-api-key": COINGECKO_API_KEY}
-    async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.get(
-            "https://api.coingecko.com/api/v3/news",
-            headers=headers,
-            params={"per_page": limit},
-        )
-        r.raise_for_status()
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(
+                "https://api.coingecko.com/api/v3/news",
+                headers=headers,
+                params={"per_page": limit},
+            )
+            r.raise_for_status()
+            data = r.json()
+            # data["data"] is a list of news items
+            results = []
+            for item in data.get("data", []):
+                results.append({
+                    "title": item.get("title"),
+                    "url": item.get("url"),
+                    "source": item.get("author") or "CoinGecko",
+                    "image": item.get("thumb_2x") or item.get("thumb"),
+                    "publishedAt": datetime.datetime.fromtimestamp(item.get("updated_at", 0)).isoformat(),
+                })
+            return results
 
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 422:
             print("[CRYPTO] CoinGecko News API requires a PAID plan. Skipping.")
+        elif e.response.status_code == 401:
+            print("[CRYPTO] CoinGecko 401: Unauthorized. Please check your Demo key.")
         else:
-            print(f"[CRYPTO] CoinGecko status error: {e}")
+            print(f"[CRYPTO] CoinGecko status error (Status {e.response.status_code}): {e.response.text[:100]}")
         return []
     except Exception as e:
         print(f"[CRYPTO] CoinGecko failed: {e}")
