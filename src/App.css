@@ -4234,10 +4234,16 @@ div:where(.swal2-container) div:where(.swal2-popup) {
     gap: 8px;
   }
 
-  /* Voice button — bottom right, above grounded music bar (~56px) */
-  .world-voice-btn {
-    bottom: 70px !important;
+  /* Controls container — bottom right, above grounded music bar */
+  .world-controls-container {
+    bottom: 80px !important;
     right: 12px !important;
+  }
+
+  .world-voice-btn {
+    position: relative !important;
+    bottom: auto !important;
+    right: auto !important;
   }
 
   /* Presence badge — bottom left, above music bar */
@@ -4319,7 +4325,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
    ══════════════════════════════════════════════════════════════════════════ */
 .world-controls-container {
   position: fixed;
-  bottom: 70px;
+  bottom: 80px;
   right: 16px;
   display: flex;
   flex-direction: column;
@@ -4826,10 +4832,11 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   /* Center horizontally */
   gap: 10px;
   position: fixed;
-  bottom: 140px;
-  /* High enough to clear music panel and mic */
+  bottom: 160px;
+  /* Higher to clear the lowered mic controls */
   left: 50%;
   transform: translateX(-50%);
+  justify-content: center;
   width: 90%;
   max-width: 400px;
   pointer-events: none;
