@@ -319,12 +319,12 @@ def build_context_prompt(
     if articles:
         news_block = "\n\n== RECENT NEWS IN YOUR MEMORY (from last discovery round) ==\n"
         for i, a in enumerate(articles[:5], 1):
+            desc = a.get('description', '') or a.get('content', '')
             news_block += (
-                f"\n[{i}] {a.get('title', 'No title')}\n"
+                f"\n[{i}] {a.get('title', 'No title')[:100]}\n"
                 f"    Source: {a.get('source_name', 'Unknown')} | "
-                f"Category: {a.get('category', '?')} | "
                 f"URL: {a.get('url', '')}\n"
-                f"    {a.get('description', '')[:200]}\n"
+                f"    {desc[:140]}\n"
             )
         news_block += (
             "\nThese are pre-cached. Call get_news for fresh articles on a specific topic. "

@@ -107,9 +107,11 @@ async def _groq_chat(messages: list[dict], use_tools: bool = True, fast: bool = 
             _track_groq_usage(resp.get("usage", {}))
             return resp
         except httpx.HTTPStatusError as e:
-            if e.response.status_code == 429:
-                retry_after = e.response.headers.get("retry-after", "?")
-                print(f"[GROQ] 429 Rate Limit on {model} (Retry-After: {retry_after}s).")
+            # Handle both Rate Limit (429) and Payload Too Large (413)
+            if e.response.status_code in (413, 429):
+                retry_after = e.response.headers.get("retry-after", "60")
+                code = e.response.status_code
+                print(f"[GROQ] {code} Error on {model} (Retry-After: {retry_after}s).")
                 # FALLBACK: If 70b (with tools) hits 429, try 8b without tools as last resort.
                 # 8b can't emit structured tool_calls but can produce a plain text tweet
                 # when the prompt already contains the article content.
