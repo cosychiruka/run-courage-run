@@ -516,6 +516,15 @@ async def reset_circuit_breaker():
     return JSONResponse({"status": "ok", "message": "Circuit breaker cleared. Next tick will attempt execution."})
 
 
+@app.post("/api/autonomous/trigger-now")
+async def trigger_now():
+    """Manually trigger an autonomous tick immediately."""
+    from app.autonomous_loop import autonomous_tick
+    # Use create_task so we return immediately to the admin UI
+    asyncio.create_task(autonomous_tick(x_client=x_client, tweet_image_fn=_tweet_image_fn))
+    return JSONResponse({"status": "ok", "message": "Autonomous tick triggered in background."})
+
+
 # ── World Event Engine ─────────────────────────────────────────────────────────
 # The LLM acts as an invisible director, periodically deciding what happens in
 # each 3D world.  Returns a structured JSON action the frontend can apply.
