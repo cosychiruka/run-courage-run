@@ -131,14 +131,27 @@ async def _gather_state(redis) -> dict:
         bucket_status = {b: {"elapsed_min": 999, "cooled_down": True, "cooldown_min": v}
                          for b, v in BUCKET_COOLDOWNS.items()}
 
-    # Top news headlines (VARIED for decision variety)
+    # Article URLs Courage has already covered (capped Redis list, 48h TTL)
+    # MUST be fetched before news_headlines so exclude_urls filter works
+    covered_urls: list[str] = []
+    if redis:
+        try:
+            covered_urls = await redis.lrange("courage:covered_urls", 0, 29) or []
+        except Exception:
+            pass
+
+    # Top news headlines (VARIED for decision variety — cross-category, no country filter)
     news_headlines = []
     try:
         from app.news_cache import get_varied_articles
-        # Pull 8 random articles he hasn't tweeted yet (scaled back from 10)
-        articles = await get_varied_articles(limit=8, exclude_urls=covered_urls)
+        articles = await get_varied_articles(limit=8, country="", random_sample=True, exclude_urls=covered_urls)
         news_headlines = [
-            {"title": a.get("title", "")[:80], "source": a.get("source_name", ""), "category": a.get("category", "")}
+            {
+                "title":    a.get("title", "")[:80],
+                "url":      a.get("url", ""),
+                "source":   a.get("source_name", ""),
+                "category": a.get("category", ""),
+            }
             for a in articles
         ]
     except Exception:
@@ -173,14 +186,6 @@ async def _gather_state(redis) -> dict:
         except Exception:
             pass
 
-    # Article URLs Courage has already covered (capped Redis list, 48h TTL)
-    covered_urls: list[str] = []
-    if redis:
-        try:
-            covered_urls = await redis.lrange("courage:covered_urls", 0, 19) or []
-        except Exception:
-            pass
-
     return {
         "recent_tweets":        recent_tweets,
         "unreplied_count":      unreplied_count,
@@ -210,7 +215,7 @@ Current state:
 - Auto tweets posted today: {auto_tweets_today} / {daily_cap} max
 - Content bucket status (elapsed / cooldown):
 {bucket_status_lines}
-- A selection of fresh headlines (pick ONE to react to):
+- A selection of fresh headlines (pick ONE to react to — include article_url in your reasoning so it can be pre-marked as covered):
 {news_lines}
 - Top crypto headlines available:
 {crypto_lines}
@@ -244,7 +249,7 @@ async def _decide(state: dict) -> dict:
         for b, v in state["bucket_status"].items()
     )
     news_lines = "\n".join(
-        f"  - {h['title']} ({h['source']})" for h in state["news_headlines"]
+        f"  - {h['title']} [{h['url']}] ({h['source']})" for h in state["news_headlines"]
     ) or "  (no news cached yet)"
 
     crypto_lines = "\n".join(
@@ -423,14 +428,59 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
             except Exception:
                 pass  # If check fails, proceed anyway
 
-        # 6. Execute via run_agent (max 4 tool rounds in autonomous mode)
+        # 6a. Pre-mark the article URL as covered immediately after decision
+        #     This prevents the same article from being picked on the next tick even if
+        #     execution fails (Groq 429, budget exhausted, etc.)
+        if redis and action in ("TWEET_NEWS", "TWEET_CRYPTO"):
+            try:
+                chosen_url = decision.get("article_url", "")
+                if not chosen_url:
+                    # Fall back: extract first URL-shaped token from reasoning
+                    import re as _re
+                    m = _re.search(r'https?://\S+', decision.get("reasoning", ""))
+                    chosen_url = m.group(0) if m else ""
+                if chosen_url:
+                    await redis.lpush("courage:covered_urls", chosen_url)
+                    await redis.ltrim("courage:covered_urls", 0, 29)
+                    await redis.expire("courage:covered_urls", 172800)
+            except Exception:
+                pass
+
+        # 6b. Guard: skip execution if Groq budget is already exhausted
+        from app.agent import _groq_budget_ok
+        if not _groq_budget_ok():
+            print("[AUTO] Groq token budget exhausted — skipping execution this tick.")
+            return
+
+        # 6c. Execute via run_agent (max 4 tool rounds in autonomous mode)
         result = None
+        execution_exception = None
         try:
             result = await _execute(decision, state, x_client, tweet_image_fn)
             print(f"[AUTO] Execution complete. Result snippet: {(result or '')[:120]}")
         except Exception as e:
+            execution_exception = e
             print(f"[AUTO] Execution failed: {e}")
+
+        # 6d. Detect budget-exhausted placeholder — no tweet was posted, skip bookkeeping
+        _BUDGET_MARKER = "burned through all my thinking power"
+        if result and _BUDGET_MARKER in result:
+            print("[AUTO] Groq budget hit during execution — no tweet posted, skipping bookkeeping.")
             return
+
+        # 6e. If execution threw an exception, check if a tweet was actually posted before the error
+        #     (Groq 429 can occur AFTER a successful tweet post — we still want to record the tweet)
+        tweet_confirmed = result is not None and execution_exception is None
+        if execution_exception and not tweet_confirmed:
+            try:
+                recent = await get_recent_tweets(1)
+                if recent and time.time() - float(recent[0].get("created_at", 0)) < 180:
+                    tweet_confirmed = True
+                    print("[AUTO] Execution threw but tweet was found — proceeding with bookkeeping.")
+            except Exception:
+                pass
+            if not tweet_confirmed:
+                return  # Nothing was posted — no bookkeeping
 
         # 7. Increment daily autonomous tweet counter
         if redis:
