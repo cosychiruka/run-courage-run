@@ -49,15 +49,21 @@
   }
 
 .newspaper-paper {
-    background: #a7a7a7;
-    width: 90%;
+    background: #e6e1d7; /* Realistic off-white paper */
+    background-image: 
+        radial-gradient(circle at 2px 2px, rgba(0,0,0,0.03) 1px, transparent 0),
+        linear-gradient(to bottom, rgba(255,255,255,0.2), transparent);
+    background-size: 4px 4px, 100% 100%;
+    width: 95%;
+    max-width: 1000px;
     padding: 0 15px 16px;
     box-sizing: border-box;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 6px 6px rgba(0, 0, 0, 0.23);
     overflow: visible;
-    animation: newspaper-paper-appear 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards;
+    animation: newspaper-paper-appear 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     margin: 8px auto;
     text-align: center;
+    border: 1px solid rgba(0,0,0,0.1);
   }
   
   .newspaper-banner {

@@ -146,133 +146,133 @@ function wrapText(ctx, text, maxWidth) {
 
 /**
  * Draw the article card to a canvas and trigger a PNG download.
- * @param {object} article  - { title, description, content, source, publishedAt }
- * @param {string} [emotion] - 'happy' | 'scared' | 'neutral'
+ * Matches the 'The Courageous Chronicle' newspaper aesthetic.
  */
-export function downloadArticleCard(article, emotion = 'neutral') {
+/**
+ * Draw the article card to a canvas and trigger a PNG download.
+ * Matches the 'The Courageous Chronicle' newspaper aesthetic (Straight, High-Quality).
+ */
+export async function downloadArticleCard(article, emotion = 'neutral') {
   const canvas = document.createElement('canvas');
-  canvas.width = CARD_W;
-  canvas.height = CARD_H;
+  const W = 1000, H = 1200, PAD = 40;
+  canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // ── Background gradient ──────────────────────────────────────────────────
-  const bgGrad = ctx.createLinearGradient(0, 0, CARD_W, CARD_H);
-  bgGrad.addColorStop(0, '#0d0820');
-  bgGrad.addColorStop(1, '#1a0a2e');
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, CARD_W, CARD_H);
+  const BANNER_H = 60, FOOTER_H = 70;
+  const PINK     = '#eb57c1', BG_PAPER = '#e6e1d7', BG_DARK  = '#22252d';
 
-  // ── Purple border glow ───────────────────────────────────────────────────
-  ctx.strokeStyle = 'rgba(153, 69, 255, 0.8)';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(2, 2, CARD_W - 4, CARD_H - 4);
+  // 1. Paper Background
+  ctx.fillStyle = BG_PAPER;
+  ctx.fillRect(0, 0, W, H);
 
-  // ── Brand bar (top) ──────────────────────────────────────────────────────
-  const brandGrad = ctx.createLinearGradient(0, 0, CARD_W, 0);
-  brandGrad.addColorStop(0, '#9945FF');
-  brandGrad.addColorStop(1, '#14F195');
-  ctx.fillStyle = brandGrad;
-  ctx.fillRect(0, 0, CARD_W, BRAND_H);
-
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 18px "Comic Sans MS", cursive';
+  // 2. Top Banner
+  ctx.fillStyle = BG_DARK;
+  ctx.fillRect(0, 0, W, BANNER_H);
+  ctx.fillStyle = PINK;
+  ctx.font = 'bold 22px "Comic Sans MS", cursive';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText('$RCR  ·  The Courageous Chronicle', PAD, BRAND_H / 2);
+  ctx.fillText('[#News4Pluckies]  '.repeat(10), 20, BANNER_H / 2);
 
-  // Emotion tag top-right
-  const emojiMap = { happy: '🚀 WAGMI', scared: '😱 NGMI', neutral: '🐕 chillin' };
-  const emoTag = emojiMap[emotion] || emojiMap.neutral;
-  ctx.textAlign = 'right';
-  ctx.fillText(emoTag, CARD_W - PAD, BRAND_H / 2);
-
-  // ── Headline ─────────────────────────────────────────────────────────────
-  const headlineY = BRAND_H + PAD;
-  ctx.textAlign = 'left';
+  // 3. Heading Section (Full Width)
+  let cy = BANNER_H + 30;
+  ctx.fillStyle = '#040404';
   ctx.textBaseline = 'top';
-  ctx.fillStyle = '#ff79c6';
-  ctx.font = 'bold 24px "Comic Sans MS", cursive';
+  
+  // Left: Extra!
+  ctx.font = 'bold 28px Serif';
+  ctx.fillText('EXTRA!\nEXTRA!', PAD, cy);
 
-  const maxHeadlineW = CARD_W - PAD * 2;
-  const headlineLines = wrapText(ctx, article.title || 'Untitled', maxHeadlineW);
-  const maxLines = 3;
-  let hy = headlineY;
-  headlineLines.slice(0, maxLines).forEach((line, i) => {
-    if (i === maxLines - 1 && headlineLines.length > maxLines) {
-      // truncate last visible line with ellipsis
-      let truncated = line;
-      while (ctx.measureText(truncated + '…').width > maxHeadlineW && truncated.length > 0) {
-        truncated = truncated.slice(0, -1);
-      }
-      ctx.fillText(truncated + '…', PAD, hy);
-    } else {
-      ctx.fillText(line, PAD, hy);
-    }
-    hy += 30;
-  });
-
-  // ── Divider ──────────────────────────────────────────────────────────────
-  const divY = hy + 10;
-  ctx.strokeStyle = 'rgba(153, 69, 255, 0.5)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(PAD, divY);
-  ctx.lineTo(CARD_W - PAD, divY);
-  ctx.stroke();
-
-  // ── Body text ─────────────────────────────────────────────────────────────
-  const bodyY = divY + 14;
-  const bodyText = (article.description || article.content || '').slice(0, 400);
-  ctx.fillStyle = '#e0d6f5';
-  ctx.font = '15px "Comic Sans MS", cursive';
-  const bodyLines = wrapText(ctx, bodyText || 'No description available.', maxHeadlineW);
-  const bodyMaxLines = 5;
-  let by = bodyY;
-  bodyLines.slice(0, bodyMaxLines).forEach((line, i) => {
-    if (i === bodyMaxLines - 1 && bodyLines.length > bodyMaxLines) {
-      let truncated = line;
-      while (ctx.measureText(truncated + '…').width > maxHeadlineW && truncated.length > 0) {
-        truncated = truncated.slice(0, -1);
-      }
-      ctx.fillText(truncated + '…', PAD, by);
-    } else {
-      ctx.fillText(line, PAD, by);
-    }
-    by += 22;
-  });
-
-  // ── Source + timestamp (bottom bar) ──────────────────────────────────────
-  const footY = CARD_H - PAD;
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.font = '13px monospace';
-  ctx.textBaseline = 'alphabetic';
-
-  const source = article.source?.name || '';
-  const ts = article.publishedAt
-    ? new Date(article.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    : '';
-  ctx.textAlign = 'left';
-  ctx.fillText(source, PAD, footY);
-
-  ctx.textAlign = 'right';
-  ctx.fillText(ts, CARD_W - PAD, footY);
-
-  // Site watermark center
+  // Center: Title
   ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(153,69,255,0.55)';
-  ctx.fillText('x.com/runcouragerun', CARD_W / 2, footY);
+  ctx.font = 'bold 52px Serif';
+  ctx.fillText('The Courageous Chronicle', W/2, cy);
+  ctx.font = '20px Serif';
+  ctx.fillStyle = '#444';
+  ctx.fillText('The Worlds Bravest Newspaper', W/2, cy + 65);
+
+  // Right: Edition
+  const h = new Date().getHours();
+  let ed = 'MORNING', icon = '🌅';
+  if (h >= 11 && h < 17) { ed = 'AFTERNOON'; icon = '☀️'; }
+  else if (h >= 17 && h < 21) { ed = 'EVENING'; icon = '🌆'; }
+  else if (h < 5 || h >= 21) { ed = 'LATE'; icon = '🌙'; }
+  
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#040404';
+  ctx.font = '24px Serif';
+  ctx.fillText(`${icon}\n${ed}\nFINAL`, W - PAD, cy);
+
+  cy += 130;
+  ctx.strokeStyle = '#040404';
+  ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.moveTo(PAD, cy); ctx.lineTo(W - PAD, cy); ctx.stroke();
+  cy += 10;
+  ctx.fillStyle = PINK;
+  ctx.font = 'bold 18px Serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('NOWHERE NEWS', PAD, cy);
+  cy += 30;
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(PAD, cy); ctx.lineTo(W - PAD, cy); ctx.stroke();
+  cy += 30;
+
+  // 4. Middle Section: 2 Columns
+  const colW = (W - PAD * 3) / 2;
+  
+  // Left: Image
+  const imgUrl = article.image || 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/1145795/paperboy.jpg';
+  try {
+    const img = await loadImage(imgUrl);
+    const scale = Math.max(colW / img.width, colW / img.height);
+    const nw = img.width * scale, nh = img.height * scale;
+    const xo = (nw - colW) / 2, yo = (nh - colW) / 2;
+    ctx.drawImage(img, xo / scale, yo / scale, colW / scale, colW / scale, PAD, cy, colW, colW);
+    ctx.strokeStyle = '#040404'; ctx.lineWidth = 3;
+    ctx.strokeRect(PAD, cy, colW, colW);
+  } catch (e) {
+    ctx.fillStyle = '#2a2a32'; ctx.fillRect(PAD, cy, colW, colW);
+    ctx.fillStyle = PINK; ctx.textAlign = 'center'; ctx.fillText('NOWHERE NEWS', PAD + colW/2, cy + colW/2);
+  }
+
+  // Right: Content
+  const rx = PAD + colW + PAD;
+  let ry = cy;
+  ctx.textAlign = 'left'; ctx.fillStyle = '#040404'; ctx.font = 'bold 34px Serif';
+  const headlineLines = wrapText(ctx, (article.title || '').toUpperCase(), colW);
+  headlineLines.slice(0, 4).forEach(line => {
+    ctx.fillText(line, rx, ry);
+    ry += 42;
+  });
+
+  ctx.fillStyle = PINK; ctx.font = 'bold 65px "Comic Sans MS", cursive';
+  ctx.fillText('!!!', rx, ry);
+  ry += 80;
+
+  ctx.strokeStyle = '#444'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx + colW, ry); ctx.stroke();
+  ry += 20;
+
+  ctx.fillStyle = '#333'; ctx.font = '20px Serif';
+  const descLines = wrapText(ctx, article.description || article.content || '', colW);
+  descLines.slice(0, 15).forEach(line => {
+    if (ry > H - 100) return;
+    ctx.fillText(line, rx, ry);
+    ry += 28;
+  });
+
+  // 5. Footer
+  ctx.fillStyle = BG_DARK; ctx.fillRect(0, H - FOOTER_H, W, FOOTER_H);
+  ctx.fillStyle = PINK; ctx.font = 'bold 18px "Comic Sans MS", cursive';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('THE THINGS I DO FOR YOU PEOPLE... — COURAGE', W/2, H - FOOTER_H/2);
 
   // ── Trigger download ──────────────────────────────────────────────────────
   canvas.toBlob(blob => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    const slug = (article.title || 'courage-news')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .slice(0, 40);
-    a.href = url;
-    a.download = `${slug}.png`;
-    a.click();
+    const slug = (article.title || 'courage-chronicle').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
+    a.href = url; a.download = `${slug}.png`; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }, 'image/png');
 }
