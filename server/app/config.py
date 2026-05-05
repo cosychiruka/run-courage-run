@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 GROQ_API_KEY     = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL       = os.getenv("GROQ_MODEL",      "meta-llama/llama-4-scout-17b-16e-instruct")  # smart: tool calls & reasoning ($0.11/$0.34 per 1M — 5x cheaper than 70b, 594 TPS)
+GROQ_MODEL       = os.getenv("GROQ_MODEL",      "llama-3.3-70b-versatile")      # smart: tool calls & reasoning (high performance, widely available)
 GROQ_MODEL_FAST  = os.getenv("GROQ_MODEL_FAST", "llama-3.1-8b-instant")                       # fast: final no-tool answer pass ($0.05/$0.08 per 1M, 840 TPS)
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")

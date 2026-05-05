@@ -144,7 +144,9 @@ async def _fetch_coindesk(limit: int = 20) -> list[dict]:
         results = data.get("Data", [])
         return [_norm_coindesk(i) for i in results]
     except Exception as e:
-        print(f"[CRYPTO] CoinDesk JSON parse failed: {e}")
+        status = r.status_code if 'r' in locals() else "???"
+        text = r.text[:100] if 'r' in locals() else str(e)
+        print(f"[CRYPTO] CoinDesk fetch failed (Status {status}): {text}")
         return []
 
 
@@ -165,10 +167,15 @@ async def _fetch_coingecko(limit: int = 20) -> list[dict]:
         )
         r.raise_for_status()
 
-    await _bump_budget("coingecko")
-    data = r.json()
-    items = data.get("data", data) if isinstance(data, dict) else data
-    return [_norm_coingecko(i) for i in items[:limit]]
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 422:
+            print("[CRYPTO] CoinGecko News API requires a PAID plan. Skipping.")
+        else:
+            print(f"[CRYPTO] CoinGecko status error: {e}")
+        return []
+    except Exception as e:
+        print(f"[CRYPTO] CoinGecko failed: {e}")
+        return []
 
 
 async def _save_to_sqlite(articles: list[dict]):
