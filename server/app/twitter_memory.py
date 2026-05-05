@@ -145,6 +145,14 @@ async def get_recent_mentions(limit: int = 10) -> list[dict]:
             return [dict(r) for r in await cur.fetchall()]
 
 
+async def get_recent_mention_snippets(limit: int = 3) -> str:
+    """Return a single string summarizing the last few mentions for the decision step."""
+    mentions = await get_recent_mentions(limit)
+    if not mentions:
+        return "none"
+    return " | ".join(f"@{m['author']}: {m['text'][:60]}" for m in mentions)
+
+
 async def get_recent_trends(limit: int = 20) -> list[dict]:
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row

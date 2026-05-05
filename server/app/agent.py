@@ -224,6 +224,14 @@ async def run_agent(
         goal_summary=goal_summary,
         target_article=target_article,
     )
+    
+    # Add a final instruction if rate status was injected in user_message
+    if "Current X Rate Status" in user_message:
+        system += (
+            "\n\n== OPERATIONAL NOTE ==\n"
+            "I have already injected your current Twitter rate limit status into the user message. "
+            "If the limits look safe, do NOT call get_x_rate_status. Proceed directly to the next tool or your final response."
+        )
 
     def _sanitise_history(hist: list[dict]) -> list[dict]:
         """

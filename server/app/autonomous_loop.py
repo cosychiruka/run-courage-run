@@ -127,12 +127,13 @@ async def _gather_state(redis) -> dict:
         bucket_status = {b: {"elapsed_min": 999, "cooled_down": True, "cooldown_min": v}
                          for b, v in BUCKET_COOLDOWNS.items()}
 
-    # Article URLs Courage has already covered (capped Redis list, 48h TTL)
-    # MUST be fetched before news_headlines so exclude_urls filter works
+    # Article URLs and Topics Courage has already covered (48h TTL)
     covered_urls: list[str] = []
+    covered_topics: list[str] = []
     if redis:
         try:
             covered_urls = await redis.lrange("courage:covered_urls", 0, 29) or []
+            covered_topics = await redis.lrange("courage:covered_topics", 0, 19) or []
         except Exception:
             pass
 
@@ -184,9 +185,20 @@ async def _gather_state(redis) -> dict:
     # Daily autonomous tweet counter
     today = datetime.date.today().isoformat()
     auto_tweets_today = 0
+    mention_pulse = "none"
+    rate_status = "unknown"
     if redis:
         try:
             auto_tweets_today = int(await redis.get(f"courage:auto_tweets:{today}") or 0)
+            
+            # Fetch last few mentions text for the "Social Pulse"
+            from app.twitter_memory import get_recent_mention_snippets
+            mention_pulse = await get_recent_mention_snippets(3)
+            
+            # Fetch last known rate limits to skip a tool round
+            rate_search = await redis.hgetall("rate:/tweets/search/recent")
+            rate_post = await redis.hgetall("rate:/statuses/update") # v1.1
+            rate_status = f"Search: {rate_search.get('remaining', '?')}, Post: {rate_post.get('remaining', '?')}"
         except Exception:
             pass
 
@@ -200,7 +212,10 @@ async def _gather_state(redis) -> dict:
         "visitor_count":        visitor_count,
         "auto_tweets_today":    auto_tweets_today,
         "covered_urls":         covered_urls,
-        "time_utc":             datetime.datetime.utcnow().isoformat(),
+        "time_utc":             datetime.datetime.utcnow().strftime("%H:%M"),
+        "mention_pulse":        mention_pulse,
+        "rate_status":          rate_status,
+        "covered_topics":       covered_topics,
     }
 
 
@@ -219,22 +234,23 @@ Current state:
 - Auto tweets posted today: {auto_tweets_today} / {daily_cap} max
 - Content bucket status (elapsed / cooldown):
 {bucket_status_lines}
-- A selection of fresh headlines (pick ONE to react to — include article_url in your reasoning so it can be pre-marked as covered):
+- Fresh headlines:
 {news_lines}
-- Top crypto headlines available:
+- Crypto headlines:
 {crypto_lines}
-- Visitors in last 24h: {visitor_count}
-- Your last 3 tweets (avoid repeating topics):
+- SOCIAL PULSE (Last 3 mentions): {mention_pulse}
+- CURRENT X RATE LIMITS: {rate_status}
+- RECENTLY DISCUSSED TOPICS (Avoid repeating these): {topic_history}
+- Last 3 tweets:
 {recent_tweet_lines}
 
-Decision rules (follow these strictly):
-1. SKIP if active_sessions > 0 — be conservative while someone is chatting
-2. REPLY_MENTIONS if unreplied_count > 2 — community engagement is priority
-3. SKIP if auto_tweets_today >= {daily_cap} — daily cap reached
-4. Only pick a bucket that is cooled_down = true
-5. Do not pick the same bucket as your most recent tweet if another cooled-down option exists
-6. Aim for variety across categories (Tech, Business, General, etc.) where interesting stories exist.
-7. NEVER react to the same specific news story twice.
+Decision rules:
+1. SKIP if active_sessions > 0.
+2. REPLY_MENTIONS if unreplied_count > 2 OR if the Social Pulse indicates someone is talking directly to you.
+3. Only pick cooled_down = true buckets.
+4. Aim for variety. Do NOT repeat topics listed in RECENTLY DISCUSSED TOPICS.
+5. If confidence < 0.5, SKIP.
+6. If the Social Pulse contains $RCR questions, prioritize SOCIAL or RANDOM bucket to address them.
 
 Valid actions: TWEET_NEWS, TWEET_CRYPTO, REPLY_MENTIONS, RANDOM, WORLD_UPDATE, SOCIAL, SKIP
 
@@ -242,10 +258,10 @@ Response format (exactly this JSON structure):
 {
   "action": "TWEET_NEWS", 
   "bucket": "NEWS", 
-  "reasoning": "Fresh Guardian story about X...", 
+  "reasoning": "Panic about X story because users in mentions are worried...", 
   "confidence": 0.85,
   "article_url": "https://...",
-  "article_title": "..."
+  "topic_keyword": "Topic name (1-2 words)"
 }
 
 confidence: 0.0–1.0. High = clear obvious action. Low = uncertain, nothing great to post, or weak reasoning.
@@ -280,8 +296,10 @@ async def _decide(state: dict) -> dict:
         bucket_status_lines=bucket_lines,
         news_lines=news_lines,
         crypto_lines=crypto_lines,
-        visitor_count=state["visitor_count"],
         recent_tweet_lines=recent_tweet_lines,
+        mention_pulse=state["mention_pulse"],
+        rate_status=state["rate_status"],
+        topic_history=", ".join(state["covered_topics"]) or "none",
     )
 
     headers = {
@@ -346,9 +364,12 @@ async def _execute(decision: dict, state: dict, x_client, tweet_image_fn) -> str
 
     proactive_prompt = (
         f"{base_prompt}\n\n"
+        f"[Current X Rate Status: {state.get('rate_status', 'unknown')}]\n"
         f"[Autonomous Decision: {decision.get('reasoning', '')}]\n"
         f"[Recent tweets to avoid: {recent_summary}]"
-        f"{covered_note}"
+        f"{covered_note}\n\n"
+        f"IMPORTANT: I've already checked your rate limits (see above). If they look okay, "
+        f"do NOT call get_x_rate_status. Just post the tweet directly."
     )
 
     return await run_agent(
@@ -459,21 +480,20 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
             except Exception:
                 pass  # If check fails, proceed anyway
 
-        # 6a. Pre-mark the article URL as covered immediately after decision
-        #     This prevents the same article from being picked on the next tick even if
-        #     execution fails (Groq 429, budget exhausted, etc.)
-        if redis and action in ("TWEET_NEWS", "TWEET_CRYPTO"):
+        # 6a. Pre-mark the article URL and Topic Keyword as covered
+        if redis:
             try:
                 chosen_url = decision.get("article_url", "")
-                if not chosen_url:
-                    # Fall back: extract first URL-shaped token from reasoning
-                    import re as _re
-                    m = _re.search(r'https?://\S+', decision.get("reasoning", ""))
-                    chosen_url = m.group(0) if m else ""
                 if chosen_url:
                     await redis.lpush("courage:covered_urls", chosen_url)
                     await redis.ltrim("courage:covered_urls", 0, 29)
                     await redis.expire("courage:covered_urls", 172800)
+                
+                topic = decision.get("topic_keyword", "").lower().strip()
+                if topic:
+                    await redis.lpush("courage:covered_topics", topic)
+                    await redis.ltrim("courage:covered_topics", 0, 19) # last 20 topics
+                    await redis.expire("courage:covered_topics", 172800)
             except Exception:
                 pass
 
