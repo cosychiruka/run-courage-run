@@ -43,17 +43,13 @@ DAILY_AUTO_TWEET_CAP = 25   # Paid plan — generous but not spam
 # ── Action prompts sent to run_agent as the "user message" ─────────────────────
 ACTION_PROMPTS = {
     "TWEET_NEWS": (
-        "You have just woken up from your autonomous nap. *stretches paws* "
-        "Call get_news to find a fresh story across multiple categories — general, technology, business. "
-        "Pick the most interesting article and craft a Courage-voiced reaction tweet about it. "
-        "Check get_x_rate_status first. Attach the article's image via article_url if possible. "
-        "After posting, call record_twitter_action to save it."
+        "You have decided to react to a specific news story. *ears perk up* "
+        "Craft a Courage-voiced reaction tweet using the Target News Story in your memory. "
+        "Focus ONLY on that story. Check get_x_rate_status first. Post the tweet. Record it."
     ),
     "TWEET_CRYPTO": (
-        "You have just woken up and feel something stirring in the blockchain ether. *sniff sniff* "
-        "Call get_crypto_news to see what's happening in macro crypto markets. "
-        "React as Courage would — dramatic, brave, in character. Macro news only, no token shilling. "
-        "If a CoinGecko article has an image_url, pass it to post_tweet's image_url parameter. "
+        "You have decided to react to a crypto headline. *shivers* "
+        "Craft a Courage-voiced reaction tweet about it using the info in your memory. "
         "Check get_x_rate_status first. Post the tweet. Record it."
     ),
     "REPLY_MENTIONS": (
@@ -147,10 +143,12 @@ async def _gather_state(redis) -> dict:
         articles = await get_varied_articles(limit=8, country="", random_sample=True, exclude_urls=covered_urls)
         news_headlines = [
             {
-                "title":    a.get("title", "")[:80],
-                "url":      a.get("url", ""),
-                "source":   a.get("source_name", ""),
-                "category": a.get("category", ""),
+                "title":       a.get("title", "")[:100],
+                "url":         a.get("url", ""),
+                "source_name": a.get("source_name", "Unknown"),
+                "category":    a.get("category", "general"),
+                "description": a.get("description", "")[:200],
+                "image":       a.get("image_url") or a.get("image_url") or a.get("image"),
             }
             for a in articles
         ]
@@ -163,7 +161,13 @@ async def _gather_state(redis) -> dict:
         from app.crypto_news import get_cached_crypto_headlines
         crypto = await get_cached_crypto_headlines()
         crypto_headlines = [
-            {"title": a.get("title", "")[:80], "source": a.get("source_name", "")}
+            {
+                "title":       a.get("title", "")[:100],
+                "url":         a.get("url", ""),
+                "source_name": a.get("source_name", "Unknown"),
+                "description": a.get("description", "")[:200],
+                "image":       a.get("image_url"),
+            }
             for a in crypto[:3]
         ]
     except Exception:
@@ -235,7 +239,14 @@ Decision rules (follow these strictly):
 Valid actions: TWEET_NEWS, TWEET_CRYPTO, REPLY_MENTIONS, RANDOM, WORLD_UPDATE, SOCIAL, SKIP
 
 Response format (exactly this JSON structure):
-{{"action": "TWEET_NEWS", "bucket": "NEWS", "reasoning": "Fresh Guardian story about X that I haven't reacted to", "confidence": 0.85}}
+{
+  "action": "TWEET_NEWS", 
+  "bucket": "NEWS", 
+  "reasoning": "Fresh Guardian story about X...", 
+  "confidence": 0.85,
+  "article_url": "https://...",
+  "article_title": "..."
+}
 
 confidence: 0.0–1.0. High = clear obvious action. Low = uncertain, nothing great to post, or weak reasoning.
 Ticks with confidence < 0.5 are automatically skipped — be honest.
@@ -249,11 +260,11 @@ async def _decide(state: dict) -> dict:
         for b, v in state["bucket_status"].items()
     )
     news_lines = "\n".join(
-        f"  - {h['title']} [{h['url']}] ({h['source']})" for h in state["news_headlines"]
+        f"  - {h['title']} [{h['url']}] ({h['source_name']})" for h in state["news_headlines"]
     ) or "  (no news cached yet)"
 
     crypto_lines = "\n".join(
-        f"  - {h['title']} ({h['source']})" for h in state["crypto_headlines"]
+        f"  - {h['title']} [{h['url']}] ({h['source_name']})" for h in state["crypto_headlines"]
     ) or "  (no crypto news cached yet)"
 
     recent_tweet_lines = "\n".join(
@@ -304,12 +315,22 @@ async def _decide(state: dict) -> dict:
 # ── Execution step ─────────────────────────────────────────────────────────────
 
 async def _execute(decision: dict, state: dict, x_client, tweet_image_fn) -> str | None:
-    """Build a proactive prompt and call run_agent() in background mode (ws_emit=None)."""
+    """Build a proactive prompt and call run_agent() in background mode."""
     from app.agent import run_agent
 
     action = decision.get("action", "SKIP")
     if action == "SKIP":
         return None
+
+    # Direct Handoff: Find the article object that matches the decision
+    target_article = None
+    chosen_url = decision.get("article_url")
+    if chosen_url:
+        all_headlines = state.get("news_headlines", []) + state.get("crypto_headlines", [])
+        for h in all_headlines:
+            if h.get("url") == chosen_url:
+                target_article = h
+                break
 
     base_prompt = ACTION_PROMPTS.get(action, ACTION_PROMPTS["RANDOM"])
 
@@ -317,21 +338,16 @@ async def _execute(decision: dict, state: dict, x_client, tweet_image_fn) -> str
         t.get("text", "")[:80] for t in state["recent_tweets"][:3]
     ) or "none yet"
 
-    # Inject already-covered URLs so Courage avoids re-posting the same stories
+    # Inject already-covered URLs
     covered_note = ""
     covered = state.get("covered_urls", [])
     if covered:
-        covered_note = (
-            f"\n[Stories already covered this week — do NOT repeat these: "
-            + " | ".join(covered[:10])
-            + "]"
-        )
+        covered_note = f"\n[Already covered: {' | '.join(covered[:5])}]"
 
     proactive_prompt = (
         f"{base_prompt}\n\n"
-        f"[Autonomous context — your own decision to act]\n"
-        f"[Reasoning: {decision.get('reasoning', '')}]\n"
-        f"[Recent tweets to avoid repeating: {recent_summary}]"
+        f"[Autonomous Decision: {decision.get('reasoning', '')}]\n"
+        f"[Recent tweets to avoid: {recent_summary}]"
         f"{covered_note}"
     )
 
@@ -341,9 +357,10 @@ async def _execute(decision: dict, state: dict, x_client, tweet_image_fn) -> str
         x_client=x_client,
         tweet_image_fn=tweet_image_fn,
         world_context=None,
-        ws_emit=None,          # Background mode — no frontend WebSocket
-        max_tool_rounds=3,     # 3 is enough: rate-check → fetch-news → post
-        compact=True,          # Slim context (5 articles, no twitter_summary) to cut token burn
+        ws_emit=None,
+        max_tool_rounds=3,
+        compact=True,
+        target_article=target_article, # The Direct Handoff
     )
 
 

@@ -184,12 +184,14 @@ async def run_agent(
     ws_emit: WsEmit = None,
     max_tool_rounds: int = MAX_TOOL_ROUNDS,
     compact: bool = False,
+    target_article: Optional[dict] = None,
 ) -> str:
     """
     Run one full Courage agent turn and return the final text response.
     ws_emit: async callable to stream tool events to the frontend.
     max_tool_rounds: cap on tool-call iterations (default MAX_TOOL_ROUNDS; use 4 for autonomous mode).
-    compact: trim context to 5 articles, skip twitter_summary — reduces Groq token burn in autonomous mode.
+    compact: trim context, skip twitter_summary — reduces Groq token burn.
+    target_article: Direct Handoff — skip general fetch and focus ONLY on this story.
     """
     # Hard stop if today's Groq token budget is exhausted
     if not _groq_budget_ok():
@@ -204,18 +206,23 @@ async def run_agent(
     # Ensure Twitter memory tables exist
     await init_twitter_db()
 
-    # Build system prompt — compact mode uses fewer articles and skips twitter_summary
-    # to reduce Groq token consumption in autonomous background ticks.
-    article_limit   = 5 if compact else 10
-    recent_articles = await get_varied_articles(limit=article_limit)
+    # Build system prompt. 
+    # Efficiency Fix: If we have a target_article, SKIP the varied news fetch entirely.
+    recent_articles = []
+    if not target_article:
+        article_limit   = 5 if compact else 10
+        recent_articles = await get_varied_articles(limit=article_limit)
+        
     twitter_summary = "" if compact else await get_twitter_summary()
     goal_summary    = await get_goal_progress_summary()
-    system          = build_context_prompt(
+    
+    system = build_context_prompt(
         recent_articles,
         world_context=world_context,
         twitter_summary=twitter_summary,
         model_name=GROQ_MODEL,
         goal_summary=goal_summary,
+        target_article=target_article,
     )
 
     def _sanitise_history(hist: list[dict]) -> list[dict]:
@@ -288,24 +295,22 @@ async def run_agent(
                     tweet_image_fn=tweet_image_fn,
                 )
 
+                # SAFETY VALVE: Truncate tool result to 10,000 chars before injecting into memory.
+                # This prevents '413 Payload Too Large' if a tool (like fetch_article) returns
+                # a massive body, while still giving the agent plenty of data to work with.
+                safe_result = result
+                if len(result) > 10000:
+                    safe_result = result[:10000] + "... [truncated for brevity]"
+
                 # Stream tool_result event to frontend after done
                 if ws_emit:
-                    await ws_emit({"type": "tool_result", "tool": name, "summary": result[:120]})
-
-                # Emit tweet card hologram data if a Twitter search just ran
-                if name == "search_tweets" and _last_tweet_cards and ws_emit:
-                    await ws_emit({
-                        "type":   "tweet_card",
-                        "tweets": list(_last_tweet_cards),
-                        "query":  raw_args.get("query", ""),
-                    })
+                    await ws_emit({"type": "tool_result", "tool": name, "summary": safe_result[:120]})
 
                 messages.append({
                     "role":         "tool",
                     "tool_call_id": call.get("id", f"call_{name}"),
                     "name":         name,
-                    "content":      result,
-
+                    "content":      safe_result,
                 })
 
             continue  # next round with tool results injected

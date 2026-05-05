@@ -139,9 +139,7 @@ async def _fetch_coindesk(limit: int = 20) -> list[dict]:
         results = data.get("Data", [])
         return [_norm_coindesk(i) for i in results]
     except Exception as e:
-        status = r.status_code if 'r' in locals() else "???"
-        text = r.text[:100] if 'r' in locals() else str(e)
-        print(f"[CRYPTO] CoinDesk fetch failed (Status {status}): {text}")
+        print(f"[CRYPTO] CoinDesk fetch failed: {e}")
         return []
 
 
@@ -178,16 +176,9 @@ async def _fetch_coingecko(limit: int = 20) -> list[dict]:
                 })
             return results
 
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 422:
-            print("[CRYPTO] CoinGecko News API requires a PAID plan. Skipping.")
-        elif e.response.status_code == 401:
-            print("[CRYPTO] CoinGecko 401: Unauthorized. Please check your Demo key.")
-        else:
-            print(f"[CRYPTO] CoinGecko status error (Status {e.response.status_code}): {e.response.text[:100]}")
-        return []
     except Exception as e:
-        print(f"[CRYPTO] CoinGecko failed: {e}")
+        # User requested to keep CoinGecko even if unpaid; just return empty list on failure.
+        print(f"[CRYPTO] CoinGecko fetch skipped or failed: {e}")
         return []
 
 
