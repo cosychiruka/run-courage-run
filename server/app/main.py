@@ -651,11 +651,6 @@ async def get_presence(world: str = "disco"):
     
     return JSONResponse(active_users)
 
-@app.get("/health")
-async def health():
-    return {"status": "ok", "timestamp": time.time()}
-
-
 # ── Static Files (Frontend) ───────────────────────────────────────────────────
 # Mount the built React app. Serve index.html for any unknown paths (SPA)
 
