@@ -218,6 +218,49 @@ async def get_all_recent(limit: int = 20) -> list[dict]:
             rows = await cur.fetchall()
     return [dict(r) for r in rows]
 
+async def get_varied_articles(
+    limit: int = 8, 
+    country: str = "us", 
+    category: Optional[str] = None,
+    exclude_urls: list[str] = [],
+    random_sample: bool = True
+) -> list[dict]:
+    """
+    Refined variety fetch: 
+    1. Pulls the latest 40 articles (scaled back from 100).
+    2. Hard-filters out already covered URLs.
+    3. Randomly samples 8 articles for a fresh mix.
+    """
+    import random
+    
+    query = "SELECT * FROM articles WHERE 1=1"
+    params = []
+    
+    if country:
+        query += " AND country=?"
+        params.append(country)
+    if category:
+        query += " AND category=?"
+        params.append(category)
+        
+    query += " ORDER BY fetched_at DESC LIMIT 40"
+    
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(query, tuple(params)) as cur:
+            rows = await cur.fetchall()
+            
+    all_articles = [dict(r) for r in rows]
+    
+    # 1. Hard filter already-tweeted URLs
+    filtered = [a for a in all_articles if a.get("url") not in exclude_urls]
+    
+    # 2. Randomly sample if requested
+    if random_sample and len(filtered) > limit:
+        return random.sample(filtered, limit)
+        
+    return filtered[:limit]
+
 
 # ── Redis cache helpers ────────────────────────────────────────────────────────
 CACHE_TTL = 1200  # 20 minutes — balances freshness vs API budget

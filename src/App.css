@@ -4317,11 +4317,29 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 /* ══════════════════════════════════════════════════════════════════════════
    WORLD VOICE BUTTON — ensure it doesn't overlap music bar
    ══════════════════════════════════════════════════════════════════════════ */
-.world-voice-btn {
+.world-controls-container {
   position: fixed;
-  bottom: 76px;
+  bottom: 70px;
   right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
   z-index: 1002;
+  pointer-events: none;
+}
+
+.world-voice-btn {
+  position: relative;
+  pointer-events: all;
+}
+
+.world-voice-label {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.7);
+  text-align: center;
+  font-family: "Comic Sans MS", cursive;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
 }
 
 @keyframes voiceListeningPulse {
@@ -4830,6 +4848,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   position: relative;
   font-family: 'Inter', system-ui, sans-serif;
   animation: hintSlideIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  pointer-events: all;
 }
 
 .world-chat-user {
@@ -4880,12 +4899,13 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   border: 2px solid #eb57c1;
   border-radius: 12px;
   padding: 8px 12px;
-  min-width: 140px;
-  font-size: 0.75rem;
+  min-width: 130px;
+  font-size: 0.72rem;
   color: #2a1044;
-  font-weight: 600;
+  font-weight: 700;
   text-align: center;
   box-shadow: 0 4px 0 rgba(235, 87, 193, 0.15);
+  pointer-events: all;
 }
 
 .world-quota-bar {

@@ -1,15 +1,13 @@
 """
-crypto_news.py — Crypto news fetching with CryptoPanic + CoinGecko fallback.
-
-Primary:   CryptoPanic free API (real-time aggregation, broad, crypto-specific)
-Fallback:  CoinGecko Demo API (10,000/month free, has thumb_2x image URLs)
+Primary:   CoinDesk News API (CCData-powered, rich snippets, includes images)
+Fallback:  CoinGecko Demo API (10,000/month free, secondary source)
 
 Normalized schema matches the existing `articles` table:
   title, description, url, image_url, source_name, published_at,
   category="crypto", country="crypto"
 
 Cache: Redis key "courage_crypto_news" (30-min TTL) + SQLite articles table
-Budget: Redis counters budget:cryptopanic:YYYY-MM-DD, budget:coingecko:YYYY-MM-DD
+Budget: Redis counters budget:coindesk:YYYY-MM-DD, budget:coingecko:YYYY-MM-DD
 """
 
 import json
@@ -18,11 +16,11 @@ import datetime
 from datetime import timezone
 import httpx
 
-from app.config import DB_PATH, REDIS_URL, CRYPTOPANIC_API_KEY, COINGECKO_API_KEY
+from app.config import DB_PATH, REDIS_URL, COINDESK_API_KEY, COINGECKO_API_KEY
 
 CRYPTO_CACHE_KEY = "courage_crypto_news"
 CRYPTO_CACHE_TTL = 1800  # 30 minutes
-CRYPTOPANIC_DAILY_BUDGET = 200
+COINDESK_DAILY_BUDGET = 1000
 COINGECKO_DAILY_BUDGET = 300
 
 # Module-level Redis singleton (lazy init)
@@ -42,14 +40,22 @@ async def _get_redis():
 
 # ── Normalisers ────────────────────────────────────────────────────────────────
 
-def _norm_cryptopanic(item: dict) -> dict:
+def _norm_coindesk(item: dict) -> dict:
+    """CoinDesk News V1 (CCData) normalization — uses SCREAMING_SNAKE_CASE."""
+    published = item.get("PUBLISHED_ON", 0)
+    if isinstance(published, (int, float)) and published > 0:
+        published = datetime.datetime.utcfromtimestamp(published).isoformat()
+    
+    source_data = item.get("SOURCE_DATA", {})
+    source_name = source_data.get("NAME", "CoinDesk")
+
     return {
-        "title":        item.get("title", ""),
-        "description":  item.get("title", ""),  # CP often omits description
-        "url":          item.get("url", ""),
-        "image_url":    None,                   # No images on CP free tier
-        "source_name":  item.get("domain", "CryptoPanic"),
-        "published_at": item.get("published_at", ""),
+        "title":        item.get("TITLE", ""),
+        "description":  item.get("BODY", ""),
+        "url":          item.get("URL", ""),
+        "image_url":    item.get("IMAGE_URL"),
+        "source_name":  source_name,
+        "published_at": published,
         "category":     "crypto",
         "country":      "crypto",
     }
@@ -107,25 +113,39 @@ async def _bump_budget(provider: str):
 
 # ── Fetch functions ────────────────────────────────────────────────────────────
 
-async def _fetch_cryptopanic(limit: int = 20) -> list[dict]:
-    if not CRYPTOPANIC_API_KEY:
+async def _fetch_coindesk(limit: int = 20) -> list[dict]:
+    if not COINDESK_API_KEY:
         return []
-    used = await _get_budget_count("cryptopanic")
-    if used >= CRYPTOPANIC_DAILY_BUDGET:
-        print(f"[CRYPTO] CryptoPanic daily budget reached ({used}/{CRYPTOPANIC_DAILY_BUDGET})")
+    used = await _get_budget_count("coindesk")
+    if used >= COINDESK_DAILY_BUDGET:
+        print(f"[CRYPTO] CoinDesk daily budget reached ({used}/{COINDESK_DAILY_BUDGET})")
         return []
 
-    url = (
-        f"https://cryptopanic.com/api/v1/posts/"
-        f"?auth_token={CRYPTOPANIC_API_KEY}&public=true&kind=news"
-    )
+    # Using the News V1 Article List endpoint (rich data)
+    url = "https://data-api.coindesk.com/news/v1/article/list"
+    params = {
+        "limit": limit,
+        "lang": "EN"
+    }
+    headers = {
+        "Authorization": f"Bearer {COINDESK_API_KEY}",
+        "Content-Type": "application/json"
+    }
     async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.get(url)
-        r.raise_for_status()
+        r = await client.get(url, params=params, headers=headers)
+        if not r.is_success:
+            print(f"[CRYPTO] CoinDesk API error: {r.status_code} {r.text}")
+            return []
 
-    await _bump_budget("cryptopanic")
-    results = r.json().get("results", [])
-    return [_norm_cryptopanic(i) for i in results[:limit]]
+    await _bump_budget("coindesk")
+    # Wrap in try-except as the 'Data' key might be missing on some error responses
+    try:
+        data = r.json()
+        results = data.get("Data", [])
+        return [_norm_coindesk(i) for i in results]
+    except Exception as e:
+        print(f"[CRYPTO] CoinDesk JSON parse failed: {e}")
+        return []
 
 
 async def _fetch_coingecko(limit: int = 20) -> list[dict]:
@@ -195,12 +215,12 @@ async def get_crypto_headlines(limit: int = 10) -> list[dict]:
     cp_articles: list[dict] = []
     cg_articles: list[dict] = []
 
-    if CRYPTOPANIC_API_KEY:
+    if COINDESK_API_KEY:
         try:
-            cp_articles = await _fetch_cryptopanic(20)
-            print(f"[CRYPTO] CryptoPanic: {len(cp_articles)} articles")
+            cp_articles = await _fetch_coindesk(20)
+            print(f"[CRYPTO] CoinDesk: {len(cp_articles)} articles")
         except Exception as e:
-            print(f"[CRYPTO] CryptoPanic failed: {e}")
+            print(f"[CRYPTO] CoinDesk failed: {e}")
 
     if COINGECKO_API_KEY:
         try:
@@ -237,7 +257,7 @@ async def get_crypto_headlines(limit: int = 10) -> list[dict]:
             pass
     await _save_to_sqlite(merged)
 
-    print(f"[CRYPTO] Merged {len(merged)} unique articles ({len(cg_articles)} CG + {len(cp_articles)} CP)")
+    print(f"[CRYPTO] Merged {len(merged)} unique articles ({len(cg_articles)} CG + {len(cp_articles)} CD)")
     return merged[:limit]
 
 

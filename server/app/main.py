@@ -662,6 +662,16 @@ if os.path.exists("/app/static"):
 
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str):
+        # ── Bot Guard: Block common malicious scans ──
+        # These are common paths bots hit looking for vulnerabilities.
+        # We block them early to clean up logs and save resources.
+        bot_paths = [
+            "wp-", "xmlrpc", "php", ".env", ".git", 
+            "config", "admin", "login", "setup", "install"
+        ]
+        if any(bp in full_path.lower() for bp in bot_paths):
+            return Response(status_code=404, content="Not Found")
+
         # Skip if it's an API or WS route
         if full_path.startswith("api") or full_path.startswith("ws") or full_path.startswith("health"):
             return Response(status_code=404)

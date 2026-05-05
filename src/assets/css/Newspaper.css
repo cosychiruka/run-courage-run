@@ -63,7 +63,7 @@
   .newspaper-banner {
     display: flex;
     justify-content: space-between;
-    color: #ca0302;
+    color: #eb57c1;
     border-bottom: 2px solid #040404;
     margin-bottom: 15px;
   }
@@ -84,7 +84,7 @@
   
   .newspaper-body {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1fr 1fr;
     grid-gap: 0.5em;
     color: #222;
     font-size: 1.125em;
@@ -94,27 +94,16 @@
     margin-bottom: 0;
   }
 
-  .newspaper-col_2 figure {
-    margin-inline: 10px;
+  .newspaper-col_1 figure {
+    margin-inline: 0;
   }
-
-  .newspaper-col_2 p {
-    margin-top: 0;
-    padding-left: 15px;
-    box-sizing: border-box;
-    text-align: left;
+  
+  .newspaper-col_2 {
+    display: flex;
+    flex-direction: column;
   }
 
   .newspaper-col_2 h3 {
-    line-break: anywhere;
-    margin-bottom: 0;
-  }
-  
-  .newspaper-col_3 {
-    grid-column: span 2;
-  }
-
-  .newspaper-col_3 h3{
     margin: 1em 0 0;
   }
   
@@ -166,6 +155,8 @@
   
   .newspaper-paper img {
     width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
     display: block;
     margin: 0;
   }
@@ -174,7 +165,7 @@
     0%   { opacity: 0;   transform: scale(0.15) rotate(0deg) translateY(-80px); }
     55%  { opacity: 1;   transform: scale(1.04) rotate(1078deg) translateY(8px); }
     75%  { transform: scale(0.97) rotate(1436deg) translateY(-4px); }
-    100% { opacity: 1;   transform: scale(1) rotate(1440deg) translateY(0); }
+    100% { opacity: 1;   transform: scale(1) rotate(1475deg) translateY(0); }
   }
 
   /* Targeting h2 elements inside the newspaper-banner */
@@ -182,7 +173,7 @@
     font-size: 2rem;
     line-height: 3rem;
     margin: 0;
-    color: #ca0302; /* Color for banner h2 elements */
+    color: #eb57c1; /* Color for banner h2 elements */
   }
   
   /* Targeting the specific h1 inside the newspaper-heading */
@@ -206,7 +197,7 @@
     font-size: 2.5rem;
     line-height: 4rem;
     margin: 0;
-    color: #ca0302; /* Color for banner h2 elements */
+    color: #eb57c1; /* Color for banner h2 elements */
   }
   
   /* Specific styling for 'Game' and 'Over' repeating h2 elements in the banner */
@@ -239,6 +230,20 @@
     line-height: 2rem;
     color: #040404;
   }
+
+/* ── Cartoonish "!!!" exclamation accent ─────────────────────────── */
+.newspaper-exclaim {
+  display: inline-block;
+  color: #eb57c1;
+  font-size: 1.4em;
+  font-weight: 900;
+  font-family: 'Comic Sans MS', cursive;
+  letter-spacing: -3px;
+  margin-left: 4px;
+  transform: rotate(-8deg);
+  vertical-align: middle;
+  line-height: 1;
+}
 
 /* ── Real-news controls — sticky at top of scroll area ──────────── */
 .newspaper-controls {
@@ -412,17 +417,13 @@
     grid-gap: 0.3em;
     font-size: 0.85em;
   }
-  .newspaper-col_3 {
-    grid-column: span 1;
-  }
 
-  /* Image: constrain height so it doesn't dominate */
-  .newspaper-col_2 figure {
+  /* Image: constrain max height so it doesn't dominate on mobile */
+  .newspaper-col_1 figure {
     margin-inline: 0;
   }
   .newspaper-paper img {
-    height: 140px;
-    object-fit: cover;
+    max-height: 200px;
   }
 
   /* Action buttons full-width in single column */

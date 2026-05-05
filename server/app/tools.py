@@ -728,7 +728,7 @@ async def _record_twitter_action(args: dict) -> str:
 
 
 async def _check_api_credits(x_client) -> str:
-    from app.config import GROQ_DAILY_TOKEN_BUDGET, CRYPTOPANIC_DAILY_BUDGET, COINGECKO_DAILY_BUDGET
+    from app.config import GROQ_DAILY_TOKEN_BUDGET, COINDESK_API_KEY, COINGECKO_DAILY_BUDGET
     today = datetime.date.today().isoformat()
 
     groq_tokens = groq_calls = 0
@@ -743,7 +743,7 @@ async def _check_api_credits(x_client) -> str:
             groq_calls   = int(await r.get(f"groq:calls:{today}") or 0)
             auto_tweets  = int(await r.get(f"courage:auto_tweets:{today}") or 0)
             total_tweets = int(await r.get(f"courage:total_tweets:{today}") or 0)
-            cp_used      = int(await r.get(f"budget:cryptopanic:{today}") or 0)
+            cd_used      = int(await r.get(f"budget:coindesk:{today}") or 0)
             cg_used      = int(await r.get(f"budget:coingecko:{today}") or 0)
             rate_raw     = await r.hgetall("rate:/tweets/search/recent")
             if rate_raw:
@@ -763,7 +763,7 @@ async def _check_api_credits(x_client) -> str:
         f"GNews:     {budget['gnews']['used']}/{budget['gnews']['limit']} calls today",
         f"NewsAPI:   {budget['newsapi']['used']}/{budget['newsapi']['limit']} calls today",
         f"Guardian:  unlimited",
-        f"CryptoPanic: {cp_used} / {CRYPTOPANIC_DAILY_BUDGET} calls today",
+        f"CoinDesk:  {cd_used} calls today",
         f"CoinGecko:   {cg_used} / {COINGECKO_DAILY_BUDGET} calls today",
     ]
     return "\n".join(lines)

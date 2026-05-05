@@ -178,7 +178,7 @@ export function downloadArticleCard(article, emotion = 'neutral') {
   ctx.font = 'bold 18px "Comic Sans MS", cursive';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText('$RCR  ·  The Daily Trenches', PAD, BRAND_H / 2);
+  ctx.fillText('$RCR  ·  The Courageous Chronicle', PAD, BRAND_H / 2);
 
   // Emotion tag top-right
   const emojiMap = { happy: '🚀 WAGMI', scared: '😱 NGMI', neutral: '🐕 chillin' };

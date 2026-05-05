@@ -17,7 +17,7 @@ from typing import Optional, Callable, Awaitable
 
 from app.system_prompt import build_context_prompt
 from app.tools import TOOL_SCHEMAS, dispatch_tool, _last_tweet_cards
-from app.news_cache import get_all_recent
+from app.news_cache import get_all_recent, get_varied_articles
 from app.twitter_memory import init_twitter_db, get_twitter_summary
 from app.goal_tracker import get_goal_progress_summary
 
@@ -161,7 +161,7 @@ async def run_agent(
     # Hard stop if today's Groq token budget is exhausted
     if not _groq_budget_ok():
         msg = (
-            "The things I do for you people... I've burned through all my thinking power for today! "
+            "The things I do for you people... I've burned through all my Grok thinking power for today! "
             "*collapses dramatically* Try again tomorrow. *whimper*"
         )
         if ws_emit:
@@ -172,7 +172,8 @@ async def run_agent(
     await init_twitter_db()
 
     # Build rich system prompt: recent articles + Twitter memory + goal progress
-    recent_articles  = await get_all_recent(limit=10)
+    # Use randomized/varied articles for the starting context to avoid stagnation
+    recent_articles = await get_varied_articles(limit=10)
     twitter_summary  = await get_twitter_summary()
     goal_summary     = await get_goal_progress_summary()
     system           = build_context_prompt(

@@ -155,7 +155,7 @@ export default function WorldVoiceButton({ worldContext, visible }) {
         toolLog={toolLog}
       />
       <div className="world-chat-bubble-container">
-        {/* Transcript + Reply bubble */}
+        {/* Transcript + Reply bubble (STAYS CENTERED) */}
         {expanded && (transcript || reply || error) && (
           <div className="world-chat-bubble">
             <button className="world-chat-close" onClick={() => setExpanded(false)}>✕</button>
@@ -169,8 +169,10 @@ export default function WorldVoiceButton({ worldContext, visible }) {
             )}
           </div>
         )}
+      </div>
 
-        {/* Quota indicator */}
+      <div className="world-controls-container">
+        {/* Quota indicator (FLOATS RIGHT) */}
         <div className="world-quota-panel">
           {quota.canSpeak ? (
             <span>🎙 {formatTime(quota.remainingSecs)} left</span>
@@ -182,9 +184,10 @@ export default function WorldVoiceButton({ worldContext, visible }) {
           </div>
         </div>
 
-        {/* Mic FAB */}
+        {/* Mic FAB (FLOATS RIGHT) */}
         <button
           onClick={handleTap}
+          className="world-voice-btn"
           disabled={voiceState === 'thinking' || voiceState === 'speaking'}
           title={STATE_LABEL[voiceState]}
           style={{
@@ -204,14 +207,10 @@ export default function WorldVoiceButton({ worldContext, visible }) {
         </button>
 
         {/* Label */}
-        <div style={{
-          fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)',
-          textAlign: 'center', fontFamily: '"Comic Sans MS", cursive',
-          textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-        }}>
+        <div className="world-voice-label">
           {STATE_LABEL[voiceState]}
         </div>
-    </div>
+      </div>
     </>
   );
 }

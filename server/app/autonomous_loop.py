@@ -131,11 +131,12 @@ async def _gather_state(redis) -> dict:
         bucket_status = {b: {"elapsed_min": 999, "cooled_down": True, "cooldown_min": v}
                          for b, v in BUCKET_COOLDOWNS.items()}
 
-    # Top news headlines (cache only, no API call)
+    # Top news headlines (VARIED for decision variety)
     news_headlines = []
     try:
-        from app.news_cache import get_all_recent
-        articles = await get_all_recent(limit=3)
+        from app.news_cache import get_varied_articles
+        # Pull 8 random articles he hasn't tweeted yet (scaled back from 10)
+        articles = await get_varied_articles(limit=8, exclude_urls=covered_urls)
         news_headlines = [
             {"title": a.get("title", "")[:80], "source": a.get("source_name", ""), "category": a.get("category", "")}
             for a in articles
@@ -209,7 +210,7 @@ Current state:
 - Auto tweets posted today: {auto_tweets_today} / {daily_cap} max
 - Content bucket status (elapsed / cooldown):
 {bucket_status_lines}
-- Top news headlines available:
+- A selection of fresh headlines (pick ONE to react to):
 {news_lines}
 - Top crypto headlines available:
 {crypto_lines}
@@ -223,7 +224,8 @@ Decision rules (follow these strictly):
 3. SKIP if auto_tweets_today >= {daily_cap} — daily cap reached
 4. Only pick a bucket that is cooled_down = true
 5. Do not pick the same bucket as your most recent tweet if another cooled-down option exists
-6. Rotate buckets for variety
+6. Aim for variety across categories (Tech, Business, General, etc.) where interesting stories exist.
+7. NEVER react to the same specific news story twice.
 
 Valid actions: TWEET_NEWS, TWEET_CRYPTO, REPLY_MENTIONS, RANDOM, WORLD_UPDATE, SOCIAL, SKIP
 
