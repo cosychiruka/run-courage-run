@@ -15,7 +15,8 @@
       "Bash(sed -n '2582,2645p' src/App.css)",
       "WebFetch(domain:cryptopanic.com)",
       "Bash(python -c ' *)",
-      "Bash(dir \"C:\\\\dev-shared\\\\openclaw-projects\\\\openclaw_final\" /s /b)"
+      "Bash(dir \"C:\\\\dev-shared\\\\openclaw-projects\\\\openclaw_final\" /s /b)",
+      "Bash(findstr -E \"\\(agent|tool\\)\")"
     ]
   }
 }

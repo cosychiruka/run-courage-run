@@ -107,24 +107,32 @@ async def _groq_chat(messages: list[dict], use_tools: bool = True, fast: bool = 
             _track_groq_usage(resp.get("usage", {}))
             return resp
         except httpx.HTTPStatusError as e:
-            # FALLBACK: If 70b (with tools) hits a 429 rate limit, try one last time with 8b (no tools)
-            # This ensures Courage can still answer even when the high-tier model is throttled.
-            if e.response.status_code == 429 and not fast and use_tools:
-                print(f"[GROQ] 429 Rate Limit on {model}. Attempting fallback to 8b (no tools)...")
-                # Strip tools from payload and switch to fast model
-                payload["model"] = GROQ_MODEL_FAST
-                payload.pop("tools", None)
-                payload.pop("tool_choice", None)
-                
-                r2 = await client.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
-                    json=payload,
-                    headers=headers,
-                )
-                r2.raise_for_status()
-                resp = r2.json()
-                _track_groq_usage(resp.get("usage", {}))
-                return resp
+            if e.response.status_code == 429:
+                retry_after = e.response.headers.get("retry-after", "?")
+                print(f"[GROQ] 429 Rate Limit on {model} (Retry-After: {retry_after}s).")
+                # FALLBACK: If 70b (with tools) hits 429, try 8b without tools as last resort.
+                # 8b can't emit structured tool_calls but can produce a plain text tweet
+                # when the prompt already contains the article content.
+                if not fast and use_tools:
+                    print("[GROQ] Attempting fallback to 8b (no tools)...")
+                    payload["model"] = GROQ_MODEL_FAST
+                    payload.pop("tools", None)
+                    payload.pop("tool_choice", None)
+                    try:
+                        r2 = await client.post(
+                            "https://api.groq.com/openai/v1/chat/completions",
+                            json=payload,
+                            headers=headers,
+                        )
+                        r2.raise_for_status()
+                        resp = r2.json()
+                        _track_groq_usage(resp.get("usage", {}))
+                        return resp
+                    except httpx.HTTPStatusError as e2:
+                        if e2.response.status_code == 429:
+                            retry_after2 = e2.response.headers.get("retry-after", "?")
+                            print(f"[GROQ] Fallback also 429 (Retry-After: {retry_after2}s). Both models exhausted.")
+                        raise e2
             raise e
 
 
@@ -173,11 +181,13 @@ async def run_agent(
     world_context: Optional[str] = None,
     ws_emit: WsEmit = None,
     max_tool_rounds: int = MAX_TOOL_ROUNDS,
+    compact: bool = False,
 ) -> str:
     """
     Run one full Courage agent turn and return the final text response.
     ws_emit: async callable to stream tool events to the frontend.
     max_tool_rounds: cap on tool-call iterations (default MAX_TOOL_ROUNDS; use 4 for autonomous mode).
+    compact: trim context to 5 articles, skip twitter_summary — reduces Groq token burn in autonomous mode.
     """
     # Hard stop if today's Groq token budget is exhausted
     if not _groq_budget_ok():
@@ -192,12 +202,13 @@ async def run_agent(
     # Ensure Twitter memory tables exist
     await init_twitter_db()
 
-    # Build rich system prompt: recent articles + Twitter memory + goal progress
-    # Use randomized/varied articles for the starting context to avoid stagnation
-    recent_articles = await get_varied_articles(limit=10)
-    twitter_summary  = await get_twitter_summary()
-    goal_summary     = await get_goal_progress_summary()
-    system           = build_context_prompt(
+    # Build system prompt — compact mode uses fewer articles and skips twitter_summary
+    # to reduce Groq token consumption in autonomous background ticks.
+    article_limit   = 5 if compact else 10
+    recent_articles = await get_varied_articles(limit=article_limit)
+    twitter_summary = "" if compact else await get_twitter_summary()
+    goal_summary    = await get_goal_progress_summary()
+    system          = build_context_prompt(
         recent_articles,
         world_context=world_context,
         twitter_summary=twitter_summary,

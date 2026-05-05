@@ -341,8 +341,9 @@ async def _execute(decision: dict, state: dict, x_client, tweet_image_fn) -> str
         x_client=x_client,
         tweet_image_fn=tweet_image_fn,
         world_context=None,
-        ws_emit=None,        # Background mode — no frontend WebSocket
-        max_tool_rounds=4,   # Lighter cap for autonomous background work
+        ws_emit=None,          # Background mode — no frontend WebSocket
+        max_tool_rounds=3,     # 3 is enough: rate-check → fetch-news → post
+        compact=True,          # Slim context (5 articles, no twitter_summary) to cut token burn
     )
 
 
@@ -383,6 +384,19 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
             if state["unreplied_count"] <= 2:
                 print(f"[AUTO] {state['active_sessions']} active voice session(s). Skipping non-urgent tick.")
                 return
+
+        # 2b. Circuit breaker: skip if we're in a Groq 429 backoff window.
+        #     Hammering Groq while rate-limited prolongs the limit — back off instead.
+        if redis:
+            try:
+                backoff_until = await redis.get("courage:groq_backoff_until")
+                if backoff_until and time.time() < float(backoff_until):
+                    remaining_min = int((float(backoff_until) - time.time()) / 60)
+                    streak = int(await redis.get("courage:groq_429_streak") or "0")
+                    print(f"[AUTO] Groq 429 circuit breaker active (streak={streak}, {remaining_min}m remaining). Skipping tick.")
+                    return
+            except Exception:
+                pass
 
         # 3. Decision (fast Groq call)
         try:
@@ -472,6 +486,19 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
         #     (Groq 429 can occur AFTER a successful tweet post — we still want to record the tweet)
         tweet_confirmed = result is not None and execution_exception is None
         if execution_exception and not tweet_confirmed:
+            # 429 from Groq: arm the circuit breaker so we stop hammering the rate limit.
+            # Exponential backoff: 30m, 60m, 120m, 240m (capped).
+            if "429" in str(execution_exception) and redis:
+                try:
+                    streak = int(await redis.get("courage:groq_429_streak") or "0") + 1
+                    await redis.setex("courage:groq_429_streak", 86400, str(streak))
+                    backoff_min = min(30 * (2 ** (streak - 1)), 240)
+                    backoff_until = time.time() + backoff_min * 60
+                    await redis.setex("courage:groq_backoff_until", int(backoff_min * 60 + 120), str(backoff_until))
+                    print(f"[AUTO] Groq 429 streak={streak}. Circuit breaker armed: {backoff_min}m backoff.")
+                except Exception:
+                    pass
+
             try:
                 recent = await get_recent_tweets(1)
                 if recent and time.time() - float(recent[0].get("created_at", 0)) < 180:
@@ -538,6 +565,14 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
                     print("[AUTO] Daily goal snapshot taken.")
             except Exception as e:
                 print(f"[AUTO] Goal snapshot failed (non-fatal): {e}")
+
+        # 11. Clear Groq 429 circuit breaker — execution succeeded, streak is over.
+        if redis:
+            try:
+                await redis.delete("courage:groq_backoff_until")
+                await redis.delete("courage:groq_429_streak")
+            except Exception:
+                pass
 
         print("[AUTO] Tick complete.")
 

@@ -478,12 +478,42 @@ async def goal_progress():
             total_tweets = int(await _redis.get(f"courage:total_tweets:{today}") or 0)
         except Exception:
             pass
+    groq_backoff_until = None
+    groq_429_streak    = 0
+    if _redis:
+        try:
+            backoff_raw = await _redis.get("courage:groq_backoff_until")
+            if backoff_raw:
+                groq_backoff_until = float(backoff_raw)
+            groq_429_streak = int(await _redis.get("courage:groq_429_streak") or 0)
+        except Exception:
+            pass
     return JSONResponse({
-        "summary":            summary,
-        "bucket_last_used":   bucket_times,
-        "auto_tweets_today":  auto_tweets,
-        "total_tweets_today": total_tweets,
+        "summary":              summary,
+        "bucket_last_used":     bucket_times,
+        "auto_tweets_today":    auto_tweets,
+        "total_tweets_today":   total_tweets,
+        "groq_circuit_breaker": {
+            "active":           groq_backoff_until is not None and time.time() < (groq_backoff_until or 0),
+            "backoff_until_ts": groq_backoff_until,
+            "streak":           groq_429_streak,
+            "remaining_min":    max(0, int(((groq_backoff_until or 0) - time.time()) / 60)),
+        },
     })
+
+
+@app.post("/api/autonomous/reset-circuit-breaker")
+async def reset_circuit_breaker():
+    """Clear the Groq 429 circuit breaker so the next autonomous tick runs immediately."""
+    if not _redis:
+        raise HTTPException(status_code=503, detail="Redis unavailable")
+    try:
+        await _redis.delete("courage:groq_backoff_until")
+        await _redis.delete("courage:groq_429_streak")
+        print("[ADMIN] Groq circuit breaker manually cleared.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return JSONResponse({"status": "ok", "message": "Circuit breaker cleared. Next tick will attempt execution."})
 
 
 # ── World Event Engine ─────────────────────────────────────────────────────────
