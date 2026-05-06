@@ -113,7 +113,7 @@ async def lifespan(app: FastAPI):
                 print(f"[STARTUP] Redis unavailable ({e}) — pulse falling back to memory.")
 
             # 3. X Client
-            from app.config import make_x_client
+            from app.x_client import make_x_client
             global x_client
             x_client = make_x_client()
             print(f"[STARTUP] X client: {'ACTIVE' if x_client else 'DISABLED'}")
