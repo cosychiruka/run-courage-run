@@ -53,10 +53,9 @@ def get_http_client() -> httpx.AsyncClient:
     return _http_client
 
 # ── Redis client (for presence) ───────────────────────────────────────────────
-_redis: aioredis.Redis | None = None
-
 def get_redis() -> aioredis.Redis | None:
-    return _redis
+    from app.redis_utils import _client
+    return _client
 
 # ── Scheduler + shared state ───────────────────────────────────────────────────
 scheduler = AsyncIOScheduler()
@@ -131,6 +130,9 @@ async def lifespan(app: FastAPI):
             scheduler.start()
             print("[STARTUP] Scheduler online.")
 
+            from app.redis_utils import get_redis_client
+            _redis = await get_redis_client()
+
             # 5. Conditional startup runs (only if not run recently)
             async def _guarded_startup_tick():
                 if _redis:
@@ -149,6 +151,35 @@ async def lifespan(app: FastAPI):
             # 7. Engagement Queue Worker
             asyncio.create_task(process_reply_queue(x_client=x_client))
             print("[STARTUP] Engagement queue worker online.")
+
+            # ── PHASE 1: Reactive Sensors + Event Listener ─────────────────────
+            from app.sensors.market_sensor import market_sensor_loop
+            from app.sensors.game_sensor import game_sensor_loop
+            from app.events import _get_event_redis
+            from app.autonomous_loop import force_autonomous_tick
+            import json
+
+            asyncio.create_task(market_sensor_loop())
+            asyncio.create_task(game_sensor_loop())
+            print("[STARTUP] Market & Game sensors online.")
+
+            # Simple pub/sub listener for urgent events
+            async def _urgent_event_listener():
+                r = await _get_event_redis()
+                pubsub = r.pubsub()
+                await pubsub.subscribe("courage:urgent_events")
+                print("[EVENT] Urgent event listener subscribed.")
+                async for message in pubsub.listen():
+                    if message.get("type") == "message":
+                        data = json.loads(message["data"])
+                        event_type = data["type"]
+                        # Store last urgent event for _gather_state
+                        await r.set("courage:last_urgent_event", json.dumps(data), ex=300)
+                        # Force immediate tick on high-priority events
+                        if event_type in ("MARKET_SURGE", "GAME_MOMENT"):
+                            asyncio.create_task(force_autonomous_tick(x_client, _tweet_image_fn))
+
+            asyncio.create_task(_urgent_event_listener())
 
             # 6. Groq tracker
             _init_token_tracker(REDIS_URL)

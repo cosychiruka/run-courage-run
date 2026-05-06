@@ -24,14 +24,8 @@ _redis = None
 
 
 async def _get_redis():
-    global _redis
-    if _redis is None:
-        try:
-            import redis.asyncio as aioredis
-            _redis = aioredis.from_url(REDIS_URL, decode_responses=True)
-        except Exception as e:
-            print(f"[GOALS] Redis init failed: {e}")
-    return _redis
+    from app.redis_utils import get_redis_client
+    return await get_redis_client()
 
 
 # ── Schema ─────────────────────────────────────────────────────────────────────

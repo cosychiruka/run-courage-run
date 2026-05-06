@@ -35,18 +35,8 @@ _redis: Optional[aioredis.Redis] = None
 _redis_available: bool = True
 
 async def get_redis() -> Optional[aioredis.Redis]:
-    global _redis, _redis_available
-    if _redis is None and _redis_available:
-        try:
-            _redis = aioredis.from_url(REDIS_URL, decode_responses=True)
-            # Short-circuit check: ping to see if host exists
-            await asyncio.wait_for(_redis.ping(), timeout=1.0)
-            print(f"[REDIS] Connected successfully to {REDIS_URL}")
-        except Exception as e:
-            print(f"[REDIS] Warning: Could not connect to {REDIS_URL}. Hot-cache disabled. Falling back to SQLite persistence. Error: {e}")
-            _redis = None
-            _redis_available = False
-    return _redis
+    from app.redis_utils import get_redis_client
+    return await get_redis_client()
 
 
 # ── SQLite schema ──────────────────────────────────────────────────────────────

@@ -35,10 +35,8 @@ _token_redis: Optional[_sync_redis.Redis] = None
 
 def _init_token_tracker(redis_url: str):
     global _token_redis
-    try:
-        _token_redis = _sync_redis.from_url(redis_url, decode_responses=True)
-    except Exception as e:
-        print(f"[TOKENS] Token tracker init failed: {e}")
+    from app.redis_utils import get_sync_redis_client
+    _token_redis = get_sync_redis_client()
 
 def _track_groq_usage(usage: dict):
     if not _token_redis or not usage:

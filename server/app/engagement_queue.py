@@ -11,10 +11,8 @@ from app.tools import dispatch_tool  # for post_tweet
 _queue_redis = None
 
 async def _get_queue_redis():
-    global _queue_redis
-    if _queue_redis is None:
-        _queue_redis = aioredis.from_url(REDIS_URL, decode_responses=True)
-    return _queue_redis
+    from app.redis_utils import get_redis_client
+    return await get_redis_client()
 
 async def enqueue_reply(tweet_id: str, text: str):
     r = await _get_queue_redis()

@@ -138,7 +138,20 @@ async def _gather_state(redis) -> dict:
     """
     Collect everything needed for the decision step.
     Only reads Redis/SQLite — zero API calls.
+    NOW INCLUDES Elite Tier 1 data (trench + $RCR).
     """
+    state = {}
+
+    # ── PHASE 1: Check for urgent events in Redis (short-term memory) ──
+    try:
+        urgent = await redis.get("courage:last_urgent_event") if redis else None
+        if urgent:
+            state["urgent_event"] = json.loads(urgent)
+            # clear after reading
+            await redis.delete("courage:last_urgent_event")
+    except Exception:
+        state["urgent_event"] = None
+
     # Recent tweets (for deduplication context)
     try:
         recent_tweets = await get_recent_tweets(5)
@@ -305,6 +318,7 @@ async def _gather_state(redis) -> dict:
         "rate_status":          rate_status,
         "covered_topics":       covered_topics,
         "community_vibe":       vibe,
+        "urgent_event":         state.get("urgent_event"),
     }
 
 
@@ -330,6 +344,7 @@ Current state:
 - $RCR MARKET STATS: {rcr_stats}
 - TRENCH PULSE ($RCR community): {trench_pulse}
 - Unprocessed trench tweets: {trench_unread_count}
+- URGENT EVENT (Instant reaction needed!): {urgent_event}
 - SOCIAL PULSE (Latest mentions): {mention_pulse}
 - COMMUNITY VIBE (Community mood): {community_vibe}
 - CURRENT X RATE LIMITS: {rate_status}
@@ -396,6 +411,10 @@ async def _decide(state: dict) -> dict:
         community_vibe=state["community_vibe"],
         rate_status=state["rate_status"],
         topic_history=", ".join(state["covered_topics"]) or "none",
+        trench_pulse=state["trench_pulse"],
+        trench_unread_count=state["trench_unread_count"],
+        rcr_stats=state["rcr_stats"],
+        urgent_event=state["urgent_event"] or "None"
     )
 
     headers = {
@@ -547,7 +566,7 @@ async def _execute(decision: dict, state: dict, x_client, tweet_image_fn) -> str
 
 # ── Main tick ──────────────────────────────────────────────────────────────────
 
-async def autonomous_tick(x_client=None, tweet_image_fn=None):
+async def autonomous_tick(x_client=None, tweet_image_fn=None, force=False):
     """
     Single autonomous heartbeat tick. Called by APScheduler every 60 minutes.
     ALL exceptions are caught — this MUST never crash the server.
@@ -559,14 +578,18 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
     #    Checking this at the very top prevents burning ANY resources if we're locked out.
     redis = None
     try:
-        import redis.asyncio as aioredis
-        redis = aioredis.from_url(REDIS_URL, decode_responses=True)
+        from app.redis_utils import get_redis_client
+        redis = await get_redis_client()
         if redis:
+            # Mark running
+            await redis.set("courage:autonomous_running", "1")
+            
             backoff_until = await redis.get("courage:groq_backoff_until")
             if backoff_until and time.time() < float(backoff_until):
                 remaining_min = int((float(backoff_until) - time.time()) / 60)
                 streak = int(await redis.get("courage:groq_429_streak") or "0")
                 print(f"[AUTO] Groq 429 circuit breaker active (streak={streak}, {remaining_min}m remaining). Skipping tick.")
+                await redis.set("courage:autonomous_running", "0")
                 return
     except Exception as e:
         print(f"[AUTO] Circuit breaker/Redis check failed: {e}")
@@ -581,15 +604,16 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
         )
 
         # 2. Hard skip conditions
-        if state["auto_tweets_today"] >= DAILY_AUTO_TWEET_CAP:
-            print(f"[AUTO] Daily cap reached ({DAILY_AUTO_TWEET_CAP}). Skipping.")
-            return
-
-        if state["active_sessions"] > 0:
-            # Someone is chatting — be conservative, but still reply to urgent mentions
-            if state["unreplied_count"] <= 2:
-                print(f"[AUTO] {state['active_sessions']} active voice session(s). Skipping non-urgent tick.")
+        if not force:
+            if state["auto_tweets_today"] >= DAILY_AUTO_TWEET_CAP:
+                print(f"[AUTO] Daily cap reached ({DAILY_AUTO_TWEET_CAP}). Skipping.")
                 return
+
+            if state["active_sessions"] > 0:
+                # Someone is chatting — be conservative, but still reply to urgent mentions
+                if state["unreplied_count"] <= 2:
+                    print(f"[AUTO] {state['active_sessions']} active voice session(s). Skipping non-urgent tick.")
+                    return
 
         try:
             decision = await _decide(state)
@@ -618,7 +642,7 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
         print(f"[AUTO] Decision — action={action} bucket={bucket} confidence={confidence:.2f} | {reasoning}")
 
         # 4a. Confidence gate — skip weak decisions before burning execution resources
-        if confidence < 0.5:
+        if not force and confidence < 0.5:
             print(f"[AUTO] Low confidence ({confidence:.2f}). Skipping tick.")
             return
 
@@ -640,7 +664,7 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
             return
 
         # 5. Double-check bucket cooldown (LLM can occasionally ignore rules)
-        if bucket in BUCKET_COOLDOWNS:
+        if not force and bucket in BUCKET_COOLDOWNS:
             try:
                 bucket_times = await get_last_bucket_times()
                 last_used    = float(bucket_times.get(bucket, 0))
@@ -794,3 +818,13 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
         import traceback
         print(f"[AUTO] Unexpected error in autonomous tick: {e}")
         traceback.print_exc()
+
+
+# ── PHASE 1: Reactive Heartbeat Listener ─────────────────────────────────────
+async def force_autonomous_tick(x_client, tweet_image_fn):
+    """Called by urgent event listener — runs a full decision tick immediately."""
+    print("[REACTIVE] Urgent event received — forcing immediate tick!")
+    await autonomous_tick(x_client=x_client, tweet_image_fn=tweet_image_fn, force=True)
+
+# Global reference so sensors can trigger it
+FORCE_TICK_CALLBACK = None
