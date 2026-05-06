@@ -382,7 +382,27 @@ async def _triage_news(articles: list[dict]) -> list[dict]:
             r = await client.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers)
             r.raise_for_status()
             raw_content = r.json()["choices"][0]["message"]["content"]
-            data = json.loads(raw_content)
+            
+            # Bulletproof parsing: strip markdown, find boundaries
+            clean = raw_content.strip()
+            if "```json" in clean:
+                clean = clean.split("```json")[1].split("```")[0].strip()
+            elif "```" in clean:
+                clean = clean.split("```")[1].split("```")[0].strip()
+
+            # Find first '[' or '{' to isolate JSON
+            start_bracket = clean.find("[")
+            start_brace = clean.find("{")
+            start = min(start_bracket, start_brace) if (start_bracket != -1 and start_brace != -1) else max(start_bracket, start_brace)
+            
+            end_bracket = clean.rfind("]")
+            end_brace = clean.rfind("}")
+            end = max(end_bracket, end_brace)
+            
+            if start != -1 and end != -1:
+                clean = clean[start:end+1]
+
+            data = json.loads(clean)
             
             # Handle both {"scores": [...]} and [...] and {"0": {...}} formats
             scores = data.get("scores") if isinstance(data, dict) else data
