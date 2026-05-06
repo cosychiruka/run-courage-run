@@ -52,11 +52,20 @@ async def get_rcr_stats():
 
 async def _save_daily_snapshot(stats: dict):
     async with aiosqlite.connect(DB_PATH) as db:
+        # 1. Update/Insert daily summary
         await db.execute(
-            "INSERT INTO token_daily_stats (date, price, market_cap, volume_24h, change_24h) "
+            "INSERT OR REPLACE INTO token_daily_stats (date, price, market_cap, volume_24h, change_24h) "
             "VALUES (?,?,?,?,?)",
             (datetime.now(timezone.utc).date().isoformat(), stats["price"],
              stats.get("market_cap", 0), stats.get("volume_24h", 0), stats.get("change_24h", 0))
+        )
+        # 2. Add high-res snapshot
+        await db.execute(
+            "CREATE TABLE IF NOT EXISTS token_snapshots (ts REAL, price REAL, volume REAL)"
+        )
+        await db.execute(
+            "INSERT INTO token_snapshots (ts, price, volume) VALUES (?,?,?)",
+            (time.time(), stats["price"], stats.get("volume_24h", 0))
         )
         await db.commit()
 
