@@ -104,10 +104,10 @@ async def lifespan(app: FastAPI):
             # 2. Redis
             global _redis
             try:
-                _redis = aioredis.from_url(REDIS_URL, decode_responses=True)
-                await asyncio.wait_for(_redis.ping(), timeout=5.0)
-                print("[STARTUP] Redis connected.")
-                await _redis.delete("active_voice_sessions")
+                from app.redis_utils import get_redis_client
+                _redis = await get_redis_client()
+                if _redis:
+                    await _redis.delete("active_voice_sessions")
             except Exception as e:
                 _redis = None
                 print(f"[STARTUP] Redis unavailable ({e}) — pulse falling back to memory.")
