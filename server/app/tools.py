@@ -320,6 +320,7 @@ TOOL_SCHEMAS = [
             },
         },
     },
+    # ── ELITE TIER 1: Trench, $RCR Hustle & Art Studio ─────────────────────
     {
         "type": "function",
         "function": {
@@ -391,10 +392,33 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
             case "record_twitter_action": return await _record_twitter_action(args)
             case "check_api_credits":     return await _check_api_credits(x_client)
             case "get_crypto_news":       return await _get_crypto_news(args)
-            case "fetch_trench_tweets":   return await _fetch_trench_tweets(args)
-            case "get_trench_pulse":      return await _get_trench_pulse()
-            case "get_rcr_stats":         return await _get_rcr_stats()
-            case "create_courage_art":    return await _create_courage_art(args)
+
+            case "fetch_trench_tweets":
+                from app.trench_service import fetch_trench_tweets
+                return await fetch_trench_tweets(
+                    args.get("cashtag", "$RCR"),
+                    args.get("limit", 50)
+                )
+
+            case "get_trench_pulse":
+                from app.twitter_memory import get_unprocessed_trench_tweets
+                tweets = await get_unprocessed_trench_tweets(10)
+                if not tweets:
+                    return "No new trench tweets right now."
+                return "Unprocessed $RCR trench tweets:\n" + "\n".join(
+                    f"- @{t['author']}: {t['text'][:100]}" for t in tweets
+                )
+
+            case "get_rcr_stats":
+                from app.hustle_service import get_rcr_stats
+                stats = await get_rcr_stats()
+                delta = "🚀" if stats.get("change_24h", 0) > 0 else "📉"
+                return f"$RCR ${stats.get('price', 0):.6f} | 24h: {stats.get('change_24h', 0):+.1f}% {delta} | Vol: ${stats.get('volume_24h', 0):,.0f}"
+
+            case "create_courage_art":
+                from app.image_gen import create_courage_art
+                url = await create_courage_art(args.get("prompt_description", "just being brave"))
+                return f"Generated Courage cartoon: {url}" if url else "Image gen failed — check FAL key."
             case _:                       return f"Unknown tool: {name}"
     except Exception as e:
         return f"Tool error ({name}): {e}"

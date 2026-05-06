@@ -160,6 +160,27 @@ async def _gather_state(redis) -> dict:
     except Exception:
         pass
 
+    # ── ELITE TIER 1: TRENCH PULSE ─────────────────────────────────────
+    trench_unread_count = 0
+    trench_pulse = "none"
+    try:
+        from app.twitter_memory import get_unprocessed_trench_tweets
+        trench_tweets = await get_unprocessed_trench_tweets(limit=8)
+        trench_unread_count = len(trench_tweets)
+        trench_pulse = "Unprocessed $RCR trenches:\n" + "\n".join(
+            f"- @{t['author']}: {t['text'][:80]}" for t in trench_tweets
+        ) if trench_tweets else "No new trench activity."
+    except Exception:
+        pass
+
+    # ── ELITE TIER 1: $RCR HUSTLE ─────────────────────────────────────
+    rcr_stats = {"price": 0, "status": "unavailable"}
+    try:
+        from app.hustle_service import get_rcr_stats
+        rcr_stats = await get_rcr_stats()
+    except Exception:
+        pass
+
     # Active voice sessions
     active_sessions = 0
     if redis:
@@ -278,6 +299,9 @@ async def _gather_state(redis) -> dict:
         "covered_urls":         covered_urls,
         "time_utc":             datetime.datetime.utcnow().strftime("%H:%M"),
         "mention_pulse":        mention_pulse,
+        "trench_pulse":         trench_pulse,
+        "trench_unread_count":  trench_unread_count,
+        "rcr_stats":            rcr_stats,
         "rate_status":          rate_status,
         "covered_topics":       covered_topics,
         "community_vibe":       vibe,
@@ -303,6 +327,9 @@ Current state:
 {news_lines}
 - Crypto headlines:
 {crypto_lines}
+- $RCR MARKET STATS: {rcr_stats}
+- TRENCH PULSE ($RCR community): {trench_pulse}
+- Unprocessed trench tweets: {trench_unread_count}
 - SOCIAL PULSE (Latest mentions): {mention_pulse}
 - COMMUNITY VIBE (Community mood): {community_vibe}
 - CURRENT X RATE LIMITS: {rate_status}
@@ -317,8 +344,10 @@ Decision rules:
 4. Aim for variety. Do NOT repeat topics listed in RECENTLY DISCUSSED TOPICS.
 5. If confidence < 0.5, SKIP.
 6. If the Social Pulse contains $RCR questions, prioritize SOCIAL or RANDOM bucket to address them.
+7. Use TRENCH_READING if trench_unread_count > 0 and you have time for community work.
+8. Use TOKEN_HUSTLE to update holders on $RCR stats from DexScreener.
 
-Valid actions: TWEET_NEWS, TWEET_CRYPTO, REPLY_MENTIONS, RANDOM, WORLD_UPDATE, SOCIAL, SKIP
+Valid actions: TWEET_NEWS, TWEET_CRYPTO, REPLY_MENTIONS, RANDOM, WORLD_UPDATE, SOCIAL, TRENCH_READING, TOKEN_HUSTLE, SKIP
 
 Response format (exactly this JSON structure):
 {{
