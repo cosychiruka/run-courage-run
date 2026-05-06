@@ -88,89 +88,65 @@ async def _load_voice_models_bg():
 async def lifespan(app: FastAPI):
     global x_client, _redis
 
-    try:
-        # DB — fast, do first
-        print("[STARTUP] Initializing database...")
-        await init_db()
-        await init_twitter_db()
-        await init_goal_db()
-
-        # Verify all expected tables were created — surfaces silent failures immediately
+    async def _init_everything():
         try:
-            async with aiosqlite.connect(DB_PATH) as _db:
-                async with _db.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-                ) as _cur:
-                    _tables = [r[0] for r in await _cur.fetchall()]
-            print(f"[STARTUP] SQLite tables verified: {', '.join(_tables)}")
-        except Exception as _e:
-            print(f"[STARTUP] WARNING: Table verification failed: {_e}")
+            print("[STARTUP] Courage is waking up in the background...")
+            # 1. DBs — fast
+            from app.goal_tracker import init_goal_db
+            await init_db()
+            await init_twitter_db()
+            await init_goal_db()
+            print("[STARTUP] Databases initialized.")
 
-        print("[STARTUP] Database initialized.")
+            # 2. Redis
+            global _redis
+            try:
+                _redis = aioredis.from_url(REDIS_URL, decode_responses=True)
+                await asyncio.wait_for(_redis.ping(), timeout=5.0)
+                print("[STARTUP] Redis connected.")
+                await _redis.delete("active_voice_sessions")
+            except Exception as e:
+                _redis = None
+                print(f"[STARTUP] Redis unavailable ({e}) — pulse falling back to memory.")
 
-        # Redis — for presence persistence across redeploys
-        try:
-            _redis = aioredis.from_url(REDIS_URL, decode_responses=True)
-            await _redis.ping()
-            print("[STARTUP] Redis connected (presence will survive redeploys).")
-            # Clear any stale active_voice_sessions left by a previous crash
-            await _redis.delete("active_voice_sessions")
-            print("[STARTUP] Cleared stale active_voice_sessions.")
+            # 3. X Client
+            from app.config import make_x_client
+            global x_client
+            x_client = make_x_client()
+            print(f"[STARTUP] X client: {'ACTIVE' if x_client else 'DISABLED'}")
+
+            # 4. Background jobs
+            scheduler.add_job(discovery_round,       "interval", minutes=30,  id="discovery")
+            scheduler.add_job(crypto_discovery_round,"interval", minutes=30,  id="crypto_discovery")
+            scheduler.add_job(prune_twitter_memory,  "interval", weeks=1,     id="memory_prune")
+            scheduler.add_job(
+                autonomous_tick, "interval",
+                minutes=AUTONOMOUS_INTERVAL_MINUTES, id="autonomous", jitter=60,
+                kwargs={"x_client": x_client, "tweet_image_fn": _tweet_image_fn},
+            )
+            scheduler.start()
+            print("[STARTUP] Scheduler online.")
+
+            # 5. Initial runs
+            asyncio.create_task(discovery_round())
+            asyncio.create_task(crypto_discovery_round())
+            asyncio.create_task(_load_voice_models_bg())
+
+            # 6. Groq tracker
+            _init_token_tracker(REDIS_URL)
+            print("[STARTUP] Courage Brain is fully awake. 🐕✨")
+
         except Exception as e:
-            _redis = None
-            print(f"[STARTUP] Redis unavailable ({e}) — presence falls back to in-memory.")
+            print(f"[STARTUP] FATAL BACKGROUND ERROR: {e}")
 
-        # X client (optional — graceful if keys missing)
-        print("[STARTUP] Setting up X client...")
-        from app.config import (
-            X_CONSUMER_KEY, X_CONSUMER_SECRET,
-            X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET, X_BEARER_TOKEN,
-        )
-        print(f"[X] Consumer Key:        {'SET ✓' if X_CONSUMER_KEY else 'MISSING ✗'}")
-        print(f"[X] Consumer Secret:     {'SET ✓' if X_CONSUMER_SECRET else 'MISSING ✗'}")
-        print(f"[X] Access Token:        {'SET ✓' if X_ACCESS_TOKEN else 'MISSING ✗'}")
-        print(f"[X] Access Token Secret: {'SET ✓' if X_ACCESS_TOKEN_SECRET else 'MISSING ✗'}")
-        print(f"[X] Bearer Token:        {'SET ✓' if X_BEARER_TOKEN else 'MISSING ✗'}")
-        x_client = make_x_client()
-        print(f"[STARTUP] X client: {'ACTIVE ✓' if x_client else 'DISABLED (keys missing or init failed)'}")
-
-        # Background jobs
-        scheduler.add_job(discovery_round,       "interval", minutes=30,  id="discovery")
-        scheduler.add_job(crypto_discovery_round,"interval", minutes=30,  id="crypto_discovery")
-        scheduler.add_job(prune_twitter_memory,  "interval", weeks=1,     id="memory_prune")
-        scheduler.add_job(
-            autonomous_tick, "interval",
-            minutes=AUTONOMOUS_INTERVAL_MINUTES, id="autonomous", jitter=60,
-            kwargs={"x_client": x_client, "tweet_image_fn": _tweet_image_fn},
-        )
-        scheduler.start()
-        print("[STARTUP] Background scheduler started (discovery + crypto + autonomous + weekly prune).")
-
-        asyncio.create_task(discovery_round())
-        asyncio.create_task(crypto_discovery_round())
-        print("[STARTUP] Initial news + crypto discovery queued.")
-
-        asyncio.create_task(_load_voice_models_bg())
-
-        # Groq token tracker (fire-and-forget, never raises)
-        _init_token_tracker(REDIS_URL)
-        print("[STARTUP] Groq token tracker initialized.")
-
-        from app.config import GROQ_MODEL
-        print("\n" + "="*50)
-        print("🐕 COURAGE AI BACKEND — READY")
-        print(f"🧠 AI ENGINE:    Groq ({GROQ_MODEL})")
-        print(f"🗄️ REDIS_URL:   {REDIS_URL.split('@')[-1] if '@' in REDIS_URL else REDIS_URL}")
-        print(f"🌐 FRONTEND:    {FRONTEND_ORIGIN}")
-        print("="*50 + "\n")
-
-    except Exception as e:
-        print(f"[STARTUP] ERROR during initialization: {e}")
-        print("[STARTUP] Continuing with limited functionality...")
-
+    # START IMMEDIATELY
+    init_task = asyncio.create_task(_init_everything())
+    
     yield
 
+    # Cleanup
     print("[SHUTDOWN] Shutting down...")
+    init_task.cancel()
     scheduler.shutdown(wait=False)
     if _http_client and not _http_client.is_closed:
         await _http_client.aclose()
