@@ -370,25 +370,10 @@ async def _decide(state: dict) -> dict:
         r.raise_for_status()
 
     raw = r.json()["choices"][0]["message"]["content"]
-    
-    # Bulletproof parsing: strip markdown, find boundaries
-    try:
-        clean = raw.strip()
-        if "```json" in clean:
-            clean = clean.split("```json")[1].split("```")[0].strip()
-        elif "```" in clean:
-            clean = clean.split("```")[1].split("```")[0].strip()
-
-        # Find first '{' and last '}' to isolate JSON object
-        start = clean.find("{")
-        end = clean.rfind("}")
-        if start != -1 and end != -1:
-            clean = clean[start:end+1]
-
-        return json.loads(clean)
-    except Exception as e:
-        print(f"[AUTO] _decide parse error: {e}. Raw: {raw[:100]}...")
+    decision = _bulletproof_parse(raw)
+    if not decision or not isinstance(decision, dict):
         return {"action": "SKIP", "reasoning": "Parse failure", "confidence": 0}
+    return decision
 
 
 async def _triage_news(articles: list[dict]) -> list[dict]:
