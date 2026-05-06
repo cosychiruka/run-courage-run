@@ -614,6 +614,15 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None, force=False):
     try:
         # 1. Gather state (no API calls)
         state = await _gather_state(redis)
+
+        # ── PHASE 3: Realtime Art on urgent events ─────────────────────
+        if force and state.get("urgent_event"):
+            from app.events import trigger_realtime_art
+            event = state["urgent_event"]
+            if event["type"] in ("MARKET_SURGE", "GAME_MOMENT"):
+                prompt = "Courage shocked and pumping $RCR" if event["type"] == "MARKET_SURGE" else "Courage cheering for Become a Monster player"
+                await trigger_realtime_art(prompt)  # instant cartoon
+
         print(
             f"[AUTO] State — sessions: {state['active_sessions']}, "
             f"unreplied: {state['unreplied_count']}, "

@@ -24,3 +24,12 @@ async def emit_event(event_type: str, payload: dict):
     })
     await r.publish("courage:urgent_events", message)
     print(f"[EVENT] Emitted {event_type}")
+
+async def trigger_realtime_art(prompt: str):
+    """Called by Orchestrator on high-priority events."""
+    from app.image_gen import create_courage_art_realtime
+    url = await create_courage_art_realtime(prompt)
+    if url:
+        await emit_event("ART_GENERATED", {"url": url, "prompt": prompt})
+        print(f"[ART] Realtime cartoon ready: {url}")
+    return url

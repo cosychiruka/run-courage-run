@@ -181,6 +181,11 @@ async def lifespan(app: FastAPI):
 
             asyncio.create_task(_urgent_event_listener())
 
+            # ── PHASE 3: Realtime WebSocket Sensors ─────────────────────
+            from app.sensors.market_sensor_ws import market_sensor_ws_loop
+            asyncio.create_task(market_sensor_ws_loop())
+            print("[STARTUP] DexScreener WebSocket + Fal realtime online.")
+
             # 6. Groq tracker
             _init_token_tracker(REDIS_URL)
             print("[STARTUP] Courage Brain is fully awake. 🐕✨")
