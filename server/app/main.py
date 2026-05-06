@@ -133,6 +133,7 @@ async def lifespan(app: FastAPI):
             # 5. Initial runs
             asyncio.create_task(discovery_round())
             asyncio.create_task(crypto_discovery_round())
+            asyncio.create_task(autonomous_tick(x_client=x_client, tweet_image_fn=_tweet_image_fn))
             asyncio.create_task(_load_voice_models_bg())
 
             # 6. Groq tracker
