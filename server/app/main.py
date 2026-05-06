@@ -174,10 +174,6 @@ app.add_middleware(
 async def health():
     return {"status": "ok", "timestamp": time.time()}
 
-@app.get("/")
-async def root_health():
-    return {"status": "Courage AI is running", "admin_panel": "/admin"}
-
 # ── App End ──
 
 
