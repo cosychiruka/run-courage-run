@@ -525,6 +525,69 @@ async def trigger_now():
     return JSONResponse({"status": "ok", "message": "Autonomous tick triggered in background."})
 
 
+# ── Admin Dashboard ────────────────────────────────────────────────────────────
+
+@app.get("/api/admin/history")
+async def admin_history(limit: int = 50):
+    """Returns the full autonomous decision history for the dashboard."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM autonomous_decisions ORDER BY decided_at DESC LIMIT ?", (limit,)
+        ) as cur:
+            rows = [dict(r) for r in await cur.fetchall()]
+    return JSONResponse(rows)
+
+
+@app.get("/api/admin/system-status")
+async def admin_system_status():
+    """Aggregates all critical system health metrics into one payload."""
+    from app.goal_tracker import get_last_bucket_times
+    from app.news_cache import get_budget_status
+    
+    # 1. Bucket Status
+    bucket_times = await get_last_bucket_times()
+    
+    # 2. News API Budgets
+    news_budgets = await get_budget_status()
+    
+    # 3. Groq Status
+    groq_backoff_until = None
+    groq_429_streak = 0
+    if _redis:
+        backoff_raw = await _redis.get("courage:groq_backoff_until")
+        if backoff_raw: groq_backoff_until = float(backoff_raw)
+        groq_429_streak = int(await _redis.get("courage:groq_429_streak") or 0)
+        
+    # 4. Twitter Stats (from memory)
+    from app.goal_tracker import get_goal_progress_summary
+    growth_summary = await get_goal_progress_summary()
+    
+    # 5. Visitor Pulse
+    visitor_count = 0
+    recent_visitors = []
+    if _redis:
+        visitor_count = await _redis.llen("courage:visitor_log")
+        raw_logs = await _redis.lrange("courage:visitor_log", 0, 9)
+        recent_visitors = [json.loads(l) for l in raw_logs]
+
+    return JSONResponse({
+        "timestamp": time.time(),
+        "buckets": bucket_times,
+        "news_budgets": news_budgets,
+        "growth": growth_summary,
+        "visitors": {
+            "total_24h": visitor_count,
+            "recent": recent_visitors
+        },
+        "circuit_breakers": {
+            "groq_active": groq_backoff_until is not None and time.time() < groq_backoff_until,
+            "groq_backoff_until": groq_backoff_until,
+            "groq_streak": groq_429_streak
+        }
+    })
+
+
 # ── World Event Engine ─────────────────────────────────────────────────────────
 # The LLM acts as an invisible director, periodically deciding what happens in
 # each 3D world.  Returns a structured JSON action the frontend can apply.

@@ -19,6 +19,7 @@ import { fetchTopNews } from './services/newsService';
 import { analyzeSentiment } from './utils/sentimentUtils';
 import { createVoiceService } from './services/voiceService';
 import { audioManager } from './utils/audioManager';
+import AdminDashboard from './components/AdminDashboard';
 
 // Wrapper to handle Vite dynamic import chunk errors after redeployments
 const lazyWithReload = (componentImport) => {
@@ -612,6 +613,11 @@ export default function App() {
   const _scared = (newsOpen && newsEmotion === 'scared') || (!newsOpen && _isNight);
   const _happy = (newsOpen && newsEmotion === 'happy') || (!newsOpen && _isNoon);
   const explodeDisabled = !!explosionPhase || (!_scared && !_happy);
+
+  // ── Admin Dashboard Routing ──
+  if (window.location.pathname === '/admin') {
+    return <AdminDashboard />;
+  }
 
   return (
     <div className="app-container" id="app-background" onClick={handleBackgroundClick}>

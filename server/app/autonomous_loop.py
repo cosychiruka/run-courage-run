@@ -360,24 +360,40 @@ async def _triage_news(articles: list[dict]) -> list[dict]:
     }
     
     async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers)
-        r.raise_for_status()
-        data = r.json()["choices"][0]["message"]["content"]
-        scores = json.loads(data).get("scores", []) # Expecting {"scores": [{"index": 0, "panic_score": 8}, ...]}
-        
-        # Merge back
-        triaged = []
-        for s in scores:
-            idx = s.get("index")
-            if idx is not None and idx < len(articles):
-                a = articles[idx]
-                triaged.append({
-                    "title": a.get("title", ""),
-                    "url": a.get("url", ""),
-                    "source_name": a.get("source_name", "Unknown"),
-                    "panic_index": s.get("panic_score", 5)
-                })
-        return triaged
+        try:
+            r = await client.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers)
+            r.raise_for_status()
+            raw_content = r.json()["choices"][0]["message"]["content"]
+            data = json.loads(raw_content)
+            
+            # Handle both {"scores": [...]} and [...] and {"0": {...}} formats
+            scores = data.get("scores") if isinstance(data, dict) else data
+            if isinstance(data, dict) and not isinstance(scores, list):
+                # Try to extract from {"0": {...}, "1": {...}}
+                scores = [v for k, v in data.items() if k.isdigit() or (isinstance(v, dict) and "panic_score" in v)]
+            
+            if not isinstance(scores, list):
+                print(f"[TRIAGE] Unexpected format from LLM: {raw_content}")
+                return []
+
+            print(f"[TRIAGE] Parsed {len(scores)} scores from LLM.")
+            
+            # Merge back
+            triaged = []
+            for s in scores:
+                idx = s.get("index")
+                if idx is not None and idx < len(articles):
+                    a = articles[idx]
+                    triaged.append({
+                        "title": a.get("title", ""),
+                        "url": a.get("url", ""),
+                        "source_name": a.get("source_name", "Unknown"),
+                        "panic_index": s.get("panic_score", 5)
+                    })
+            return triaged
+        except Exception as e:
+            print(f"[TRIAGE] Failed to parse or fetch: {e}")
+            return []
 
 # ── Execution step ─────────────────────────────────────────────────────────────
 
