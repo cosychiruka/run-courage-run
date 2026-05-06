@@ -370,9 +370,7 @@ async def _decide(state: dict) -> dict:
         r.raise_for_status()
 
     raw = r.json()["choices"][0]["message"]["content"]
-    print(f"[LOUD] Raw Decision: {raw}")
     decision = _bulletproof_parse(raw)
-    print(f"[LOUD] Parsed Decision: {decision}")
     if not decision or not isinstance(decision, dict):
         return {"action": "SKIP", "reasoning": "Parse failure", "confidence": 0}
     return decision

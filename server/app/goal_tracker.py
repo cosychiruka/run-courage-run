@@ -60,11 +60,25 @@ CREATE TABLE IF NOT EXISTS autonomous_decisions (
 
 
 async def init_goal_db():
-    """Create goal tracking tables. Called from main.py startup after init_twitter_db()."""
+    """Create goal tracking tables or upgrade schema if needed."""
     async with aiosqlite.connect(DB_PATH) as db:
+        # 1. Create tables if they don't exist
         for stmt in _GOAL_SCHEMA.strip().split(";"):
             if stmt.strip():
                 await db.execute(stmt)
+        
+        # 2. Check for missing columns in autonomous_decisions (migration)
+        async with db.execute("PRAGMA table_info(autonomous_decisions)") as cursor:
+            columns = [row[1] for row in await cursor.fetchall()]
+            
+        if "confidence" not in columns:
+            print("[GOALS] Migrating DB: Adding 'confidence' column...")
+            await db.execute("ALTER TABLE autonomous_decisions ADD COLUMN confidence REAL DEFAULT 1.0")
+        
+        if "topic_keyword" not in columns:
+            print("[GOALS] Migrating DB: Adding 'topic_keyword' column...")
+            await db.execute("ALTER TABLE autonomous_decisions ADD COLUMN topic_keyword TEXT")
+
         await db.commit()
     print("[GOALS] Goal tracker tables initialized.")
 
