@@ -258,3 +258,12 @@ async def mark_trench_processed(tweet_id: str):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("UPDATE tw_trench_tweets SET processed=1 WHERE tweet_id=?", (tweet_id,))
         await db.commit()
+
+
+from app.rag import embed_and_store
+
+async def save_trench_tweet_with_rag(tweet: dict):
+    """Called from trench_service after insert."""
+    content = f"@{tweet['author']}: {tweet['text']}"
+    metadata = {"tweet_id": tweet["tweet_id"], "cashtag": tweet["cashtag"]}
+    await embed_and_store(content, source="trench", metadata=metadata)

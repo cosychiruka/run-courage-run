@@ -194,6 +194,19 @@ async def _gather_state(redis) -> dict:
     except Exception:
         pass
 
+    # ── PHASE 2: Real RAG Context (long-term memory) ─────────────────────
+    rag_context = ""
+    try:
+        from app.rag import retrieve_top_k
+        # Pull relevant past trenches + token history
+        trench_rag = await retrieve_top_k("community sentiment about $RCR and Courage", k=4, source_filter="trench")
+        token_rag = await retrieve_top_k("$RCR price momentum and holder excitement", k=3, source_filter="token")
+        rag_context = "Relevant past memory:\n" + "\n".join(
+            [f"- {r['content']}" for r in trench_rag + token_rag]
+        )
+    except Exception:
+        rag_context = "no rag memory yet"
+
     # Active voice sessions
     active_sessions = 0
     if redis:
@@ -319,6 +332,7 @@ async def _gather_state(redis) -> dict:
         "covered_topics":       covered_topics,
         "community_vibe":       vibe,
         "urgent_event":         state.get("urgent_event"),
+        "rag_context":          rag_context,
     }
 
 
@@ -345,6 +359,8 @@ Current state:
 - TRENCH PULSE ($RCR community): {trench_pulse}
 - Unprocessed trench tweets: {trench_unread_count}
 - URGENT EVENT (Instant reaction needed!): {urgent_event}
+- LONG TERM MEMORY (RAG):
+{rag_context}
 - SOCIAL PULSE (Latest mentions): {mention_pulse}
 - COMMUNITY VIBE (Community mood): {community_vibe}
 - CURRENT X RATE LIMITS: {rate_status}
@@ -414,7 +430,8 @@ async def _decide(state: dict) -> dict:
         trench_pulse=state["trench_pulse"],
         trench_unread_count=state["trench_unread_count"],
         rcr_stats=state["rcr_stats"],
-        urgent_event=state["urgent_event"] or "None"
+        urgent_event=state["urgent_event"] or "None",
+        rag_context=state["rag_context"]
     )
 
     headers = {

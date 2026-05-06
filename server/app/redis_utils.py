@@ -9,12 +9,14 @@ import time
 from app.config import REDIS_URL
 
 class MockPubSub:
-    def __init__(self, channels):
-        self.channels = channels
+    def __init__(self, redis_instance):
+        self.redis = redis_instance
         self.queue = asyncio.Queue()
 
-    async def subscribe(self, *args, **kwargs):
-        pass
+    async def subscribe(self, channel):
+        if channel not in self.redis._pubsub:
+            self.redis._pubsub[channel] = []
+        self.redis._pubsub[channel].append(self)
 
     async def listen(self):
         while True:
@@ -73,12 +75,8 @@ class MockRedis:
         return 1
 
     def pubsub(self, **kwargs):
-        ps = MockPubSub(self._pubsub)
-        return ps
+        return MockPubSub(self)
 
-    async def subscribe(self, channel, ps):
-        if channel not in self._pubsub: self._pubsub[channel] = []
-        self._pubsub[channel].append(ps)
 
 class MockSyncRedis:
     def __init__(self):

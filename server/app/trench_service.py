@@ -33,10 +33,21 @@ async def fetch_trench_tweets(cashtag: str = "$RCR", limit: int = 50, since_days
                     "VALUES (?,?,?,?,?,0)",
                     (str(t.id), str(t.author_id), t.text, cashtag, time.time())
                 )
+                
+                # Auto-embed for RAG (PHASE 2)
+                try:
+                    await tw_mem.save_trench_tweet_with_rag({
+                        "tweet_id": str(t.id),
+                        "author": str(t.author_id),
+                        "text": t.text,
+                        "cashtag": cashtag
+                    })
+                except Exception as e:
+                    print(f"[RAG ERROR] {e}")
+
                 saved += 1
             await db.commit()
 
-        # Auto-embed for future RAG (lightweight — we can expand later)
         print(f"[TRENCH] Saved {saved} new {cashtag} tweets.")
         return f"Fetched and saved {saved} new {cashtag} trench tweets."
     except Exception as e:

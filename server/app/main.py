@@ -613,11 +613,34 @@ async def admin_system_status():
         raw_logs = await _redis.lrange("courage:visitor_log", 0, 9)
         recent_visitors = [json.loads(l) for l in raw_logs]
 
+    # 6. Elite Tier 2 Metrics
+    from app.twitter_memory import get_unprocessed_trench_tweets
+    from app.hustle_service import get_rcr_stats
+    trench_unread = await get_unprocessed_trench_tweets(limit=100)
+    rcr_stats = await get_rcr_stats()
+    
+    rag_count = 0
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT COUNT(*) FROM rag_vectors") as cur:
+                row = await cur.fetchone()
+                rag_count = row[0] if row else 0
+    except Exception:
+        pass
+
     return JSONResponse({
+        "status": "healthy",
         "timestamp": time.time(),
+        "elite_tier": "PHASE_2_LIVE",
         "buckets": bucket_times,
         "news_budgets": news_budgets,
         "growth": growth_summary,
+        "trench_unread_count": len(trench_unread),
+        "reply_queue_size": await _redis.llen("courage:reply_queue") if _redis else 0,
+        "current_throttle_speed": "dynamic (rate-limit aware)",
+        "last_market_surge": await _redis.get("courage:last_market_surge") or "none",
+        "rcr_price": rcr_stats.get("price", 0),
+        "rag_vectors_count": rag_count,
         "twitter": {
             "rates": rate_status,
             "mention_pulse": mention_pulse

@@ -69,6 +69,12 @@ async def _save_daily_snapshot(stats: dict):
         )
         await db.commit()
 
+        # Auto-embed for RAG
+        from app.rag import embed_and_store
+        date = datetime.now(timezone.utc).date().isoformat()
+        content = f"$RCR price ${stats['price']:.6f} | 24h change {stats.get('change_24h',0):+.1f}% | Vol ${stats.get('volume_24h',0):,.0f}"
+        await embed_and_store(content, source="token", metadata={"date": date})
+
 async def _get_last_known_price():
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute(
