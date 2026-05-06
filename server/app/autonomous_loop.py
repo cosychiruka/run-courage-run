@@ -453,50 +453,6 @@ async def _triage_news(articles: list[dict]) -> list[dict]:
             print(f"[TRIAGE] Failed to parse or fetch: {e}")
             return []
 
-# ── Decision step ──────────────────────────────────────────────────────────────
-
-async def _decide(state: dict) -> dict:
-    """Ask Groq to decide on an action based on world state."""
-    from app.agent import CourageAgent
-    agent = CourageAgent()
-
-    prompt = f"""
-Current World State:
-{json.dumps({
-    "active_sessions": state["active_sessions"],
-    "unreplied_mentions": state["unreplied_count"],
-    "auto_tweets_today": state["auto_tweets_today"],
-    "news_headlines": [h["title"] for h in state["news_headlines"][:5]],
-    "crypto_headlines": [h["title"] for h in state["crypto_headlines"][:5]]
-}, indent=2)}
-
-Decide what Courage should do next.
-Available Actions:
-- TWEET_NEWS (if interesting news exists)
-- TWEET_CRYPTO (if interesting crypto news exists)
-- REPLY_MENTIONS (if unreplied mentions exist)
-- RANDOM (spontaneous thought)
-- WORLD_UPDATE (observation about 3D worlds)
-- SOCIAL (connect with community)
-- SKIP (if nothing urgent)
-
-FORMAT: JSON object
-{{
-  "action": "TWEET_NEWS",
-  "bucket": "NEWS",
-  "reasoning": "I saw a headline about cats that really worried me.",
-  "confidence": 0.9,
-  "article_url": "http://..."
-}}
-"""
-    try:
-        raw_content = await agent.generate_response(prompt)
-        decision = _bulletproof_parse(raw_content)
-        return decision if isinstance(decision, dict) else {}
-    except Exception as e:
-        print(f"[AUTO] Decision logic failed: {e}")
-        return {}
-
 # ── Execution step ─────────────────────────────────────────────────────────────
 
 async def _execute(decision: dict, state: dict, x_client, tweet_image_fn) -> str | None:
