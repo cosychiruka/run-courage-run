@@ -38,6 +38,7 @@ BUCKET_COOLDOWNS = {
 }
 
 DAILY_AUTO_TWEET_CAP = 25   # Paid plan — generous but not spam
+PANIC_THRESHOLD = 6         # Only consider news with Panic Index >= 6
 
 
 # ── Action prompts sent to run_agent as the "user message" ─────────────────────
@@ -137,26 +138,32 @@ async def _gather_state(redis) -> dict:
         except Exception:
             pass
 
-    # Top news headlines (VARIED for decision variety — cross-category, no country filter)
-    news_headlines = []
+    # ── News Triage (Sentiment Filter) ──
+    # We fetch a raw sample, then triage them for 'Panic Index' (0-10).
+    # This turns 'Discovery' into a 10/10 by ensuring Courage only sees high-signal news.
+    raw_news = []
     try:
         from app.news_cache import get_varied_articles
-        articles = await get_varied_articles(limit=8, country="", random_sample=True, exclude_urls=covered_urls)
-        news_headlines = [
-            {
-                "title":       a.get("title", "")[:100],
-                "url":         a.get("url", ""),
-                "source_name": a.get("source_name", "Unknown"),
-                "category":    a.get("category", "general"),
-                "description": a.get("description", "")[:200],
-                "image":       a.get("image_url") or a.get("image_url") or a.get("image"),
-            }
-            for a in articles
-        ]
+        raw_news = await get_varied_articles(limit=15, country="", random_sample=True, exclude_urls=covered_urls)
     except Exception:
         pass
 
-    # Top crypto headlines (cache only)
+    triaged_news = []
+    if raw_news:
+        try:
+            triaged_news = await _triage_news(raw_news)
+            # Filter for high panic/relevance
+            triaged_news = [h for h in triaged_news if h["panic_index"] >= PANIC_THRESHOLD]
+            # Keep top 6 most interesting
+            triaged_news = sorted(triaged_news, key=lambda x: x["panic_index"], reverse=True)[:6]
+        except Exception as e:
+            print(f"[AUTO] Triage failed: {e}. Falling back to raw news.")
+            triaged_news = [
+                {"title": a.get("title", "")[:100], "url": a.get("url", ""), "panic_index": 5}
+                for a in raw_news[:6]
+            ]
+
+    # Crypto headlines (also triage slightly)
     crypto_headlines = []
     try:
         from app.crypto_news import get_cached_crypto_headlines
@@ -166,8 +173,7 @@ async def _gather_state(redis) -> dict:
                 "title":       a.get("title", "")[:100],
                 "url":         a.get("url", ""),
                 "source_name": a.get("source_name", "Unknown"),
-                "description": a.get("description", "")[:200],
-                "image":       a.get("image_url"),
+                "panic_index": 7 if "crash" in a.get("title", "").lower() or "pump" in a.get("title", "").lower() else 5
             }
             for a in crypto[:3]
         ]
@@ -207,7 +213,7 @@ async def _gather_state(redis) -> dict:
         "unreplied_count":      unreplied_count,
         "active_sessions":      active_sessions,
         "bucket_status":        bucket_status,
-        "news_headlines":       news_headlines,
+        "news_headlines":       triaged_news,
         "crypto_headlines":     crypto_headlines,
         "visitor_count":        visitor_count,
         "auto_tweets_today":    auto_tweets_today,
@@ -234,7 +240,7 @@ Current state:
 - Auto tweets posted today: {auto_tweets_today} / {daily_cap} max
 - Content bucket status (elapsed / cooldown):
 {bucket_status_lines}
-- Fresh headlines:
+- Fresh headlines (Pre-Triaged for high Panic Index):
 {news_lines}
 - Crypto headlines:
 {crypto_lines}
@@ -276,7 +282,7 @@ async def _decide(state: dict) -> dict:
         for b, v in state["bucket_status"].items()
     )
     news_lines = "\n".join(
-        f"  - {h['title']} [{h['url']}] ({h['source_name']})" for h in state["news_headlines"]
+        f"  - [Panic: {h.get('panic_index', 5)}/10] {h['title']} [{h['url']}] ({h['source_name']})" for h in state["news_headlines"]
     ) or "  (no news cached yet)"
 
     crypto_lines = "\n".join(
@@ -329,6 +335,49 @@ async def _decide(state: dict) -> dict:
     raw = r.json()["choices"][0]["message"]["content"]
     return json.loads(raw)
 
+
+async def _triage_news(articles: list[dict]) -> list[dict]:
+    """Uses a fast model round to assign Panic Index to headlines."""
+    if not articles: return []
+    
+    headlines_text = "\n".join([f"[{i}] {a.get('title')}" for i, a in enumerate(articles)])
+    
+    prompt = (
+        "You are the 'Panic Triage' filter for Courage AI. "
+        "Score each headline below on a 'Panic Index' (0-10).\n"
+        "10 = Extremely scary, global impact, tech meltdown, or Solana/Crypto explosion.\n"
+        "0 = Boring, local, or happy news.\n\n"
+        "Format: Return ONLY a JSON list of objects with index (matching input) and panic_score.\n\n"
+        f"Headlines:\n{headlines_text}"
+    )
+    
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+    payload = {
+        "model": GROQ_MODEL_FAST,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.2,
+        "response_format": {"type": "json_object"}
+    }
+    
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers)
+        r.raise_for_status()
+        data = r.json()["choices"][0]["message"]["content"]
+        scores = json.loads(data).get("scores", []) # Expecting {"scores": [{"index": 0, "panic_score": 8}, ...]}
+        
+        # Merge back
+        triaged = []
+        for s in scores:
+            idx = s.get("index")
+            if idx is not None and idx < len(articles):
+                a = articles[idx]
+                triaged.append({
+                    "title": a.get("title", ""),
+                    "url": a.get("url", ""),
+                    "source_name": a.get("source_name", "Unknown"),
+                    "panic_index": s.get("panic_score", 5)
+                })
+        return triaged
 
 # ── Execution step ─────────────────────────────────────────────────────────────
 
