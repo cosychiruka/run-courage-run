@@ -42,3 +42,7 @@ COINDESK_API_KEY            = os.getenv("COINDESK_API_KEY",    "")
 COINGECKO_API_KEY           = os.getenv("COINGECKO_API_KEY", "")
 COINGECKO_API_KEY           = os.getenv("COINGECKO_API_KEY", "")
 AUTONOMOUS_INTERVAL_MINUTES = int(os.getenv("AUTONOMOUS_INTERVAL_MINUTES", "60"))
+
+RCR_TOKEN_ADDRESS    = os.getenv("RCR_TOKEN_ADDRESS", "")
+FAL_API_KEY          = os.getenv("FAL_API_KEY", "")
+COURAGE_BASE_IMAGE_URL = os.getenv("COURAGE_BASE_IMAGE_URL", "")

@@ -80,6 +80,18 @@ ACTION_PROMPTS = {
         "Encourage people to visit your world or follow you, but gently. Like a tail wag, not a shout. "
         "Check get_x_rate_status first. Record the tweet."
     ),
+    "TRENCH_READING": (
+        "You are sitting down in your free time to read the $RCR trenches. "
+        "Call get_trench_pulse to see what the community is saying. "
+        "Pick 1-2 interesting tweets and craft smart, funny, in-character replies. "
+        "Use create_courage_art if you want to attach a cartoon. "
+        "Queue them safely with the engagement queue."
+    ),
+    "TOKEN_HUSTLE": (
+        "Check on $RCR performance. Call get_rcr_stats. "
+        "If we are pumping, tweet an encouraging update. "
+        "Always include yesterday vs today delta. Be brave for the holders!"
+    ),
 }
 
 

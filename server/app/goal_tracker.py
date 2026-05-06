@@ -79,6 +79,16 @@ async def init_goal_db():
             print("[GOALS] Migrating DB: Adding 'topic_keyword' column...")
             await db.execute("ALTER TABLE autonomous_decisions ADD COLUMN topic_keyword TEXT")
 
+        # Token daily stats table
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS token_daily_stats (
+                date        TEXT PRIMARY KEY,
+                price       REAL,
+                market_cap  REAL,
+                volume_24h  REAL,
+                change_24h  REAL
+            )
+        """)
         await db.commit()
     print("[GOALS] Goal tracker tables initialized.")
 

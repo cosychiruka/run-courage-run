@@ -26,3 +26,7 @@ python-multipart
 
 # SQLite async wrapper
 aiosqlite
+
+# Elite Tier Additions
+fal
+sentence-transformers

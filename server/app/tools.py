@@ -316,9 +316,54 @@ TOOL_SCHEMAS = [
                         "description": "Number of headlines to return (1-20)",
                     },
                 },
-                "required": [],
+        "required": [],
             },
         },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "fetch_trench_tweets",
+            "description": "Bulk fetch recent $RCR cashtag tweets from the trenches. Saves them for later smart replies.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "cashtag": {"type": "string", "default": "$RCR"},
+                    "limit": {"type": "integer", "default": 50}
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_trench_pulse",
+            "description": "Get a summary of unread community $RCR tweets for Courage to read and reply to.",
+            "parameters": {"type": "object", "properties": {}, "required": []}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_rcr_stats",
+            "description": "Get live $RCR price, 24h change, volume, and yesterday vs today delta.",
+            "parameters": {"type": "object", "properties": {}, "required": []}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_courage_art",
+            "description": "Generate a funny cartoon image of Courage based on a description. Returns image URL.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "prompt_description": {"type": "string", "description": "What Courage is doing or reacting to"}
+                },
+                "required": ["prompt_description"]
+            }
+        }
     },
 ]
 
@@ -346,6 +391,10 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
             case "record_twitter_action": return await _record_twitter_action(args)
             case "check_api_credits":     return await _check_api_credits(x_client)
             case "get_crypto_news":       return await _get_crypto_news(args)
+            case "fetch_trench_tweets":   return await _fetch_trench_tweets(args)
+            case "get_trench_pulse":      return await _get_trench_pulse()
+            case "get_rcr_stats":         return await _get_rcr_stats()
+            case "create_courage_art":    return await _create_courage_art(args)
             case _:                       return f"Unknown tool: {name}"
     except Exception as e:
         return f"Tool error ({name}): {e}"
@@ -790,3 +839,26 @@ async def _get_crypto_news(args: dict) -> str:
             out += f"    {desc}\n"
         out += "\n"
     return out.strip()
+
+
+async def _fetch_trench_tweets(args: dict):
+    from app.trench_service import fetch_trench_tweets
+    return await fetch_trench_tweets(args.get("cashtag", "$RCR"), args.get("limit", 50))
+
+async def _get_trench_pulse():
+    from app.twitter_memory import get_unprocessed_trench_tweets
+    tweets = await get_unprocessed_trench_tweets(10)
+    if not tweets:
+        return "No new trench tweets right now."
+    return "Unprocessed $RCR trench tweets:\n" + "\n".join(f"- @{t['author']}: {t['text'][:100]}" for t in tweets)
+
+async def _get_rcr_stats():
+    from app.hustle_service import get_rcr_stats
+    stats = await get_rcr_stats()
+    delta = "🚀" if stats.get("change_24h", 0) > 0 else "📉"
+    return f"$RCR ${stats.get('price',0):.6f} | 24h: {stats.get('change_24h',0):+.1f}% {delta} | Vol: ${stats.get('volume_24h',0):,.0f}"
+
+async def _create_courage_art(args: dict):
+    from app.image_gen import create_courage_art
+    url = await create_courage_art(args.get("prompt_description", "just being brave"))
+    return f"Generated Courage cartoon: {url}" if url else "Image gen failed — check FAL key."

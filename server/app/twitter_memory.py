@@ -50,6 +50,31 @@ CREATE TABLE IF NOT EXISTS tw_searches (
     result_peek TEXT,
     searched_at REAL NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS tw_trench_tweets (
+    tweet_id    TEXT PRIMARY KEY,
+    author      TEXT,
+    text        TEXT NOT NULL,
+    cashtag     TEXT,
+    created_at  REAL NOT NULL,
+    processed   INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS token_daily_stats (
+    date        TEXT PRIMARY KEY,
+    price       REAL,
+    market_cap  REAL,
+    volume_24h  REAL,
+    change_24h  REAL
+);
+
+CREATE TABLE IF NOT EXISTS rag_vectors (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    content     TEXT,
+    embedding   BLOB,  -- we can expand to real embeddings later
+    source      TEXT,  -- 'trench' or 'token'
+    created_at  REAL
+);
 """
 
 
@@ -218,3 +243,18 @@ async def get_twitter_summary() -> str:
             lines.append(f"  - \"{s['query']}\" ({age_str})")
 
     return "\n".join(lines)
+
+
+async def get_unprocessed_trench_tweets(limit: int = 20) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM tw_trench_tweets WHERE processed=0 ORDER BY created_at DESC LIMIT ?",
+            (limit,)
+        ) as cur:
+            return [dict(r) for r in await cur.fetchall()]
+
+async def mark_trench_processed(tweet_id: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE tw_trench_tweets SET processed=1 WHERE tweet_id=?", (tweet_id,))
+        await db.commit()

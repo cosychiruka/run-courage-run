@@ -40,6 +40,7 @@ from app.crypto_news import crypto_discovery_round
 from app.autonomous_loop import autonomous_tick
 import aiosqlite
 import redis.asyncio as aioredis
+from app.engagement_queue import process_reply_queue
 
 # ── Shared HTTP client (persistent pool, not per-request) ─────────────────────
 _http_client: httpx.AsyncClient | None = None
@@ -144,6 +145,10 @@ async def lifespan(app: FastAPI):
 
             asyncio.create_task(_guarded_startup_tick())
             asyncio.create_task(_load_voice_models_bg())
+            
+            # 7. Engagement Queue Worker
+            asyncio.create_task(process_reply_queue(x_client=x_client))
+            print("[STARTUP] Engagement queue worker online.")
 
             # 6. Groq tracker
             _init_token_tracker(REDIS_URL)
