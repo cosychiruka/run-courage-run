@@ -741,14 +741,17 @@ async def get_presence(world: str = "disco"):
 if os.path.exists("/app/static"):
     app.mount("/static", StaticFiles(directory="/app/static"), name="static")
 
+    @app.get("/admin")
+    async def serve_admin():
+        return FileResponse("/app/static/index.html")
+
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str):
         # ── Bot Guard: Block common malicious scans ──
         # These are common paths bots hit looking for vulnerabilities.
         # We block them early to clean up logs and save resources.
         bot_paths = [
-            "wp-", "xmlrpc", "php", ".env", ".git", 
-            "config", "admin", "login", "setup", "install"
+            "wp-", "xmlrpc", "php", ".env", ".git", "setup", "install"
         ]
         if any(bp in full_path.lower() for bp in bot_paths):
             return Response(status_code=404, content="Not Found")
