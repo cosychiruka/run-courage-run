@@ -83,6 +83,43 @@ ACTION_PROMPTS = {
 }
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _bulletproof_parse(raw: str):
+    """Strip markdown, find JSON boundaries, and attempt to wrap in braces if needed."""
+    try:
+        from typing import Optional
+        import json
+        clean = raw.strip()
+        if "```json" in clean:
+            clean = clean.split("```json")[1].split("```")[0].strip()
+        elif "```" in clean:
+            clean = clean.split("```")[1].split("```")[0].strip()
+
+        start_bracket = clean.find("[")
+        start_brace = clean.find("{")
+        
+        # Determine the start of the JSON object/list
+        if start_bracket == -1: start = start_brace
+        elif start_brace == -1: start = start_bracket
+        else: start = min(start_bracket, start_brace)
+        
+        end_bracket = clean.rfind("]")
+        end_brace = clean.rfind("}")
+        end = max(end_bracket, end_brace)
+        
+        if start != -1 and end != -1:
+            clean = clean[start:end+1]
+        elif '"action"' in clean and "{" not in clean:
+            # Emergency: AI sent key-value but forgot braces
+            clean = "{" + clean + "}"
+
+        return json.loads(clean)
+    except Exception as e:
+        print(f"[PARSER ERROR] Failed to decode JSON: {e}")
+        print(f"[PARSER ERROR] Raw Content: {raw}")
+        return None
+
 # ── State gathering ────────────────────────────────────────────────────────────
 
 async def _gather_state(redis) -> dict:
@@ -383,26 +420,9 @@ async def _triage_news(articles: list[dict]) -> list[dict]:
             r.raise_for_status()
             raw_content = r.json()["choices"][0]["message"]["content"]
             
-            # Bulletproof parsing: strip markdown, find boundaries
-            clean = raw_content.strip()
-            if "```json" in clean:
-                clean = clean.split("```json")[1].split("```")[0].strip()
-            elif "```" in clean:
-                clean = clean.split("```")[1].split("```")[0].strip()
-
-            # Find first '[' or '{' to isolate JSON
-            start_bracket = clean.find("[")
-            start_brace = clean.find("{")
-            start = min(start_bracket, start_brace) if (start_bracket != -1 and start_brace != -1) else max(start_bracket, start_brace)
-            
-            end_bracket = clean.rfind("]")
-            end_brace = clean.rfind("}")
-            end = max(end_bracket, end_brace)
-            
-            if start != -1 and end != -1:
-                clean = clean[start:end+1]
-
-            data = json.loads(clean)
+            data = _bulletproof_parse(raw_content)
+            if not data:
+                return []
             
             # Handle both {"scores": [...]} and [...] and {"0": {...}} formats
             scores = data.get("scores") if isinstance(data, dict) else data
@@ -432,6 +452,50 @@ async def _triage_news(articles: list[dict]) -> list[dict]:
         except Exception as e:
             print(f"[TRIAGE] Failed to parse or fetch: {e}")
             return []
+
+# ── Decision step ──────────────────────────────────────────────────────────────
+
+async def _decide(state: dict) -> dict:
+    """Ask Groq to decide on an action based on world state."""
+    from app.agent import CourageAgent
+    agent = CourageAgent()
+
+    prompt = f"""
+Current World State:
+{json.dumps({
+    "active_sessions": state["active_sessions"],
+    "unreplied_mentions": state["unreplied_count"],
+    "auto_tweets_today": state["auto_tweets_today"],
+    "news_headlines": [h["title"] for h in state["news_headlines"][:5]],
+    "crypto_headlines": [h["title"] for h in state["crypto_headlines"][:5]]
+}, indent=2)}
+
+Decide what Courage should do next.
+Available Actions:
+- TWEET_NEWS (if interesting news exists)
+- TWEET_CRYPTO (if interesting crypto news exists)
+- REPLY_MENTIONS (if unreplied mentions exist)
+- RANDOM (spontaneous thought)
+- WORLD_UPDATE (observation about 3D worlds)
+- SOCIAL (connect with community)
+- SKIP (if nothing urgent)
+
+FORMAT: JSON object
+{{
+  "action": "TWEET_NEWS",
+  "bucket": "NEWS",
+  "reasoning": "I saw a headline about cats that really worried me.",
+  "confidence": 0.9,
+  "article_url": "http://..."
+}}
+"""
+    try:
+        raw_content = await agent.generate_response(prompt)
+        decision = _bulletproof_parse(raw_content)
+        return decision if isinstance(decision, dict) else {}
+    except Exception as e:
+        print(f"[AUTO] Decision logic failed: {e}")
+        return {}
 
 # ── Execution step ─────────────────────────────────────────────────────────────
 

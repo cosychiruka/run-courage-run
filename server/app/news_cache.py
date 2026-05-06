@@ -524,6 +524,9 @@ async def discovery_round():
                 await save_articles(articles, country, category)
                 await cache_articles(articles, country, category)
                 print(f"[DISCOVERY] Stored {len(articles)} articles [{articles[0]['provider']}]: {country}/{category}")
+            
+            # Pacing: avoid hammering GNews/NewsAPI free tiers too fast
+            await asyncio.sleep(1.2)
         except Exception as e:
             print(f"[DISCOVERY ERROR] {country}/{category}: {e}")
 
