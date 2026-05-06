@@ -46,13 +46,15 @@ CREATE TABLE IF NOT EXISTS goal_snapshots (
 );
 
 CREATE TABLE IF NOT EXISTS autonomous_decisions (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    action      TEXT NOT NULL,
-    bucket      TEXT,
-    reasoning   TEXT,
-    executed    INTEGER DEFAULT 0,
-    tweet_id    TEXT,
-    decided_at  TEXT
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    action          TEXT NOT NULL,
+    bucket          TEXT,
+    reasoning       TEXT,
+    confidence      REAL,
+    topic_keyword   TEXT,
+    executed        INTEGER DEFAULT 0,
+    tweet_id        TEXT,
+    decided_at      TEXT
 );
 """
 
@@ -80,12 +82,12 @@ async def snapshot_goals(follower_count: int, tweet_count: int, following_count:
         await db.commit()
 
 
-async def record_autonomous_decision(action: str, bucket: str, reasoning: str) -> int:
+async def record_autonomous_decision(action: str, bucket: str, reasoning: str, confidence: float = 1.0, topic: str = "") -> int:
     """Log what the autonomous heartbeat decided and why. Returns the row ID."""
     async with aiosqlite.connect(DB_PATH) as db:
         cur = await db.execute(
-            "INSERT INTO autonomous_decisions (action, bucket, reasoning, decided_at) VALUES (?,?,?,?)",
-            (action, bucket, reasoning, datetime.datetime.utcnow().isoformat()),
+            "INSERT INTO autonomous_decisions (action, bucket, reasoning, confidence, topic_keyword, decided_at) VALUES (?,?,?,?,?,?)",
+            (action, bucket, reasoning, confidence, topic, datetime.datetime.utcnow().isoformat()),
         )
         await db.commit()
         return cur.lastrowid

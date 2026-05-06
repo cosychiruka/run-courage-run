@@ -74,6 +74,62 @@ const AdminDashboard = () => {
             <main className="admin-main">
                 {/* ── System Health Grid ── */}
                 <div className="admin-grid">
+                    {/* ── Heartbeat Monitor ── */}
+                    <div className="admin-card glass-card">
+                        <h3><FaBolt /> Heartbeat Monitor</h3>
+                        <div className="heartbeat-pulse">
+                            <div className="pulse-ring"></div>
+                            <span>Brain Cycle: 18m</span>
+                        </div>
+                        <div className="mini-bar-wrap">
+                            <p>Next Tick: ~{Math.max(0, 18 - Math.round((Date.now() - new Date(history[0]?.decided_at).getTime()) / 60000))} mins</p>
+                            <div className="mini-bar"><motion.div 
+                                className="mini-bar-fill pulse" 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.min(100, ((Date.now() - new Date(history[0]?.decided_at).getTime()) / (18 * 60000)) * 100)}%` }}
+                            ></motion.div></div>
+                        </div>
+                        <div className="admin-card-actions">
+                            <button className="brutal-btn--small pink" onClick={() => triggerAction('trigger-now', 'Manual Tick')}>Force Wake Up</button>
+                        </div>
+                    </div>
+
+                    {/* ── Twitter Budget ── */}
+                    <div className="admin-card glass-card">
+                        <h3><FaHistory /> Twitter Budget</h3>
+                        <div className="rate-limit-grid">
+                            <div className="rate-item">
+                                <label>SEARCH</label>
+                                <span>{status?.twitter?.rates?.search?.remaining || '?'} / {status?.twitter?.rates?.search?.limit || '?'}</span>
+                            </div>
+                            <div className="rate-item">
+                                <label>POST</label>
+                                <span>{status?.twitter?.rates?.post?.remaining || '?'} / {status?.twitter?.rates?.post?.limit || '?'}</span>
+                            </div>
+                        </div>
+                        <p className="tiny-text">Refreshes every 15-60 mins based on X rules.</p>
+                    </div>
+
+                    {/* ── Social Pulse ── */}
+                    <div className="admin-card glass-card">
+                        <h3><FaUsers /> Social Pulse</h3>
+                        <div className="social-mentions">
+                            {status?.twitter?.mention_pulse === 'none' ? (
+                                <p className="opacity-50">No recent whispers...</p>
+                            ) : (
+                                <div className="mention-bubbles">
+                                    {status?.twitter?.mention_pulse?.split(' | ').map((m, i) => (
+                                        <div key={i} className="mention-bubble">
+                                            "{m.length > 50 ? m.substring(0, 50) + '...' : m}"
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="admin-grid">
                     <div className="admin-card glass-card">
                         <h3><FaChartLine /> Growth Pulse</h3>
                         <div className="stat-block">
@@ -89,27 +145,13 @@ const AdminDashboard = () => {
                         <h3><FaBug /> API & Backoff</h3>
                         <div className="circuit-status">
                             <div className={`status-led ${status?.circuit_breakers?.groq_active ? 'led-red' : 'led-green'}`}></div>
-                            <span>Groq 429 Status: {status?.circuit_breakers?.groq_active ? 'BACKOFF ACTIVE' : 'HEALTHY'}</span>
+                            <span>Groq Status: {status?.circuit_breakers?.groq_active ? 'RESTING' : 'READY'}</span>
                         </div>
                         {status?.circuit_breakers?.groq_active && (
-                            <p className="backoff-timer">Backoff ends in: {status?.circuit_breakers?.remaining_min}m</p>
+                            <p className="backoff-timer">Waking in: {Math.round((status.circuit_breakers.groq_backoff_until - Date.now()/1000)/60)}m</p>
                         )}
                         <div className="admin-card-actions">
                             <button className="brutal-btn--small" onClick={() => triggerAction('reset-circuit-breaker', 'Circuit Breaker')}>Reset Breaker</button>
-                            <button className="brutal-btn--small pink" onClick={() => triggerAction('trigger-now', 'Manual Tick')}>Trigger Tick</button>
-                        </div>
-                    </div>
-
-                    <div className="admin-card glass-card">
-                        <h3><FaUsers /> Social Pulse</h3>
-                        <p>Total Visitors (24h): {status?.visitors?.total_24h}</p>
-                        <div className="visitor-list">
-                            {status?.visitors?.recent?.map((v, i) => (
-                                <div key={i} className="visitor-row">
-                                    <span>{new Date(v.ts * 1000).toLocaleTimeString()}</span>
-                                    <span className="visitor-topics">{v.topics?.join(', ')}</span>
-                                </div>
-                            ))}
                         </div>
                     </div>
                 </div>
@@ -133,6 +175,15 @@ const AdminDashboard = () => {
                                         <span className="timeline-time">{new Date(h.decided_at).toLocaleString()}</span>
                                     </div>
                                     <p className="timeline-reasoning">{h.reasoning}</p>
+                                    <div className="timeline-meta-row">
+                                        {h.topic_keyword && <span className="topic-tag">#{h.topic_keyword}</span>}
+                                        <div className="confidence-meter-wrap">
+                                            <label>Confidence: {Math.round(h.confidence * 100)}%</label>
+                                            <div className="confidence-meter">
+                                                <div className="confidence-fill" style={{ width: `${h.confidence * 100}%`, background: h.confidence > 0.7 ? '#00ffaa' : h.confidence > 0.4 ? '#ff9900' : '#ff4444' }}></div>
+                                            </div>
+                                        </div>
+                                    </div>
                                     {h.tweet_id && (
                                         <a href={`https://x.com/i/status/${h.tweet_id}`} target="_blank" className="timeline-link">View Tweet</a>
                                     )}
@@ -300,6 +351,90 @@ const AdminDashboard = () => {
                     border-bottom: 1px solid rgba(255,255,255,0.05);
                 }
                 .visitor-topics { color: #ff00ff; text-align: right; }
+
+                .heartbeat-pulse {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.8rem;
+                    font-family: 'Bangers';
+                    color: #ff00ff;
+                }
+                .pulse-ring {
+                    width: 12px;
+                    height: 12px;
+                    background: #ff00ff;
+                    border-radius: 50%;
+                    animation: pulse 2s infinite;
+                }
+                @keyframes pulse {
+                    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 0, 255, 0.7); }
+                    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 0, 255, 0); }
+                    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 0, 255, 0); }
+                }
+
+                .rate-limit-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 1rem;
+                    margin-top: 1rem;
+                }
+                .rate-item {
+                    background: rgba(0, 255, 170, 0.1);
+                    padding: 0.8rem;
+                    border-radius: 8px;
+                    border: 1px solid rgba(0, 255, 170, 0.2);
+                }
+                .rate-item label { display: block; font-size: 0.7rem; opacity: 0.6; }
+                .rate-item span { font-weight: bold; color: #00ffaa; }
+
+                .social-mentions { margin-top: 1rem; }
+                .mention-bubbles { display: flex; flex-direction: column; gap: 0.5rem; }
+                .mention-bubble {
+                    background: rgba(255, 255, 255, 0.05);
+                    padding: 0.5rem 0.8rem;
+                    border-radius: 12px;
+                    font-size: 0.85rem;
+                    font-style: italic;
+                    border-left: 2px solid #ff00ff;
+                }
+                .tiny-text { font-size: 0.7rem; opacity: 0.4; margin-top: 0.5rem; }
+                .mini-bar-fill.pulse {
+                    background: linear-gradient(90deg, #ff00ff, #00ffaa);
+                    animation: barPulse 2s infinite alternate;
+                }
+                @keyframes barPulse {
+                    from { opacity: 0.8; }
+                    to { opacity: 1; }
+                }
+
+                .timeline-meta-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 0.8rem;
+                    gap: 1rem;
+                }
+                .topic-tag {
+                    background: rgba(255, 0, 255, 0.1);
+                    color: #ff00ff;
+                    padding: 0.2rem 0.6rem;
+                    border-radius: 4px;
+                    font-size: 0.75rem;
+                    border: 1px solid rgba(255, 0, 255, 0.2);
+                    font-weight: bold;
+                }
+                .confidence-meter-wrap { flex: 1; }
+                .confidence-meter-wrap label { font-size: 0.7rem; opacity: 0.6; display: block; margin-bottom: 0.2rem; }
+                .confidence-meter {
+                    height: 4px;
+                    background: #333;
+                    border-radius: 2px;
+                    overflow: hidden;
+                }
+                .confidence-fill {
+                    height: 100%;
+                    transition: 0.5s;
+                }
 
                 .admin-loading {
                     height: 100vh;

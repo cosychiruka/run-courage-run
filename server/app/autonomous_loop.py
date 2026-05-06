@@ -565,7 +565,13 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
         # 4b. Log the decision (best-effort); capture row id for later update
         decision_id: int | None = None
         try:
-            decision_id = await record_autonomous_decision(action, bucket, reasoning)
+            decision_id = await record_autonomous_decision(
+                action, 
+                bucket, 
+                reasoning, 
+                confidence=confidence, 
+                topic=decision.get("topic_keyword", "")
+            )
         except Exception as e:
             print(f"[AUTO] Decision logging failed (non-fatal): {e}")
 

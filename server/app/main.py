@@ -526,6 +526,7 @@ async def admin_system_status():
     """Aggregates all critical system health metrics into one payload."""
     from app.goal_tracker import get_last_bucket_times
     from app.news_cache import get_budget_status
+    from app.twitter_memory import get_recent_mention_snippets
     
     # 1. Bucket Status
     bucket_times = await get_last_bucket_times()
@@ -541,9 +542,23 @@ async def admin_system_status():
         if backoff_raw: groq_backoff_until = float(backoff_raw)
         groq_429_streak = int(await _redis.get("courage:groq_429_streak") or 0)
         
-    # 4. Twitter Stats (from memory)
+    # 4. Twitter Stats & Pulse
     from app.goal_tracker import get_goal_progress_summary
     growth_summary = await get_goal_progress_summary()
+    
+    rate_status = {}
+    mention_pulse = "none"
+    if _redis:
+        try:
+            rate_search = await _redis.hgetall("rate:/tweets/search/recent")
+            rate_post = await _redis.hgetall("rate:/statuses/update")
+            rate_status = {
+                "search": rate_search,
+                "post": rate_post
+            }
+            mention_pulse = await get_recent_mention_snippets(3)
+        except Exception:
+            pass
     
     # 5. Visitor Pulse
     visitor_count = 0
@@ -558,6 +573,10 @@ async def admin_system_status():
         "buckets": bucket_times,
         "news_budgets": news_budgets,
         "growth": growth_summary,
+        "twitter": {
+            "rates": rate_status,
+            "mention_pulse": mention_pulse
+        },
         "visitors": {
             "total_24h": visitor_count,
             "recent": recent_visitors
