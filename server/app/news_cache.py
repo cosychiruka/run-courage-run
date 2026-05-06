@@ -263,7 +263,7 @@ async def get_varied_articles(
 
 
 # ── Redis cache helpers ────────────────────────────────────────────────────────
-CACHE_TTL = 1200  # 20 minutes — balances freshness vs API budget
+CACHE_TTL = 7200  # 2 hours — balances freshness vs API budget
 
 async def cache_articles(articles: list[dict], country: str, category: str):
     r = await get_redis()
@@ -469,24 +469,36 @@ async def fetch_pair(country: str, category: str, max_results: int = 10) -> list
     # 2. NewsAPI
     if NEWSAPI_KEY:
         try:
-            print(f"[NEWS] Trying NewsAPI for {country}/{category}...")
-            res = await fetch_from_newsapi(country, category, max_results // 2)
-            if res:
-                print(f"[NEWS] NewsAPI OK: {len(res)} articles")
-                _add_unique(res)
+            # Check budget first to avoid log clutter
+            rem = await budget_remaining("newsapi", NEWSAPI_DAILY_BUDGET)
+            if rem > 0:
+                print(f"[NEWS] Trying NewsAPI for {country}/{category} (rem={rem})...")
+                res = await fetch_from_newsapi(country, category, max_results // 2)
+                if res:
+                    print(f"[NEWS] NewsAPI OK: {len(res)} articles")
+                    _add_unique(res)
+            else:
+                pass # Silent skip when budget hit
         except Exception as e:
-            print(f"[NEWS] NewsAPI FAILED: {e}")
+            if "budget exhausted" not in str(e).lower():
+                print(f"[NEWS] NewsAPI FAILED: {e}")
 
     # 3. GNews
     if GNEWS_API_KEY:
         try:
-            print(f"[NEWS] Trying GNews for {country}/{category}...")
-            res = await fetch_from_gnews(country, category, max_results // 2)
-            if res:
-                print(f"[NEWS] GNews OK: {len(res)} articles")
-                _add_unique(res)
+            # Check budget first to avoid log clutter
+            rem = await budget_remaining("gnews", GNEWS_DAILY_BUDGET)
+            if rem > 0:
+                print(f"[NEWS] Trying GNews for {country}/{category} (rem={rem})...")
+                res = await fetch_from_gnews(country, category, max_results // 2)
+                if res:
+                    print(f"[NEWS] GNews OK: {len(res)} articles")
+                    _add_unique(res)
+            else:
+                pass # Silent skip when budget hit
         except Exception as e:
-            print(f"[NEWS] GNews FAILED: {e}")
+            if "budget exhausted" not in str(e).lower():
+                print(f"[NEWS] GNews FAILED: {e}")
 
     return all_articles[:max_results]
 
@@ -502,7 +514,9 @@ DISCOVERY_PAIRS = [
     ("us", "business"),
     ("us", "sports"),
     ("us", "entertainment"),
-    ("gb", "general"),   # UK coverage via Guardian
+    ("us", "science"),
+    ("us", "health"),
+    ("gb", "general"),
 ]
 
 async def discovery_round():
@@ -519,7 +533,8 @@ async def discovery_round():
             continue
 
         try:
-            articles = await fetch_pair(country, category)
+            # The 'Big Gulp': fetch 20 articles per category for high variety
+            articles = await fetch_pair(country, category, max_results=20)
             if articles:
                 await save_articles(articles, country, category)
                 await cache_articles(articles, country, category)

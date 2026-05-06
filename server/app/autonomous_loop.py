@@ -497,21 +497,29 @@ async def _execute(decision: dict, state: dict, x_client, tweet_image_fn) -> str
 
 async def autonomous_tick(x_client=None, tweet_image_fn=None):
     """
-    Single autonomous heartbeat tick. Called by APScheduler every 18 minutes.
+    Single autonomous heartbeat tick. Called by APScheduler every 60 minutes.
     ALL exceptions are caught — this MUST never crash the server.
     """
     tick_start = datetime.datetime.utcnow().isoformat()
     print(f"[AUTO] Autonomous tick starting at {tick_start}")
 
+    # 0. Circuit breaker: skip if we're in a Groq 429 backoff window.
+    #    Checking this at the very top prevents burning ANY resources if we're locked out.
+    redis = None
     try:
-        # Get shared Redis
-        redis = None
-        try:
-            import redis.asyncio as aioredis
-            redis = aioredis.from_url(REDIS_URL, decode_responses=True)
-        except Exception as e:
-            print(f"[AUTO] Redis unavailable: {e}")
+        import redis.asyncio as aioredis
+        redis = aioredis.from_url(REDIS_URL, decode_responses=True)
+        if redis:
+            backoff_until = await redis.get("courage:groq_backoff_until")
+            if backoff_until and time.time() < float(backoff_until):
+                remaining_min = int((float(backoff_until) - time.time()) / 60)
+                streak = int(await redis.get("courage:groq_429_streak") or "0")
+                print(f"[AUTO] Groq 429 circuit breaker active (streak={streak}, {remaining_min}m remaining). Skipping tick.")
+                return
+    except Exception as e:
+        print(f"[AUTO] Circuit breaker/Redis check failed: {e}")
 
+    try:
         # 1. Gather state (no API calls)
         state = await _gather_state(redis)
         print(
@@ -520,7 +528,7 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
             f"auto_tweets_today: {state['auto_tweets_today']}"
         )
 
-        # 2. Hard skip conditions (before burning a Groq call on the decision)
+        # 2. Hard skip conditions
         if state["auto_tweets_today"] >= DAILY_AUTO_TWEET_CAP:
             print(f"[AUTO] Daily cap reached ({DAILY_AUTO_TWEET_CAP}). Skipping.")
             return
@@ -531,22 +539,21 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
                 print(f"[AUTO] {state['active_sessions']} active voice session(s). Skipping non-urgent tick.")
                 return
 
-        # 2b. Circuit breaker: skip if we're in a Groq 429 backoff window.
-        #     Hammering Groq while rate-limited prolongs the limit — back off instead.
-        if redis:
-            try:
-                backoff_until = await redis.get("courage:groq_backoff_until")
-                if backoff_until and time.time() < float(backoff_until):
-                    remaining_min = int((float(backoff_until) - time.time()) / 60)
-                    streak = int(await redis.get("courage:groq_429_streak") or "0")
-                    print(f"[AUTO] Groq 429 circuit breaker active (streak={streak}, {remaining_min}m remaining). Skipping tick.")
-                    return
-            except Exception:
-                pass
-
         try:
             decision = await _decide(state)
         except Exception as e:
+            # If the decision step itself hits a 429, arm the breaker immediately.
+            if "429" in str(e) and redis:
+                try:
+                    streak = int(await redis.get("courage:groq_429_streak") or "0") + 1
+                    await redis.setex("courage:groq_429_streak", 86400, str(streak))
+                    backoff_min = min(30 * (2 ** (streak - 1)), 240)
+                    backoff_until = time.time() + backoff_min * 60
+                    await redis.setex("courage:groq_backoff_until", int(backoff_min * 60 + 120), str(backoff_until))
+                    print(f"[AUTO] Groq 429 hit during _decide. Streak={streak}. Circuit breaker armed: {backoff_min}m backoff.")
+                except Exception:
+                    pass
+            
             import traceback
             print(f"[AUTO] Decision step failed: {e}. Skipping tick.")
             traceback.print_exc()
@@ -652,6 +659,7 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
                     pass
 
             try:
+                from app.twitter_memory import get_recent_tweets
                 recent = await get_recent_tweets(1)
                 if recent and time.time() - float(recent[0].get("created_at", 0)) < 180:
                     tweet_confirmed = True
@@ -680,6 +688,7 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
         # 9. Mark decision as executed — link to the tweet just posted (best-effort)
         if decision_id and result:
             try:
+                from app.twitter_memory import get_recent_tweets
                 recent = await get_recent_tweets(1)
                 if recent:
                     latest = recent[0]
@@ -730,4 +739,6 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
 
     except Exception as e:
         # Absolute last-resort safety net — NEVER crash the server
+        import traceback
         print(f"[AUTO] Unexpected error in autonomous tick: {e}")
+        traceback.print_exc()

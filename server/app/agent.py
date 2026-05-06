@@ -21,7 +21,11 @@ from app.news_cache import get_all_recent, get_varied_articles
 from app.twitter_memory import init_twitter_db, get_twitter_summary
 from app.goal_tracker import get_goal_progress_summary
 
-from app.config import GROQ_API_KEY, GROQ_MODEL, GROQ_MODEL_FAST, GROQ_DAILY_TOKEN_BUDGET
+from app.config import (
+    GROQ_API_KEY, GROQ_MODEL, GROQ_MODEL_FAST, GROQ_DAILY_TOKEN_BUDGET,
+    REDIS_URL
+)
+import time
 
 MAX_TOOL_ROUNDS = 8
 CONTEXT_TIMEOUT = 60
@@ -193,6 +197,22 @@ async def run_agent(
     compact: trim context, skip twitter_summary — reduces Groq token burn.
     target_article: Direct Handoff — skip general fetch and focus ONLY on this story.
     """
+    # 0. Circuit breaker: skip if we're in a Groq 429 backoff window.
+    if _token_redis:
+        try:
+            backoff_until = _token_redis.get("courage:groq_backoff_until")
+            if backoff_until and time.time() < float(backoff_until):
+                remaining_min = int((float(backoff_until) - time.time()) / 60)
+                msg = (
+                    f"Aah! My brain is overheating! Groq is telling me to pipe down for a bit. "
+                    f"I'll be back in about {remaining_min} minute(s). *whimper*"
+                )
+                if ws_emit:
+                    await ws_emit({"type": "done", "reply": msg})
+                return msg
+        except Exception:
+            pass
+
     # Hard stop if today's Groq token budget is exhausted
     if not _groq_budget_ok():
         msg = (

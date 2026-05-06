@@ -119,8 +119,8 @@ async def lifespan(app: FastAPI):
             print(f"[STARTUP] X client: {'ACTIVE' if x_client else 'DISABLED'}")
 
             # 4. Background jobs
-            scheduler.add_job(discovery_round,       "interval", minutes=30,  id="discovery")
-            scheduler.add_job(crypto_discovery_round,"interval", minutes=30,  id="crypto_discovery")
+            scheduler.add_job(discovery_round,       "interval", minutes=60,  id="discovery")
+            scheduler.add_job(crypto_discovery_round,"interval", minutes=60,  id="crypto_discovery")
             scheduler.add_job(prune_twitter_memory,  "interval", weeks=1,     id="memory_prune")
             scheduler.add_job(
                 autonomous_tick, "interval",
@@ -130,10 +130,19 @@ async def lifespan(app: FastAPI):
             scheduler.start()
             print("[STARTUP] Scheduler online.")
 
-            # 5. Initial runs
-            asyncio.create_task(discovery_round())
-            asyncio.create_task(crypto_discovery_round())
-            asyncio.create_task(autonomous_tick(x_client=x_client, tweet_image_fn=_tweet_image_fn))
+            # 5. Conditional startup runs (only if not run recently)
+            async def _guarded_startup_tick():
+                if _redis:
+                    last_run = await _redis.get("courage:last_startup_tick")
+                    if last_run and (time.time() - float(last_run)) < 900: # 15 minutes
+                        print("[STARTUP] Recent tick detected. Skipping immediate startup run.")
+                        return
+                    await _redis.set("courage:last_startup_tick", str(time.time()), ex=3600)
+                
+                print("[STARTUP] Firing initial autonomous tick...")
+                asyncio.create_task(autonomous_tick(x_client=x_client, tweet_image_fn=_tweet_image_fn))
+
+            asyncio.create_task(_guarded_startup_tick())
             asyncio.create_task(_load_voice_models_bg())
 
             # 6. Groq tracker
