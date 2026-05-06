@@ -90,7 +90,10 @@ async def lifespan(app: FastAPI):
 
     async def _init_everything():
         try:
-            print("[STARTUP] Courage is waking up in the background...")
+            print("[STARTUP] Courage is waking up... waiting 5s for healthchecks to settle.")
+            await asyncio.sleep(5)
+            
+            print("[STARTUP] Initializing background services...")
             # 1. DBs — fast
             from app.goal_tracker import init_goal_db
             await init_db()
@@ -169,6 +172,10 @@ app.add_middleware(
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     return {"status": "ok", "timestamp": time.time()}
+
+@app.get("/")
+async def root_health():
+    return {"status": "Courage AI is running", "admin_panel": "/admin"}
 
 # ── App End ──
 
