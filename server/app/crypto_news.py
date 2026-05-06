@@ -131,7 +131,7 @@ async def _fetch_coindesk(limit: int = 20) -> list[dict]:
         async with httpx.AsyncClient(timeout=15) as client:
             r = await client.get(url, params=params, headers=headers)
             if not r.is_success:
-                print(f"[CRYPTO] CoinDesk API error: {r.status_code} {r.text}")
+                print(f"[CRYPTO] CoinDesk API error: {r.status_code} - {r.text[:200]}")
                 return []
 
         await _bump_budget("coindesk")
@@ -139,7 +139,9 @@ async def _fetch_coindesk(limit: int = 20) -> list[dict]:
         results = data.get("Data", [])
         return [_norm_coindesk(i) for i in results]
     except Exception as e:
+        import traceback
         print(f"[CRYPTO] CoinDesk fetch failed: {e}")
+        # Optional: traceback.print_exc()
         return []
 
 

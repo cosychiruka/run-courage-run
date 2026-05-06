@@ -442,61 +442,53 @@ async def save_full_content(url: str, content: str):
 
 async def fetch_pair(country: str, category: str, max_results: int = 10) -> list[dict]:
     """
-    Try sources in order:
-      1. Guardian  (generous limits, always try)
-      2. NewsAPI   (100/day budget, server-side only)
-      3. GNews     (100/day budget, shared with browser callers)
-    Return first successful non-empty result.
+    Collect news from all available sources for variety:
+      1. Guardian (Primary)
+      2. NewsAPI  (Budgeted)
+      3. GNews    (Budgeted)
     """
-    errors = []
+    all_articles = []
+    seen_urls = set()
 
-    # 1. Guardian — primary
+    def _add_unique(articles):
+        for a in articles:
+            if a.get("url") not in seen_urls:
+                seen_urls.add(a.get("url"))
+                all_articles.append(a)
+
+    # 1. Guardian
     try:
         print(f"[NEWS] Trying Guardian for {country}/{category}...")
-        articles = await fetch_from_guardian(category, max_results)
-        if articles:
-            print(f"[NEWS] Guardian OK: {len(articles)} articles for {country}/{category}")
-            return articles
-        else:
-            print(f"[NEWS] Guardian returned 0 articles for {country}/{category}")
+        res = await fetch_from_guardian(category, max_results)
+        if res:
+            print(f"[NEWS] Guardian OK: {len(res)} articles")
+            _add_unique(res)
     except Exception as e:
-        errors.append(f"guardian: {e}")
-        print(f"[NEWS] Guardian FAILED for {country}/{category}: {e}")
+        print(f"[NEWS] Guardian FAILED: {e}")
 
-    # 2. NewsAPI — supplement
+    # 2. NewsAPI
     if NEWSAPI_KEY:
         try:
             print(f"[NEWS] Trying NewsAPI for {country}/{category}...")
-            articles = await fetch_from_newsapi(country, category, max_results)
-            if articles:
-                print(f"[NEWS] NewsAPI OK: {len(articles)} articles for {country}/{category}")
-                return articles
-            else:
-                print(f"[NEWS] NewsAPI returned 0 articles for {country}/{category}")
+            res = await fetch_from_newsapi(country, category, max_results // 2)
+            if res:
+                print(f"[NEWS] NewsAPI OK: {len(res)} articles")
+                _add_unique(res)
         except Exception as e:
-            errors.append(f"newsapi: {e}")
-            print(f"[NEWS] NewsAPI FAILED for {country}/{category}: {e}")
-    else:
-        print("[NEWS] NewsAPI skipped — NEWSAPI_KEY not configured")
+            print(f"[NEWS] NewsAPI FAILED: {e}")
 
-    # 3. GNews — last resort
+    # 3. GNews
     if GNEWS_API_KEY:
         try:
             print(f"[NEWS] Trying GNews for {country}/{category}...")
-            articles = await fetch_from_gnews(country, category, max_results)
-            if articles:
-                print(f"[NEWS] GNews OK: {len(articles)} articles for {country}/{category}")
-                return articles
-            else:
-                print(f"[NEWS] GNews returned 0 articles for {country}/{category}")
+            res = await fetch_from_gnews(country, category, max_results // 2)
+            if res:
+                print(f"[NEWS] GNews OK: {len(res)} articles")
+                _add_unique(res)
         except Exception as e:
-            errors.append(f"gnews: {e}")
-            print(f"[NEWS] GNews FAILED for {country}/{category}: {e}")
-    else:
-        print("[NEWS] GNews skipped — GNEWS_API_KEY not configured")
+            print(f"[NEWS] GNews FAILED: {e}")
 
-    print(f"[NEWS] All sources failed for {country}/{category}: {errors}")
-    return []
+    return all_articles[:max_results]
 
 
 # ── Discovery round — called by APScheduler ───────────────────────────────────
