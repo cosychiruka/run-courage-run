@@ -267,6 +267,7 @@ def build_context_prompt(
     model_name: str | None = None,
     goal_summary: str | None = None,
     target_article: dict | None = None,
+    community_vibe: str | None = None,
 ) -> str:
     """Assemble the full system prompt with news context, world, Twitter memory, and goal progress."""
     prompt = SYSTEM_PROMPT
@@ -285,7 +286,15 @@ def build_context_prompt(
     if world_context and world_context in WORLD_CONTEXT_BLOCKS:
         prompt += WORLD_CONTEXT_BLOCKS[world_context]
 
-    # 2. Twitter memory (persistent state)
+    # 2. Community Vibe (Social Sentiment)
+    if community_vibe:
+        prompt += (
+            f"\n\n== COMMUNITY VIBE ==\n"
+            f"The current mood of your followers is: {community_vibe}\n"
+            f"Adjust your tone and reactions to match this energy. Be the dog Nowhere needs right now."
+        )
+
+    # 3. Twitter memory (persistent state)
     if twitter_summary:
         prompt += f"\n\n{twitter_summary}"
 

@@ -189,6 +189,7 @@ async def run_agent(
     max_tool_rounds: int = MAX_TOOL_ROUNDS,
     compact: bool = False,
     target_article: Optional[dict] = None,
+    community_vibe: Optional[str] = None,
 ) -> str:
     """
     Run one full Courage agent turn and return the final text response.
@@ -243,6 +244,7 @@ async def run_agent(
         model_name=GROQ_MODEL,
         goal_summary=goal_summary,
         target_article=target_article,
+        community_vibe=community_vibe,
     )
     
     # Add a final instruction if rate status was injected in user_message

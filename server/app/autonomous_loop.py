@@ -140,6 +140,14 @@ async def _gather_state(redis) -> dict:
     except Exception:
         unreplied_count = 0
 
+    # ── Social Pulse (for Contextual Triage) ──
+    mention_pulse = "none"
+    try:
+        from app.twitter_memory import get_recent_mention_snippets
+        mention_pulse = await get_recent_mention_snippets(3)
+    except Exception:
+        pass
+
     # Active voice sessions
     active_sessions = 0
     if redis:
@@ -175,21 +183,26 @@ async def _gather_state(redis) -> dict:
         except Exception:
             pass
 
-    # ── News Triage (Sentiment Filter) ──
-    # We fetch a raw sample, then triage them for 'Panic Index' (0-10).
-    # This turns 'Discovery' into a 10/10 by ensuring Courage only sees high-signal news.
+    # ── News Triage (Reasoned Retrieval) ──
+    # We pull a larger raw sample from the vault, then triage them for 
+    # both 'Panic Index' and 'Relevance' to the current Social Pulse.
     raw_news = []
     try:
         from app.news_cache import get_varied_articles
-        raw_news = await get_varied_articles(limit=15, country="", random_sample=True, exclude_urls=covered_urls)
+        raw_news = await get_varied_articles(limit=25, country="", random_sample=True, exclude_urls=covered_urls)
     except Exception:
         pass
 
     triaged_news = []
+    vibe = "neutral"
     if raw_news:
         try:
-            triaged_news = await _triage_news(raw_news)
-            # Filter for high panic/relevance
+            # Contextual Triage: Pick news that matters + Detect the 'Vibe'
+            triage_result = await _triage_news(raw_news, context=mention_pulse)
+            triaged_news = triage_result.get("articles", [])
+            vibe = triage_result.get("vibe", "neutral")
+
+            # Filter for high panic OR high relevance (LLM scores these internally)
             triaged_news = [h for h in triaged_news if h["panic_index"] >= PANIC_THRESHOLD]
             # Keep top 6 most interesting
             triaged_news = sorted(triaged_news, key=lambda x: x["panic_index"], reverse=True)[:6]
@@ -234,10 +247,6 @@ async def _gather_state(redis) -> dict:
         try:
             auto_tweets_today = int(await redis.get(f"courage:auto_tweets:{today}") or 0)
             
-            # Fetch last few mentions text for the "Social Pulse"
-            from app.twitter_memory import get_recent_mention_snippets
-            mention_pulse = await get_recent_mention_snippets(3)
-            
             # Fetch last known rate limits to skip a tool round
             rate_search = await redis.hgetall("rate:/tweets/search/recent")
             rate_post = await redis.hgetall("rate:/statuses/update") # v1.1
@@ -259,6 +268,7 @@ async def _gather_state(redis) -> dict:
         "mention_pulse":        mention_pulse,
         "rate_status":          rate_status,
         "covered_topics":       covered_topics,
+        "community_vibe":       vibe,
     }
 
 
@@ -281,7 +291,8 @@ Current state:
 {news_lines}
 - Crypto headlines:
 {crypto_lines}
-- SOCIAL PULSE (Last 3 mentions): {mention_pulse}
+- SOCIAL PULSE (Latest mentions): {mention_pulse}
+- COMMUNITY VIBE (Community mood): {community_vibe}
 - CURRENT X RATE LIMITS: {rate_status}
 - RECENTLY DISCUSSED TOPICS (Avoid repeating these): {topic_history}
 - Last 3 tweets:
@@ -341,6 +352,7 @@ async def _decide(state: dict) -> dict:
         crypto_lines=crypto_lines,
         recent_tweet_lines=recent_tweet_lines,
         mention_pulse=state["mention_pulse"],
+        community_vibe=state["community_vibe"],
         rate_status=state["rate_status"],
         topic_history=", ".join(state["covered_topics"]) or "none",
     )
@@ -376,18 +388,23 @@ async def _decide(state: dict) -> dict:
     return decision
 
 
-async def _triage_news(articles: list[dict]) -> list[dict]:
-    """Uses a fast model round to assign Panic Index to headlines."""
-    if not articles: return []
+async def _triage_news(articles: list[dict], context: str = "none") -> dict:
+    """Uses a fast model round to assign Panic Index and detect community vibe."""
+    if not articles: return {"articles": [], "vibe": "neutral"}
     
     headlines_text = "\n".join([f"[{i}] {a.get('title')}" for i, a in enumerate(articles)])
     
     prompt = (
-        "You are the 'Panic Triage' filter for Courage AI. "
+        "You are the 'Reasoned Retrieval' filter for Courage AI. "
         "Score each headline below on a 'Panic Index' (0-10).\n"
-        "10 = Extremely scary, global impact, tech meltdown, or Solana/Crypto explosion.\n"
-        "0 = Boring, local, or happy news.\n\n"
-        "Format: Return ONLY a JSON list of objects with index (matching input) and panic_score.\n\n"
+        "10 = Extremely scary, global impact, or directly answers a concern in the SOCIAL PULSE.\n"
+        "5 = Standard news.\n"
+        "0 = Boring or irrelevant.\n\n"
+        f"SOCIAL PULSE (Latest mentions): {context}\n\n"
+        "MISSION: \n"
+        "1. Score headlines by panic/relevance.\n"
+        "2. Summarize the 'Community Vibe' (1 sentence) based on the Social Pulse.\n\n"
+        "Format: Return ONLY a JSON object with 'articles' (list of {index, panic_score}) and 'vibe' (string).\n\n"
         f"Headlines:\n{headlines_text}"
     )
     
@@ -407,19 +424,12 @@ async def _triage_news(articles: list[dict]) -> list[dict]:
             
             data = _bulletproof_parse(raw_content)
             if not data:
-                return []
+                return {"articles": [], "vibe": "neutral"}
             
-            # Handle both {"scores": [...]} and [...] and {"0": {...}} formats
-            scores = data.get("scores") if isinstance(data, dict) else data
-            if isinstance(data, dict) and not isinstance(scores, list):
-                # Try to extract from {"0": {...}, "1": {...}}
-                scores = [v for k, v in data.items() if k.isdigit() or (isinstance(v, dict) and "panic_score" in v)]
-            
-            if not isinstance(scores, list):
-                print(f"[TRIAGE] Unexpected format from LLM: {raw_content}")
-                return []
+            scores = data.get("articles", [])
+            vibe = data.get("vibe", "neutral")
 
-            print(f"[TRIAGE] Parsed {len(scores)} scores from LLM.")
+            print(f"[TRIAGE] Parsed {len(scores)} scores from LLM. Vibe: {vibe}")
             
             # Merge back
             triaged = []
@@ -433,10 +443,10 @@ async def _triage_news(articles: list[dict]) -> list[dict]:
                         "source_name": a.get("source_name", "Unknown"),
                         "panic_index": s.get("panic_score", 5)
                     })
-            return triaged
+            return {"articles": triaged, "vibe": vibe}
         except Exception as e:
             print(f"[TRIAGE] Failed to parse or fetch: {e}")
-            return []
+            return {"articles": [], "vibe": "neutral"}
 
 # ── Execution step ─────────────────────────────────────────────────────────────
 
@@ -490,6 +500,7 @@ async def _execute(decision: dict, state: dict, x_client, tweet_image_fn) -> str
         max_tool_rounds=3,
         compact=True,
         target_article=target_article, # The Direct Handoff
+        community_vibe=state.get("community_vibe"),
     )
 
 
