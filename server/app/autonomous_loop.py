@@ -298,14 +298,14 @@ Decision rules:
 Valid actions: TWEET_NEWS, TWEET_CRYPTO, REPLY_MENTIONS, RANDOM, WORLD_UPDATE, SOCIAL, SKIP
 
 Response format (exactly this JSON structure):
-{
+{{
   "action": "TWEET_NEWS", 
   "bucket": "NEWS", 
   "reasoning": "Panic about X story because users in mentions are worried...", 
   "confidence": 0.85,
   "article_url": "https://...",
   "topic_keyword": "Topic name (1-2 words)"
-}
+}}
 
 confidence: 0.0–1.0. High = clear obvious action. Low = uncertain, nothing great to post, or weak reasoning.
 Ticks with confidence < 0.5 are automatically skipped — be honest.
@@ -370,7 +370,9 @@ async def _decide(state: dict) -> dict:
         r.raise_for_status()
 
     raw = r.json()["choices"][0]["message"]["content"]
+    print(f"[LOUD] Raw Decision: {raw}")
     decision = _bulletproof_parse(raw)
+    print(f"[LOUD] Parsed Decision: {decision}")
     if not decision or not isinstance(decision, dict):
         return {"action": "SKIP", "reasoning": "Parse failure", "confidence": 0}
     return decision
@@ -544,11 +546,12 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
             except Exception:
                 pass
 
-        # 3. Decision (fast Groq call)
         try:
             decision = await _decide(state)
         except Exception as e:
+            import traceback
             print(f"[AUTO] Decision step failed: {e}. Skipping tick.")
+            traceback.print_exc()
             return
 
         action     = decision.get("action", "SKIP")
