@@ -158,10 +158,6 @@ async def lifespan(app: FastAPI):
 # ── App ────────────────────────────────────────────────────────────────────────
 app = FastAPI(title="Courage AI Backend", lifespan=lifespan)
 
-@app.api_route("/health", methods=["GET", "HEAD"])
-async def health():
-    return {"status": "ok", "timestamp": time.time()}
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[FRONTEND_ORIGIN, "http://localhost:5173", "http://localhost:4173", "https://runcouragerun.fun", "https://www.runcouragerun.fun"],
@@ -169,6 +165,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.api_route("/health", methods=["GET", "HEAD"])
+async def health():
+    return {"status": "ok", "timestamp": time.time()}
+
+# ── App End ──
 
 
 # ── REST ───────────────────────────────────────────────────────────────────────
