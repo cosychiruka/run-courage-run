@@ -1,5 +1,6 @@
 """
 voice_priority.py — P1 override. Pauses everything when voice is active.
+Atomic and zero-overhead.
 """
 
 import asyncio
@@ -15,17 +16,17 @@ async def _get_redis():
     return _redis
 
 async def is_voice_active() -> bool:
+    """True if any live mic session is happening."""
     r = await _get_redis()
-    # Check if the set of active voice sessions is not empty
     try:
         count = await r.scard("active_voice_sessions")
         return bool(count > 0)
     except:
         return False
 
-async def voice_priority_guard(x_client, tweet_image_fn):
-    """Call this before any autonomous_tick."""
+async def voice_priority_guard():
+    """Returns True if we should skip the autonomous tick."""
     if await is_voice_active():
-        print("[VOICE_PRIORITY] Live mic detected — pausing all background actions")
-        return True  # voice is active
+        print("[VOICE_PRIORITY] 🔥 Live mic session detected — pausing all background actions")
+        return True
     return False

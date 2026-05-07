@@ -267,3 +267,11 @@ async def save_trench_tweet_with_rag(tweet: dict):
     content = f"@{tweet['author']}: {tweet['text']}"
     metadata = {"tweet_id": tweet["tweet_id"], "cashtag": tweet["cashtag"]}
     await embed_and_store(content, source="trench", metadata=metadata)
+
+
+async def get_unprocessed_trench_tweets_count() -> int:
+    """Used by admin dashboard."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT COUNT(*) FROM tw_trench_tweets WHERE processed=0") as cur:
+            row = await cur.fetchone()
+            return row[0] if row else 0

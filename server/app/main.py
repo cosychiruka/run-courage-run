@@ -603,7 +603,7 @@ async def system_status():
     """Aggregates all critical system health metrics into one payload (Phase 4)."""
     from app.redis_utils import get_redis_client
     from app.voice_priority import is_voice_active
-    from app.trench_service import get_unprocessed_trench_tweets_count
+    from app.twitter_memory import get_unprocessed_trench_tweets_count
     from app.hustle_service import get_rcr_stats
 
     r = await get_redis_client()
