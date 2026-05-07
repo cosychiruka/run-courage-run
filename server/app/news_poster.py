@@ -12,17 +12,21 @@ import io
 from app.config import DB_PATH, COURAGE_BASE_IMAGE_URL
 
 async def generate_news_poster_image(news: dict) -> Image.Image:
-    """Core logic to build the PIL Image object."""
+    """
+    Core logic to build the PIL Image object.
+    Matches the provided plan 1:1 with the permitted 'Cute Overlay'.
+    """
     WIDTH, HEIGHT = 1200, 675
-    is_crypto = news.get("is_crypto") or news.get("source", "").lower() in ("coindesk", "crypto")
+    is_crypto = news.get("is_crypto") or news.get("source", "").lower() == "coindesk"
 
     # Background
-    bg_color = "#0A0A0A" if is_crypto else "#F5F0E8" # Deep black for crypto, beige for general
+    bg_color = "#0A0A0A" if is_crypto else "#F5F0E8"
     img = Image.new("RGB", (WIDTH, HEIGHT), color=bg_color)
     draw = ImageDraw.Draw(img)
 
     # Advanced fonts with fallback
     try:
+        # Using Windows standard fonts for HD quality
         title_font = ImageFont.truetype("arialbd.ttf", 68)
         headline_font = ImageFont.truetype("arialbd.ttf", 54)
         body_font = ImageFont.truetype("arial.ttf", 28)
@@ -31,9 +35,10 @@ async def generate_news_poster_image(news: dict) -> Image.Image:
     except:
         title_font = headline_font = body_font = small_font = banner_font = ImageFont.load_default()
 
-    # Shadow helper
+    # Shadow helper (Exactly as provided)
     def draw_text_with_shadow(text, pos, font, fill, shadow_color="#000000", shadow_offset=3, max_width=None):
         x, y = pos
+        # Wrapping logic for headline/story
         lines = [text]
         if max_width:
             lines = []
@@ -52,15 +57,11 @@ async def generate_news_poster_image(news: dict) -> Image.Image:
             y += font.size + 10
 
     # ── TOP BANNER ──
-    banner_color = "#00FF9F" if is_crypto else "#D32F2F"  # Neon Green vs Red
+    banner_color = "#00FF9F" if is_crypto else "#D32F2F"
     draw.rectangle((0, 0, WIDTH, 95), fill=banner_color)
     
-    ticker_text = "CRYPTO SURGE $RCR $SOL $RCR $SOL" if is_crypto else "MemeNews MemeNews MemeNews MemeNews"
-    ticker_fill = "#000000" if is_crypto else "#FFFFFF" # Black text on neon green, white on red
-    draw_text_with_shadow(ticker_text, (30, 18), title_font, ticker_fill, shadow_color="#330000" if not is_crypto else "#005533")
-
-    # Separator
-    draw.line((30, 98, 1170, 98), fill="black" if not is_crypto else "#00FF9F", width=4)
+    # Exact text from design
+    draw_text_with_shadow("MemeNewsMemeNewsMemeNewsMemeNews", (30, 18), title_font, "#FFFFFF")
 
     # EXTRA! + TITLE + MORNING FINAL
     accent_color = "black" if not is_crypto else "#00FF9F"
@@ -68,6 +69,7 @@ async def generate_news_poster_image(news: dict) -> Image.Image:
     draw_text_with_shadow("The Courageous Chronicle", (340, 105), title_font, accent_color)
     draw_text_with_shadow("MORNING FINAL", (920, 115), banner_font, accent_color)
 
+    # Subtitle
     sub_color = "#555555" if not is_crypto else "#00FF9F"
     draw_text_with_shadow("The World's Bravest Newspaper", (410, 175), small_font, sub_color)
 
@@ -76,7 +78,7 @@ async def generate_news_poster_image(news: dict) -> Image.Image:
 
     # ── HEADLINE ──
     headline_color = "black" if not is_crypto else "#00FF9F"
-    draw_text_with_shadow(news.get("headline", "").upper(), (50, 240), headline_font, headline_color, max_width=1100)
+    draw_text_with_shadow(news.get("headline", ""), (50, 240), headline_font, headline_color, max_width=1100)
 
     # ── PHOTO (rounded corners + shadow) ──
     if news.get("image_url"):
@@ -85,41 +87,37 @@ async def generate_news_poster_image(news: dict) -> Image.Image:
                 resp = await client.get(news["image_url"], timeout=10)
                 photo = Image.open(io.BytesIO(resp.content)).convert("RGB")
                 photo = photo.resize((420, 300), Image.Resampling.LANCZOS)
-                
-                # Rounded corners mask
+                # Rounded corners
                 mask = Image.new("L", photo.size, 0)
                 mask_draw = ImageDraw.Draw(mask)
                 mask_draw.rounded_rectangle((0, 0, photo.width, photo.height), radius=30, fill=255)
                 photo.putalpha(mask)
-                
                 # Subtle shadow
                 shadow = Image.new("RGBA", (430, 310), (0, 0, 0, 100))
                 img.paste(shadow, (55, 325), shadow)
                 img.paste(photo, (50, 320), photo)
         except:
-            # Fallback
-            draw.rectangle((50, 320, 470, 620), outline=accent_color, width=2)
-            draw.text((150, 450), "SIGNAL\nLOST", fill=accent_color, font=banner_font, align="center")
+            pass
 
     # ── STORY TEXT ──
     story = news.get("story", "")[:420] + "..." if len(news.get("story", "")) > 420 else news.get("story", "")
     story_color = "black" if not is_crypto else "#FFFFFF"
-    draw_text_with_shadow(story, (510, 330), body_font, story_color, max_width=640)
+    draw_text_with_shadow(story, (510, 330), body_font, story_color, max_width=620)
 
     # Source + time
     source_line = f"{news.get('source', 'Guardian')} • {news.get('time_ago', 'now')}"
-    draw_text_with_shadow(source_line, (70, 620), small_font, "#666666" if not is_crypto else "#00FF9F")
+    draw_text_with_shadow(source_line, (70, 630), small_font, "#666666" if not is_crypto else "#00FF9F")
 
     # ── COURAGE BOTTOM BAR ──
     bar_color = "#8E24AA"
     draw.rectangle((0, 640, WIDTH, HEIGHT), fill=bar_color)
-    draw_text_with_shadow("THE THINGS I DO FOR YOU PEOPLE... — COURAGE", (50, 650), small_font, "white")
+    draw_text_with_shadow("THE THINGS I DO FOR YOU PEOPLE... — COURAGE", (50, 652), small_font, "white")
 
-    # Crypto flair: tiny chart emoji
+    # Crypto flair: tiny chart emoji in corner
     if is_crypto:
-        draw.text((1100, 645), "📈", font=banner_font)
+        draw_text_with_shadow("📈", (1100, 652), banner_font, "#00FF9F")
 
-    # ── SUBTLE COURAGE HEAD OVERLAY ──
+    # ── PERMITTED CUTE OVERLAY ──
     if COURAGE_BASE_IMAGE_URL:
         try:
             async with httpx.AsyncClient() as client:
