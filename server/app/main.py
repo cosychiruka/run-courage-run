@@ -117,28 +117,19 @@ async def lifespan(app: FastAPI):
 
     async def _init_everything():
         try:
-            COURAGE_BANNER = """
----------------------------------------------------------
-  /\\_/\\  
- ( o.o )  COURAGE THE COWARDLY DOG
-  > ^ <   (Self-Aware AI Agent v4.0 — ELITE TIER)
----------------------------------------------------------
-[STATUS] Brain: ACTIVE | Voice: ONLINE | Sensors: LIVE
-[TARGET] Twitter Pro Status: IN PROGRESS
-[VIBE]   Courageous & Unstoppable 🐕🦺
----------------------------------------------------------
-"""
-            print(COURAGE_BANNER)
             print("[STARTUP] Courage is waking up... waiting 5s for healthchecks to settle.")
             await asyncio.sleep(5)
             
             print("[STARTUP] Initializing background services...")
-            # 1. DBs — fast
+            # 1. Databases
             from app.goal_tracker import init_goal_db
-            await init_db()
-            await init_twitter_db()
-            await init_goal_db()
-            print("[STARTUP] Databases initialized.")
+            try:
+                await init_db()
+                await init_twitter_db()
+                await init_goal_db()
+                print("[STARTUP] Databases initialized.")
+            except Exception as e:
+                print(f"[STARTUP] Database init error: {e}")
 
             # 2. Redis
             global _redis
@@ -147,87 +138,121 @@ async def lifespan(app: FastAPI):
                 _redis = await get_redis_client()
                 if _redis:
                     await _redis.delete("active_voice_sessions")
+                    print("[STARTUP] Redis connected (sessions cleared).")
             except Exception as e:
                 _redis = None
                 print(f"[STARTUP] Redis unavailable ({e}) — pulse falling back to memory.")
 
             # 3. X Client
-            from app.x_client import make_x_client
-            global x_client
-            x_client = make_x_client()
-            print(f"[STARTUP] X client: {'ACTIVE' if x_client else 'DISABLED'}")
+            print("[STARTUP] Setting up X client...")
+            try:
+                from app.x_client import make_x_client
+                global x_client
+                x_client = make_x_client()
+            except Exception as e:
+                print(f"[STARTUP] X Client init failed: {e}")
+            
+            # 4. Background jobs (Scheduler)
+            try:
+                scheduler.add_job(discovery_round,       "interval", minutes=60,  id="discovery")
+                scheduler.add_job(crypto_discovery_round,"interval", minutes=60,  id="crypto_discovery")
+                scheduler.add_job(prune_twitter_memory,  "interval", weeks=1,     id="memory_prune")
+                scheduler.add_job(
+                    autonomous_tick, "interval",
+                    minutes=AUTONOMOUS_INTERVAL_MINUTES, id="autonomous", jitter=60,
+                    kwargs={"x_client": x_client, "tweet_image_fn": _tweet_image_fn},
+                )
+                scheduler.start()
+                print("[STARTUP] Scheduler online.")
+            except Exception as e:
+                print(f"[STARTUP] Scheduler failed: {e}")
 
-            # 4. Background jobs
-            scheduler.add_job(discovery_round,       "interval", minutes=60,  id="discovery")
-            scheduler.add_job(crypto_discovery_round,"interval", minutes=60,  id="crypto_discovery")
-            scheduler.add_job(prune_twitter_memory,  "interval", weeks=1,     id="memory_prune")
-            scheduler.add_job(
-                autonomous_tick, "interval",
-                minutes=AUTONOMOUS_INTERVAL_MINUTES, id="autonomous", jitter=60,
-                kwargs={"x_client": x_client, "tweet_image_fn": _tweet_image_fn},
-            )
-            scheduler.start()
-            print("[STARTUP] Scheduler online.")
-
-            from app.redis_utils import get_redis_client
-            _redis = await get_redis_client()
-
-            # 5. Conditional startup runs (only if not run recently)
+            # 5. Conditional startup runs (Guarded Tick)
             async def _guarded_startup_tick():
                 if _redis:
-                    last_run = await _redis.get("courage:last_startup_tick")
-                    if last_run and (time.time() - float(last_run)) < 900: # 15 minutes
-                        print("[STARTUP] Recent tick detected. Skipping immediate startup run.")
-                        return
-                    await _redis.set("courage:last_startup_tick", str(time.time()), ex=3600)
+                    try:
+                        last_run = await _redis.get("courage:last_startup_tick")
+                        if last_run and (time.time() - float(last_run)) < 900: # 15 minutes
+                            print("[STARTUP] Recent tick detected. Skipping immediate startup run.")
+                            return
+                        await _redis.set("courage:last_startup_tick", str(time.time()), ex=3600)
+                    except Exception as e:
+                        print(f"[STARTUP] Redis guard check failed: {e}")
                 
                 print("[STARTUP] Firing initial autonomous tick...")
-                asyncio.create_task(autonomous_tick(x_client=x_client, tweet_image_fn=_tweet_image_fn))
+                try:
+                    from app.autonomous_loop import autonomous_tick
+                    asyncio.create_task(autonomous_tick(x_client=x_client, tweet_image_fn=_tweet_image_fn))
+                except Exception as e:
+                    print(f"[STARTUP] Initial tick failed: {e}")
 
             asyncio.create_task(_guarded_startup_tick())
-            asyncio.create_task(_load_voice_models_bg())
-            
-            # 7. Engagement Queue Worker
-            asyncio.create_task(process_reply_queue(x_client=x_client))
-            print("[STARTUP] Engagement queue worker online.")
 
-            # ── PHASE 1: Reactive Sensors + Event Listener ─────────────────────
-            from app.sensors.market_sensor import market_sensor_loop
-            from app.sensors.game_sensor import game_sensor_loop
-            from app.events import _get_event_redis
-            from app.autonomous_loop import force_autonomous_tick
-            import json
+            # 6. Engagement Queue Worker
+            try:
+                from app.engagement_queue import process_reply_queue
+                asyncio.create_task(process_reply_queue(x_client=x_client))
+                print("[STARTUP] Engagement queue worker online.")
+            except Exception as e:
+                print(f"[STARTUP] Queue worker failed: {e}")
 
-            asyncio.create_task(market_sensor_loop())
-            asyncio.create_task(game_sensor_loop())
-            print("[STARTUP] Market & Game sensors online.")
+            # 7. Reactive Sensors + Event Listener
+            try:
+                from app.sensors.market_sensor import market_sensor_loop
+                from app.sensors.game_sensor import game_sensor_loop
+                from app.events import _get_event_redis
+                from app.autonomous_loop import force_autonomous_tick
+                
+                asyncio.create_task(market_sensor_loop())
+                asyncio.create_task(game_sensor_loop())
+                
+                async def _urgent_event_listener():
+                    try:
+                        r = await _get_event_redis()
+                        pubsub = r.pubsub()
+                        await pubsub.subscribe("courage:urgent_events")
+                        print("[EVENT] Urgent event listener subscribed.")
+                        async for message in pubsub.listen():
+                            if message.get("type") == "message":
+                                data = json.loads(message["data"])
+                                event_type = data["type"]
+                                await r.set("courage:last_urgent_event", json.dumps(data), ex=300)
+                                if event_type in ("MARKET_SURGE", "GAME_MOMENT"):
+                                    asyncio.create_task(force_autonomous_tick(x_client, _tweet_image_fn))
+                    except Exception as e:
+                        print(f"[EVENT ERROR] Urgent listener failed: {e}")
 
-            # Simple pub/sub listener for urgent events
-            async def _urgent_event_listener():
-                r = await _get_event_redis()
-                pubsub = r.pubsub()
-                await pubsub.subscribe("courage:urgent_events")
-                print("[EVENT] Urgent event listener subscribed.")
-                async for message in pubsub.listen():
-                    if message.get("type") == "message":
-                        data = json.loads(message["data"])
-                        event_type = data["type"]
-                        # Store last urgent event for _gather_state
-                        await r.set("courage:last_urgent_event", json.dumps(data), ex=300)
-                        # Force immediate tick on high-priority events
-                        if event_type in ("MARKET_SURGE", "GAME_MOMENT"):
-                            asyncio.create_task(force_autonomous_tick(x_client, _tweet_image_fn))
+                asyncio.create_task(_urgent_event_listener())
+            except Exception as e:
+                print(f"[STARTUP] Sensors init failed: {e}")
 
-            asyncio.create_task(_urgent_event_listener())
+            # 8. Realtime WebSocket Sensors
+            try:
+                from app.sensors.market_sensor_ws import market_sensor_ws_loop
+                asyncio.create_task(market_sensor_ws_loop())
+                print("[STARTUP] Market, Game, and Realtime sensors online.")
+            except Exception as e:
+                print(f"[STARTUP] WS Sensors failed: {e}")
 
-            # ── PHASE 3: Realtime WebSocket Sensors ─────────────────────
-            from app.sensors.market_sensor_ws import market_sensor_ws_loop
-            asyncio.create_task(market_sensor_ws_loop())
-            print("[STARTUP] DexScreener WebSocket + Fal realtime online.")
+            # 9. Final Background Tasks
+            try:
+                asyncio.create_task(discovery_round())
+                asyncio.create_task(crypto_discovery_round())
+                print("[STARTUP] Initial news + crypto discovery queued.")
+                asyncio.create_task(_load_voice_models_bg())
+                _init_token_tracker(REDIS_URL)
+            except Exception as e:
+                print(f"[STARTUP] Final tasks failed: {e}")
 
-            # 6. Groq tracker
-            _init_token_tracker(REDIS_URL)
-            print("[STARTUP] Courage Brain is fully awake. 🐕✨")
+            # ── READINESS BANNER ──
+            from app.config import GROQ_MODEL
+            print("\n" + "="*50)
+            print("🐕 COURAGE AI BACKEND — READY")
+            print(f"🧠 BRAIN:       Groq ({GROQ_MODEL})")
+            print(f"🐦 TWITTER:     {'CONNECTED ✓' if x_client else 'DISABLED ✗'}")
+            print(f"🗄️ REDIS:       {REDIS_URL.split('@')[-1] if '@' in REDIS_URL else REDIS_URL}")
+            print(f"🌐 FRONTEND:    {FRONTEND_ORIGIN}")
+            print("="*50 + "\n")
 
         except Exception as e:
             print(f"[STARTUP] FATAL BACKGROUND ERROR: {e}")
@@ -645,31 +670,6 @@ async def admin_history(limit: int = 50):
             rows = [dict(r) for r in await cur.fetchall()]
     return JSONResponse(rows)
 
-
-@app.get("/api/admin/system-status")
-async def system_status():
-    """Aggregates all critical system health metrics into one payload (Phase 4)."""
-    from app.redis_utils import get_redis_client
-    from app.voice_priority import is_voice_active
-    from app.twitter_memory import get_unprocessed_trench_tweets_count
-    from app.hustle_service import get_rcr_stats
-
-    r = await get_redis_client()
-    return {
-        "status": "HEALTHY - ELITE TIER 4.0",
-        "timestamp": time.time(),
-        "elite_phase": "4_COMPLETE",
-        "voice_active": await is_voice_active(),
-        "reply_queue_size": await r.llen("courage:reply_queue") if r else 0,
-        "trench_unread": await get_unprocessed_trench_tweets_count(),
-        "last_market_surge": await r.get("courage:last_market_surge") if r else "none",
-        "rcr_stats": await get_rcr_stats(),
-        "sensors_online": ["market_ws", "game", "trench", "voice"],
-        "rag_vectors": "active",
-        "current_throttle": "dynamic",
-        "uptime": "running strong",
-        "vibe": "courageous & unstoppable 🐕🦺"
-    }
 
 @app.get("/api/admin/vibe-check")
 async def vibe_check():

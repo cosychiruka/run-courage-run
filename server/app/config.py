@@ -33,6 +33,9 @@ WHISPER_MODEL = "tiny.en"   # fast, lightweight, 39MB — good for 2GB RAM
 KOKORO_VOICE  = "af_bella"  # more cartoonish voice
 
 # ── Daily API budgets (leave 20% buffer below hard limits) ────────────────────
+# GNews:   100 req/day free tier  → stop at 80
+# NewsAPI: 100 req/day dev tier   → stop at 80
+# Guardian: 5000/day              → effectively unlimited, no counter needed
 GNEWS_DAILY_BUDGET        = int(os.getenv("GNEWS_DAILY_BUDGET",        "80"))
 NEWSAPI_DAILY_BUDGET      = int(os.getenv("NEWSAPI_DAILY_BUDGET",      "80"))
 GROQ_DAILY_TOKEN_BUDGET   = int(os.getenv("GROQ_DAILY_TOKEN_BUDGET",   "500000"))
