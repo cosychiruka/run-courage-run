@@ -89,6 +89,16 @@ class MockSyncRedis:
         val = int(self._data.get(key, 0)) + amount
         self._data[key] = str(val)
         return val
+    def hset(self, name, mapping=None, **kwargs):
+        if name not in self._data: self._data[name] = {}
+        if mapping: self._data[name].update(mapping)
+        if kwargs: self._data[name].update(kwargs)
+        return True
+    def hgetall(self, name):
+        return self._data.get(name, {})
+    def keys(self, pattern):
+        import fnmatch
+        return [k for k in self._data.keys() if fnmatch.fnmatch(k, pattern)]
     def delete(self, key): self._data.pop(key, None); return True
 
 # Global singletons

@@ -6,17 +6,16 @@ After every response, rate-limit headers are written back to Redis.
 """
 
 import time
-import redis
 import tweepy
+from app.redis_utils import get_sync_redis_client
 from app.config import (
-    REDIS_URL,
     X_CONSUMER_KEY, X_CONSUMER_SECRET,
     X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET,
     X_BEARER_TOKEN,
 )
 
 # ── Sync Redis connection (Tweepy is sync) ─────────────────────────────────────
-_r = redis.from_url(REDIS_URL, decode_responses=True)
+_r = get_sync_redis_client()
 
 
 class XRateLimitedClient:
@@ -26,12 +25,15 @@ class XRateLimitedClient:
     """
 
     def __init__(self):
+        # Using both Bearer (for Search) and OAuth 1.0a (for Write/Media)
         self.client = tweepy.Client(
             bearer_token=X_BEARER_TOKEN,
             consumer_key=X_CONSUMER_KEY,
             consumer_secret=X_CONSUMER_SECRET,
             access_token=X_ACCESS_TOKEN,
             access_token_secret=X_ACCESS_TOKEN_SECRET,
+            client_id=X_CLIENT_ID,
+            client_secret=X_CLIENT_SECRET,
             wait_on_rate_limit=False,
         )
         # v1.1 API — needed for media upload (v2 doesn't support it yet)
@@ -164,11 +166,24 @@ class XRateLimitedClient:
 
 def make_x_client() -> XRateLimitedClient | None:
     """Return configured client, or None if keys are missing."""
+    print("[X_CLIENT DEBUG] Key Check:", {
+        "consumer_key": bool(X_CONSUMER_KEY),
+        "consumer_secret": bool(X_CONSUMER_SECRET),
+        "access_token": bool(X_ACCESS_TOKEN),
+        "access_token_secret": bool(X_ACCESS_TOKEN_SECRET),
+        "bearer_token": bool(X_BEARER_TOKEN)
+    })
+
     if not all([X_CONSUMER_KEY, X_CONSUMER_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET]):
-        print("[X] API keys not configured — X features disabled.")
+        print("[X] [FAIL] API keys missing in .env — X features disabled.")
         return None
     try:
-        return XRateLimitedClient()
+        client = XRateLimitedClient()
+        # Test login
+        me = client.get_my_profile()
+        if me and me.data:
+            print(f"[X] [ OK ] Authenticated as @{me.data.username} (User Context)")
+        return client
     except Exception as e:
-        print(f"[X] Client init failed: {e}")
+        print(f"[X] [FAIL] Client init failed: {e}")
         return None

@@ -9,12 +9,18 @@ import time
 from app.config import RCR_TOKEN_ADDRESS
 from app.events import emit_event, _get_event_redis
 
-WS_URL = f"wss://io.dexscreener.com/dex/screener/pairs/h24/solana/{RCR_TOKEN_ADDRESS}"
+if not RCR_TOKEN_ADDRESS:
+    print("[MARKET_WS] ⚠️ RCR_TOKEN_ADDRESS missing in .env. Realtime market monitoring disabled.")
+    WS_URL = None
+else:
+    WS_URL = f"wss://io.dexscreener.com/dex/screener/pairs/h24/solana/{RCR_TOKEN_ADDRESS}"
 
 LAST_PRICE = None
 
 async def market_sensor_ws_loop():
     global LAST_PRICE
+    if not WS_URL:
+        return
     while True:
         try:
             # Reconnect loop
