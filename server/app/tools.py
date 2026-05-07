@@ -946,3 +946,4 @@ async def _create_courage_art(args: dict):
 
 # === BACKWARD COMPATIBILITY FOR AUTONOMOUS_LOOP ===
 COURAGE_TOOLS = TOOL_SCHEMAS
+execute_tool = dispatch_tool
