@@ -1049,25 +1049,44 @@ async def _analyze_sentiment(focus: str = "both"):
         "summary": f"Community vibe: {'positive' if score > 0.1 else 'negative' if score < -0.1 else 'mixed'}"
     }
 
-async def _learn_from_past_posts(limit: int = 10):
-    """Self-learning: reviews own history for better future decisions"""
+async def _learn_from_past_posts(limit: int = 12):
+    """BROADENED self-learning — now understands real meme crypto culture (GM/GN, Brrrr, Print, LFG, moon)"""
     from app import twitter_memory
     past_posts = await twitter_memory.get_own_recent_posts(limit=limit)
     
     insights = []
     avoid = []
-    
+    strengths = []
+
     for post in past_posts:
-        txt = post["text"].lower()
-        if "moon" in txt and "lfg" in txt:
-            insights.append("Community loves motivational moon/LFG posts")
-        if any(w in txt for w in ["rug", "scam", "scared", "monster"]):
-            avoid.append("Avoid heavy FUD or scam warnings unless sentiment is very negative")
-    
+        text = post["text"].lower()
+        
+        # GM / GN culture
+        if "gm" in text or "good morning" in text:
+            insights.append("GM posts with 🔥 or moon emojis get strong morning engagement")
+            strengths.append("greeting style")
+        if "gn" in text or "good night" in text:
+            insights.append("GN posts perform well for community wind-down")
+        
+        # Meme crypto slang
+        if "brrrr" in text or "print" in text or "printing" in text:
+            insights.append("Brrrr / Printing posts create strong bullish FOMO")
+        if "lfg" in text or "to the moon" in text or "moon" in text:
+            insights.append("LFG + moon posts are community favorites")
+        
+        # General positive patterns
+        if any(word in text for word in ["legends", "bullish", "based", "alpha"]):
+            insights.append("Positive hype words (legends, bullish, alpha) boost engagement")
+        
+        # What to avoid
+        if any(word in text for word in ["rug", "scam", "fud", "monster", "scared"]):
+            avoid.append("Heavy rug/scam/FUD talk kills vibe unless community is already panicking")
+
     return {
-        "insights": list(set(insights))[:3],           # unique only
-        "avoid": list(set(avoid))[:3],
-        "summary": f"Reviewed {len(past_posts)} of my own posts"
+        "insights": list(dict.fromkeys(insights))[:5],      # unique, max 5
+        "strengths": list(dict.fromkeys(strengths))[:3],
+        "avoid": list(dict.fromkeys(avoid))[:3],
+        "summary": f"Learned from {len(past_posts)} recent posts — GM/GN + Brrrr style is strong"
     }
 
 async def _reflect_and_adapt(action_taken: str, outcome: str = "success"):
