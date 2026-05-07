@@ -943,3 +943,6 @@ async def _create_courage_art(args: dict):
     from app.image_gen import create_courage_art
     url = await create_courage_art(args.get("prompt_description", "just being brave"))
     return f"Generated Courage cartoon: {url}" if url else "Image gen failed — check FAL key."
+
+# === BACKWARD COMPATIBILITY FOR AUTONOMOUS_LOOP ===
+COURAGE_TOOLS = TOOL_SCHEMAS

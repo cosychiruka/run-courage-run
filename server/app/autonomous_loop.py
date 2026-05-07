@@ -21,7 +21,7 @@ from app.twitter_memory import (
 )
 from app.voice_priority import is_voice_active
 from app.system_prompt import SYSTEM_PROMPT_MINIMAL
-from app.tools import COURAGE_TOOLS
+from app.tools import TOOL_SCHEMAS as COURAGE_TOOLS
 
 # ── Phase 5 Globals ───────────────────────────────────────────────────────────
 groq_client = AsyncGroq(api_key=GROQ_API_KEY)
