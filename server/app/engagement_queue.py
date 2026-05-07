@@ -74,6 +74,14 @@ async def process_reply_queue(x_client):
             await save_posted_tweet(tweet_id, text, image_url)
             print(f"[POSTED] ✅ {text[:80]}... (tweet_id: {tweet_id})")
 
+            # Log successful post to activity stream for dashboard
+            r = await _get_queue_redis()
+            await r.xadd("courage:activity_log", {
+                "type": "POST_SUCCESS",
+                "msg": f"Posted: {text[:80]}...",
+                "timestamp": datetime.now().isoformat()
+            }, maxlen=100)
+
             await asyncio.sleep(45)  # safe X rate limit padding (Phase 5.3 safety)
 
         except Exception as e:
