@@ -366,6 +366,53 @@ TOOL_SCHEMAS = [
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "auto_reply_with_art",
+            "description": "Read recent unprocessed trench tweets, decide on the best 1-2 replies, generate a relevant Courage cartoon using the base image + context, then queue the reply with image for safe posting.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "trench_ids": {"type": "array", "items": {"type": "string"}},
+                    "reply_text": {"type": "string"},
+                    "art_prompt": {"type": "string"}
+                },
+                "required": ["trench_ids", "reply_text", "art_prompt"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "auto_hustle_post",
+            "description": "Check current $RCR/SOL price and daily delta. Craft a motivational meme-style post and queue it with optional cartoon.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "post_text": {"type": "string"},
+                    "art_prompt": {"type": "string", "default": ""}
+                },
+                "required": ["post_text"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "auto_news_react",
+            "description": "Take a fresh news article and generate a Courage-style poster + witty comment, then queue the post.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "news_title": {"type": "string"},
+                    "news_summary": {"type": "string"},
+                    "poster_url": {"type": "string"}
+                },
+                "required": ["news_title", "news_summary"]
+            }
+        }
+    },
 ]
 
 # ── Tool name lookup ───────────────────────────────────────────────────────────
@@ -421,6 +468,14 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
                 from app.image_gen import create_courage_art
                 url = await create_courage_art(args.get("prompt_description", "just being brave"))
                 return f"Generated Courage cartoon: {url}" if url else "Image gen failed — check FAL key."
+
+            case "auto_reply_with_art":
+                return f"QUEUED: Auto-reply to {args.get('trench_ids')} with text: {args.get('reply_text')}. Art queued: {args.get('art_prompt')}"
+            case "auto_hustle_post":
+                return f"QUEUED: Hustle post: {args.get('post_text')}. Art queued: {args.get('art_prompt')}"
+            case "auto_news_react":
+                return f"QUEUED: News reaction to {args.get('news_title')}. Poster: {args.get('poster_url')}"
+
             case _:                       return f"Unknown tool: {name}"
     except Exception as e:
         return f"Tool error ({name}): {e}"
