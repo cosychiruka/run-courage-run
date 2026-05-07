@@ -41,6 +41,14 @@ class MockRedis:
         self._data.pop(key, None)
         return True
 
+    async def expire(self, key, seconds):
+        return True
+
+    async def incrbyfloat(self, key, amount):
+        val = float(self._data.get(key, 0)) + amount
+        self._data[key] = str(val)
+        return val
+
     async def hset(self, name, key, value):
         if name not in self._data: self._data[name] = {}
         self._data[name][key] = str(value)
@@ -139,3 +147,14 @@ def get_sync_redis_client():
         _sync_client = MockSyncRedis()
     
     return _sync_client
+
+# ── X API Cost Tracking ────────────────────────────────────────────────────────
+async def track_x_search_cost(posts_returned: int):
+    """Track real spend: $0.005 per post returned"""
+    r = await get_redis_client()
+    if not r:
+        return
+    cost = posts_returned * 0.005
+    await r.incrbyfloat("courage:x_spend_today", cost)
+    await r.incrbyfloat("courage:x_spend_total", cost)
+    await r.expire("courage:x_spend_today", 86400)  # reset every 24h

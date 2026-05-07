@@ -5,20 +5,22 @@ Emits GAME_MOMENT so Courage can shout out players.
 
 import asyncio
 import time
-from app.redis_utils import get_redis_client
+from app.redis_utils import get_redis_client, track_x_search_cost
 from app.x_client import make_x_client
 from app.events import emit_event
 
 async def game_sensor_loop():
-    """CLEAN 6-MINUTE GLOBAL COOLDOWN — synced with brain"""
+    """15-MIN SENSOR COOLDOWN (configurable in dashboard)"""
     x = make_x_client()
     _redis = await get_redis_client()
     
     while True:
-        # GLOBAL COOLDOWN CHECK — same as the brain
-        last_post = await _redis.get("courage:last_autonomous_post") if _redis else None
-        if last_post and (time.time() - float(last_post)) < 360:   # 6 minutes
-            print("[GAME_SENSOR] Global cooldown active — backing off")
+        # CONFIGURABLE COOLDOWN FROM DASHBOARD (Default to 25m for ~$2.88/day)
+        cooldown_min = int(await _redis.get("courage:sensor_cooldown_minutes") or 25)
+        last_sensor = await _redis.get("courage:last_sensor_search") if _redis else None
+
+        if last_sensor and (time.time() - float(last_sensor)) < (cooldown_min * 60):
+            print(f"[GAME_SENSOR] Cooldown active ({cooldown_min} min) — backing off")
             await asyncio.sleep(60)
             continue
 
@@ -26,6 +28,10 @@ async def game_sensor_loop():
             # Search for game-related activity (no cashtag required)
             query = '"become a monster" OR "courage" OR "homestead" OR "runcouragerun" -is:retweet lang:en'
             tweets = x.search_recent(query=query, max_results=10)
+
+            # Track cost
+            count = len(tweets.data) if tweets.data else 0
+            await track_x_search_cost(count)
 
             for t in tweets.data or []:
                 if any(kw in t.text.lower() for kw in ["monster", "homestead", "courage", "runcouragerun"]):
@@ -37,6 +43,10 @@ async def game_sensor_loop():
                     break  # one at a time
         except Exception as e:
             print(f"[GAME_SENSOR] Error: {e}")
+        finally:
+            # Always mark the sensor search time
+            if _redis:
+                await _redis.set("courage:last_sensor_search", time.time())
 
-        # Standard check interval
+        # Respect global heartbeat (re-check every 60s)
         await asyncio.sleep(60) 

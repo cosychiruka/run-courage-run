@@ -664,7 +664,10 @@ async def system_status():
         "news_posters": await _get_news_posters(),
         "event_stream": await _get_live_activity_feed(15),
         "vibe": "courageous & unstoppable 🐕🦺",
-        "uptime_hours": 47 # TODO: calculate real uptime
+        "uptime_hours": 47,
+        "x_spend_today": float(await r.get("courage:x_spend_today") or 0) if r else 0,
+        "x_spend_total": float(await r.get("courage:x_spend_total") or 0) if r else 0,
+        "sensor_cooldown_minutes": int(await r.get("courage:sensor_cooldown_minutes") or 25) if r else 25
     }
 
 @app.post("/api/autonomous/trigger-now")
@@ -674,6 +677,14 @@ async def trigger_now():
     # Use create_task so we return immediately to the admin UI
     asyncio.create_task(autonomous_tick(x_client=x_client, tweet_image_fn=_tweet_image_fn))
     return JSONResponse({"status": "ok", "message": "Autonomous tick triggered in background."})
+
+@app.post("/api/admin/set-sensor-cooldown")
+async def set_sensor_cooldown(data: dict):
+    r = await _get_admin_redis()
+    minutes = int(data.get("minutes", 25))
+    if r:
+        await r.set("courage:sensor_cooldown_minutes", minutes)
+    return {"status": "ok", "sensor_cooldown_minutes": minutes}
 
 
 # ── Admin Dashboard ────────────────────────────────────────────────────────────
