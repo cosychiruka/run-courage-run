@@ -866,18 +866,20 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None, force=False):
         traceback.print_exc()
 
 
-# Global reference so sensors can trigger it
-FORCE_TICK_CALLBACK = None
-LAST_REACTIVE_TICK = 0
+# === REACTIVE COOLDOWN (prevents Groq spam) ===
+LAST_REACTIVE_TICK = 0.0
+REACTIVE_COOLDOWN_SECONDS = 30   # ← tune this (45 is even safer)
 
-async def force_autonomous_tick(x_client, tweet_image_fn):
+async def force_autonomous_tick(x_client, tweet_image_fn, event_type: str = "unknown"):
     """Called by urgent event listener — runs a full decision tick immediately."""
     global LAST_REACTIVE_TICK
     now = time.time()
-    if now - LAST_REACTIVE_TICK < 60:
-        print(f"[REACTIVE] Cooldown active ({int(60 - (now - LAST_REACTIVE_TICK))}s remaining) — skipping duplicate tick.")
+
+    if now - LAST_REACTIVE_TICK < REACTIVE_COOLDOWN_SECONDS:
+        print(f"[REACTIVE] Cooldown active — skipping duplicate {event_type} tick "
+              f"({int(REACTIVE_COOLDOWN_SECONDS - (now - LAST_REACTIVE_TICK))}s left)")
         return
-    
+
     LAST_REACTIVE_TICK = now
-    print("[REACTIVE] Urgent event received — forcing immediate tick!")
+    print(f"[REACTIVE] ✅ Cooldown passed — processing {event_type} tick")
     await autonomous_tick(x_client=x_client, tweet_image_fn=tweet_image_fn, force=True)

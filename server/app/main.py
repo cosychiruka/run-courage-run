@@ -143,7 +143,10 @@ async def lifespan(app: FastAPI):
                 _redis = None
                 print(f"[STARTUP] Redis unavailable ({e}) — pulse falling back to memory.")
 
-            # 3. X Client
+            # 3. Voice Models (Start early in background)
+            asyncio.create_task(_load_voice_models_bg())
+
+            # 4. X Client
             print("[STARTUP] Setting up X client...")
             try:
                 from app.x_client import make_x_client
@@ -152,7 +155,7 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 print(f"[STARTUP] X Client init failed: {e}")
             
-            # 4. Background jobs (Scheduler)
+            # 5. Background jobs (Scheduler)
             try:
                 scheduler.add_job(discovery_round,       "interval", minutes=60,  id="discovery")
                 scheduler.add_job(crypto_discovery_round,"interval", minutes=60,  id="crypto_discovery")
@@ -167,7 +170,7 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 print(f"[STARTUP] Scheduler failed: {e}")
 
-            # 5. Conditional startup runs (Guarded Tick)
+            # 6. Conditional startup runs (Guarded Tick)
             async def _guarded_startup_tick():
                 if _redis:
                     try:
@@ -188,7 +191,7 @@ async def lifespan(app: FastAPI):
 
             asyncio.create_task(_guarded_startup_tick())
 
-            # 6. Engagement Queue Worker
+            # 7. Engagement Queue Worker
             try:
                 from app.engagement_queue import process_reply_queue
                 asyncio.create_task(process_reply_queue(x_client=x_client))
@@ -196,7 +199,7 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 print(f"[STARTUP] Queue worker failed: {e}")
 
-            # 7. Reactive Sensors + Event Listener
+            # 8. Reactive Sensors + Event Listener
             try:
                 from app.sensors.market_sensor import market_sensor_loop
                 from app.sensors.game_sensor import game_sensor_loop
@@ -218,7 +221,8 @@ async def lifespan(app: FastAPI):
                                 event_type = data["type"]
                                 await r.set("courage:last_urgent_event", json.dumps(data), ex=300)
                                 if event_type in ("MARKET_SURGE", "GAME_MOMENT"):
-                                    asyncio.create_task(force_autonomous_tick(x_client, _tweet_image_fn))
+                                    print(f"[EVENT] Emitted {event_type} → requesting cooldown-protected tick")
+                                    asyncio.create_task(force_autonomous_tick(x_client, _tweet_image_fn, event_type=event_type))
                     except Exception as e:
                         print(f"[EVENT ERROR] Urgent listener failed: {e}")
 
@@ -226,7 +230,7 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 print(f"[STARTUP] Sensors init failed: {e}")
 
-            # 8. Realtime WebSocket Sensors
+            # 9. Realtime WebSocket Sensors
             try:
                 from app.sensors.market_sensor_ws import market_sensor_ws_loop
                 asyncio.create_task(market_sensor_ws_loop())
@@ -234,12 +238,11 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 print(f"[STARTUP] WS Sensors failed: {e}")
 
-            # 9. Final Background Tasks
+            # 10. Final Background Tasks
             try:
                 asyncio.create_task(discovery_round())
                 asyncio.create_task(crypto_discovery_round())
                 print("[STARTUP] Initial news + crypto discovery queued.")
-                asyncio.create_task(_load_voice_models_bg())
                 _init_token_tracker(REDIS_URL)
             except Exception as e:
                 print(f"[STARTUP] Final tasks failed: {e}")
