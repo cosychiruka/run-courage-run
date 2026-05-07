@@ -41,7 +41,7 @@ from groq import AsyncGroq
 # ── Phase 5 Globals ───────────────────────────────────────────────────────────
 groq_client = AsyncGroq(api_key=GROQ_API_KEY)
 LAST_REACTIVE_TICK = 0
-REACTIVE_COOLDOWN_SECONDS = 300 # 5m safety
+REACTIVE_COOLDOWN_SECONDS = 360 # 6m safety (Phase 5 synchronized pulse)
 _redis = None
 
 # ── Bucket cooldowns (minutes between uses of the same bucket) ─────────────────

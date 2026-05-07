@@ -26,4 +26,6 @@ async def game_sensor_loop():
         except Exception as e:
             print(f"[GAME_SENSOR] Error: {e}")
 
-        await asyncio.sleep(1200)  # every 20 minutes (safety first)
+        # Synchronized with Phase 5 global heartbeat (6 minutes)
+        print("[GAME_SENSOR] Pulse complete. Sleeping for 360s...")
+        await asyncio.sleep(360) 

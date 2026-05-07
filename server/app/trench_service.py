@@ -20,7 +20,7 @@ async def fetch_trench_tweets(cashtag: str = "$RCR", limit: int = 50, since_days
         if await r.get(cooldown_key):
             print(f"[TRENCH] Cooldown active for {cashtag} — skipping API call")
             return f"Trench data for {cashtag} is already fresh (cooldown active)."
-        await r.set(cooldown_key, "1", ex=900) # 15 minute cooldown
+        await r.set(cooldown_key, "1", ex=360) # Sync with 6-minute heartbeat
 
     x = make_x_client()
     if not x:
