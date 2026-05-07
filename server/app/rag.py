@@ -80,3 +80,14 @@ async def retrieve_top_k(query: str, k: int = 5, source_filter: str = None) -> l
 
     results.sort(key=lambda x: x["similarity"], reverse=True)
     return results[:k]
+
+async def get_rag_vector_count() -> int:
+    """Return the total number of embedded vectors in the DB."""
+    if not HAS_RAG_DEPS: return 0
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT COUNT(*) FROM rag_vectors") as cur:
+                row = await cur.fetchone()
+                return row[0] if row else 0
+    except Exception:
+        return 0

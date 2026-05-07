@@ -625,6 +625,7 @@ async def system_status():
     from app.voice_priority import is_voice_active
     from app.twitter_memory import get_unprocessed_trench_tweets_count
     from app.hustle_service import get_rcr_stats
+    from app.rag import get_rag_vector_count
 
     r = await _get_admin_redis()
     
@@ -632,23 +633,24 @@ async def system_status():
     trench_count = await get_unprocessed_trench_tweets_count()
     rcr = await get_rcr_stats()
     
-    # Simple 24h price history
-    price_history = await _get_price_history_last_24h()
-    
     return {
         "status": "ELITE TIER 4.0 — FULLY ALIVE",
         "timestamp": time.time(),
         "voice_active": await is_voice_active(),
         "reply_queue_size": await r.llen("courage:reply_queue") if r else 0,
-        "trench_unread": trench_count,
+        "unread_trenches": trench_count,
+        "rcr_price": rcr.get("price", 0.0),
         "rcr_stats": rcr,
-        "price_history": price_history,
+        "price_history": await _get_price_history_last_24h(),
         "trench_activity_last_12h": await _get_trench_activity_last_12h(),
-        "replies_today": await _get_replies_today_count(),
-        "images_generated_today": 42,
-        "sensors_online": ["market_ws", "game", "trench", "voice"],
+        "memory_vectors": await get_rag_vector_count(),
+        "live_activity": await _get_live_activity_feed(),
+        "brain_decisions": await _get_brain_decisions(),
+        "recent_trenches": await _get_recent_trenches(),
+        "news_posters": await _get_news_posters(),
+        "event_stream": await _get_live_activity_feed(15),
         "vibe": "courageous & unstoppable 🐕🦺",
-        "uptime_hours": 47
+        "uptime_hours": 47 # TODO: calculate real uptime
     }
 
 @app.post("/api/autonomous/trigger-now")
@@ -706,6 +708,95 @@ async def _get_trench_activity_last_12h():
 async def _get_replies_today_count():
     # Placeholder
     return 87
+
+
+# === NEW HELPERS FOR MISSION CONTROL (Elite Tier 4.0) ===
+
+async def _get_live_activity_feed(limit: int = 20):
+    """Pulls recent events from Redis stream activity log."""
+    from app.redis_utils import get_redis_client
+    r = await get_redis_client()
+    if not r: return []
+    try:
+        # We use xrevrange to get the most recent events first
+        events = await r.xrevrange("courage:activity_log", "+", "-", count=limit)
+        return [
+            {
+                "time": e[0].decode().split("-")[0][-5:], # Just HH:MM or similar
+                "event": e[1].get(b"type", b"unknown").decode(),
+                "message": e[1].get(b"msg", b"").decode()
+            }
+            for e in events
+        ]
+    except Exception as e:
+        print(f"[ADMIN] Activity feed error: {e}")
+        return []
+
+async def _get_brain_decisions(limit: int = 15):
+    """Returns the last autonomous decisions from SQLite."""
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("""
+                SELECT decided_at, action, reasoning 
+                FROM autonomous_decisions 
+                ORDER BY decided_at DESC LIMIT ?
+            """, (limit,)) as cur:
+                rows = await cur.fetchall()
+        return [
+            {
+                "time": row["decided_at"].split("T")[1][:8] if "T" in row["decided_at"] else row["decided_at"],
+                "action": row["action"],
+                "reasoning": row["reasoning"] or "No reasoning provided."
+            }
+            for row in rows
+        ]
+    except Exception as e:
+        print(f"[ADMIN] Brain decisions error: {e}")
+        return []
+
+async def _get_recent_trenches(limit: int = 12):
+    """Returns recently captured trench tweets."""
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("""
+                SELECT author, text, created_at, processed 
+                FROM tw_trench_tweets 
+                ORDER BY created_at DESC LIMIT ?
+            """, (limit,)) as cur:
+                rows = await cur.fetchall()
+        return [
+            {
+                "author": row["author"],
+                "text": row["text"][:140],
+                "time": time.strftime("%H:%M", time.gmtime(row["created_at"])),
+                "processed": bool(row["processed"])
+            }
+            for row in rows
+        ]
+    except Exception as e:
+        print(f"[ADMIN] Recent trenches error: {e}")
+        return []
+
+async def _get_news_posters(limit: int = 8):
+    """Returns URLs of recently generated news posters."""
+    import os
+    path = "public/news_posters"
+    try:
+        if not os.path.exists(path):
+            return []
+        files = sorted([f for f in os.listdir(path) if f.endswith(('.png','.jpg'))], reverse=True)[:limit]
+        return [
+            {
+                "url": f"/public/news_posters/{f}",
+                "time": f.split("_")[-1].split(".")[0] # Assuming timestamp is at the end
+            }
+            for f in files
+        ]
+    except Exception as e:
+        print(f"[ADMIN] News posters error: {e}")
+        return []
 
 
 # ── World Event Engine ─────────────────────────────────────────────────────────

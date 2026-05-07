@@ -1,60 +1,85 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Courage Control Center • Elite Tier 4.0</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     body { font-family: 'Inter', system-ui, sans-serif; }
     .neon { text-shadow: 0 0 15px #00ff9f; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 0 25px -5px #00ff9f; }
+    .feed-item { animation: fadeIn 0.4s ease forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .modal { animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
   </style>
 </head>
-<body class="bg-zinc-950 text-zinc-100">
-  <div class="max-w-screen-2xl mx-auto p-8">
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-10">
+<body class="bg-neutral-950 text-neutral-100 min-h-screen">
+  <div class="max-w-screen-2xl mx-auto p-6">
+    <!-- HEADER -->
+    <div class="flex justify-between items-center mb-8 border-b border-neutral-800 pb-6">
       <div class="flex items-center gap-4">
-        <span class="text-6xl">🐕🦺</span>
+        <img src="/courage-base.png" alt="Courage" class="w-12 h-12 rounded-2xl">
         <div>
-          <h1 class="text-5xl font-bold tracking-tighter text-white">Courage Control Center</h1>
-          <p class="text-purple-400 text-xl">Elite Tier 4.0 • Fully Alive</p>
+          <h1 class="text-4xl font-bold flex items-center gap-3 neon">
+            🐕‍🦺 Courage Control Center
+          </h1>
+          <p class="text-emerald-400 text-lg font-medium">Elite Tier 4.0 • Fully Alive</p>
         </div>
       </div>
-      <div class="text-right">
-        <div id="last-updated" class="text-zinc-500"></div>
+      <div class="flex items-center gap-6">
+        <div id="last-updated" class="text-xs text-neutral-400 font-mono"></div>
         <button onclick="forceVibeCheck()" 
-                class="mt-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-2xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-purple-900/20">
-          <i class="fa-solid fa-bolt"></i> FORCE VIBE CHECK
+                class="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 px-8 py-3.5 rounded-3xl font-semibold flex items-center gap-3 shadow-lg shadow-violet-500/30 transition-all active:scale-95">
+          <i class="fas fa-bolt"></i>
+          FORCE VIBE CHECK
         </button>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="metrics"></div>
+    <!-- QUICK STATS -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-10" id="quick-stats"></div>
 
-    <!-- Charts -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-10">
-      <!-- Price Chart -->
-      <div class="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-8 backdrop-blur-xl">
-        <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-chart-line text-emerald-400"></i> SOL / $RCR Price (24h)</h2>
-        <canvas id="priceChart" height="140"></canvas>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- LIVE FEED -->
+      <div class="lg:col-span-4 bg-neutral-900 rounded-3xl p-6 border border-neutral-700 h-fit">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2"><i class="fas fa-brain text-emerald-400"></i> LIVE BRAIN ACTIVITY</h2>
+        <div id="live-feed" class="space-y-3 max-h-[640px] overflow-y-auto pr-2 custom-scroll"></div>
       </div>
-      
-      <!-- Trench Activity -->
-      <div class="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-8 backdrop-blur-xl">
-        <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-comments text-amber-400"></i> Trench Activity (Last 12h)</h2>
-        <canvas id="trenchChart" height="140"></canvas>
+
+      <!-- TABS -->
+      <div class="lg:col-span-8 bg-neutral-900 rounded-3xl p-6 border border-neutral-700">
+        <div class="flex flex-wrap gap-2 border-b border-neutral-700 pb-4 mb-6">
+          <button onclick="switchTab(0)" class="tab-btn active flex-1 md:flex-none px-6 py-3 text-sm font-medium rounded-2xl">🧠 Brain & Decisions</button>
+          <button onclick="switchTab(1)" class="tab-btn flex-1 md:flex-none px-6 py-3 text-sm font-medium rounded-2xl">🕳️ Trenches</button>
+          <button onclick="switchTab(2)" class="tab-btn flex-1 md:flex-none px-6 py-3 text-sm font-medium rounded-2xl">🚀 Token Hustle</button>
+          <button onclick="switchTab(3)" class="tab-btn flex-1 md:flex-none px-6 py-3 text-sm font-medium rounded-2xl">📰 News Posters</button>
+          <button onclick="switchTab(4)" class="tab-btn flex-1 md:flex-none px-6 py-3 text-sm font-medium rounded-2xl">🎮 Game Moments</button>
+          <button onclick="switchTab(5)" class="tab-btn flex-1 md:flex-none px-6 py-3 text-sm font-medium rounded-2xl">📡 Live Streams</button>
+        </div>
+        <div id="tab-content" class="min-h-[520px]"></div>
       </div>
     </div>
 
-    <div class="mt-8 text-center text-zinc-500 text-sm">
-      Live • Auto-refreshes every 8 seconds • Built with love for the bravest dog on X
+    <!-- BOTTOM ACTIONS -->
+    <div class="mt-10 flex flex-wrap gap-3 justify-center">
+      <button onclick="forceTrenchScan()" class="px-8 py-4 bg-neutral-800 hover:bg-neutral-700 rounded-3xl font-medium flex items-center gap-2">
+        🔥 Force Trench Scan
+      </button>
+      <button onclick="forceMarketPulse()" class="px-8 py-4 bg-neutral-800 hover:bg-neutral-700 rounded-3xl font-medium flex items-center gap-2">
+        📈 Force Market Pulse
+      </button>
+      <button onclick="clearReplyQueue()" class="px-8 py-4 bg-red-900/80 hover:bg-red-800 rounded-3xl font-medium flex items-center gap-2">
+        🗑️ Clear Reply Queue
+      </button>
     </div>
   </div>
 
   <script>
+    let currentTab = 0;
     let priceChart, trenchChart;
 
     async function loadDashboard() {
@@ -62,103 +87,111 @@
         const res = await fetch('/api/admin/system-status');
         const data = await res.json();
 
-        // Metrics cards
-        const metricsHTML = `
-          <div class="bg-zinc-900/80 border border-zinc-800 rounded-3xl p-6 hover:border-zinc-700 transition-all">
-            <p class="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-1">VOICE STATUS</p>
-            <p class="text-4xl font-bold ${data.voice_active ? 'text-red-500 animate-pulse' : 'text-emerald-400'}">${data.voice_active ? '🔴 LIVE' : '🟢 IDLE'}</p>
+        // Quick Stats
+        document.getElementById('quick-stats').innerHTML = `
+          <div class="bg-neutral-900 rounded-3xl p-6 text-center card-hover">
+            <div class="text-5xl mb-1">${data.voice_active ? '🟢' : '⚪'}</div>
+            <div class="text-emerald-400 text-sm tracking-widest">VOICE STATUS</div>
+            <div class="text-3xl font-bold mt-1">${data.voice_active ? 'LIVE' : 'IDLE'}</div>
           </div>
-          <div class="bg-zinc-900/80 border border-zinc-800 rounded-3xl p-6 hover:border-zinc-700 transition-all">
-            <p class="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-1">REPLY QUEUE</p>
-            <p class="text-4xl font-bold">${data.reply_queue_size}</p>
+          <div class="bg-neutral-900 rounded-3xl p-6 text-center card-hover">
+            <div class="text-5xl mb-1">📬</div>
+            <div class="text-neutral-400 text-sm">REPLY QUEUE</div>
+            <div class="text-4xl font-bold text-amber-400">${data.reply_queue_size}</div>
           </div>
-          <div class="bg-zinc-900/80 border border-zinc-800 rounded-3xl p-6 hover:border-zinc-700 transition-all">
-            <p class="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-1">UNREAD TRENCHES</p>
-            <p class="text-4xl font-bold text-amber-400">${data.trench_unread}</p>
+          <div class="bg-neutral-900 rounded-3xl p-6 text-center card-hover">
+            <div class="text-5xl mb-1">🕳️</div>
+            <div class="text-neutral-400 text-sm">UNREAD TRENCHES</div>
+            <div class="text-4xl font-bold text-yellow-400">${data.unread_trenches}</div>
           </div>
-          <div class="bg-zinc-900/80 border border-zinc-800 rounded-3xl p-6 hover:border-zinc-700 transition-all">
-            <p class="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-1">$RCR PRICE</p>
-            <p class="text-4xl font-bold text-white">${data.rcr_stats?.price?.toFixed(6) || '—'}</p>
+          <div class="bg-neutral-900 rounded-3xl p-6 text-center card-hover">
+            <div class="text-5xl mb-1">🐕</div>
+            <div class="text-neutral-400 text-sm">$RCR / SOL</div>
+            <div class="text-4xl font-bold">${data.rcr_price.toFixed(8)}</div>
+          </div>
+          <div class="bg-neutral-900 rounded-3xl p-6 text-center card-hover">
+            <div class="text-5xl mb-1">🧬</div>
+            <div class="text-neutral-400 text-sm">MEMORY VECTORS</div>
+            <div class="text-4xl font-bold text-cyan-400">${data.memory_vectors || 0}</div>
+          </div>
+          <div class="bg-neutral-900 rounded-3xl p-6 text-center card-hover">
+            <div class="text-5xl mb-1">⏱️</div>
+            <div class="text-neutral-400 text-sm">LAST TICK</div>
+            <div class="text-3xl font-bold text-emerald-400">NOW</div>
           </div>
         `;
-        document.getElementById('metrics').innerHTML = metricsHTML;
-        document.getElementById('last-updated').innerHTML = `Last updated: <span class="font-mono">${new Date().toLocaleTimeString()}</span>`;
 
-        // Price chart
-        if (priceChart) priceChart.destroy();
-        const ctx1 = document.getElementById('priceChart').getContext('2d');
-        priceChart = new Chart(ctx1, {
-          type: 'line',
-          data: {
-            labels: data.price_history.map(p => {
-              const d = new Date(p.time);
-              return d.getHours() + ':00';
-            }),
-            datasets: [{ 
-              label: 'Price', 
-              data: data.price_history.map(p => p.price), 
-              borderColor: '#00ff9f', 
-              backgroundColor: 'rgba(0, 255, 159, 0.1)',
-              fill: true,
-              tension: 0.4,
-              pointRadius: 0
-            }]
-          },
-          options: { 
-            responsive: true,
-            plugins: { legend: { display: false } }, 
-            scales: { 
-              y: { 
-                grid: { color: 'rgba(255,255,255,0.05)' },
-                ticks: { color: '#666' }
-              },
-              x: {
-                grid: { display: false },
-                ticks: { color: '#666' }
-              }
-            } 
-          }
-        });
+        // Live Feed
+        const feedHTML = data.live_activity.map(item => `
+          <div class="feed-item bg-neutral-800/70 rounded-2xl p-4 text-sm border border-neutral-700">
+            <span class="font-mono text-neutral-400 text-xs">${item.time}</span>
+            <span class="ml-2 px-3 py-0.5 bg-emerald-900 text-emerald-300 text-xs rounded-full">${item.event}</span>
+            <p class="mt-2 text-neutral-200">${item.message}</p>
+          </div>
+        `).join('');
+        document.getElementById('live-feed').innerHTML = feedHTML || '<p class="text-neutral-400 italic">No activity yet...</p>';
 
-        // Trench activity chart
-        if (trenchChart) trenchChart.destroy();
-        const ctx2 = document.getElementById('trenchChart').getContext('2d');
-        trenchChart = new Chart(ctx2, {
-          type: 'bar',
-          data: {
-            labels: Array.from({length: 12}, (_, i) => `${12-i}h ago`),
-            datasets: [{ 
-              label: 'Trench Tweets', 
-              data: data.trench_activity_last_12h || [5,8,12,18,9,14,22,11,7,15,19,10], 
-              backgroundColor: '#f59e0b',
-              borderRadius: 8
-            }]
-          },
-          options: { 
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: { 
-              y: { 
-                grid: { color: 'rgba(255,255,255,0.05)' },
-                ticks: { color: '#666' }
-              },
-              x: {
-                grid: { display: false },
-                ticks: { color: '#666' }
-              }
-            }
-          }
-        });
+        // Tab Content
+        let html = '';
+        if (currentTab === 0) { // Brain
+          html = `<h3 class="text-xl font-semibold mb-6">Recent Brain Decisions</h3>
+            <div class="space-y-6">${data.brain_decisions.map(d => `
+              <div class="bg-neutral-800 rounded-2xl p-5">
+                <div class="flex justify-between items-baseline">
+                  <span class="font-mono text-xs text-neutral-400">${d.time}</span>
+                  <span class="px-4 py-1 bg-emerald-900 text-emerald-400 rounded-3xl text-xs">${d.action}</span>
+                </div>
+                <p class="mt-3 text-neutral-300">${d.reasoning}</p>
+              </div>`).join('')}</div>`;
+        } else if (currentTab === 1) { // Trenches
+          html = `<h3 class="text-xl font-semibold mb-6">Latest Trenches</h3>
+            <div class="grid gap-4">${data.recent_trenches.map(t => `
+              <div onclick="showTrenchModal('${t.author}', '${t.text.replace(/'/g, "\\'")}')" class="bg-neutral-800 hover:bg-neutral-700 rounded-2xl p-5 cursor-pointer transition-all">
+                <div class="flex justify-between"><span class="font-bold">@${t.author}</span><span class="text-xs text-neutral-400">${t.time}</span></div>
+                <p class="mt-2 line-clamp-3">${t.text}</p>
+                <div class="text-xs mt-3 ${t.processed ? 'text-emerald-400' : 'text-amber-400'}">${t.processed ? '✅ PROCESSED' : '⏳ UNREAD'}</div>
+              </div>`).join('')}</div>`;
+        } else if (currentTab === 2) { // Token Hustle
+          html = `<div class="h-96"><canvas id="priceChart"></canvas></div>`;
+          setTimeout(() => {
+            if (priceChart) priceChart.destroy();
+            priceChart = new Chart(document.getElementById('priceChart'), {
+              type: 'line',
+              data: { labels: data.price_history.map(p => p.time), datasets: [{ label: 'SOL / $RCR', data: data.price_history.map(p => p.price), borderColor: '#00ff9f', tension: 0.4 }] },
+              options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+          }, 50);
+        } else if (currentTab === 3) { // News Posters
+          html = `<div class="grid grid-cols-2 md:grid-cols-4 gap-4">${data.news_posters.map(p => `
+            <div onclick="window.open('${p.url}', '_blank')" class="cursor-pointer">
+              <img src="${p.url}" class="rounded-2xl shadow-xl hover:scale-105 transition-transform">
+              <p class="text-xs text-neutral-400 mt-2">${p.time}</p>
+            </div>`).join('')}</div>`;
+        } else if (currentTab === 4) { // Game
+          html = `<p class="text-neutral-400">Game Moments coming soon — add your own logic if you want!</p>`;
+        } else if (currentTab === 5) { // Streams
+          html = `<div class="space-y-3">${data.event_stream.map(e => `<div class="p-4 bg-neutral-800 rounded-2xl">${e.event} • ${e.message}</div>`).join('')}</div>`;
+        }
+
+        document.getElementById('tab-content').innerHTML = html;
+        document.getElementById('last-updated').innerHTML = `Last updated: ${new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', second:'2-digit'})}`;
+
       } catch (e) {
-        console.error("Dashboard refresh failed", e);
+        console.error("Dashboard fetch error", e);
       }
     }
 
-    function forceVibeCheck() {
-      fetch('/api/admin/vibe-check');
-      setTimeout(loadDashboard, 1000); // refresh after a second
+    function forceVibeCheck() { fetch('/api/autonomous/trigger-now', {method:'POST'}).then(() => loadDashboard()); }
+    function forceTrenchScan() { fetch('/api/tools/trench-scan', {method:'POST'}); loadDashboard(); }
+    function forceMarketPulse() { fetch('/api/tools/market-pulse', {method:'POST'}); loadDashboard(); }
+    function clearReplyQueue() { if (confirm('Clear entire reply queue?')) fetch('/api/queue/clear', {method:'POST'}); }
+    function showTrenchModal(author, text) {
+      alert(`@${author}\n\n${text}\n\n(Full modal would go here — you can expand later)`);
     }
 
+    // Tailwind script
+    tailwind.config = { content: ["./**/*.{html,js}"], theme: { extend: {} } };
+    // Auto refresh
     setInterval(loadDashboard, 8000);
     loadDashboard();
   </script>
