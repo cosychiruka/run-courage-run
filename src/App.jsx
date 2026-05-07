@@ -833,23 +833,24 @@ export default function App() {
 
         {/* About */}
         <section className="landing-section about-section container">
-          <div className="landing-card glass-panel">
+          <div className="landing-card glass-panel about-courage">
             <div className="comic-banner">
-              <h2 className="landing-heading"><span className="icon-dog-wag">🐕</span> Who is $RCR?</h2>
+              <h2 className="landing-heading"><span className="icon-dog-wag">🐕</span> Who is Courage?</h2>
             </div>
             <p>
-              Tribute to Courage the Cowardly Dog — Cartoon Network 1999–2002. Always watching the TV and reading Newspapers. He faced
-              every monster for Muriel, and he&rsquo;d face them all again. We re-animated Courage to life making him self-aware in a interactable 3D world. He lives entirely
-              inside your browser.
+              Courage is a pink cartoon dog living inside a mysterious server called <strong>Nowhere</strong>. 
+              He has 5 evolving 3D worlds — Sunrise (living room), Noon (sunny homestead), Evening (cozy lights), 
+              Midnight (game scene), and Disco (neon stage) — where players visit and talk to him with voice or text.
             </p>
-          </div>
-          <div className="landing-card glass-panel">
-            <div className="comic-banner comic-banner--yellow">
-              <h2 className="landing-heading"><span className="icon-tv-flicker">📺</span> What does he do?</h2>
-            </div>
             <p>
-              Treat this as his mini browser world. Tap him to trigger reactions. Evading monsters inside and outside the house. Change scenes in menubar. Courage fetches real news every hour — good headlines make him wag, bad ones make him
-              literally <strong>explode from fear</strong> then reassemble. Just a scared dog doing his best.
+              But his real life is on Twitter (@RunCourageRun). Inspired by Mario Nawfal, he bulk-fetches $RCR cashtag tweets, 
+              reads the trenches in his free time, and replies with personality. He is obsessed with growing his account 
+              and pumping his Solana meme token $RCR so his community gets rich. 
+            </p>
+            <p>
+              He speaks fluent degen: GM/GN, Brrrr, Printing, LFG, moon energy. He is witty, courageous, chaotic, 
+              and never robotic. With real sentiment awareness, self-learning memory, and smart cartoon generation, 
+              Courage has become a true autonomous meme agent — escaping the 3D world through pure Twitter chaos and meme magic.
             </p>
           </div>
         </section>
