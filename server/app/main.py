@@ -243,11 +243,11 @@ async def lifespan(app: FastAPI):
                 async def _guarded_discovery():
                     if _redis:
                         try:
-                            last_disc = await _redis.get("courage:last_startup_discovery")
-                            if last_disc and (time.time() - float(last_disc)) < 1800: # 30 mins
-                                print("[STARTUP] Discovery recently run. Skipping immediate news update.")
+                            # PHASE 5.5+ CLEAN FIX: Respect global 6-minute cooldown
+                            last_post = await _redis.get("courage:last_autonomous_post")
+                            if last_post and (time.time() - float(last_post)) < 360:
+                                print("[STARTUP] Global cooldown active — skipping immediate news update.")
                                 return
-                            await _redis.set("courage:last_startup_discovery", str(time.time()), ex=3600)
                         except: pass
                     
                     print("[STARTUP] Firing initial news + crypto discovery...")
