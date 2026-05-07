@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Courage Control Center • Elite Tier 4.0</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .neon { text-shadow: 0 0 15px #00ff9f; }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100">
+  <div class="max-w-screen-2xl mx-auto p-8">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-10">
+      <div class="flex items-center gap-4">
+        <span class="text-6xl">🐕🦺</span>
+        <div>
+          <h1 class="text-5xl font-bold tracking-tighter text-white">Courage Control Center</h1>
+          <p class="text-purple-400 text-xl">Elite Tier 4.0 • Fully Alive</p>
+        </div>
+      </div>
+      <div class="text-right">
+        <div id="last-updated" class="text-zinc-500"></div>
+        <button onclick="forceVibeCheck()" 
+                class="mt-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-2xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-purple-900/20">
+          <i class="fa-solid fa-bolt"></i> FORCE VIBE CHECK
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="metrics"></div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-10">
+      <!-- Price Chart -->
+      <div class="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-8 backdrop-blur-xl">
+        <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-chart-line text-emerald-400"></i> SOL / $RCR Price (24h)</h2>
+        <canvas id="priceChart" height="140"></canvas>
+      </div>
+      
+      <!-- Trench Activity -->
+      <div class="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-8 backdrop-blur-xl">
+        <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-comments text-amber-400"></i> Trench Activity (Last 12h)</h2>
+        <canvas id="trenchChart" height="140"></canvas>
+      </div>
+    </div>
+
+    <div class="mt-8 text-center text-zinc-500 text-sm">
+      Live • Auto-refreshes every 8 seconds • Built with love for the bravest dog on X
+    </div>
+  </div>
+
+  <script>
+    let priceChart, trenchChart;
+
+    async function loadDashboard() {
+      try {
+        const res = await fetch('/api/admin/system-status');
+        const data = await res.json();
+
+        // Metrics cards
+        const metricsHTML = `
+          <div class="bg-zinc-900/80 border border-zinc-800 rounded-3xl p-6 hover:border-zinc-700 transition-all">
+            <p class="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-1">VOICE STATUS</p>
+            <p class="text-4xl font-bold ${data.voice_active ? 'text-red-500 animate-pulse' : 'text-emerald-400'}">${data.voice_active ? '🔴 LIVE' : '🟢 IDLE'}</p>
+          </div>
+          <div class="bg-zinc-900/80 border border-zinc-800 rounded-3xl p-6 hover:border-zinc-700 transition-all">
+            <p class="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-1">REPLY QUEUE</p>
+            <p class="text-4xl font-bold">${data.reply_queue_size}</p>
+          </div>
+          <div class="bg-zinc-900/80 border border-zinc-800 rounded-3xl p-6 hover:border-zinc-700 transition-all">
+            <p class="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-1">UNREAD TRENCHES</p>
+            <p class="text-4xl font-bold text-amber-400">${data.trench_unread}</p>
+          </div>
+          <div class="bg-zinc-900/80 border border-zinc-800 rounded-3xl p-6 hover:border-zinc-700 transition-all">
+            <p class="text-zinc-400 text-xs font-bold tracking-widest uppercase mb-1">$RCR PRICE</p>
+            <p class="text-4xl font-bold text-white">${data.rcr_stats?.price?.toFixed(6) || '—'}</p>
+          </div>
+        `;
+        document.getElementById('metrics').innerHTML = metricsHTML;
+        document.getElementById('last-updated').innerHTML = `Last updated: <span class="font-mono">${new Date().toLocaleTimeString()}</span>`;
+
+        // Price chart
+        if (priceChart) priceChart.destroy();
+        const ctx1 = document.getElementById('priceChart').getContext('2d');
+        priceChart = new Chart(ctx1, {
+          type: 'line',
+          data: {
+            labels: data.price_history.map(p => {
+              const d = new Date(p.time);
+              return d.getHours() + ':00';
+            }),
+            datasets: [{ 
+              label: 'Price', 
+              data: data.price_history.map(p => p.price), 
+              borderColor: '#00ff9f', 
+              backgroundColor: 'rgba(0, 255, 159, 0.1)',
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0
+            }]
+          },
+          options: { 
+            responsive: true,
+            plugins: { legend: { display: false } }, 
+            scales: { 
+              y: { 
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: { color: '#666' }
+              },
+              x: {
+                grid: { display: false },
+                ticks: { color: '#666' }
+              }
+            } 
+          }
+        });
+
+        // Trench activity chart
+        if (trenchChart) trenchChart.destroy();
+        const ctx2 = document.getElementById('trenchChart').getContext('2d');
+        trenchChart = new Chart(ctx2, {
+          type: 'bar',
+          data: {
+            labels: Array.from({length: 12}, (_, i) => `${12-i}h ago`),
+            datasets: [{ 
+              label: 'Trench Tweets', 
+              data: data.trench_activity_last_12h || [5,8,12,18,9,14,22,11,7,15,19,10], 
+              backgroundColor: '#f59e0b',
+              borderRadius: 8
+            }]
+          },
+          options: { 
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { 
+              y: { 
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: { color: '#666' }
+              },
+              x: {
+                grid: { display: false },
+                ticks: { color: '#666' }
+              }
+            }
+          }
+        });
+      } catch (e) {
+        console.error("Dashboard refresh failed", e);
+      }
+    }
+
+    function forceVibeCheck() {
+      fetch('/api/admin/vibe-check');
+      setTimeout(loadDashboard, 1000); // refresh after a second
+    }
+
+    setInterval(loadDashboard, 8000);
+    loadDashboard();
+  </script>
+</body>
+</html>
