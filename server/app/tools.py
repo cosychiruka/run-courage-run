@@ -413,6 +413,20 @@ TOOL_SCHEMAS = [
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_sentiment",
+            "description": "Analyze current community sentiment from trenches and news. Returns score -1.0 to +1.0 and emotion tags.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "focus": {"type": "string", "enum": ["trenches", "news", "both"], "default": "both"}
+                },
+                "required": []
+            }
+        }
+    },
 ]
 
 # ── Tool name lookup ───────────────────────────────────────────────────────────
@@ -475,6 +489,11 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
                 return f"QUEUED: Hustle post: {args.get('post_text')}. Art queued: {args.get('art_prompt')}"
             case "auto_news_react":
                 return f"QUEUED: News reaction to {args.get('news_title')}. Poster: {args.get('poster_url')}"
+
+            case "analyze_sentiment":
+                focus = args.get("focus", "both")
+                result = await _analyze_sentiment(focus=focus)
+                return json.dumps(result, separators=(",", ":"))
 
             case _:                       return f"Unknown tool: {name}"
     except Exception as e:
@@ -947,3 +966,42 @@ async def _create_courage_art(args: dict):
 # === BACKWARD COMPATIBILITY FOR AUTONOMOUS_LOOP ===
 COURAGE_TOOLS = TOOL_SCHEMAS
 execute_tool = dispatch_tool
+
+async def _analyze_sentiment(focus: str = "both"):
+    """Lightweight sentiment analysis — keeps payload small"""
+    from app.twitter_memory import get_recent_unprocessed_trenches
+    from app.news_cache import get_recent_articles
+    
+    trenches = await get_recent_unprocessed_trenches(limit=8) if focus in ["trenches", "both"] else []
+    news = await get_recent_articles(limit=5) if focus in ["news", "both"] else []
+
+    # Simple but effective scoring
+    pos_words = ["moon", "lfg", "bull", "based", "legend", "pump", "growth", "brave"]
+    neg_words = ["dump", "scam", "rug", "panic", "fud", "scary", "monster", "drop"]
+    
+    pos_count = 0
+    neg_count = 0
+    
+    for t in trenches:
+        txt = t["text"].lower()
+        if any(w in txt for w in pos_words): pos_count += 1
+        if any(w in txt for w in neg_words): neg_count += 1
+        
+    for n in news:
+        txt = (n.get("title", "") + " " + (n.get("description") or "")).lower()
+        if any(w in txt for w in pos_words): pos_count += 1
+        if any(w in txt for w in neg_words): neg_count += 1
+
+    total = len(trenches) + len(news)
+    score = (pos_count - neg_count) / max(total, 1)
+    score = max(-1.0, min(1.0, score))
+
+    tags = ["neutral"]
+    if score > 0.3: tags = ["bullish", "excited"]
+    elif score < -0.3: tags = ["bearish", "anxious"]
+
+    return {
+        "score": round(score, 2),
+        "tags": tags,
+        "summary": f"Community vibe: {'positive' if score > 0.1 else 'negative' if score < -0.1 else 'mixed'}"
+    }
