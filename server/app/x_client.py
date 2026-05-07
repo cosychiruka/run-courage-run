@@ -12,6 +12,7 @@ from app.config import (
     X_CONSUMER_KEY, X_CONSUMER_SECRET,
     X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET,
     X_BEARER_TOKEN,
+    X_CLIENT_ID, X_CLIENT_SECRET,
 )
 
 # ── Sync Redis connection (Tweepy is sync) ─────────────────────────────────────
