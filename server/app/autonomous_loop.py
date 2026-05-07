@@ -137,12 +137,26 @@ Decide the SINGLE best action right now. Be concise. Only use tools if truly nee
 
         message = completion.choices[0].message
         LAST_REACTIVE_TICK = time.time() 
+        chosen_action = "NO_ACTION"
 
         if message.tool_calls:
             for tool_call in message.tool_calls:
+                name = tool_call.function.name
+                chosen_action = name
                 await dispatch_tool(tool_call)
         else:
             print("[AUTONOMOUS] Courage decided to stay quiet and keep watching.")
+
+        # FINAL REFLECTION — makes him learn every single time
+        if chosen_action != "NO_ACTION":
+            try:
+                from app.tools import execute_tool
+                await execute_tool("reflect_and_adapt", {
+                    "action_taken": chosen_action,
+                    "outcome": "posted_successfully"
+                })
+            except Exception as e:
+                print(f"[REFLECTION ERROR] {e}")
 
     except Exception as e:
         print(f"[AUTONOMOUS ERROR] {e}")

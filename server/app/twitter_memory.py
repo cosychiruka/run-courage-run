@@ -84,7 +84,24 @@ CREATE TABLE IF NOT EXISTS autonomous_ticks (
     tool_used TEXT,
     success INTEGER DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS tw_reflections (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    action_taken TEXT NOT NULL,
+    outcome TEXT NOT NULL,
+    created_at REAL NOT NULL
+);
 """
+
+
+async def log_reflection(action_taken: str, outcome: str):
+    """Log a post-action reflection for community learning."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO tw_reflections (action_taken, outcome, created_at) VALUES (?,?,?)",
+            (action_taken, outcome, time.time()),
+        )
+        await db.commit()
 
 
 async def init_twitter_db():

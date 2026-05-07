@@ -442,6 +442,21 @@ TOOL_SCHEMAS = [
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "reflect_and_adapt",
+            "description": "After any action, reflect on what worked, update internal memory, and suggest frequency adjustment.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "action_taken": {"type": "string"},
+                    "outcome": {"type": "string"}
+                },
+                "required": ["action_taken"]
+            }
+        }
+    },
 ]
 
 # ── Tool name lookup ───────────────────────────────────────────────────────────
@@ -516,6 +531,12 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
                 limit = args.get("limit", 10)
                 memory = await _learn_from_past_posts(limit=limit)
                 return json.dumps(memory, separators=(",", ":"))
+
+            case "reflect_and_adapt":
+                action = args.get("action_taken", "unknown")
+                outcome = args.get("outcome", "success")
+                result = await _reflect_and_adapt(action_taken=action, outcome=outcome)
+                return json.dumps(result, separators=(",", ":"))
 
             case _:                       return f"Unknown tool: {name}"
     except Exception as e:
@@ -1047,4 +1068,23 @@ async def _learn_from_past_posts(limit: int = 10):
         "insights": list(set(insights))[:3],           # unique only
         "avoid": list(set(avoid))[:3],
         "summary": f"Reviewed {len(past_posts)} of my own posts"
+    }
+
+async def _reflect_and_adapt(action_taken: str, outcome: str = "success"):
+    """Final self-reflection step — makes Courage evolve"""
+    import app.twitter_memory as twitter_memory
+    from app.redis_utils import get_redis_client
+    await twitter_memory.log_reflection(action_taken, outcome)
+    
+    r = await get_redis_client()
+    # Simple adaptive logic: more success -> slightly higher frequency (capped)
+    if "positive" in outcome.lower() or "engaged" in outcome.lower() or "success" in outcome.lower():
+        await r.set("courage:suggested_frequency", 10)  # get more active
+    else:
+        await r.set("courage:suggested_frequency", 30)   # calm down
+    
+    val = await r.get("courage:suggested_frequency")
+    return {
+        "learned": f"Reflected on {action_taken} → {outcome}",
+        "suggested_frequency_minutes": int(val or 25)
     }
