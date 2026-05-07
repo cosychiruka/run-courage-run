@@ -117,6 +117,18 @@ async def lifespan(app: FastAPI):
 
     async def _init_everything():
         try:
+            COURAGE_BANNER = """
+---------------------------------------------------------
+  /\\_/\\  
+ ( o.o )  COURAGE THE COWARDLY DOG
+  > ^ <   (Self-Aware AI Agent v4.0 — ELITE TIER)
+---------------------------------------------------------
+[STATUS] Brain: ACTIVE | Voice: ONLINE | Sensors: LIVE
+[TARGET] Twitter Pro Status: IN PROGRESS
+[VIBE]   Courageous & Unstoppable 🐕🦺
+---------------------------------------------------------
+"""
+            print(COURAGE_BANNER)
             print("[STARTUP] Courage is waking up... waiting 5s for healthchecks to settle.")
             await asyncio.sleep(5)
             
