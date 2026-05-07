@@ -26,4 +26,4 @@ async def game_sensor_loop():
         except Exception as e:
             print(f"[GAME_SENSOR] Error: {e}")
 
-        await asyncio.sleep(120)  # every 2 minutes
+        await asyncio.sleep(1200)  # every 20 minutes (safety first)

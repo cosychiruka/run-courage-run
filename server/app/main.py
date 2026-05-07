@@ -238,11 +238,23 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 print(f"[STARTUP] WS Sensors failed: {e}")
 
-            # 10. Final Background Tasks
+            # 10. Final Background Tasks (Guarded against restart-spam)
             try:
-                asyncio.create_task(discovery_round())
-                asyncio.create_task(crypto_discovery_round())
-                print("[STARTUP] Initial news + crypto discovery queued.")
+                async def _guarded_discovery():
+                    if _redis:
+                        try:
+                            last_disc = await _redis.get("courage:last_startup_discovery")
+                            if last_disc and (time.time() - float(last_disc)) < 1800: # 30 mins
+                                print("[STARTUP] Discovery recently run. Skipping immediate news update.")
+                                return
+                            await _redis.set("courage:last_startup_discovery", str(time.time()), ex=3600)
+                        except: pass
+                    
+                    print("[STARTUP] Firing initial news + crypto discovery...")
+                    asyncio.create_task(discovery_round())
+                    asyncio.create_task(crypto_discovery_round())
+
+                asyncio.create_task(_guarded_discovery())
                 _init_token_tracker(REDIS_URL)
             except Exception as e:
                 print(f"[STARTUP] Final tasks failed: {e}")

@@ -215,9 +215,11 @@ async def decide_and_act(state: dict):
             tool_call = response.choices[0].message.tool_calls[0]
             await dispatch_tool(tool_call)
             print(f"[AUTONOMOUS] Decided: {tool_call.function.name}")
-            LAST_REACTIVE_TICK = time.time()
         else:
             print("[AUTONOMOUS] No action needed right now")
+        
+        # PHASE 5.6: Always update last tick time to enforce global brain cooldown
+        LAST_REACTIVE_TICK = time.time()
     except Exception as e:
         print(f"[AUTONOMOUS ERROR] {e}")
 

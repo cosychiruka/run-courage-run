@@ -4,13 +4,24 @@ Atomic, rate-limit safe.
 """
 
 import time
-from app.config import DB_PATH
+import aiosqlite
+from app.config import DB_PATH, REDIS_URL
 from app.x_client import make_x_client
 import app.twitter_memory as tw_mem
-import aiosqlite
 
 async def fetch_trench_tweets(cashtag: str = "$RCR", limit: int = 50, since_days: int = 1):
     """Bulk fetch new cashtag tweets → save to DB → return count."""
+    
+    # PHASE 5.6: Cooldown to prevent credit burn
+    from app.redis_utils import get_redis_client
+    r = await get_redis_client()
+    if r:
+        cooldown_key = f"courage:trench_cooldown:{cashtag}"
+        if await r.get(cooldown_key):
+            print(f"[TRENCH] Cooldown active for {cashtag} — skipping API call")
+            return f"Trench data for {cashtag} is already fresh (cooldown active)."
+        await r.set(cooldown_key, "1", ex=900) # 15 minute cooldown
+
     x = make_x_client()
     if not x:
         return "X client not ready."
