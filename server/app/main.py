@@ -63,7 +63,25 @@ x_client  = None
 
 
 async def _tweet_image_fn(article_url: str):
-    return await render_card_for_url(article_url)
+    from app.news_poster import generate_news_poster_bytes
+    from app.news_cache import get_all_recent
+    
+    articles = await get_all_recent(limit=50)
+    article  = next((a for a in articles if a.get("url") == article_url), None)
+    
+    if not article:
+        article = {"url": article_url, "title": "LATEST NEWS FROM THE TRENCHES", "description": "Stay brave, Nowhere!"}
+
+    # Map cache article schema to news_poster schema
+    news_data = {
+        "headline": article.get("title", ""),
+        "story": article.get("description", "") or article.get("content", ""),
+        "image_url": article.get("image_url") or article.get("image"),
+        "source": article.get("source_name") or "Nowhere News",
+        "time_ago": "Just now" # Could calculate from published_at
+    }
+    
+    return await generate_news_poster_bytes(news_data)
 
 
 # ── Background voice model loader ─────────────────────────────────────────────
@@ -827,11 +845,19 @@ async def get_presence(world: str = "disco"):
     
     return JSONResponse(active_users)
 
+@app.post("/api/generate-news-poster")
+async def api_generate_news_poster(news_data: dict):
+    from app.news_poster import generate_news_poster
+    url = await generate_news_poster(news_data)
+    return {"poster_url": url}
+
 # ── Static Files (Frontend) ───────────────────────────────────────────────────
 # Mount the built React app. Serve index.html for any unknown paths (SPA)
 
 if os.path.exists("/app/static"):
     app.mount("/static", StaticFiles(directory="/app/static"), name="static")
+if os.path.exists("public"):
+    app.mount("/public", StaticFiles(directory="public"), name="public")
 
     @app.get("/admin")
     async def serve_admin():
