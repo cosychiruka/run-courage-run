@@ -33,8 +33,6 @@ class XRateLimitedClient:
             consumer_secret=X_CONSUMER_SECRET,
             access_token=X_ACCESS_TOKEN,
             access_token_secret=X_ACCESS_TOKEN_SECRET,
-            client_id=X_CLIENT_ID,
-            client_secret=X_CLIENT_SECRET,
             wait_on_rate_limit=False,
         )
         # v1.1 API — needed for media upload (v2 doesn't support it yet)
