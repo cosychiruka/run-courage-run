@@ -35,11 +35,19 @@ async def game_sensor_loop():
 
             for t in tweets.data or []:
                 if any(kw in t.text.lower() for kw in ["monster", "homestead", "courage", "runcouragerun"]):
+                    # PHASE 5.9: Debounce events to prevent Groq spam (max 1 every 30s)
+                    last_event = await _redis.get("courage:last_game_moment_event") if _redis else None
+                    if last_event and (time.time() - float(last_event)) < 30:
+                        print("[GAME_SENSOR] Event debounce active — skipping emit")
+                        break
+                        
                     await emit_event("GAME_MOMENT", {
                         "tweet_id": str(t.id),
                         "author": str(t.author_id),
                         "text": t.text[:120]
                     })
+                    if _redis:
+                        await _redis.set("courage:last_game_moment_event", time.time())
                     break  # one at a time
         except Exception as e:
             print(f"[GAME_SENSOR] Error: {e}")
