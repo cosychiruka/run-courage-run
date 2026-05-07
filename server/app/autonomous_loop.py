@@ -591,6 +591,11 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None, force=False):
     tick_start = datetime.datetime.utcnow().isoformat()
     print(f"[AUTO] Autonomous tick starting at {tick_start}")
 
+    # ── PHASE 4: VOICE PRIORITY OVERRIDE ─────────────────────
+    from app.voice_priority import voice_priority_guard
+    if await voice_priority_guard(x_client, tweet_image_fn):
+        return  # skip entire tick while voice is live
+
     # 0. Circuit breaker: skip if we're in a Groq 429 backoff window.
     #    Checking this at the very top prevents burning ANY resources if we're locked out.
     redis = None

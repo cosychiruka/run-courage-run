@@ -52,3 +52,13 @@ async def fetch_trench_tweets(cashtag: str = "$RCR", limit: int = 50, since_days
         return f"Fetched and saved {saved} new {cashtag} trench tweets."
     except Exception as e:
         return f"Trench fetch failed: {e}"
+
+async def get_unprocessed_trench_tweets_count() -> int:
+    """Return count of trench tweets with processed=0."""
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT COUNT(*) FROM tw_trench_tweets WHERE processed=0") as cur:
+                row = await cur.fetchone()
+                return row[0] if row else 0
+    except:
+        return 0
