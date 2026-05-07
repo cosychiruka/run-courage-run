@@ -248,7 +248,8 @@ async def lifespan(app: FastAPI):
                             if last_post and (time.time() - float(last_post)) < 360:
                                 print("[STARTUP] Global cooldown active — skipping immediate news update.")
                                 return
-                        except: pass
+                        except Exception as e:
+                            print(f"[STARTUP] Cooldown check failed: {e}")
                     
                     print("[STARTUP] Firing initial news + crypto discovery...")
                     asyncio.create_task(discovery_round())

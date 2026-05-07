@@ -14,11 +14,11 @@ async def fetch_trench_tweets(cashtag: str = "$RCR", limit: int = 50, since_days
     
     # PHASE 5.5+ CLEAN FIX: Respect global 6-minute cooldown
     from app.redis_utils import get_redis_client
-    r = await get_redis_client()
-    if r:
-        last_post = await r.get("courage:last_autonomous_post")
+    _redis = await get_redis_client()
+    if _redis:
+        last_post = await _redis.get("courage:last_autonomous_post")
         if last_post and (time.time() - float(last_post)) < 360:
-            print(f"[TRENCH] Global cooldown active — skipping search for {cashtag}")
+            print("[TRENCH] Global cooldown active — skipping search")
             return f"Trench data for {cashtag} is already fresh (global cooldown active)."
 
     x = make_x_client()
