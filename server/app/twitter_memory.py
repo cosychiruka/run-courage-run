@@ -245,14 +245,11 @@ async def get_twitter_summary() -> str:
     return "\n".join(lines)
 
 
-async def get_unprocessed_trench_tweets(limit: int = 20) -> list[dict]:
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
-            "SELECT * FROM tw_trench_tweets WHERE processed=0 ORDER BY created_at DESC LIMIT ?",
-            (limit,)
-        ) as cur:
             return [dict(r) for r in await cur.fetchall()]
+
+async def get_recent_unprocessed_trenches(limit: int = 20) -> list[dict]:
+    """PHASE 5 alias for get_unprocessed_trench_tweets."""
+    return await get_unprocessed_trench_tweets(limit)
 
 async def mark_trench_processed(tweet_id: str):
     async with aiosqlite.connect(DB_PATH) as db:
@@ -275,3 +272,7 @@ async def get_unprocessed_trench_tweets_count() -> int:
         async with db.execute("SELECT COUNT(*) FROM tw_trench_tweets WHERE processed=0") as cur:
             row = await cur.fetchone()
             return row[0] if row else 0
+
+async def get_unprocessed_trench_count() -> int:
+    """PHASE 5 alias."""
+    return await get_unprocessed_trench_tweets_count()

@@ -10,23 +10,38 @@ Architecture (OpenClaw heartbeat model):
   3. Execution     — run_agent() with ws_emit=None (background mode)
   4. Bookkeeping   — update bucket times, log decision, snapshot goals
 
-This module never raises. ALL exceptions are caught and logged.
 The server must never crash because of an autonomous tick.
 """
 
 import json
-import re
 import time
 import datetime
-import httpx
+from app.config import GROQ_API_KEY, REDIS_URL
 
-from app.config import GROQ_API_KEY, GROQ_MODEL_FAST, REDIS_URL
-from app.twitter_memory import get_recent_tweets, get_unreplied_mentions
 from app.goal_tracker import (
     get_last_bucket_times, update_bucket_time,
     snapshot_goals, record_autonomous_decision,
     update_autonomous_decision_executed,
 )
+from app.voice_priority import is_voice_active
+from app.twitter_memory import (
+    get_unprocessed_trench_count,
+    get_recent_unprocessed_trenches
+)
+from app.hustle_service import get_rcr_stats
+from app.news_cache import get_latest_news_articles
+from app.rag import retrieve_top_k
+from app.system_prompt import SYSTEM_PROMPT
+from app.tools import TOOL_SCHEMAS
+from app.image_gen import create_courage_art
+from app.engagement_queue import queue_post_with_media
+from groq import AsyncGroq
+
+# ── Phase 5 Globals ───────────────────────────────────────────────────────────
+groq_client = AsyncGroq(api_key=GROQ_API_KEY)
+LAST_REACTIVE_TICK = 0
+REACTIVE_COOLDOWN_SECONDS = 300 # 5m safety
+_redis = None
 
 # ── Bucket cooldowns (minutes between uses of the same bucket) ─────────────────
 BUCKET_COOLDOWNS = {
@@ -134,206 +149,70 @@ def _bulletproof_parse(raw: str):
 
 # ── State gathering ────────────────────────────────────────────────────────────
 
-async def _gather_state(redis) -> dict:
-    """
-    Collect everything needed for the decision step.
-    Only reads Redis/SQLite — zero API calls.
-    NOW INCLUDES Elite Tier 1 data (trench + $RCR).
-    """
-    state = {}
+async def _gather_state():
+    """PHASE 5: Rich state for full autonomous decisions."""
+    global _redis
+    if _redis is None:
+        from app.redis_utils import get_redis_client
+        _redis = await get_redis_client()
 
-    # ── PHASE 1: Check for urgent events in Redis (short-term memory) ──
-    try:
-        urgent = await redis.get("courage:last_urgent_event") if redis else None
-        if urgent:
-            state["urgent_event"] = json.loads(urgent)
-            # clear after reading
-            await redis.delete("courage:last_urgent_event")
-    except Exception:
-        state["urgent_event"] = None
-
-    # Recent tweets (for deduplication context)
-    try:
-        recent_tweets = await get_recent_tweets(5)
-    except Exception:
-        recent_tweets = []
-
-    # Unreplied mentions count
-    try:
-        unreplied = await get_unreplied_mentions(limit=20)
-        unreplied_count = len(unreplied)
-    except Exception:
-        unreplied_count = 0
-
-    # ── Social Pulse (for Contextual Triage) ──
-    mention_pulse = "none"
-    try:
-        from app.twitter_memory import get_recent_mention_snippets
-        mention_pulse = await get_recent_mention_snippets(3)
-    except Exception:
-        pass
-
-    # ── ELITE TIER 1: TRENCH PULSE ─────────────────────────────────────
-    trench_unread_count = 0
-    trench_pulse = "none"
-    try:
-        from app.twitter_memory import get_unprocessed_trench_tweets
-        trench_tweets = await get_unprocessed_trench_tweets(limit=8)
-        trench_unread_count = len(trench_tweets)
-        trench_pulse = "Unprocessed $RCR trenches:\n" + "\n".join(
-            f"- @{t['author']}: {t['text'][:80]}" for t in trench_tweets
-        ) if trench_tweets else "No new trench activity."
-    except Exception:
-        pass
-
-    # ── ELITE TIER 1: $RCR HUSTLE ─────────────────────────────────────
-    rcr_stats = {"price": 0, "status": "unavailable"}
-    try:
-        from app.hustle_service import get_rcr_stats
-        rcr_stats = await get_rcr_stats()
-    except Exception:
-        pass
-
-    # ── PHASE 2: Real RAG Context (long-term memory) ─────────────────────
-    rag_context = ""
-    try:
-        from app.rag import retrieve_top_k
-        # Pull relevant past trenches + token history
-        trench_rag = await retrieve_top_k("community sentiment about $RCR and Courage", k=4, source_filter="trench")
-        token_rag = await retrieve_top_k("$RCR price momentum and holder excitement", k=3, source_filter="token")
-        rag_context = "Relevant past memory:\n" + "\n".join(
-            [f"- {r['content']}" for r in trench_rag + token_rag]
-        )
-    except Exception:
-        rag_context = "no rag memory yet"
-
-    # Active voice sessions
-    active_sessions = 0
-    if redis:
-        try:
-            active_sessions = int(await redis.scard("active_voice_sessions") or 0)
-        except Exception:
-            pass
-
-    # Bucket cooldown status
-    bucket_status = {}
-    try:
-        bucket_times = await get_last_bucket_times()
-        now = time.time()
-        for bucket, cooldown_min in BUCKET_COOLDOWNS.items():
-            last_used = float(bucket_times.get(bucket, 0))
-            elapsed_min = (now - last_used) / 60
-            bucket_status[bucket] = {
-                "elapsed_min": round(elapsed_min, 1),
-                "cooled_down": elapsed_min >= cooldown_min,
-                "cooldown_min": cooldown_min,
-            }
-    except Exception:
-        bucket_status = {b: {"elapsed_min": 999, "cooled_down": True, "cooldown_min": v}
-                         for b, v in BUCKET_COOLDOWNS.items()}
-
-    # Article URLs and Topics Courage has already covered (48h TTL)
-    covered_urls: list[str] = []
-    covered_topics: list[str] = []
-    if redis:
-        try:
-            covered_urls = await redis.lrange("courage:covered_urls", 0, 29) or []
-            covered_topics = await redis.lrange("courage:covered_topics", 0, 19) or []
-        except Exception:
-            pass
-
-    # ── News Triage (Reasoned Retrieval) ──
-    # We pull a larger raw sample from the vault, then triage them for 
-    # both 'Panic Index' and 'Relevance' to the current Social Pulse.
-    raw_news = []
-    try:
-        from app.news_cache import get_varied_articles
-        raw_news = await get_varied_articles(limit=25, country="", random_sample=True, exclude_urls=covered_urls)
-    except Exception:
-        pass
-
-    triaged_news = []
-    vibe = "neutral"
-    if raw_news:
-        try:
-            # Contextual Triage: Pick news that matters + Detect the 'Vibe'
-            triage_result = await _triage_news(raw_news, context=mention_pulse)
-            triaged_news = triage_result.get("articles", [])
-            vibe = triage_result.get("vibe", "neutral")
-
-            # Filter for high panic OR high relevance (LLM scores these internally)
-            triaged_news = [h for h in triaged_news if h["panic_index"] >= PANIC_THRESHOLD]
-            # Keep top 6 most interesting
-            triaged_news = sorted(triaged_news, key=lambda x: x["panic_index"], reverse=True)[:6]
-        except Exception as e:
-            print(f"[AUTO] Triage failed: {e}. Falling back to raw news.")
-            triaged_news = [
-                {"title": a.get("title", "")[:100], "url": a.get("url", ""), "panic_index": 5}
-                for a in raw_news[:6]
-            ]
-
-    # Crypto headlines (also triage slightly)
-    crypto_headlines = []
-    try:
-        from app.crypto_news import get_cached_crypto_headlines
-        crypto = await get_cached_crypto_headlines()
-        crypto_headlines = [
-            {
-                "title":       a.get("title", "")[:100],
-                "url":         a.get("url", ""),
-                "source_name": a.get("source_name", "Unknown"),
-                "panic_index": 7 if "crash" in a.get("title", "").lower() or "pump" in a.get("title", "").lower() else 5
-            }
-            for a in crypto[:3]
-        ]
-    except Exception:
-        pass
-
-    # Visitor activity count (24h)
-    visitor_count = 0
-    if redis:
-        try:
-            visitor_count = int(await redis.llen("courage:visitor_log") or 0)
-        except Exception:
-            pass
-
-    # Daily autonomous tweet counter
-    today = datetime.date.today().isoformat()
-    auto_tweets_today = 0
-    mention_pulse = "none"
-    rate_status = "unknown"
-    if redis:
-        try:
-            auto_tweets_today = int(await redis.get(f"courage:auto_tweets:{today}") or 0)
-            
-            # Fetch last known rate limits to skip a tool round
-            rate_search = await redis.hgetall("rate:/tweets/search/recent")
-            rate_post = await redis.hgetall("rate:/statuses/update") # v1.1
-            rate_status = f"Search: {rate_search.get('remaining', '?')}, Post: {rate_post.get('remaining', '?')}"
-        except Exception:
-            pass
-
-    return {
-        "recent_tweets":        recent_tweets,
-        "unreplied_count":      unreplied_count,
-        "active_sessions":      active_sessions,
-        "bucket_status":        bucket_status,
-        "news_headlines":       triaged_news,
-        "crypto_headlines":     crypto_headlines,
-        "visitor_count":        visitor_count,
-        "auto_tweets_today":    auto_tweets_today,
-        "covered_urls":         covered_urls,
-        "time_utc":             datetime.datetime.utcnow().strftime("%H:%M"),
-        "mention_pulse":        mention_pulse,
-        "trench_pulse":         trench_pulse,
-        "trench_unread_count":  trench_unread_count,
-        "rcr_stats":            rcr_stats,
-        "rate_status":          rate_status,
-        "covered_topics":       covered_topics,
-        "community_vibe":       vibe,
-        "urgent_event":         state.get("urgent_event"),
-        "rag_context":          rag_context,
+    state = {
+        "voice_active": await is_voice_active(),
+        "reply_queue_size": await _redis.llen("courage:reply_queue") if _redis else 0,
+        "unread_trenches": await get_unprocessed_trench_count(),
+        "recent_trenches_sample": await get_recent_unprocessed_trenches(limit=5),
+        "rcr_stats": await get_rcr_stats(),
+        "recent_news": await get_latest_news_articles(limit=3),
+        "last_game_moment": await _redis.get("courage:last_game_moment") or "none" if _redis else "none",
+        "rag_context": await retrieve_top_k("trench OR hustle OR news", k=6),
+        "current_time": datetime.datetime.now().isoformat(),
+        "cooldown_remaining": max(0, REACTIVE_COOLDOWN_SECONDS - (time.time() - LAST_REACTIVE_TICK)),
     }
+    return state
+
+async def decide_and_act(state: dict):
+    """PHASE 5 CORE: Courage decides what to do autonomously."""
+    global LAST_REACTIVE_TICK
+    
+    if state["voice_active"]:
+        print("[VOICE PRIORITY] Skipping autonomous actions — voice session active")
+        return
+
+    if state["cooldown_remaining"] > 0:
+        print(f"[COOLDOWN] {state['cooldown_remaining']:.0f}s remaining")
+        return
+
+    # Build prompt for LLM to choose action
+    prompt = f"""
+    Current state:
+    - Unread trenches: {state['unread_trenches']}
+    - SOL/$RCR delta: {state['rcr_stats'].get('change_24h', 0):.2f}%
+    - Recent news: {len(state['recent_news'])} articles
+    - Last game moment: {state['last_game_moment']}
+    
+    Decide the SINGLE best action right now and call the appropriate tool.
+    Be courageous, witty, and meme-native. Prioritize community value and $RCR growth.
+    """
+
+    # Call Groq with tools (this is the new autonomous brain)
+    try:
+        response = await groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": prompt}],
+            tools=TOOL_SCHEMAS,
+            tool_choice="auto"
+        )
+
+        # Dispatch the chosen tool
+        if response.choices[0].message.tool_calls:
+            tool_call = response.choices[0].message.tool_calls[0]
+            await dispatch_tool_v5(tool_call)
+            print(f"[AUTONOMOUS] Decided: {tool_call.function.name}")
+            LAST_REACTIVE_TICK = time.time()
+        else:
+            print("[AUTONOMOUS] No action needed right now")
+    except Exception as e:
+        print(f"[AUTONOMOUS ERROR] {e}")
 
 
 # ── Decision step ──────────────────────────────────────────────────────────────
@@ -583,18 +462,26 @@ async def _execute(decision: dict, state: dict, x_client, tweet_image_fn) -> str
 
 # ── Main tick ──────────────────────────────────────────────────────────────────
 
-async def autonomous_tick(x_client=None, tweet_image_fn=None, force=False):
-    """
-    Single autonomous heartbeat tick. Called by APScheduler every 60 minutes.
-    ALL exceptions are caught — this MUST never crash the server.
-    """
-    tick_start = datetime.datetime.utcnow().isoformat()
-    print(f"[AUTO] Autonomous tick starting at {tick_start}")
+async def autonomous_tick():
+    """PHASE 5: Full autonomous decision tick."""
+    print(f"[AUTO] Autonomous tick starting at {datetime.datetime.now()}")
+    
+    state = await _gather_state()
+    await decide_and_act(state)
 
-    # ── PHASE 4: VOICE PRIORITY OVERRIDE (P1) ─────────────────────
-    from app.voice_priority import voice_priority_guard
-    if await voice_priority_guard():
-        return  # voice is live — skip entire tick
+async def dispatch_tool_v5(tool_call):
+    """Dispatch Phase 5 autonomous tools."""
+    name = tool_call.function.name
+    args = json.loads(tool_call.function.arguments)
+    
+    if name == "auto_reply_with_art":
+        # Will be fully wired in Stage 5.3
+        print(f"[AUTO] Queuing smart reply with art for trenches: {args.get('trench_ids')}")
+        # Placeholder — full implementation next stage
+    elif name == "auto_hustle_post":
+        print(f"[AUTO] Queuing token hustle post: {args.get('post_text')[:50]}...")
+    elif name == "auto_news_react":
+        print(f"[AUTO] Queuing news reaction for: {args.get('news_title')}")
 
     # 0. Circuit breaker: skip if we're in a Groq 429 backoff window.
     #    Checking this at the very top prevents burning ANY resources if we're locked out.

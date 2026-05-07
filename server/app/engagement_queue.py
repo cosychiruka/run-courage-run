@@ -14,10 +14,16 @@ async def _get_queue_redis():
     from app.redis_utils import get_redis_client
     return await get_redis_client()
 
-async def enqueue_reply(tweet_id: str, text: str):
-    r = await _get_queue_redis()
     await r.rpush("courage:reply_queue", f"{tweet_id}|{text}")
     print(f"[QUEUE] Enqueued reply to {tweet_id}")
+
+async def queue_post_with_media(text: str, image_url: str = None, reply_to_id: str = None):
+    """PHASE 5: Enqueue a post with optional image."""
+    r = await _get_queue_redis()
+    # Placeholder implementation
+    payload = f"{reply_to_id or 'none'}|{image_url or 'none'}|{text}"
+    await r.rpush("courage:media_queue", payload)
+    print(f"[QUEUE] Enqueued media post: {text[:40]}...")
 
 async def process_reply_queue(x_client=None):
     """Background worker with DYNAMIC rate-limit adaptive pacing."""

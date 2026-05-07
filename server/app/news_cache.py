@@ -82,14 +82,11 @@ async def save_articles(articles: list[dict], country: str = "us", category: str
             ))
         await db.commit()
 
-async def get_all_recent(limit: int = 20) -> list[dict]:
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
-            "SELECT * FROM articles ORDER BY fetched_at DESC LIMIT ?", (limit,)
-        ) as cur:
-            rows = await cur.fetchall()
     return [dict(r) for r in rows]
+
+async def get_latest_news_articles(limit: int = 10) -> list[dict]:
+    """PHASE 5 alias for get_all_recent."""
+    return await get_all_recent(limit)
 
 async def get_varied_articles(
     limit: int = 8, 
