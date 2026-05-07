@@ -412,8 +412,10 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
             case "get_rcr_stats":
                 from app.hustle_service import get_rcr_stats
                 stats = await get_rcr_stats()
+                symbol = stats.get("symbol", "$RCR")
                 delta = "🚀" if stats.get("change_24h", 0) > 0 else "📉"
-                return f"$RCR ${stats.get('price', 0):.6f} | 24h: {stats.get('change_24h', 0):+.1f}% {delta} | Vol: ${stats.get('volume_24h', 0):,.0f}"
+                fallback_note = " (tracking SOL until $RCR launches)" if stats.get("is_sol_fallback") else ""
+                return f"{symbol} ${stats.get('price',0):.6f} | 24h: {stats.get('change_24h',0):+.1f}% {delta}{fallback_note} | Vol: ${stats.get('volume_24h',0):,.0f}"
 
             case "create_courage_art":
                 from app.image_gen import create_courage_art

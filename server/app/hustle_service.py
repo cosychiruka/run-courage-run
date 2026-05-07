@@ -12,13 +12,23 @@ from app.config import DB_PATH, RCR_TOKEN_ADDRESS
 DEXSCREENER_URL = "https://api.dexscreener.com/token-pairs/v1/solana/"
 
 async def get_rcr_stats():
-    """Live $RCR stats with yesterday/today delta."""
-    if not RCR_TOKEN_ADDRESS:
-        return {"price": 0, "status": "TOKEN_ADDRESS_NOT_SET"}
+    """Live stats with smart fallback to SOL until $RCR token launches."""
+    token_addr = RCR_TOKEN_ADDRESS.strip()
+
+    if not token_addr:
+        # Fallback to SOL tracking
+        SOL_PAIR = "So11111111111111111111111111111111111111112"  # Wrapped SOL (DexScreener handles it)
+        fallback_url = f"https://api.dexscreener.com/token-pairs/v1/solana/{SOL_PAIR}"
+        print("[HUSTLE] No $RCR token yet → tracking SOL as placeholder")
+        use_url = fallback_url
+        is_fallback = True
+    else:
+        use_url = f"https://api.dexscreener.com/token-pairs/v1/solana/{token_addr}"
+        is_fallback = False
 
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(f"{DEXSCREENER_URL}{RCR_TOKEN_ADDRESS}")
+            resp = await client.get(use_url)
             data = resp.json()
 
         if not data or not data.get("pairs"):
@@ -33,21 +43,24 @@ async def get_rcr_stats():
             "liquidity": float(pair["liquidity"]["usd"]),
             "txns_24h": pair["txns"]["h24"],
             "fetched_at": time.time(),
+            "is_sol_fallback": is_fallback,
+            "symbol": "SOL" if is_fallback else "$RCR"
         }
 
-        # Save daily snapshot
         await _save_daily_snapshot(stats)
         return stats
 
     except Exception:
-        # Fallback to last known
+        # Ultimate safe fallback
         last = await _get_last_known_price()
         return {
             "price": last,
             "volume_24h": 0,
             "market_cap": 0,
             "change_24h": 0,
-            "status": "FALLBACK_LAST_KNOWN"
+            "status": "FALLBACK_LAST_KNOWN",
+            "is_sol_fallback": True,
+            "symbol": "SOL"
         }
 
 async def _save_daily_snapshot(stats: dict):

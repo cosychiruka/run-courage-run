@@ -9,26 +9,31 @@ from app.config import FAL_API_KEY, COURAGE_BASE_IMAGE_URL
 
 fal.config.api_key = FAL_API_KEY
 
-async def create_courage_art_realtime(prompt_description: str) -> str | None:
-    """Realtime streaming generation — returns image URL in <800ms."""
+async def create_courage_art_realtime(prompt_description: str, game_context: str = None) -> str | None:
+    """Smart meme image gen that ALWAYS uses in-game context for relevance."""
     if not FAL_API_KEY or not COURAGE_BASE_IMAGE_URL:
         return None
 
+    # Build ultra-contextual prompt
+    base = f"cartoon style, Courage the Cowardly Dog, vibrant meme energy, funny expression, high quality, bold colors"
+    
+    if game_context:
+        full_prompt = f"{base}, {prompt_description}, in the 'Become a Monster' game world, {game_context}, reacting to player moment, purple house or homestead background if fits, meme arrows or text overlay if funny"
+    else:
+        full_prompt = f"{base}, {prompt_description}"
+
     try:
-        # Note: fal.run_async for flux-general might require specific version or schema
-        # but following the advisor's requested logic:
         result = await fal.run_async(
-            "fal-ai/flux-general/image-to-image",  # realtime endpoint
+            "fal-ai/flux-general/image-to-image",
             arguments={
-                "prompt": f"cartoon style, Courage the Cowardly Dog, {prompt_description}, vibrant meme energy, funny expression, purple house if relevant, high quality, bold colors",
+                "prompt": full_prompt,
                 "image_url": COURAGE_BASE_IMAGE_URL,
-                "ip_adapters": [{"image_url": COURAGE_BASE_IMAGE_URL, "strength": 0.85}],
+                "ip_adapters": [{"image_url": COURAGE_BASE_IMAGE_URL, "strength": 0.88}],
                 "num_images": 1,
                 "guidance_scale": 3.5,
-                "num_inference_steps": 20,  # faster for realtime
+                "num_inference_steps": 20,
                 "enable_streaming": True
             },
-            # Streaming callback (optional — logs progress)
             on_queue_update=lambda status: print(f"[FAL_REALTIME] {status}")
         )
         return result["images"][0]["url"]
