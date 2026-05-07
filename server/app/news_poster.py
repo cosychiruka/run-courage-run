@@ -17,7 +17,7 @@ async def generate_news_poster_image(news: dict) -> Image.Image:
     is_crypto = news.get("is_crypto") or news.get("source", "").lower() in ("coindesk", "crypto")
 
     # Background
-    bg_color = "#0D0D0D" if is_crypto else "#F5F0E8" # Deep black for crypto, beige for general
+    bg_color = "#0A0A0A" if is_crypto else "#F5F0E8" # Deep black for crypto, beige for general
     img = Image.new("RGB", (WIDTH, HEIGHT), color=bg_color)
     draw = ImageDraw.Draw(img)
 
@@ -52,11 +52,12 @@ async def generate_news_poster_image(news: dict) -> Image.Image:
             y += font.size + 10
 
     # ── TOP BANNER ──
-    banner_color = "#D32F2F" if not is_crypto else "#8E24AA"  # Red vs Courage Purple
+    banner_color = "#00FF9F" if is_crypto else "#D32F2F"  # Neon Green vs Red
     draw.rectangle((0, 0, WIDTH, 95), fill=banner_color)
     
-    ticker_text = "MemeNews MemeNews MemeNews MemeNews" if not is_crypto else "CRYPTO SURGE $RCR $SOL $RCR $SOL"
-    draw_text_with_shadow(ticker_text, (30, 18), title_font, "#FFFFFF", shadow_color="#330000" if not is_crypto else "#000000")
+    ticker_text = "CRYPTO SURGE $RCR $SOL $RCR $SOL" if is_crypto else "MemeNews MemeNews MemeNews MemeNews"
+    ticker_fill = "#000000" if is_crypto else "#FFFFFF" # Black text on neon green, white on red
+    draw_text_with_shadow(ticker_text, (30, 18), title_font, ticker_fill, shadow_color="#330000" if not is_crypto else "#005533")
 
     # Separator
     draw.line((30, 98, 1170, 98), fill="black" if not is_crypto else "#00FF9F", width=4)
