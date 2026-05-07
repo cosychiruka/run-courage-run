@@ -1,6 +1,6 @@
 """
 autonomous_loop.py — The heartbeat of Courage's autonomy.
-Optimized for Phase 5.6 Minimal Payload Strategy.
+Optimized for Phase 5.6 SHARP MINIMAL Strategy.
 """
 
 import json
@@ -13,11 +13,12 @@ from groq import AsyncGroq
 from app.config import GROQ_API_KEY, GROQ_MODEL
 from app.x_client import make_x_client
 from app.hustle_service import get_rcr_stats
-from app.news_cache import get_recent_articles
+from app.news_cache import get_recent_articles as get_recent_news
 from app.rag import retrieve_top_k
+from app import rag
+from app import twitter_memory
 from app.twitter_memory import (
-    get_unprocessed_trench_count,
-    get_recent_unprocessed_trenches
+    get_recent_unprocessed_trenches as get_recent_trenches
 )
 from app.voice_priority import is_voice_active
 from app.system_prompt import SYSTEM_PROMPT_MINIMAL
@@ -26,36 +27,39 @@ from app.tools import TOOL_SCHEMAS as COURAGE_TOOLS
 # ── Phase 5 Globals ───────────────────────────────────────────────────────────
 groq_client = AsyncGroq(api_key=GROQ_API_KEY)
 LAST_REACTIVE_TICK = 0
-REACTIVE_COOLDOWN_SECONDS = 360 # 6m safety (Phase 5 synchronized pulse)
+REACTIVE_COOLDOWN_SECONDS = 360 
 _redis = None
 
 def _get_tools_spec():
     return COURAGE_TOOLS
 
-def _parse_json_response(raw: str):
-    """Helper to extract JSON from markdown or raw text."""
-    try:
-        clean = raw.strip()
-        if clean.startswith("```json"):
-            clean = clean.split("```json")[1].split("```")[0].strip()
-        elif clean.startswith("```"):
-            clean = clean.split("```")[1].split("```")[0].strip()
-        
-        # Handle cases where AI adds leading/trailing text
-        if "{" in clean and "}" in clean:
-            start = clean.find("{")
-            end = clean.rfind("}")
-            clean = clean[start:end+1]
-        
-        return json.loads(clean)
-    except Exception as e:
-        print(f"[PARSER ERROR] Failed to decode JSON: {e}")
-        return None
+# ── Sharp Minimal Helpers ──────────────────────────────────────────────────────
+
+async def _count_unreplied_trenches():
+    return await twitter_memory.count_unprocessed_trenches()
+
+async def _count_auto_tweets_today():
+    return await twitter_memory.count_auto_tweets_today()
+
+async def _get_community_vibe_summary():
+    """Cheap one-line vibe from RAG — keeps him emotionally sharp"""
+    results = await rag.retrieve_top_k("overall community mood right now", k=3)
+    if not results:
+        return "Community is quiet"
+    return results[0]["text"][:180]
+
+async def _get_rcr_stats():
+    from app.hustle_service import get_rcr_stats
+    return await get_rcr_stats()
+
+async def get_x_rate_status():
+    x = make_x_client()
+    return x.get_rate_status() if x else {}
 
 # ── State gathering ────────────────────────────────────────────────────────────
 
 async def _gather_state():
-    """MINIMAL PAYLOAD — only what the brain actually needs (Phase 5.6 optimization)"""
+    """SHARP MINIMAL PAYLOAD — keeps Courage witty & context-aware (Phase 5.6)"""
     global _redis
     if _redis is None:
         from app.redis_utils import get_redis_client
@@ -64,34 +68,37 @@ async def _gather_state():
     state = {
         "current_time": datetime.now().isoformat(),
         "voice_active": await is_voice_active(),
-        "reply_queue_size": await _redis.llen("courage:reply_queue") if _redis else 0,
-        "rcr_stats": await get_rcr_stats(),
-        "rate_status": {}, # will fill if client available
+        "unreplied_trenches_count": await _count_unreplied_trenches(),
+        "auto_tweets_today": await _count_auto_tweets_today(),
+        "rcr_or_sol_stats": await _get_rcr_stats(),           # always keep this
+        "x_rate_status": await get_x_rate_status(),           # critical for safety
+        "community_vibe": await _get_community_vibe_summary(), # short 1-2 sentence vibe
     }
 
-    # Add rate status
-    x = make_x_client()
-    if x:
-        state["rate_status"] = x.get_rate_status()
-
-    # === MINIMAL TRENCHES (max 5, ultra-short) ===
-    trenches = await get_recent_unprocessed_trenches(limit=5)
+    # === SHARP TRENCHES (top 6, short but flavorful) ===
+    trenches = await get_recent_trenches(limit=6)
     state["trenches"] = [
-        {"id": t["tweet_id"], "text": t["text"][:280], "author": t["author"]} 
+        {
+            "author": t["author"],
+            "text": t["text"][:320],                    # enough for wit
+            "cashtag": "$RCR" in t["text"].upper()
+        }
         for t in trenches
     ]
-    state["unread_trenches"] = await get_unprocessed_trench_count()
 
-    # === MINIMAL NEWS (max 4, title + 1 sentence only) ===
-    news = await get_recent_articles(limit=4)
+    # === SHARP NEWS (title + meaningful 2-sentence summary) ===
+    news = await get_recent_news(limit=5)
     state["news"] = [
-        {"title": n["title"], "summary": (n.get("description") or n.get("content") or "")[:180]} 
+        {
+            "title": n["title"],
+            "summary": (n.get("description") or n.get("content") or "No summary")[:280]
+        }
         for n in news
     ]
 
-    # === MINIMAL RAG (top 3 only, short excerpts) ===
-    rag_results = await retrieve_top_k("current community vibe", k=3)
-    state["rag_context"] = [r["text"][:220] for r in rag_results]
+    # === LIGHT RAG (top 4 relevant snippets) ===
+    rag_results = await rag.retrieve_top_k("current community vibe and $RCR sentiment", k=4)
+    state["rag_context"] = [r["text"][:240] for r in rag_results]
 
     return state
 
@@ -129,7 +136,7 @@ Decide the SINGLE best action right now. Be concise. Only use tools if truly nee
         )
 
         message = completion.choices[0].message
-        LAST_REACTIVE_TICK = time.time() # Update cooldown regardless of outcome
+        LAST_REACTIVE_TICK = time.time() 
 
         if message.tool_calls:
             for tool_call in message.tool_calls:
@@ -146,8 +153,6 @@ async def dispatch_tool(tool_call):
     args = json.loads(tool_call.function.arguments)
     print(f"[TOOL] Courage is using: {name} with args {args}")
 
-    # Tool dispatch logic (already implemented in previous phases)
-    # This is a simplified placeholder to keep the file clean
     from app.tools import execute_tool
     await execute_tool(name, args)
 
@@ -162,7 +167,7 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
     state = await _gather_state()
     await decide_and_act(state)
 
-async def force_autonomous_tick(x_client=None, tweet_image_fn=None):
-    """Immediate manual override."""
+async def force_autonomous_tick(x_client=None, tweet_image_fn=None, event_type: str = None):
+    """Force a tick (accepts event_type for compatibility)."""
     state = await _gather_state()
     await decide_and_act(state)

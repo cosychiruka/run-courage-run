@@ -298,3 +298,16 @@ async def get_unprocessed_trench_tweets_count() -> int:
 async def get_unprocessed_trench_count() -> int:
     """PHASE 5 alias."""
     return await get_unprocessed_trench_tweets_count()
+
+async def count_unprocessed_trenches() -> int:
+    """Alias for Sharp Minimal payload."""
+    return await get_unprocessed_trench_tweets_count()
+
+async def count_auto_tweets_today() -> int:
+    """Count tweets posted by the autonomous engine today."""
+    from datetime import datetime
+    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT COUNT(*) FROM tw_tweets WHERE created_at >= ?", (today_start,)) as cur:
+            row = await cur.fetchone()
+            return row[0] if row else 0
