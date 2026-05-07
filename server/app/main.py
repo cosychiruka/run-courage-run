@@ -76,9 +76,9 @@ async def _tweet_image_fn(article_url: str):
     news_data = {
         "headline": article.get("title", ""),
         "story": article.get("description", "") or article.get("content", ""),
-        "image_url": article.get("image_url") or article.get("image"),
-        "source": article.get("source_name") or "Nowhere News",
-        "time_ago": "Just now" # Could calculate from published_at
+        "image_url": article.get("image_url") or article.get("image") or article.get("urlToImage"),
+        "source": article.get("source_name") or article.get("source", {}).get("name") or "Nowhere News",
+        "time_ago": "Latest"
     }
     
     return await generate_news_poster_bytes(news_data)
