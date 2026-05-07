@@ -16,7 +16,8 @@ The server must never crash because of an autonomous tick.
 import json
 import time
 import datetime
-from app.config import GROQ_API_KEY, REDIS_URL
+from app.config import GROQ_API_KEY, REDIS_URL, DB_PATH
+import aiosqlite
 
 from app.goal_tracker import (
     get_last_bucket_times, update_bucket_time,
@@ -33,7 +34,7 @@ from app.news_cache import get_latest_news_articles
 from app.rag import retrieve_top_k
 from app.system_prompt import SYSTEM_PROMPT
 from app.tools import TOOL_SCHEMAS
-from app.image_gen import create_courage_art
+from app.image_gen import create_courage_art_realtime
 from app.engagement_queue import queue_post_with_media
 from groq import AsyncGroq
 
@@ -232,6 +233,8 @@ async def dispatch_tool(tool_call):
         "timestamp": datetime.datetime.now().isoformat()
     }, maxlen=100)  # keep last 100 events only
 
+    await log_autonomous_tick(name, f"Executed {name} with args: {str(args)[:200]}", name)
+
     if name == "auto_reply_with_art":
         trench_ids = args.get("trench_ids", [])
         reply_text = args.get("reply_text")
@@ -269,3 +272,12 @@ async def force_autonomous_tick(x_client=None, tweet_image_fn=None, event_type: 
     """Urgent event trigger — runs a full tick immediately."""
     print(f"[REACTIVE] Processing urgent {event_type} tick")
     await autonomous_tick()
+
+async def log_autonomous_tick(action: str, reasoning: str, tool_used: str = None, success: bool = True):
+    """PHASE 5.5: Permanent audit trail for the dashboard."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO autonomous_ticks (timestamp, action, reasoning, tool_used, success) VALUES (?, ?, ?, ?, ?)",
+            (datetime.datetime.now().isoformat(), action, reasoning[:500], tool_used, int(success))
+        )
+        await db.commit()

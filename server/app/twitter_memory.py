@@ -75,6 +75,15 @@ CREATE TABLE IF NOT EXISTS rag_vectors (
     source      TEXT,  -- 'trench' or 'token'
     created_at  REAL
 );
+
+CREATE TABLE IF NOT EXISTS autonomous_ticks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT NOT NULL,
+    action TEXT NOT NULL,
+    reasoning TEXT,
+    tool_used TEXT,
+    success INTEGER DEFAULT 0
+);
 """
 
 
