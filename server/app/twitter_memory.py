@@ -166,6 +166,10 @@ async def get_recent_tweets(limit: int = 10) -> list[dict]:
         ) as cur:
             return [dict(r) for r in await cur.fetchall()]
 
+async def get_own_recent_posts(limit: int = 10) -> list[dict]:
+    """Alias for Phase 6.3 self-learning loop."""
+    return await get_recent_tweets(limit)
+
 
 async def get_unreplied_mentions(limit: int = 10) -> list[dict]:
     async with aiosqlite.connect(DB_PATH) as db:

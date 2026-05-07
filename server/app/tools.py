@@ -428,6 +428,20 @@ TOOL_SCHEMAS = [
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "learn_from_past_posts",
+            "description": "Review Courage's own recent posts and replies to improve future decisions and avoid repetition.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "default": 10}
+                },
+                "required": []
+            }
+        }
+    },
 ]
 
 # ── Tool name lookup ───────────────────────────────────────────────────────────
@@ -497,6 +511,11 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
                 focus = args.get("focus", "both")
                 result = await _analyze_sentiment(focus=focus)
                 return json.dumps(result, separators=(",", ":"))
+
+            case "learn_from_past_posts":
+                limit = args.get("limit", 10)
+                memory = await _learn_from_past_posts(limit=limit)
+                return json.dumps(memory, separators=(",", ":"))
 
             case _:                       return f"Unknown tool: {name}"
     except Exception as e:
@@ -1007,4 +1026,25 @@ async def _analyze_sentiment(focus: str = "both"):
         "score": round(score, 2),
         "tags": tags,
         "summary": f"Community vibe: {'positive' if score > 0.1 else 'negative' if score < -0.1 else 'mixed'}"
+    }
+
+async def _learn_from_past_posts(limit: int = 10):
+    """Self-learning: reviews own history for better future decisions"""
+    from app import twitter_memory
+    past_posts = await twitter_memory.get_own_recent_posts(limit=limit)
+    
+    insights = []
+    avoid = []
+    
+    for post in past_posts:
+        txt = post["text"].lower()
+        if "moon" in txt and "lfg" in txt:
+            insights.append("Community loves motivational moon/LFG posts")
+        if any(w in txt for w in ["rug", "scam", "scared", "monster"]):
+            avoid.append("Avoid heavy FUD or scam warnings unless sentiment is very negative")
+    
+    return {
+        "insights": list(set(insights))[:3],           # unique only
+        "avoid": list(set(avoid))[:3],
+        "summary": f"Reviewed {len(past_posts)} of my own posts"
     }
