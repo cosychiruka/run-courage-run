@@ -248,7 +248,7 @@ async def lifespan(app: FastAPI):
                 print(f"[STARTUP] Final tasks failed: {e}")
 
             # ── READINESS BANNER ──
-            await asyncio.sleep(2)  # let voice models finish loading before final banner
+            await asyncio.sleep(1.5)  # let voice models finish loading before final banner
             from app.config import GROQ_MODEL
             print("\n" + "="*50)
             print("🐕 COURAGE AI BACKEND — READY")
