@@ -125,8 +125,12 @@ def build_context_prompt(
         context_lines.append(f"TITLE: {target_article.get('title')}")
         context_lines.append(f"CONTENT: {target_article.get('content', '')[:1500]}")
     elif articles:
-        context_lines.append("\n== RECENT NEWS TRENDS ==")
-        for art in articles[:3]:
-            context_lines.append(f"- {art['title']}: {art.get('description') or ''}")
+        context_lines.append("\n== RECENT NEWS (Brief summaries) ==")
+        for i, a in enumerate(articles[:5]): # Limit to top 5 for Voice
+            title = a.get("title", "Untitled")
+            desc = (a.get("description") or a.get("content") or "No detail.")[:160]
+            context_lines.append(f"{i+1}. {title} -- {desc}")
+
+    context_lines.append("\nFinal Instruction: Be Courage. Be reactive. Be brave. MMGA!")
 
     return "\n".join(context_lines)
