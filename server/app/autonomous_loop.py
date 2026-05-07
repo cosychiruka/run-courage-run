@@ -206,7 +206,7 @@ async def decide_and_act(state: dict):
         # Dispatch the chosen tool
         if response.choices[0].message.tool_calls:
             tool_call = response.choices[0].message.tool_calls[0]
-            await dispatch_tool_v5(tool_call)
+            await dispatch_tool(tool_call)
             print(f"[AUTONOMOUS] Decided: {tool_call.function.name}")
             LAST_REACTIVE_TICK = time.time()
         else:
@@ -469,19 +469,30 @@ async def autonomous_tick():
     state = await _gather_state()
     await decide_and_act(state)
 
-async def dispatch_tool_v5(tool_call):
+async def dispatch_tool(tool_call):
     """Dispatch Phase 5 autonomous tools."""
     name = tool_call.function.name
     args = json.loads(tool_call.function.arguments)
-    
+
     if name == "auto_reply_with_art":
-        # Will be fully wired in Stage 5.3
-        print(f"[AUTO] Queuing smart reply with art for trenches: {args.get('trench_ids')}")
-        # Placeholder — full implementation next stage
+        trench_ids = args.get("trench_ids", [])
+        reply_text = args.get("reply_text")
+        art_prompt = args.get("art_prompt")
+        
+        # Generate cartoon using base image + context
+        art_url = await create_courage_art_realtime(art_prompt)
+        await queue_post_with_media(reply_text, art_url, reply_to_tweet_id=trench_ids[0] if trench_ids else None)
+        
     elif name == "auto_hustle_post":
-        print(f"[AUTO] Queuing token hustle post: {args.get('post_text')[:50]}...")
+        post_text = args.get("post_text")
+        art_prompt = args.get("art_prompt", "Courage the dog celebrating $RCR moon with community")
+        art_url = await create_courage_art_realtime(art_prompt) if art_prompt else None
+        await queue_post_with_media(post_text, art_url)
+        
     elif name == "auto_news_react":
-        print(f"[AUTO] Queuing news reaction for: {args.get('news_title')}")
+        post_text = f"🚨 {args.get('news_title')} — Courage reacts!"
+        # Reuse existing poster or generate new
+        await queue_post_with_media(post_text, args.get("poster_url"))
 
     # 0. Circuit breaker: skip if we're in a Groq 429 backoff window.
     #    Checking this at the very top prevents burning ANY resources if we're locked out.
