@@ -195,24 +195,8 @@ async def _save_to_sqlite(articles: list[dict]):
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
-def _title_key(title: str) -> str:
-    """Normalised title key for deduplication across sources."""
-    import re as _re
-    return _re.sub(r"[^a-z0-9]", "", title.lower())[:40]
-
-
 async def get_crypto_headlines(limit: int = 10) -> list[dict]:
-    """
-    Fetch crypto news with caching.
-
-    Both sources are always attempted (never pure fallback) so that CoinGecko's
-    image-rich articles (thumb_2x) are always available for tweet image attachment.
-
-    Merge order: CoinGecko first (has images) → CryptoPanic fill-ins.
-    Deduplication by normalised title prefix so near-identical stories don't appear twice.
-    Cache: Redis key CRYPTO_CACHE_KEY, 30-min TTL.
-    Never raises — returns [] on all failures.
-    """
+    """Fetch crypto news from CoinDesk with caching."""
     r = await _get_redis()
 
     # 1. Cache hit
@@ -224,54 +208,27 @@ async def get_crypto_headlines(limit: int = 10) -> list[dict]:
         except Exception:
             pass
 
-    # 2. Fetch both sources independently (never short-circuit)
-    cp_articles: list[dict] = []
-    cg_articles: list[dict] = []
-
+    # 2. Fetch CoinDesk
+    articles: list[dict] = []
     if COINDESK_API_KEY:
         try:
-            cp_articles = await _fetch_coindesk(20)
-            print(f"[CRYPTO] CoinDesk: {len(cp_articles)} articles")
+            articles = await _fetch_coindesk(20)
+            print(f"[CRYPTO] CoinDesk: {len(articles)} articles")
         except Exception as e:
             print(f"[CRYPTO] CoinDesk failed: {e}")
 
-    if COINGECKO_API_KEY:
-        try:
-            cg_articles = await _fetch_coingecko(15)
-            print(f"[CRYPTO] CoinGecko: {len(cg_articles)} articles")
-        except Exception as e:
-            print(f"[CRYPTO] CoinGecko failed: {e}")
-
-    # 3. Merge: CoinGecko first (image URLs), then CryptoPanic fill-ins
-    #    Deduplicate by normalised 40-char title prefix
-    seen: set[str] = set()
-    merged: list[dict] = []
-
-    for a in cg_articles:
-        key = _title_key(a.get("title", ""))
-        if key and key not in seen:
-            seen.add(key)
-            merged.append(a)
-
-    for a in cp_articles:
-        key = _title_key(a.get("title", ""))
-        if key and key not in seen:
-            seen.add(key)
-            merged.append(a)
-
-    if not merged:
+    if not articles:
         return []
 
-    # 4. Cache in Redis + persist to SQLite
+    # 3. Cache in Redis + persist to SQLite
     if r:
         try:
-            await r.set(CRYPTO_CACHE_KEY, json.dumps(merged), ex=CRYPTO_CACHE_TTL)
+            await r.set(CRYPTO_CACHE_KEY, json.dumps(articles), ex=CRYPTO_CACHE_TTL)
         except Exception:
             pass
-    await _save_to_sqlite(merged)
+    await _save_to_sqlite(articles)
 
-    print(f"[CRYPTO] Merged {len(merged)} unique articles ({len(cg_articles)} CG + {len(cp_articles)} CD)")
-    return merged[:limit]
+    return articles[:limit]
 
 
 async def get_cached_crypto_headlines() -> list[dict]:

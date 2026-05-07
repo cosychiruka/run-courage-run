@@ -1,10 +1,10 @@
 """
-news_poster.py — Pixel-perfect newspaper generator for news tweets.
-Uses Pillow for perfect alignment, dimensions, and branding.
-Matches webapp layout but elevated with Courage purple theme.
+news_poster.py — Pixel-perfect, high-quality newspaper generator.
+Guardian = classic style. CoinDesk = neon crypto mode.
+Replaces tweet_image.py entirely.
 """
 
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 import httpx
 import time
 import os
@@ -14,110 +14,118 @@ from app.config import DB_PATH, COURAGE_BASE_IMAGE_URL
 async def generate_news_poster_image(news: dict) -> Image.Image:
     """Core logic to build the PIL Image object."""
     WIDTH, HEIGHT = 1200, 675
-    img = Image.new("RGB", (WIDTH, HEIGHT), color="#F5F0E8")  # classic newspaper beige
+    is_crypto = news.get("is_crypto") or news.get("source", "").lower() in ("coindesk", "crypto")
+
+    # Background
+    bg_color = "#0D0D0D" if is_crypto else "#F5F0E8" # Deep black for crypto, beige for general
+    img = Image.new("RGB", (WIDTH, HEIGHT), color=bg_color)
     draw = ImageDraw.Draw(img)
 
-    # Helper for multiline text wrapping
-    def draw_text_wrapped(draw, text, position, font, max_width, fill="black", line_spacing=8):
-        lines = []
-        words = text.split()
-        while words:
-            line = ''
-            while words and draw.textbbox((0,0), line + words[0], font=font)[2] <= max_width:
-                line += words.pop(0) + ' '
-            lines.append(line.strip())
-        
-        x, y = position
-        for line in lines:
-            draw.text((x, y), line, fill=fill, font=font)
-            y += font.size + line_spacing
-        return y
-
-    # Fonts
+    # Advanced fonts with fallback
     try:
-        title_font = ImageFont.truetype("arialbd.ttf", 72)
-        headline_font = ImageFont.truetype("arialbd.ttf", 52)
+        title_font = ImageFont.truetype("arialbd.ttf", 68)
+        headline_font = ImageFont.truetype("arialbd.ttf", 54)
         body_font = ImageFont.truetype("arial.ttf", 28)
-        small_font = ImageFont.truetype("arial.ttf", 24)
+        small_font = ImageFont.truetype("arialbd.ttf", 24)
         banner_font = ImageFont.truetype("arialbd.ttf", 42)
-        signature_font = ImageFont.truetype("arialbd.ttf", 36)
     except:
-        title_font = ImageFont.load_default()
-        headline_font = ImageFont.load_default()
-        body_font = ImageFont.load_default()
-        small_font = ImageFont.load_default()
-        banner_font = ImageFont.load_default()
-        signature_font = ImageFont.load_default()
+        title_font = headline_font = body_font = small_font = banner_font = ImageFont.load_default()
+
+    # Shadow helper
+    def draw_text_with_shadow(text, pos, font, fill, shadow_color="#000000", shadow_offset=3, max_width=None):
+        x, y = pos
+        lines = [text]
+        if max_width:
+            lines = []
+            words = text.split()
+            while words:
+                line = ''
+                while words and draw.textbbox((0,0), line + words[0], font=font)[2] <= max_width:
+                    line += words.pop(0) + ' '
+                lines.append(line.strip())
+        
+        for line in lines:
+            # Shadow
+            draw.text((x + shadow_offset, y + shadow_offset), line, font=font, fill=shadow_color)
+            # Main text
+            draw.text((x, y), line, font=font, fill=fill)
+            y += font.size + 10
 
     # ── TOP BANNER ──
-    # Red ticker style
-    draw.rectangle((0, 0, WIDTH, 90), fill="#D32F2F")
-    draw.text((40, 15), "MemeNews MemeNews MemeNews MemeNews MemeNews", fill="white", font=title_font)
+    banner_color = "#D32F2F" if not is_crypto else "#8E24AA"  # Red vs Courage Purple
+    draw.rectangle((0, 0, WIDTH, 95), fill=banner_color)
     
-    # Newspaper Header
-    draw.line((30, 95, 1170, 95), fill="black", width=4)
+    ticker_text = "MemeNews MemeNews MemeNews MemeNews" if not is_crypto else "CRYPTO SURGE $RCR $SOL $RCR $SOL"
+    draw_text_with_shadow(ticker_text, (30, 18), title_font, "#FFFFFF", shadow_color="#330000" if not is_crypto else "#000000")
 
-    # EXTRA! left + Title center + Morning Final right
-    draw.text((50, 115), "EXTRA!", fill="black", font=banner_font)
-    draw.text((50, 160), "EXTRA!", fill="black", font=banner_font)
-    
-    # Title: The Courageous Chronicle
-    tw = draw.textbbox((0, 0), "The Courageous Chronicle", font=title_font)[2]
-    draw.text(((WIDTH - tw) // 2, 105), "The Courageous Chronicle", fill="black", font=title_font)
-    
-    draw.text((920, 125), "MORNING", fill="black", font=banner_font)
-    draw.text((920, 170), "FINAL", fill="black", font=banner_font)
+    # Separator
+    draw.line((30, 98, 1170, 98), fill="black" if not is_crypto else "#00FF9F", width=4)
 
-    # Subtitle
-    sub_text = "The World's Bravest Newspaper"
-    sw = draw.textbbox((0, 0), sub_text, font=small_font)[2]
-    draw.text(((WIDTH - sw) // 2, 185), sub_text, fill="#555555", font=small_font)
+    # EXTRA! + TITLE + MORNING FINAL
+    accent_color = "black" if not is_crypto else "#00FF9F"
+    draw_text_with_shadow("EXTRA! EXTRA!", (50, 110), banner_font, accent_color)
+    draw_text_with_shadow("The Courageous Chronicle", (340, 105), title_font, accent_color)
+    draw_text_with_shadow("MORNING FINAL", (920, 115), banner_font, accent_color)
 
-    # Bold Courage purple separator
-    draw.line((40, 220, 1160, 220), fill="#8E24AA", width=8)
+    sub_color = "#555555" if not is_crypto else "#00FF9F"
+    draw_text_with_shadow("The World's Bravest Newspaper", (410, 175), small_font, sub_color)
+
+    # Purple separator (Courage signature)
+    draw.line((40, 210, 1160, 210), fill="#8E24AA", width=10)
 
     # ── HEADLINE ──
-    headline = news.get("headline", "").upper()
-    draw_text_wrapped(draw, headline, (50, 240), headline_font, 1100, line_spacing=12)
+    headline_color = "black" if not is_crypto else "#00FF9F"
+    draw_text_with_shadow(news.get("headline", "").upper(), (50, 240), headline_font, headline_color, max_width=1100)
 
-    # ── NEWS PHOTO (left side) ──
-    photo_bottom = 620
+    # ── PHOTO (rounded corners + shadow) ──
     if news.get("image_url"):
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(news["image_url"], timeout=10)
                 photo = Image.open(io.BytesIO(resp.content)).convert("RGB")
                 photo = photo.resize((420, 300), Image.Resampling.LANCZOS)
-                # Add a thin border to the photo
-                photo = ImageOps.expand(photo, border=2, fill="black")
-                img.paste(photo, (50, 320))
+                
+                # Rounded corners mask
+                mask = Image.new("L", photo.size, 0)
+                mask_draw = ImageDraw.Draw(mask)
+                mask_draw.rounded_rectangle((0, 0, photo.width, photo.height), radius=30, fill=255)
+                photo.putalpha(mask)
+                
+                # Subtle shadow
+                shadow = Image.new("RGBA", (430, 310), (0, 0, 0, 100))
+                img.paste(shadow, (55, 325), shadow)
+                img.paste(photo, (50, 320), photo)
         except:
-            # Placeholder if image fails
-            draw.rectangle((50, 320, 470, 620), outline="black", width=2)
-            draw.text((150, 450), "PHOTO\nMISSING", fill="#999999", font=banner_font, align="center")
+            # Fallback
+            draw.rectangle((50, 320, 470, 620), outline=accent_color, width=2)
+            draw.text((150, 450), "SIGNAL\nLOST", fill=accent_color, font=banner_font, align="center")
 
-    # ── STORY BOX (right side) ──
-    story_text = news.get("story", "")[:450]
-    if len(news.get("story", "")) > 450: story_text += "..."
-    draw_text_wrapped(draw, story_text, (510, 330), body_font, 640, line_spacing=6)
+    # ── STORY TEXT ──
+    story = news.get("story", "")[:420] + "..." if len(news.get("story", "")) > 420 else news.get("story", "")
+    story_color = "black" if not is_crypto else "#FFFFFF"
+    draw_text_with_shadow(story, (510, 330), body_font, story_color, max_width=640)
 
-    # ── SOURCE + TIME (under photo) ──
-    source_line = f"The {news.get('source', 'Guardian')} • {news.get('time_ago', '7h ago')}"
-    draw.text((50, 625), source_line, fill="#666666", font=small_font)
+    # Source + time
+    source_line = f"{news.get('source', 'Guardian')} • {news.get('time_ago', 'now')}"
+    draw_text_with_shadow(source_line, (70, 620), small_font, "#666666" if not is_crypto else "#00FF9F")
 
-    # ── COURAGE BRANDING BOTTOM BAR ──
-    draw.rectangle((0, 655, WIDTH, HEIGHT), fill="#8E24AA")
-    draw.text((40, 665), "THE THINGS I DO FOR YOU PEOPLE... — COURAGE", fill="white", font=signature_font)
+    # ── COURAGE BOTTOM BAR ──
+    bar_color = "#8E24AA"
+    draw.rectangle((0, 640, WIDTH, HEIGHT), fill=bar_color)
+    draw_text_with_shadow("THE THINGS I DO FOR YOU PEOPLE... — COURAGE", (50, 650), small_font, "white")
 
-    # ── SUBTLE COURAGE HEAD (Bottom Right Overlay) ──
+    # Crypto flair: tiny chart emoji
+    if is_crypto:
+        draw.text((1100, 645), "📈", font=banner_font)
+
+    # ── SUBTLE COURAGE HEAD OVERLAY ──
     if COURAGE_BASE_IMAGE_URL:
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(COURAGE_BASE_IMAGE_URL, timeout=10)
                 courage_head = Image.open(io.BytesIO(resp.content)).convert("RGBA")
-                # Make it small and place in corner
                 courage_head = courage_head.resize((120, 120), Image.Resampling.LANCZOS)
-                img.paste(courage_head, (1060, 540), courage_head) # use alpha mask
+                img.paste(courage_head, (1060, 530), courage_head)
         except:
             pass
 
@@ -126,14 +134,14 @@ async def generate_news_poster_image(news: dict) -> Image.Image:
 async def generate_news_poster(news: dict) -> str:
     """Returns public URL to the finished poster."""
     img = await generate_news_poster_image(news)
-    filename = f"courage_news_poster_{int(time.time())}.png"
-    os.makedirs("public", exist_ok=True)
-    img.save(f"public/{filename}", quality=95, optimize=True)
-    return f"https://runcouragerun.life/public/{filename}"
+    filename = f"courage_news_{'crypto' if (news.get('is_crypto') or news.get('source', '').lower() == 'coindesk') else 'general'}_{int(time.time())}.png"
+    os.makedirs("public/news_posters", exist_ok=True)
+    img.save(f"public/news_posters/{filename}", quality=98, optimize=True)
+    return f"https://runcouragerun.life/public/news_posters/{filename}"
 
 async def generate_news_poster_bytes(news: dict) -> bytes:
     """Returns raw PNG bytes."""
     img = await generate_news_poster_image(news)
     buf = io.BytesIO()
-    img.save(buf, format="PNG", quality=95)
+    img.save(buf, format="PNG", quality=98)
     return buf.getvalue()

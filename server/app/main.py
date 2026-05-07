@@ -33,7 +33,7 @@ from app.news_cache import (
 from app.voice import load_models, transcribe, synthesise
 from app.agent import run_agent, _init_token_tracker
 from app.x_client import make_x_client
-from app.tweet_image import render_news_card, render_card_for_url
+# from app.tweet_image import render_news_card, render_card_for_url
 from app.twitter_memory import init_twitter_db, prune_old_data as prune_twitter_memory
 from app.goal_tracker import init_goal_db
 from app.crypto_news import crypto_discovery_round
@@ -65,20 +65,29 @@ x_client  = None
 async def _tweet_image_fn(article_url: str):
     from app.news_poster import generate_news_poster_bytes
     from app.news_cache import get_all_recent
+    from app.crypto_news import get_cached_crypto_headlines
     
-    articles = await get_all_recent(limit=50)
-    article  = next((a for a in articles if a.get("url") == article_url), None)
+    # Check general news
+    articles = await get_all_recent(limit=100)
+    article = next((a for a in articles if a.get("url") == article_url), None)
+    
+    # Check crypto news if not found
+    if not article:
+        crypto = await get_cached_crypto_headlines()
+        article = next((a for a in crypto if a.get("url") == article_url), None)
     
     if not article:
         article = {"url": article_url, "title": "LATEST NEWS FROM THE TRENCHES", "description": "Stay brave, Nowhere!"}
 
     # Map cache article schema to news_poster schema
+    is_crypto = article.get("category") == "crypto" or article.get("source_name", "").lower() == "coindesk"
     news_data = {
         "headline": article.get("title", ""),
         "story": article.get("description", "") or article.get("content", ""),
         "image_url": article.get("image_url") or article.get("image") or article.get("urlToImage"),
         "source": article.get("source_name") or article.get("source", {}).get("name") or "Nowhere News",
-        "time_ago": "Latest"
+        "time_ago": "Latest",
+        "is_crypto": is_crypto
     }
     
     return await generate_news_poster_bytes(news_data)
