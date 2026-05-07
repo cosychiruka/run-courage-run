@@ -12,12 +12,12 @@ from app.config import DB_PATH, RCR_TOKEN_ADDRESS
 DEXSCREENER_URL = "https://api.dexscreener.com/token-pairs/v1/solana/"
 
 async def get_rcr_stats():
-    """Live stats with smart fallback to SOL until $RCR token launches."""
+    """Live stats with smart fallback to SOL until $RCR launches."""
     token_addr = RCR_TOKEN_ADDRESS.strip()
 
     if not token_addr:
         # Fallback to SOL tracking
-        SOL_PAIR = "So11111111111111111111111111111111111111112"  # Wrapped SOL (DexScreener handles it)
+        SOL_PAIR = "So11111111111111111111111111111111111111112"  # Wrapped SOL
         fallback_url = f"https://api.dexscreener.com/token-pairs/v1/solana/{SOL_PAIR}"
         print("[HUSTLE] No $RCR token yet → tracking SOL as placeholder")
         use_url = fallback_url

@@ -615,21 +615,28 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None, force=False):
         # 1. Gather state (no API calls)
         state = await _gather_state(redis)
 
-        # ── PHASE 3 + IN-GAME SMART CONTEXT ─────────────────────
+        # ── PHASE 3 + MULTI-REFERENCE NEWS/GAME CONTEXT ─────────────────────
         if force and state.get("urgent_event"):
             from app.events import trigger_realtime_art
             event = state["urgent_event"]
             if event["type"] == "MARKET_SURGE":
                 prompt = "Courage shocked and pumping hard"
+                news_image_url = None
                 game_ctx = None
             elif event["type"] == "GAME_MOMENT":
                 prompt = "Courage cheering wildly for a player"
-                game_ctx = event["payload"].get("text", "epic monster moment")  # actual tweet text becomes image context
+                news_image_url = None
+                game_ctx = event["payload"].get("text", "epic monster moment")
+            elif event["type"] == "NEWS_MOMENT":   # new support
+                prompt = "Courage reacting to dramatic news"
+                news_image_url = event["payload"].get("image_url")   # from news tool
+                game_ctx = None
             else:
                 prompt = "Courage being brave"
+                news_image_url = None
                 game_ctx = None
 
-            await trigger_realtime_art(prompt, game_context=game_ctx)  # pass context
+            await trigger_realtime_art(prompt, news_image_url=news_image_url, game_context=game_ctx)
 
         print(
             f"[AUTO] State — sessions: {state['active_sessions']}, "
