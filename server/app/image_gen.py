@@ -1,59 +1,54 @@
 """
-image_gen.py — Fal.ai Realtime with MULTIPLE references (Courage base + news image).
-Perfect for turning real news photos into Courage memes.
+image_gen.py — Fal.ai image generation for Courage.
+Phase 6.2: Smarter Art Prompts with high-fidelity character locking.
 """
 
+import os
 import fal
 import asyncio
 from app.config import FAL_API_KEY, COURAGE_BASE_IMAGE_URL
 
 fal.config.api_key = FAL_API_KEY
 
+async def create_courage_art(prompt: str, sentiment: str = "neutral"):
+    """Accurate Courage character + sentiment-aware prompt (Phase 6.2)"""
+    if not FAL_API_KEY or not COURAGE_BASE_IMAGE_URL:
+        print("[IMAGE_GEN] Missing FAL_API_KEY or COURAGE_BASE_IMAGE_URL")
+        return None
+
+    base_character = (
+        "Courage, the pink cartoon dog from Courage the Cowardly Dog, "
+        "large bulging white eyes with small black pupils and heavy black eyebrows, "
+        "very expressive and slightly nervous face, floppy brown-lined dog ears, "
+        "small black nose, wide open mouth with bright pink tongue and visible teeth, "
+        "two small pink flower accessories with blue centers on top of his head, "
+        "thin pink arms ending in three-fingered star-shaped hands, "
+        "rounded pink body with a small black spot on his belly, "
+        "clean bold 2D cartoon style, vibrant colors, sharp outlines, highly stylized and emotive"
+    )
+    
+    enhanced_prompt = f"{base_character}. {prompt}. Current mood: {sentiment}. Style: fun, meme energy, highly expressive face, perfect cartoon proportions."
+    
+    try:
+        # Use flux-general or image-to-image for character consistency
+        result = await fal.run_async(
+            "fal-ai/flux/dev/image-to-image",
+            arguments={
+                "image_url": COURAGE_BASE_IMAGE_URL,
+                "prompt": enhanced_prompt,
+                "strength": 0.82,
+                "num_images": 1
+            }
+        )
+        return result["images"][0]["url"]
+    except Exception as e:
+        print(f"[IMAGE_GEN] Fal.ai generation failed: {e}")
+        return None
+
 async def create_courage_art_realtime(
     prompt_description: str, 
     news_image_url: str | None = None,
     game_context: str = None
 ) -> str | None:
-    """Smart multi-reference generation: Courage base + optional news image + game context."""
-    if not FAL_API_KEY or not COURAGE_BASE_IMAGE_URL:
-        return None
-
-    base_prompt = (
-        f"cartoon style, Courage the Cowardly Dog, vibrant meme energy, "
-        f"funny expression, high quality, bold colors, dramatic action"
-    )
-
-    full_prompt = f"{base_prompt}, {prompt_description}"
-    if game_context:
-        full_prompt += f", in the 'Become a Monster' game world, {game_context}"
-
-    # Multiple IP-Adapters — this is the magic
-    ip_adapters = [
-        {"image_url": COURAGE_BASE_IMAGE_URL, "strength": 0.88},   # Courage character lock
-    ]
-
-    if news_image_url:
-        ip_adapters.append({
-            "image_url": news_image_url,
-            "strength": 0.45   # scene + composition reference
-        })
-        full_prompt += ", recreating the exact scene and energy from the reference news photo"
-
-    try:
-        result = await fal.run_async(
-            "fal-ai/flux-general/image-to-image",
-            arguments={
-                "prompt": full_prompt,
-                "image_url": COURAGE_BASE_IMAGE_URL,
-                "ip_adapters": ip_adapters,
-                "num_images": 1,
-                "guidance_scale": 3.5,
-                "num_inference_steps": 20,
-                "enable_streaming": True
-            },
-            on_queue_update=lambda status: print(f"[FAL_REALTIME] {status}")
-        )
-        return result["images"][0]["url"]
-    except Exception as e:
-        print(f"[IMAGE_REALTIME] Multi-reference failed: {e}")
-        return None
+    """Smart multi-reference generation (Fallback/Legacy)."""
+    return await create_courage_art(prompt_description)

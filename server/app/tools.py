@@ -356,13 +356,14 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "create_courage_art",
-            "description": "Generate a funny cartoon image of Courage based on a description. Returns image URL.",
+            "description": "Generate a funny, relevant cartoon of Courage based on current context and sentiment. Always use the base image.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "prompt_description": {"type": "string", "description": "What Courage is doing or reacting to"}
+                    "prompt": {"type": "string", "description": "Detailed scene description (max 280 chars)"},
+                    "sentiment": {"type": "string", "description": "Current sentiment score and tags"}
                 },
-                "required": ["prompt_description"]
+                "required": ["prompt"]
             }
         }
     },
@@ -480,7 +481,9 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
 
             case "create_courage_art":
                 from app.image_gen import create_courage_art
-                url = await create_courage_art(args.get("prompt_description", "just being brave"))
+                prompt = args.get("prompt", "just being brave")
+                sentiment = args.get("sentiment", "neutral")
+                url = await create_courage_art(prompt=prompt, sentiment=sentiment)
                 return f"Generated Courage cartoon: {url}" if url else "Image gen failed — check FAL key."
 
             case "auto_reply_with_art":
