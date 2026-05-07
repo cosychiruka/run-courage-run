@@ -881,40 +881,40 @@ async def api_generate_news_poster(news_data: dict):
 
 if os.path.exists("/app/static"):
     app.mount("/static", StaticFiles(directory="/app/static"), name="static")
+
 if os.path.exists("public"):
     app.mount("/public", StaticFiles(directory="public"), name="public")
 
-    @app.get("/admin")
-    async def serve_admin():
-        # Serve the new rich dashboard if it exists
-        rich_path = os.path.join(os.path.dirname(__file__), "templates", "admin_dashboard.html")
-        if os.path.exists(rich_path):
-            return FileResponse(rich_path)
-        return FileResponse("/app/static/index.html")
+@app.get("/admin")
+async def serve_admin():
+    # Serve the new rich dashboard if it exists
+    rich_path = os.path.join(os.path.dirname(__file__), "templates", "admin_dashboard.html")
+    if os.path.exists(rich_path):
+        return FileResponse(rich_path)
+    return FileResponse("/app/static/index.html")
 
-    @app.get("/{full_path:path}")
-    async def serve_frontend(full_path: str):
-        # ── Bot Guard: Block common malicious scans ──
-        # These are common paths bots hit looking for vulnerabilities.
-        # We block them early to clean up logs and save resources.
-        bot_paths = [
-            "wp-", "xmlrpc", "php", ".env", ".git", "setup", "install"
-        ]
-        if any(bp in full_path.lower() for bp in bot_paths):
-            return Response(status_code=404, content="Not Found")
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str):
+    # ── Bot Guard: Block common malicious scans ──
+    # These are common paths bots hit looking for vulnerabilities.
+    # We block them early to clean up logs and save resources.
+    bot_paths = [
+        "wp-", "xmlrpc", "php", ".env", ".git", "setup", "install"
+    ]
+    if any(bp in full_path.lower() for bp in bot_paths):
+        return Response(status_code=404, content="Not Found")
 
-        # Skip if it's an API or WS route (but allow health)
-        if full_path.startswith("api") or full_path.startswith("ws"):
-            return Response(status_code=404)
-            
-        # Check if the file exists in static folder
+    # Skip if it's an API or WS route (but allow health)
+    if full_path.startswith("api") or full_path.startswith("ws"):
+        return Response(status_code=404)
+        
+    # Check if the file exists in static folder
+    if os.path.exists("/app/static"):
         file_path = os.path.join("/app/static", full_path)
         if os.path.isfile(file_path):
             return FileResponse(file_path)
             
         # Otherwise serve index.html for SPA routing
         return FileResponse("/app/static/index.html")
-else:
-    @app.get("/")
-    async def root_fallback():
-        return {"message": "Courage Backend is running. Frontend assets not found in /app/static. Build issue?"}
+    
+    return {"message": "Courage Backend is running. Frontend assets not found in /app/static. Build issue?"}

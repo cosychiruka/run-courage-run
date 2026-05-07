@@ -866,11 +866,18 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None, force=False):
         traceback.print_exc()
 
 
-# ── PHASE 1: Reactive Heartbeat Listener ─────────────────────────────────────
-async def force_autonomous_tick(x_client, tweet_image_fn):
-    """Called by urgent event listener — runs a full decision tick immediately."""
-    print("[REACTIVE] Urgent event received — forcing immediate tick!")
-    await autonomous_tick(x_client=x_client, tweet_image_fn=tweet_image_fn, force=True)
-
 # Global reference so sensors can trigger it
 FORCE_TICK_CALLBACK = None
+LAST_REACTIVE_TICK = 0
+
+async def force_autonomous_tick(x_client, tweet_image_fn):
+    """Called by urgent event listener — runs a full decision tick immediately."""
+    global LAST_REACTIVE_TICK
+    now = time.time()
+    if now - LAST_REACTIVE_TICK < 60:
+        print(f"[REACTIVE] Cooldown active ({int(60 - (now - LAST_REACTIVE_TICK))}s remaining) — skipping duplicate tick.")
+        return
+    
+    LAST_REACTIVE_TICK = now
+    print("[REACTIVE] Urgent event received — forcing immediate tick!")
+    await autonomous_tick(x_client=x_client, tweet_image_fn=tweet_image_fn, force=True)
