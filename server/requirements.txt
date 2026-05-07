@@ -27,6 +27,7 @@ python-multipart
 # SQLite async wrapper
 aiosqlite
 
-# Elite Tier Additions
+# AI Brain
+groq
 fal
 sentence-transformers
