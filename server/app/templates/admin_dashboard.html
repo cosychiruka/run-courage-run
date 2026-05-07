@@ -78,6 +78,20 @@
     </div>
   </div>
 
+  <!-- MODAL -->
+  <div id="modal-overlay" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="closeModal()">
+    <div class="modal bg-neutral-900 border border-neutral-700 w-full max-w-2xl rounded-3xl p-8 shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-start mb-6">
+        <div id="modal-header"></div>
+        <button onclick="closeModal()" class="text-neutral-400 hover:text-white text-2xl transition-colors">&times;</button>
+      </div>
+      <div id="modal-body" class="text-neutral-200 leading-relaxed"></div>
+      <div class="mt-8 flex justify-end">
+        <button onclick="closeModal()" class="px-6 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-xl font-medium transition-colors">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let currentTab = 0;
     let priceChart, trenchChart;
@@ -146,7 +160,7 @@
         } else if (currentTab === 1) { // Trenches
           html = `<h3 class="text-xl font-semibold mb-6">Latest Trenches</h3>
             <div class="grid gap-4">${data.recent_trenches.map(t => `
-              <div onclick="showTrenchModal('${t.author}', '${t.text.replace(/'/g, "\\'")}')" class="bg-neutral-800 hover:bg-neutral-700 rounded-2xl p-5 cursor-pointer transition-all">
+              <div onclick="showTrenchModal('${t.author}', '${t.text.replace(/'/g, "\\'").replace(/\n/g, "<br>")}')" class="bg-neutral-800 hover:bg-neutral-700 rounded-2xl p-5 cursor-pointer transition-all">
                 <div class="flex justify-between"><span class="font-bold">@${t.author}</span><span class="text-xs text-neutral-400">${t.time}</span></div>
                 <p class="mt-2 line-clamp-3">${t.text}</p>
                 <div class="text-xs mt-3 ${t.processed ? 'text-emerald-400' : 'text-amber-400'}">${t.processed ? '✅ PROCESSED' : '⏳ UNREAD'}</div>
@@ -163,7 +177,7 @@
           }, 50);
         } else if (currentTab === 3) { // News Posters
           html = `<div class="grid grid-cols-2 md:grid-cols-4 gap-4">${data.news_posters.map(p => `
-            <div onclick="window.open('${p.url}', '_blank')" class="cursor-pointer">
+            <div onclick="showPosterModal('${p.url}')" class="cursor-pointer">
               <img src="${p.url}" class="rounded-2xl shadow-xl hover:scale-105 transition-transform">
               <p class="text-xs text-neutral-400 mt-2">${p.time}</p>
             </div>`).join('')}</div>`;
@@ -181,12 +195,30 @@
       }
     }
 
+    function switchTab(n) { currentTab = n; loadDashboard(); }
     function forceVibeCheck() { fetch('/api/autonomous/trigger-now', {method:'POST'}).then(() => loadDashboard()); }
     function forceTrenchScan() { fetch('/api/tools/trench-scan', {method:'POST'}); loadDashboard(); }
     function forceMarketPulse() { fetch('/api/tools/market-pulse', {method:'POST'}); loadDashboard(); }
     function clearReplyQueue() { if (confirm('Clear entire reply queue?')) fetch('/api/queue/clear', {method:'POST'}); }
+    
     function showTrenchModal(author, text) {
-      alert(`@${author}\n\n${text}\n\n(Full modal would go here — you can expand later)`);
+      document.getElementById('modal-header').innerHTML = `
+        <h3 class="text-2xl font-bold flex items-center gap-2">
+          <i class="fab fa-twitter text-sky-400"></i> @${author}
+        </h3>
+      `;
+      document.getElementById('modal-body').innerHTML = `<p class="text-lg text-neutral-200">${text}</p>`;
+      document.getElementById('modal-overlay').classList.remove('hidden');
+    }
+
+    function showPosterModal(url) {
+      document.getElementById('modal-header').innerHTML = `<h3 class="text-xl font-bold">News Poster Preview</h3>`;
+      document.getElementById('modal-body').innerHTML = `<img src="${url}" class="w-full rounded-2xl shadow-2xl">`;
+      document.getElementById('modal-overlay').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.add('hidden');
     }
 
     // Tailwind script
