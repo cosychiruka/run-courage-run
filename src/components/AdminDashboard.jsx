@@ -148,6 +148,7 @@ const AdminDashboard = () => {
                             </div>
                         </div>
                     </div>
+                </div>
 
                 {/* ── System Stats Grid (Restored) ── */}
                 <div className="admin-grid" style={{ marginBottom: '2rem' }}>
