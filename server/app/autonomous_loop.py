@@ -264,9 +264,11 @@ async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=Non
 
         elif name == "idle_hype_post":
             text = f"Spreading Courage 🐕🦺 {args.get('reason')} — even when it's quiet, we keep the energy high! GM legends, $RCR to the moon!"
-            result = await execute_tool("post_tweet", {"text": text}, x_client=x_client, tweet_image_fn=tweet_image_fn)
-            await log_live_activity(f"Idle hype posted: {text[:60]}...")
-            return result
+            # Phase 3.0: Truly safe mode — don't call post_tweet if we are credit-capped
+            # We just log it to the brain/live-feed so the user sees he is still active
+            await log_live_activity(f"Internal Hype Generated: {text[:60]}...")
+            return {"status": "success", "message": "Idle hype generated internally (Safe Mode)"}
+
         elif name == "art_dog_generate":
             result = await execute_tool("art_dog_generate", {
                 "scene": args.get("scene") or "Courage reacting to the vibe",
