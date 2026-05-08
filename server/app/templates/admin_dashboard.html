@@ -27,7 +27,7 @@
           <h1 class="text-4xl font-bold flex items-center gap-3 neon">
             🐕‍🦺 Courage Control Center
           </h1>
-          <p class="text-emerald-400 text-lg font-medium">Elite Tier 4.0 • Fully Alive</p>
+          <p id="system-mode" class="text-emerald-400 text-lg font-medium">Elite Tier 4.0 • Fully Alive</p>
         </div>
       </div>
       <div class="flex items-center gap-6">
@@ -158,6 +158,18 @@
             data.memory_vectors = memData.count;
         } catch (e) {
             data.memory_vectors = 0;
+        }
+
+        // Update System Mode
+        const modeEl = document.getElementById('system-mode');
+        if (modeEl) {
+            if (data.x_spend_today >= 5.0 || (data.vibe && data.vibe.includes('Safe Mode'))) {
+                modeEl.textContent = '⚠️ SAFE MODE • Internal Hype Only';
+                modeEl.className = 'text-amber-400 text-lg font-medium';
+            } else {
+                modeEl.textContent = 'Elite Tier 4.0 • Fully Alive';
+                modeEl.className = 'text-emerald-400 text-lg font-medium';
+            }
         }
 
         // Quick Stats
@@ -295,12 +307,15 @@
           {name: 'Token Dog', status: data.token_dog}
         ];
         
-        document.getElementById('sub-agents-list').innerHTML = agents.map(a => `
-          <div class="bg-neutral-800 p-3 rounded-xl border border-neutral-700 flex items-center justify-between">
-            <span class="text-xs font-medium">${a.name}</span>
-            <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
-          </div>
-        `).join('');
+        document.getElementById('sub-agents-list').innerHTML = agents.map(a => {
+          const isActive = a.status === 'active' || a.status === 'online';
+          return `
+            <div class="bg-neutral-800 p-3 rounded-xl border border-neutral-700 flex items-center justify-between">
+              <span class="text-xs font-medium">${a.name}</span>
+              <span class="w-2 h-2 rounded-full ${isActive ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-neutral-600'}"></span>
+            </div>
+          `;
+        }).join('');
         
         document.getElementById('reflection-status').textContent = 'Last Reflection: ' + data.last_reflection;
       } catch (e) { console.error("Sub-agent load failed", e); }

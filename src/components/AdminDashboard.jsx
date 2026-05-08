@@ -5,27 +5,45 @@ import { FaRobot, FaNewspaper, FaHistory, FaBolt, FaBug, FaChartLine, FaUsers } 
 const AdminDashboard = () => {
     const [status, setStatus] = useState(null);
     const [history, setHistory] = useState([]);
+    const [decisions, setDecisions] = useState([]);
+    const [activity, setActivity] = useState([]);
+    const [memoryCount, setMemoryCount] = useState(0);
+    const [subAgents, setSubAgents] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
+    const [selectedDecision, setSelectedDecision] = useState(null);
 
     const API_BASE = import.meta.env.VITE_BACKEND_URL || '';
 
     const fetchData = async () => {
         try {
-            const [statusRes, historyRes] = await Promise.all([
+            const [statusRes, historyRes, decisionsRes, activityRes, memoryRes, subRes] = await Promise.all([
                 fetch(`${API_BASE}/api/admin/system-status`),
-                fetch(`${API_BASE}/api/admin/history`)
+                fetch(`${API_BASE}/api/admin/history`),
+                fetch(`${API_BASE}/api/admin/recent-decisions`),
+                fetch(`${API_BASE}/api/admin/live-activity`),
+                fetch(`${API_BASE}/api/admin/memory-vectors`),
+                fetch(`${API_BASE}/api/admin/sub_agents_status`)
             ]);
             
             if (!statusRes.ok || !historyRes.ok) throw new Error("Failed to fetch dashboard data");
             
             const statusData = await statusRes.json();
             const historyData = await historyRes.json();
+            const decisionsData = await decisionsRes.json();
+            const activityData = await activityRes.json();
+            const memoryData = await memoryRes.json();
+            const subAgentsData = await subRes.json();
             
             setStatus(statusData);
             setHistory(historyData);
+            setDecisions(decisionsData);
+            setActivity(activityData);
+            setMemoryCount(memoryData.count || 0);
+            setSubAgents(subAgentsData);
         } catch (err) {
+            console.error(err);
             setError(err.message);
         } finally {
             setLoading(false);
@@ -64,7 +82,7 @@ const AdminDashboard = () => {
     return (
         <div className="admin-dashboard-root">
             <nav className="admin-nav">
-                <h1>COURAGE COMMAND CENTER</h1>
+                <h1>COURAGE COMMAND CENTER • ELITE TIER 4.0</h1>
                 <div className="admin-nav-actions">
                     <button onClick={fetchData} disabled={actionLoading}><FaBolt /> Refresh</button>
                     <a href="/">Exit Dashboard</a>
@@ -74,60 +92,69 @@ const AdminDashboard = () => {
             <main className="admin-main">
                 {/* ── System Health Grid ── */}
                 <div className="admin-grid">
-                    {/* ── Heartbeat Monitor ── */}
+                    {/* ── Recent Brain Decisions ── */}
                     <div className="admin-card glass-card">
-                        <h3><FaBolt /> Heartbeat Monitor</h3>
-                        <div className="heartbeat-pulse">
-                            <div className="pulse-ring"></div>
-                            <span>Brain Cycle: 18m</span>
-                        </div>
-                        <div className="mini-bar-wrap">
-                            <p>Next Tick: ~{Math.max(0, 18 - Math.round((Date.now() - new Date(history[0]?.decided_at).getTime()) / 60000))} mins</p>
-                            <div className="mini-bar"><motion.div 
-                                className="mini-bar-fill pulse" 
-                                initial={{ width: 0 }}
-                                animate={{ width: `${Math.min(100, ((Date.now() - new Date(history[0]?.decided_at).getTime()) / (18 * 60000)) * 100)}%` }}
-                            ></motion.div></div>
-                        </div>
-                        <div className="admin-card-actions">
-                            <button className="brutal-btn--small pink" onClick={() => triggerAction('trigger-now', 'Manual Tick')}>Force Wake Up</button>
+                        <h3><FaBrain /> Recent Brain Decisions</h3>
+                        <div className="decisions-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                            {decisions.slice(0, 8).map(d => (
+                                <motion.div
+                                    key={d.id || d.timestamp}
+                                    className={`decision-card ${d.executed ? 'posted' : 'queued'}`}
+                                    onClick={() => setSelectedDecision(d)}
+                                    whileHover={{ scale: 1.02 }}
+                                    style={{ 
+                                        padding: '10px', 
+                                        background: 'rgba(255,255,255,0.03)', 
+                                        borderRadius: '8px', 
+                                        marginBottom: '8px', 
+                                        cursor: 'pointer',
+                                        borderLeft: d.executed ? '3px solid #00ffaa' : '3px solid #ff9900'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', opacity: 0.6 }}>
+                                        <span>{new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        <span>{d.executed ? '✅ POSTED' : '⏳ QUEUED'}</span>
+                                    </div>
+                                    <div style={{ fontWeight: 'bold', fontSize: '0.8rem', color: '#00ffaa', margin: '4px 0' }}>{d.type}</div>
+                                    <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>{d.short_text}</div>
+                                </motion.div>
+                            ))}
                         </div>
                     </div>
 
-                    {/* ── Twitter Budget ── */}
+                    {/* ── Live Brain Activity ── */}
                     <div className="admin-card glass-card">
-                        <h3><FaHistory /> Twitter Budget</h3>
-                        <div className="rate-limit-grid">
-                            <div className="rate-item">
-                                <label>SEARCH</label>
-                                <span>{status?.twitter?.rates?.search?.remaining || '?'} / {status?.twitter?.rates?.search?.limit || '?'}</span>
-                            </div>
-                            <div className="rate-item">
-                                <label>POST</label>
-                                <span>{status?.twitter?.rates?.post?.remaining || '?'} / {status?.twitter?.rates?.post?.limit || '?'}</span>
-                            </div>
-                        </div>
-                        <p className="tiny-text">Refreshes every 15-60 mins based on X rules.</p>
-                    </div>
-
-                    {/* ── Social Pulse ── */}
-                    <div className="admin-card glass-card">
-                        <h3><FaUsers /> Social Pulse</h3>
-                        <div className="social-mentions">
-                            {status?.twitter?.mention_pulse === 'none' ? (
-                                <p className="opacity-50">No recent whispers...</p>
-                            ) : (
-                                <div className="mention-bubbles">
-                                    {status?.twitter?.mention_pulse?.split(' | ').map((m, i) => (
-                                        <div key={i} className="mention-bubble">
-                                            "{m.length > 50 ? m.substring(0, 50) + '...' : m}"
-                                        </div>
-                                    ))}
+                        <h3><FaBolt /> Live Brain Activity</h3>
+                        <div className="live-activity-feed" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                            {activity.slice(0, 10).map((a, i) => (
+                                <div key={i} className="activity-item" style={{ fontSize: '0.85rem', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <span style={{ opacity: 0.5, fontFamily: 'monospace', marginRight: '10px' }}>{new Date(a.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                                    <span>{a.message}</span>
                                 </div>
-                            )}
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* ── Memory & Sub Agents ── */}
+                    <div className="admin-card glass-card">
+                        <h3><FaDog /> Memory & Sub-Agents</h3>
+                        <div className="stat-block">
+                            <p style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '5px' }}>MEMORY VECTORS</p>
+                            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#00ffff' }}>{memoryCount}</div>
+                            
+                            <div className="sub-agents" style={{ marginTop: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                {Object.entries(subAgents).filter(([k]) => k !== 'status' && k !== 'last_reflection').map(([name, st]) => (
+                                    <div key={name} style={{ background: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '8px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: st === 'active' || st === 'online' ? '#00ffaa' : '#555', boxShadow: st === 'active' || st === 'online' ? '0 0 5px #00ffaa' : 'none' }}></div>
+                                        {name.replace('_', ' ').toUpperCase()}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                <div className="admin-grid">
 
                 <div className="admin-grid">
                     <div className="admin-card glass-card">
@@ -197,6 +224,41 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             </main>
+
+            {/* Decision Modal */}
+            <AnimatePresence>
+                {selectedDecision && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setSelectedDecision(null)}
+                        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyCenter: 'center', padding: '20px' }}
+                    >
+                        <motion.div 
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            onClick={e => e.stopPropagation()}
+                            style={{ background: '#111', border: '1px solid #333', borderRadius: '24px', padding: '30px', maxWidth: '600px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <h2 style={{ margin: 0, color: '#00ffaa' }}>{selectedDecision.type}</h2>
+                                <button onClick={() => setSelectedDecision(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '2rem', cursor: 'pointer' }}>×</button>
+                            </div>
+                            <pre style={{ background: '#000', padding: '20px', borderRadius: '12px', color: '#00ffaa', fontSize: '0.85rem', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                                {JSON.stringify(selectedDecision, null, 2)}
+                            </pre>
+                            <button 
+                                onClick={() => setSelectedDecision(null)}
+                                style={{ marginTop: '20px', width: '100%', padding: '15px', borderRadius: '12px', background: '#00ffaa', color: '#000', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
+                            >
+                                CLOSE
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <style>{`
                 .admin-dashboard-root {
