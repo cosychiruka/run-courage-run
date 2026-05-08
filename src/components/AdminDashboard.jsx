@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaRobot, FaNewspaper, FaHistory, FaBolt, FaBug, FaChartLine, FaUsers } from 'react-icons/fa';
+import { FaRobot, FaNewspaper, FaHistory, FaBolt, FaBug, FaChartLine, FaUsers, FaBrain, FaDog } from 'react-icons/fa';
 
 const AdminDashboard = () => {
     const [status, setStatus] = useState(null);
@@ -18,32 +18,28 @@ const AdminDashboard = () => {
 
     const fetchData = async () => {
         try {
-            const [statusRes, historyRes, decisionsRes, activityRes, memoryRes, subRes] = await Promise.all([
-                fetch(`${API_BASE}/api/admin/system-status`),
-                fetch(`${API_BASE}/api/admin/history`),
-                fetch(`${API_BASE}/api/admin/recent-decisions`),
-                fetch(`${API_BASE}/api/admin/live-activity`),
-                fetch(`${API_BASE}/api/admin/memory-vectors`),
-                fetch(`${API_BASE}/api/admin/sub_agents_status`)
-            ]);
+            const endpoints = [
+                `${API_BASE}/api/admin/system-status`,
+                `${API_BASE}/api/admin/history`,
+                `${API_BASE}/api/admin/recent-decisions`,
+                `${API_BASE}/api/admin/live-activity`,
+                `${API_BASE}/api/admin/memory-vectors`,
+                `${API_BASE}/api/admin/sub_agents_status`
+            ];
             
-            if (!statusRes.ok || !historyRes.ok) throw new Error("Failed to fetch dashboard data");
+            const results = await Promise.all(endpoints.map(u => fetch(u).then(r => r.ok ? r.json() : null)));
             
-            const statusData = await statusRes.json();
-            const historyData = await historyRes.json();
-            const decisionsData = await decisionsRes.json();
-            const activityData = await activityRes.json();
-            const memoryData = await memoryRes.json();
-            const subAgentsData = await subRes.json();
+            const [statusData, historyData, decisionsData, activityData, memoryData, subAgentsData] = results;
             
-            setStatus(statusData);
-            setHistory(historyData);
-            setDecisions(decisionsData);
-            setActivity(activityData);
-            setMemoryCount(memoryData.count || 0);
-            setSubAgents(subAgentsData);
+            if (statusData) setStatus(statusData);
+            if (historyData) setHistory(historyData);
+            if (decisionsData) setDecisions(decisionsData);
+            if (activityData) setActivity(activityData);
+            if (memoryData) setMemoryCount(memoryData.count || 0);
+            if (subAgentsData) setSubAgents(subAgentsData);
+            
         } catch (err) {
-            console.error(err);
+            console.error("Dashboard Sync Error:", err);
             setError(err.message);
         } finally {
             setLoading(false);
@@ -150,6 +146,64 @@ const AdminDashboard = () => {
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    </div>
+
+                {/* ── System Stats Grid (Restored) ── */}
+                <div className="admin-grid" style={{ marginBottom: '2rem' }}>
+                    {/* ── Heartbeat Monitor ── */}
+                    <div className="admin-card glass-card">
+                        <h3><FaBolt /> Heartbeat Monitor</h3>
+                        <div className="heartbeat-pulse">
+                            <div className="pulse-ring"></div>
+                            <span>Brain Cycle: {status?.sensor_cooldown_minutes || 25}m</span>
+                        </div>
+                        <div className="mini-bar-wrap" style={{ marginTop: '1rem' }}>
+                            <p style={{ fontSize: '0.8rem', opacity: 0.7 }}>Next Tick: ~{Math.max(0, (status?.sensor_cooldown_minutes || 25) - Math.round((Date.now() - new Date(history[0]?.decided_at || Date.now()).getTime()) / 60000))} mins</p>
+                            <div className="mini-bar"><motion.div 
+                                className="mini-bar-fill pulse" 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.min(100, ((Date.now() - new Date(history[0]?.decided_at || Date.now()).getTime()) / ((status?.sensor_cooldown_minutes || 25) * 60000)) * 100)}%` }}
+                            ></motion.div></div>
+                        </div>
+                        <div className="admin-card-actions">
+                            <button className="brutal-btn--small pink" onClick={() => triggerAction('trigger-now', 'Manual Tick')}>Force Wake Up</button>
+                        </div>
+                    </div>
+
+                    {/* ── Twitter Budget ── */}
+                    <div className="admin-card glass-card">
+                        <h3><FaHistory /> Twitter Budget</h3>
+                        <div className="rate-limit-grid">
+                            <div className="rate-item">
+                                <label>SEARCH</label>
+                                <span>{status?.twitter?.rates?.search?.remaining || '?'} / {status?.twitter?.rates?.search?.limit || '?'}</span>
+                            </div>
+                            <div className="rate-item">
+                                <label>POST</label>
+                                <span>{status?.twitter?.rates?.post?.remaining || '?'} / {status?.twitter?.rates?.post?.limit || '?'}</span>
+                            </div>
+                        </div>
+                        <div className="stat-summary" style={{ marginTop: '10px', fontSize: '0.75rem', opacity: 0.6 }}>
+                            Spent Today: <span style={{ color: '#00ffaa' }}>${status?.x_spend_today?.toFixed(2) || '0.00'}</span>
+                        </div>
+                    </div>
+
+                    {/* ── Social Pulse ── */}
+                    <div className="admin-card glass-card">
+                        <h3><FaUsers /> Social Pulse</h3>
+                        <div className="social-mentions">
+                            {(!status?.twitter?.mention_pulse || status?.twitter?.mention_pulse === 'none') ? (
+                                <p className="opacity-50" style={{ fontSize: '0.8rem' }}>No recent whispers...</p>
+                            ) : (
+                                <div className="mention-bubbles">
+                                    {status?.twitter?.mention_pulse?.split(' | ').map((m, i) => (
+                                        <div key={i} className="mention-bubble" style={{ fontSize: '0.75rem', marginBottom: '4px' }}>
+                                            "{m.length > 50 ? m.substring(0, 50) + '...' : m}"
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
