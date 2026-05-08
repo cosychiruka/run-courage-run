@@ -12,11 +12,25 @@ hitting the X API rate limits every time someone asks "what have you
 been up to on Twitter?"
 """
 
+import json
 import time
 import aiosqlite
 from typing import Optional
 
-from app.config import DB_PATH
+from app.config import DB_PATH, REDIS_URL
+
+# ── Redis (for reflections) ────────────────────────────────────────────────────
+_redis = None
+
+async def _get_redis():
+    global _redis
+    if _redis is None:
+        try:
+            import redis.asyncio as aioredis
+            _redis = aioredis.from_url(REDIS_URL, decode_responses=True)
+        except:
+            pass
+    return _redis
 
 # ── Schema ─────────────────────────────────────────────────────────────────────
 
@@ -332,3 +346,31 @@ async def count_auto_tweets_today() -> int:
         async with db.execute("SELECT COUNT(*) FROM tw_tweets WHERE created_at >= ?", (today_start,)) as cur:
             row = await cur.fetchone()
             return row[0] if row else 0
+
+ a s y n c   d e f   g e t _ r e c e n t _ r e f l e c t i o n s ( l i m i t :   i n t   =   5 ) : 
+         \  
+ \ \ R e t u r n  
+ l a s t  
+ N  
+ r e f l e c t i o n s  
+ f o r  
+ _ g a t h e r _ s t a t e .  
+ S t u b  
+ f o r  
+ n o w  
+   
+ w e  
+ c a n  
+ m a k e  
+ i t  
+ r e a l  
+ l a t e r . \ \ \ 
+         t r y : 
+                 r _ c l i e n t   =   a w a i t   _ g e t _ r e d i s ( ) 
+                 i f   n o t   r _ c l i e n t :   r e t u r n   [ ] 
+                 r e f l e c t i o n s   =   a w a i t   r _ c l i e n t . l r a n g e ( \ c o u r a g e : r e f l e c t i o n s \ ,   0 ,   l i m i t - 1 ) 
+                 r e t u r n   [ j s o n . l o a d s ( r )   f o r   r   i n   r e f l e c t i o n s ]   i f   r e f l e c t i o n s   e l s e   [ ] 
+         e x c e p t   E x c e p t i o n : 
+                 r e t u r n   [ ]     #   s a f e   f a l l b a c k   s o   t i c k   n e v e r   d i e s   a g a i n 
+  
+ 
