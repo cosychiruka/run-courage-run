@@ -36,13 +36,14 @@ At the core of Courage is his Heartbeat. Rather than firing blindly, Courage bui
 
 ---
 
-## 💰 Phase 2.0: Credit-Aware Intelligence (Safe Mode)
+## 🧠 Intelligence Upgrades (Phase 2.0 - 5.0)
 
-Courage tracks his own API budgets. He does not crash or spam when external rate limits are hit.
+Courage is a living agent. He does not just sit and wait; he actively manages his resources and timeline.
 
-- **Intelligent Error Interception**: In `autonomous_loop.py`, if any tool dispatch throws a `403`, `SpendCapReached`, or `CreditsDepleted` error, Courage immediately catches it.
-- **State Flagging**: He sets a `courage:x_credit_status` flag to `"capped"` in Redis with a 3600-second TTL.
-- **The Pivot**: He logs a `CREDIT_ALERT` to the brain and automatically pivots to execute `idle_hype_post`—a safe-mode tool that generates internal memes and hype without making external API calls.
+- **The Execution Layer**: Tools like `post_tweet` are strictly wired with X dependencies, ensuring decisions made by the LLM are successfully published and verified with real tweet IDs.
+- **Credit-Aware Intelligence**: He tracks his own API budget. If Twitter API limits are reached (`SpendCapReached`), he sets a `capped` flag in Redis and intelligently pivots to safe-mode tools.
+- **Idle-Mode Fallback (`idle_hype_post`)**: If credits are depleted or the community trenches are quiet, he doesn't crash or go silent. He falls back to generating cost-free internal hype and memes.
+- **Proactive Personality (`proactive_personality_post`)**: Driven by his 25-minute autonomous heartbeat (`autonomous_tick`), if there is no urgent news or game moments, Courage will proactively post GM/GN greetings, SOL pulse updates, or random chaos to keep the timeline alive. He is never silent.
 
 ---
 
@@ -83,9 +84,10 @@ Courage has semantic long-term memory.
 
 The backend exposes rich observability endpoints (`/api/admin`) that power a real-time dashboard.
 
-- **Live Brain Activity**: The UI polls `/api/admin/recent-decisions` (fetched from Redis) to display a live feed of Courage's inner monologue.
-- **Execution Modals**: Every decision in the feed is clickable, revealing the exact JSON payload, arguments, and success/failure states of the dispatch loop.
-- **Vector Tracking**: Displays the live count of semantic memories stored in the `rag_vectors` table.
+- **Live Brain Activity**: The UI polls `/api/admin/live-activity` for a real-time, pulsing feed of Courage's inner monologue and tool dispatches.
+- **Execution Modals**: Every decision in the `Recent Brain Decisions` feed is clickable, revealing the exact JSON payload, arguments, and success/failure states of the dispatch loop.
+- **Vector Tracking**: Displays the live count of semantic memories stored in the `rag_vectors` table via the `/api/admin/memory-vectors` endpoint.
+- **Sub-Agent Monitoring**: Real-time status indicators for the News Dog, Art Dog, Engagement Dog, and Token Dog.
 - **Override Frequency**: Admins can hit `/api/admin/override_frequency` to dynamically alter the global sensor cooldowns in Redis without restarting the server.
 
 ---
