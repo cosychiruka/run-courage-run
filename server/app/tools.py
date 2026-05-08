@@ -1180,19 +1180,31 @@ async def _reflect_and_adapt(action_taken: str, outcome: str = "success"):
 async def news_dog_scan():
     """News Dog: Specialist in scanning the wires."""
     from app.news_cache import get_cached_articles
-    news = await get_cached_articles(limit=4)
+    news = await get_cached_articles(limit=5)
     return {"top_stories": [n.get("title", "Untitled") for n in news]}
 
-async def art_dog_generate(scene: str):
-    """Art Dog: Specialist in visual creation."""
+async def art_dog_generate(scene: str, current_sentiment: str = "neutral", token_info: dict = None):
+    """Art Dog — highly creative and context-aware (no hardcoded generic fallback)"""
+    token_context = ""
+    if token_info and token_info.get("symbol") == "$RCR":
+        token_context = f"Current $RCR price is {token_info.get('price', '???')}. "
+
+    enhanced_prompt = (
+        f"{scene}. "
+        f"Current community sentiment: {current_sentiment}. "
+        f"{token_context}"
+        "Courage is energetic, expressive, slightly chaotic, and full of personality. "
+        "Make it fun, meme-worthy, and emotionally charged."
+    )
+
     # Reuses the existing smart art function
-    return await _create_courage_art({"prompt": scene, "sentiment": "current"})
+    return await _create_courage_art({"prompt": enhanced_prompt, "sentiment": current_sentiment})
 
 async def engagement_dog_suggest():
     """Engagement Dog: Specialist in trench reading."""
     from app.twitter_memory import get_recent_unprocessed_trenches
-    trenches = await get_recent_unprocessed_trenches(limit=6)
-    return {"suggested_replies": [t.get("text", "")[:180] for t in trenches[:3]]}
+    trenches = await get_recent_unprocessed_trenches(limit=8)
+    return {"suggested_replies": [t.get("text", "")[:220] for t in trenches[:4]]}
 
 async def token_dog_report():
     """Token Dog: Specialist in market monitoring."""

@@ -151,7 +151,7 @@ Decide the SINGLE best action right now. Be concise. Only use tools if truly nee
             for tool_call in message.tool_calls:
                 name = tool_call.function.name
                 chosen_action = name
-                await dispatch_tool(tool_call)
+                await dispatch_tool(tool_call, state)
         else:
             print("[AUTONOMOUS] Courage decided to stay quiet and keep watching.")
 
@@ -169,13 +169,24 @@ Decide the SINGLE best action right now. Be concise. Only use tools if truly nee
     except Exception as e:
         print(f"[AUTONOMOUS ERROR] {e}")
 
-async def dispatch_tool(tool_call):
+async def dispatch_tool(tool_call, state=None):
     """Routes LLM tool calls to actual function executions."""
     name = tool_call.function.name
     args = json.loads(tool_call.function.arguments)
     print(f"[TOOL] Courage is using: {name} with args {args}")
 
     from app.tools import execute_tool
+    
+    # Enhanced logic for sub-agents to avoid hardcoding
+    if name == "art_dog_generate":
+        scene = args.get("scene") or "Courage reacting to the current community vibe"
+        # Injected dynamic state context
+        return await execute_tool("art_dog_generate", {
+            "scene": scene,
+            "current_sentiment": state.get("sentiment", {}).get("summary", "neutral") if state else "neutral",
+            "token_info": state.get("token_info", {}) if state else {}
+        })
+    
     await execute_tool(name, args)
 
 # ── Heartbeat ──────────────────────────────────────────────────────────────────
