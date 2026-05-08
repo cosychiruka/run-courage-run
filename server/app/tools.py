@@ -175,6 +175,20 @@ TOOL_SCHEMAS = [
     {
         "type": "function",
         "function": {
+            "name": "idle_hype_post",
+            "description": "When trenches are quiet, credits are low, or no urgent events — post fun, proactive 'Spreading Courage' content (GM/GN, random meme, SOL update, hype).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reason": {"type": "string", "description": "Why we are posting (quiet, credits low, etc.)"}
+                },
+                "required": ["reason"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_my_profile",
             "description": (
                 "Fetch @runcouragerun's own Twitter profile info: username, display name, bio, "

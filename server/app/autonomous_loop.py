@@ -128,6 +128,17 @@ async def _gather_state():
     rag_results = await rag.retrieve_top_k("current community vibe and $RCR sentiment", k=4)
     state["rag_context"] = [r["text"][:240] for r in rag_results]
 
+    # Smart idle / credit awareness
+    credit_status = await _redis.get("courage:x_credit_status") or "ok"
+    trench_count = len(state.get("trenches", []))
+    game_active = len(state.get("game_moments", [])) > 0
+
+    if credit_status == "capped" or (trench_count == 0 and not game_active):
+        state["mode"] = "idle_hype"
+        state["idle_reason"] = "credits_capped" if credit_status == "capped" else "quiet_trenches"
+    else:
+        state["mode"] = "normal"
+
     return state
 
 # ── Decision Engine ───────────────────────────────────────────────────────────
@@ -223,7 +234,12 @@ async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=Non
         from app.tools import execute_tool
         
         # Specialist sub-agent routing (preserves Phase 7 enhancements)
-        if name == "art_dog_generate":
+        if name == "idle_hype_post":
+            text = f"Spreading Courage 🐕🦺 {args.get('reason')} — even when it's quiet, we keep the energy high! GM legends, $RCR to the moon!"
+            result = await execute_tool("post_tweet", {"text": text}, x_client=x_client, tweet_image_fn=tweet_image_fn)
+            await log_live_activity(f"Idle hype posted: {text[:60]}...")
+            return result
+        elif name == "art_dog_generate":
             result = await execute_tool("art_dog_generate", {
                 "scene": args.get("scene") or "Courage reacting to the vibe",
                 "current_sentiment": state.get("community_vibe", "neutral") if state else "neutral",
