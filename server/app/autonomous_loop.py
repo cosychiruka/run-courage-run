@@ -158,10 +158,20 @@ Decide the SINGLE best action right now. Be concise. Only use tools if truly nee
         if message.tool_calls:
             for tool_call in message.tool_calls:
                 name = tool_call.function.name
+                args = json.loads(tool_call.function.arguments)
                 chosen_action = name
-                await dispatch_tool(tool_call, state)
+                print(f"[AUTONOMOUS] Executing tool: {name}")
+                
+                # Execute and log
+                try:
+                    result = await dispatch_tool(tool_call, state)
+                    await log_brain_decision(name.upper(), str(args), executed=True)
+                except Exception as e:
+                    print(f"[AUTONOMOUS TOOL ERROR] {e}")
+                    await log_brain_decision(name.upper(), str(args), executed=False, error=str(e))
         else:
             print("[AUTONOMOUS] Courage decided to stay quiet and keep watching.")
+            await log_brain_decision("NO_ACTION", "Decided to keep watching", executed=True)
 
         # FINAL REFLECTION — makes him learn every single time
         if chosen_action != "NO_ACTION":
@@ -229,6 +239,21 @@ async def dispatch_tool_call_by_name(name: str, args: dict, state=None):
         })
     
     return await execute_tool(name, args)
+
+async def log_brain_decision(action: str, text: str, executed: bool = False, error: str = None):
+    """Logs a decision to Redis for the admin dashboard (Phase 1.5)"""
+    global _redis
+    if not _redis: return
+    
+    await _redis.rpush("courage:brain_decisions", json.dumps({
+        "id": str(int(time.time())),
+        "timestamp": datetime.now().isoformat(),
+        "type": action,
+        "short_text": text[:120] + "..." if len(text) > 120 else text,
+        "executed": executed,
+        "error": error
+    }))
+    await _redis.ltrim("courage:brain_decisions", -50, -1)  # keep last 50
 
 # ── Heartbeat ──────────────────────────────────────────────────────────────────
 
