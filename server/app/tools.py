@@ -15,6 +15,7 @@ Tools available to Courage:
   - check_api_credits     : check remaining API budget (Groq tokens, X searches, news)
 """
 
+import os
 import json
 import re
 import time
