@@ -508,6 +508,29 @@ TOOL_SCHEMAS = [
             "description": "Review long-term memory and suggest improvements or treasury actions.",
             "parameters": {"type": "object", "properties": {}, "required": []}
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "viral_growth_suggest",
+            "description": "Suggest viral actions like raids, meme drops, or collabs based on current momentum.",
+            "parameters": {"type": "object", "properties": {}, "required": []}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "trigger_3d_reaction",
+            "description": "Trigger a light visual reaction in one of the 5 stages (Sunrise, Noon, etc.).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "stage": {"type": "string", "enum": ["sunrise", "noon", "evening", "midnight", "disco"]},
+                    "event": {"type": "string"}
+                },
+                "required": ["stage", "event"]
+            }
+        }
     }
 ]
 
@@ -541,6 +564,8 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
             case "engagement_dog_suggest": return await engagement_dog_suggest()
             case "token_dog_report":      return await token_dog_report()
             case "eternal_reflect":       return await eternal_reflect()
+            case "viral_growth_suggest":  return await viral_growth_suggest()
+            case "trigger_3d_reaction":   return await trigger_3d_reaction(args.get("stage", "noon"), args.get("event", "community_win"))
 
             case "fetch_trench_tweets":
                 from app.trench_service import fetch_trench_tweets
@@ -1246,3 +1271,27 @@ async def eternal_reflect():
         "treasury_suggestion": treasury_suggestion,
         "summary": f"Reflected on last {len(recent_posts)} posts — evolving well"
     }
+
+async def viral_growth_suggest():
+    """Viral Growth Engine — suggests smart community actions"""
+    # Simple summary of the community vibe for momentum check
+    sentiment = await _analyze_sentiment({"focus": "both"})
+    momentum = sentiment.get("summary", "neutral")
+    
+    suggestions = []
+    if "bullish" in momentum.lower() or "lfg" in momentum.lower() or "positive" in momentum.lower():
+        suggestions.append("Organize a quick $RCR raid with GM energy")
+    suggestions.append("Drop a fun meme about Printing/Brrrr")
+    suggestions.append("Host a community 'Courage Moment' for holders")
+    
+    return {"viral_suggestions": suggestions[:3]}
+
+async def trigger_3d_reaction(stage: str, event: str):
+    """Light 3D reactivity — only visual flair, no heavy load"""
+    from app.tools import _get_tools_redis
+    _redis = await _get_tools_redis()
+    if _redis:
+        # This emits a Redis event that the frontend listens to
+        await _redis.xadd("courage:3d_events", {"stage": stage, "event": event})
+        return {"status": "triggered", "stage": stage, "event": event}
+    return {"status": "error", "message": "Redis not available"}

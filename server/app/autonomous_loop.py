@@ -198,6 +198,13 @@ async def dispatch_tool(tool_call, state=None):
         return await execute_tool("token_dog_report", {})
     elif name == "eternal_reflect":
         return await execute_tool("eternal_reflect", {})
+    elif name == "viral_growth_suggest":
+        return await execute_tool("viral_growth_suggest", {})
+    elif name == "trigger_3d_reaction":
+        return await execute_tool("trigger_3d_reaction", {
+            "stage": args.get("stage", "noon"),
+            "event": args.get("event", "community_win")
+        })
     
     await execute_tool(name, args)
 
