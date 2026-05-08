@@ -500,6 +500,14 @@ TOOL_SCHEMAS = [
             "description": "Token Dog gives latest $RCR stats and suggests pump/hold messaging.",
             "parameters": {"type": "object", "properties": {}, "required": []}
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "eternal_reflect",
+            "description": "Review long-term memory and suggest improvements or treasury actions.",
+            "parameters": {"type": "object", "properties": {}, "required": []}
+        }
     }
 ]
 
@@ -532,6 +540,7 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
             case "art_dog_generate":      return await art_dog_generate(args.get("scene", "Courage being epic"))
             case "engagement_dog_suggest": return await engagement_dog_suggest()
             case "token_dog_report":      return await token_dog_report()
+            case "eternal_reflect":       return await eternal_reflect()
 
             case "fetch_trench_tweets":
                 from app.trench_service import fetch_trench_tweets
@@ -1208,3 +1217,32 @@ async def engagement_dog_suggest():
 async def token_dog_report():
     """Token Dog: Specialist in market monitoring."""
     return await get_token_info()
+
+async def eternal_reflect():
+    """Eternal Memory + Self-Funding Loop"""
+    import app.twitter_memory as twitter_memory
+    from app.tools import _get_tools_redis
+    
+    _redis = await _get_tools_redis()
+    recent_posts = await twitter_memory.get_own_recent_posts(limit=20)
+    reflections = []
+
+    for post in recent_posts:
+        text = post["text"].lower()
+        if "gm" in text or "gn" in text:
+            reflections.append("GM/GN style continues to perform well")
+        if "brrrr" in text or "printing" in text:
+            reflections.append("Brrrr/Printing posts create strong engagement")
+    
+    # Self-funding suggestion (safe — only suggests, never spends automatically)
+    treasury_suggestion = None
+    if _redis:
+        rev = await _redis.get("courage:rcr_revenue")
+        if rev and float(rev) > 50:
+            treasury_suggestion = "We have enough $RCR revenue to suggest buying more X API credits"
+
+    return {
+        "long_term_insights": reflections[:5],
+        "treasury_suggestion": treasury_suggestion,
+        "summary": f"Reflected on last {len(recent_posts)} posts — evolving well"
+    }

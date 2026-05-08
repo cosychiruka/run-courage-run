@@ -166,6 +166,10 @@ Decide the SINGLE best action right now. Be concise. Only use tools if truly nee
             except Exception as e:
                 print(f"[REFLECTION ERROR] {e}")
 
+        # ETERNAL REFLECTION — makes him evolve over days/weeks
+        if chosen_action != "NO_ACTION":
+            await dispatch_tool_call_by_name("eternal_reflect", {}, state)
+
     except Exception as e:
         print(f"[AUTONOMOUS ERROR] {e}")
 
@@ -186,8 +190,30 @@ async def dispatch_tool(tool_call, state=None):
             "current_sentiment": state.get("community_vibe", "neutral") if state else "neutral",
             "token_info": state.get("token_info", {}) if state else {}
         })
+    elif name == "news_dog_scan":
+        return await execute_tool("news_dog_scan", {})
+    elif name == "engagement_dog_suggest":
+        return await execute_tool("engagement_dog_suggest", {})
+    elif name == "token_dog_report":
+        return await execute_tool("token_dog_report", {})
+    elif name == "eternal_reflect":
+        return await execute_tool("eternal_reflect", {})
     
     await execute_tool(name, args)
+
+async def dispatch_tool_call_by_name(name: str, args: dict, state=None):
+    """Helper to dispatch by name directly (used for automatic reflections)"""
+    from app.tools import execute_tool
+    
+    if name == "art_dog_generate":
+        scene = args.get("scene") or "Courage reacting to the current community vibe with full personality"
+        return await execute_tool("art_dog_generate", {
+            "scene": scene,
+            "current_sentiment": state.get("community_vibe", "neutral") if state else "neutral",
+            "token_info": state.get("token_info", {}) if state else {}
+        })
+    
+    return await execute_tool(name, args)
 
 # ── Heartbeat ──────────────────────────────────────────────────────────────────
 
