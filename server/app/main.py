@@ -679,9 +679,15 @@ async def system_status():
     }
 
 @app.post("/api/autonomous/trigger-now")
-async def trigger_now():
+async def trigger_now(request: Request):
     """Manually trigger an autonomous tick immediately."""
     from app.autonomous_loop import autonomous_tick
+    try:
+        data = await request.json()
+        force_mode = data.get("force_mode")
+    except Exception:
+        force_mode = None
+
     # Use create_task so we return immediately to the admin UI
     asyncio.create_task(autonomous_tick(x_client=x_client, tweet_image_fn=_tweet_image_fn))
     return JSONResponse({"status": "ok", "message": "Autonomous tick triggered in background."})
