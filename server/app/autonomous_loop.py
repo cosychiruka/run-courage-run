@@ -23,6 +23,7 @@ from app.twitter_memory import (
 from app.voice_priority import is_voice_active
 from app.system_prompt import SYSTEM_PROMPT_MINIMAL
 from app.tools import TOOL_SCHEMAS as COURAGE_TOOLS
+import app.tools as tools
 
 # ── Phase 5 Globals ───────────────────────────────────────────────────────────
 groq_client = AsyncGroq(api_key=GROQ_API_KEY)
@@ -140,7 +141,7 @@ Decide the SINGLE best action right now. Be concise. Only use tools if truly nee
     try:
         completion = await groq_client.chat.completions.create(
             model=GROQ_MODEL,
-            messages=[{"role": "user", "content": full_prompt}],
+            messages=[{"role": "user", "content": decision_prompt}],
             tools=_get_tools_spec(),
             tool_choice="auto",
             temperature=0.7,
