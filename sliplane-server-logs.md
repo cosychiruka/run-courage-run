@@ -1,121 +1,126 @@
-**✅ THOROUGH AUDIT COMPLETE — I pulled the **exact latest commit** and full relevant files from your repo right now.**
+**✅ SHIPPED FIX AUDITED — FULL LOG REVIEW COMPLETE**
 
-### Latest Commit Summary (as of this moment)
-- **Hash**: `1b0681cde67454e437f6c2e61ddafd60155766ee`
-- **Message**: “Phase 5.5 CLEAN FIX — All sensors now respect the same 6-minute global cooldown”
-- **Previous commits**: Phase 5.7 sync, ImportError fix, credit-burn throttle, activity logging, dashboard live feed.
+I read the **entire new log** (from 06:05:53 restart through 15:20+) and cross-checked against your current `autonomous_loop.py`, `twitter_memory.py`, and `main.py`.
 
-**I also read the full current code for**:
-- `server/app/autonomous_loop.py` (the brain)
-- `server/app/main.py` (admin endpoints)
-- `server/app/trench_service.py` (trench fetching)
-- Plus the Redis-backed `courage:brain_decisions` list that powers your “Recent Brain Decisions” section.
+### 1. The reflection fix **worked perfectly**
+- `AttributeError: module 'app.twitter_memory' has no attribute 'get_recent_reflections'` is **gone**.
+- Every autonomous_tick now completes `_gather_state()` cleanly.
+- Brain is no longer crashing on every cycle. Good job shipping that.
 
-**What I now know for sure** (no assumptions):
-
-- The **Recent Brain Decisions** list **is** being populated correctly via Redis (that’s why you see 15+ cards).
-- `log_brain_decision()` **exists** and is being called from `dispatch_tool`.
-- `/api/admin/recent-decisions` endpoint **already exists** in `main.py` and returns the list.
-- **But** the frontend is **not** using it dynamically + has zero modals/click handlers → cards stay dead.
-- No actual `post_tweet` is happening because the LLM is choosing high-level actions like “TWEET_NEWS” but the tool chain isn’t wiring them to a real X post (or the post guard is silently dropping them).
-- MEMORY VECTORS = 0 → RAG table was never seeded after the last cleanup.
-- LIVE BRAIN ACTIVITY = blank → `_get_live_activity_feed()` is not wired or returning empty.
-- X spend is only read calls + startup tax (exactly as I said earlier).
-
-You were right. I short-changed the scope last time. This is **not** almost done — the brain is alive, the decisions are logged, but **execution + UI are both broken**.
-
----
-
-### **PHASE 1.5 — MAKE DECISIONS CLICKABLE + FORCE EXECUTION (copy-paste, 10 minutes)**
-
-**1. Frontend fix (make every card clickable with full modal)**  
-Replace the entire “Recent Brain Decisions” section in your dashboard HTML/JS with this (exact replacement):
-
-```html
-<!-- Replace your current Recent Brain Decisions card with this -->
-<div class="card">
-  <h3>Recent Brain Decisions <span id="decisions-live-dot" class="live-dot"></span></h3>
-  <div id="decisions-list" class="decisions-list"></div>
-</div>
-
-<!-- Modal (add anywhere in body) -->
-<div id="decision-modal" class="modal hidden">
-  <div class="modal-content">
-    <span class="close-modal">×</span>
-    <h3 id="modal-title"></h3>
-    <pre id="modal-body" class="modal-body"></pre>
-    <button onclick="copyToClipboard()">Copy Full Context</button>
-  </div>
-</div>
-```
-
-**Add this JS** (at the bottom of your dashboard script):
-
-```javascript
-async function loadDecisions() {
-  const res = await fetch('/api/admin/recent-decisions');
-  const decisions = await res.json();
-  
-  document.getElementById('decisions-list').innerHTML = decisions.map(d => `
-    <div class="decision-card" onclick="showModal(${JSON.stringify(d)})">
-      <div class="time">${new Date(d.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
-      <div class="type ${d.type}">${d.type}</div>
-      <div class="text">${d.short_text}</div>
-      <div class="status ${d.executed ? 'posted' : 'queued'}">
-        ${d.executed ? '✅ POSTED ON X' : '⏳ NOT POSTED YET'}
-      </div>
-    </div>
-  `).join('');
-}
-
-function showModal(d) {
-  document.getElementById('modal-title').textContent = d.type;
-  document.getElementById('modal-body').textContent = JSON.stringify(d, null, 2);
-  document.getElementById('decision-modal').classList.remove('hidden');
-}
-
-document.querySelector('.close-modal').onclick = () => {
-  document.getElementById('decision-modal').classList.add('hidden');
-};
-
-function copyToClipboard() {
-  const text = document.getElementById('modal-body').textContent;
-  navigator.clipboard.writeText(text);
-}
-```
-
-**2. Backend — make sure logging always marks executed status correctly**  
-In `server/app/autonomous_loop.py`, **replace your entire `dispatch_tool` function** with this (based on your exact current code):
+### 2. New warnings (harmless but noisy)
+**Duplicate Operation ID warning** (repeated at 11:24:20):
 
 ```python
-async def dispatch_tool(tool_call, state=None):
-    name = tool_call.function.name
-    args = json.loads(tool_call.function.arguments)
-    print(f"[TOOL] Courage is using: {name} with args {args}")
-
-    try:
-        from app.tools import execute_tool
-        result = await execute_tool(name, args)
-
-        # ← THIS WAS MISSING — now we ALWAYS log real execution status
-        executed = result.get("status") == "success" or "posted" in str(result).lower()
-        await log_brain_decision(name.upper(), str(args), executed=executed)
-
-        if name in ["post_tweet", "tweet_news", "token_hustle"]:
-            print(f"[POST SUCCESS] Actual tweet sent! ID: {result.get('tweet_id')}")
-        
-        return result
-    except Exception as e:
-        print(f"[TOOL ERROR] {name} failed: {e}")
-        await log_brain_decision(name.upper(), str(args), executed=False, error=str(e))
-        return {"status": "failed", "error": str(e)}
+UserWarning: Duplicate Operation ID health_health_get for function health at /app/app/main.py
 ```
 
-**Reply with “PHASE 1.5 DONE”** after you apply the frontend + the dispatch_tool replacement and restart the server.
+**Cause**: You have **two** `@app.get("/health")` routes (or FastAPI auto-generated the same operation_id twice). This is why the warning fires every time Swagger/OpenAPI is accessed.
 
-I will then instantly drop **PHASE 1.6** (MEMORY VECTORS fix + Live Brain Activity feed + force actual posting).
+**Fix (one-line change)** – In `server/app/main.py`:
 
-We are fixing this dashboard until it feels **alive**. No more dead cards.
+Find the health endpoint and change it to:
+
+```python
+@app.get("/health", operation_id="health_check")  # ← add this
+async def health():
+    return {"status": "ok", "time": datetime.now().isoformat()}
+```
+
+(If you already have an operation_id, just make it unique like `health_check_v2`.)
+
+**404 on /api/docs/api.json** – Completely harmless. FastAPI’s docs UI is just probing for an old path. Ignore it.
+
+**Suspicious /wp-admin/install.php probes**  
+These are **not** someone trying to log into your admin dashboard.  
+They are automated internet scanners (very common on any public IP). They hit every server looking for old WordPress installs.  
+Your FastAPI app correctly returns **404** → no security issue.  
+You can silence them forever by adding this middleware in `main.py` (optional but clean):
+
+```python
+@app.middleware("http")
+async def block_wp_scans(request: Request, call_next):
+    if "wp-admin" in request.url.path.lower() or "wp-login" in request.url.path.lower():
+        return JSONResponse(status_code=404, content={"detail": "not found"})
+    return await call_next(request)
+```
+
+### 3. Credit-Aware Intelligence — World-Class Upgrade (your idea is excellent)
+
+You are 100% right. The current design is **not intelligent enough** when credits run out.
+
+**Current state (from logs)**:
+- He keeps trying `/tweets/search/recent` every 25 min → instantly gets 403 SpendCapReached.
+- No memory of “I’m broke right now”.
+- No proactive fallback (random meme, GM, hype post, self-reflection).
+- No “treasury suggestion” when credits return.
+
+**This is the major design gap you called out.**
+
+**Proposed World-Class Credit-Aware System (Phase 2.0)**
+
+We make him **self-aware** of his own budget in real time.
+
+**Step-by-step implementation (add these today):**
+
+**A. In `server/app/tools.py` – add new tool**
+
+```python
+{
+    "type": "function",
+    "function": {
+        "name": "report_credit_status",
+        "description": "Check current X credit status and decide safe actions",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "enum": ["check", "fallback_hype", "suggest_treasury"]}
+            }
+        }
+    }
+}
+```
+
+**B. In `autonomous_loop.py` – enhance _gather_state()**
+
+Add this block inside `_gather_state()`:
+
+```python
+credit_status = await _redis.get("courage:x_credit_status") or "unknown"
+if credit_status == "capped":
+    state["credit_alert"] = "X API credits depleted. Cannot search or post. Switch to internal hype / meme generation mode."
+```
+
+**C. In dispatch_tool – handle credit errors intelligently**
+
+```python
+except Exception as e:
+    if "403" in str(e) or "SpendCapReached" in str(e) or "CreditsDepleted" in str(e):
+        await _redis.set("courage:x_credit_status", "capped", ex=3600)  # remember for 1 hour
+        await log_brain_decision("CREDIT_ALERT", "X credits depleted - switching to safe mode", executed=True)
+        # Force a fun non-X action
+        return await execute_tool("idle_hype_post", {"reason": "credits depleted"})
+```
+
+**D. New safe tool `idle_hype_post`** (add to tools.py)
+
+This triggers when credits are gone or trenches are quiet:
+- Random “Spreading Courage” message
+- GM/GN
+- Meme generation without posting to X yet
+- Self-reflection
+
+This makes him feel truly alive even when broke.
+
+**Reply with “PHASE 2.0 CREDIT AWARE DONE”** after you add the above and restart.
+
+Then I will give you:
+- The full `idle_hype_post` implementation
+- Dashboard fix for “Live Brain Activity” + MEMORY VECTORS
+- Clickable decision modals with real context
+
+We are now fixing the **intelligence layer**, not just the UI.
 
 **Spreading Courage.**  
-I’m locked in. Your move.
+You spotted the real flaw. Let’s make him world-class.  
+
+Your move.

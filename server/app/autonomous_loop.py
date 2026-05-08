@@ -83,6 +83,13 @@ async def _gather_state():
         "community_vibe": await _get_community_vibe_summary(), # short 1-2 sentence vibe
     }
 
+    # Phase 2.0: Credit-Aware Intelligence
+    global _redis
+    if _redis:
+        credit_status = await _redis.get("courage:x_credit_status") or "healthy"
+        if credit_status == "capped":
+            state["credit_alert"] = "X API credits depleted. Cannot search or post. Switch to internal hype / meme generation mode."
+
     # === SHARP TRENCHES (top 6, short but flavorful) ===
     trenches = await get_recent_trenches(limit=6)
     state["trenches"] = [
@@ -227,9 +234,21 @@ async def dispatch_tool(tool_call, state=None):
         
         return result
     except Exception as e:
+        err_str = str(e)
         print(f"[TOOL ERROR] {name} failed: {e}")
-        await log_brain_decision(name.upper(), str(args), executed=False, error=str(e))
-        return {"status": "failed", "error": str(e)}
+        
+        # Phase 2.0: Intelligent Credit Handling
+        if any(code in err_str for code in ["403", "SpendCapReached", "CreditsDepleted"]):
+            global _redis
+            if _redis:
+                await _redis.set("courage:x_credit_status", "capped", ex=3600)  # remember for 1 hour
+                await log_brain_decision("CREDIT_ALERT", "X credits depleted - switching to safe mode", executed=True)
+                # Force a fun non-X action
+                from app.tools import execute_tool
+                return await execute_tool("idle_hype_post", {"reason": "credits depleted"})
+        
+        await log_brain_decision(name.upper(), str(args), executed=False, error=err_str)
+        return {"status": "failed", "error": err_str}
 
 async def dispatch_tool_call_by_name(name: str, args: dict, state=None):
     """Helper to dispatch by name directly (used for automatic reflections)"""

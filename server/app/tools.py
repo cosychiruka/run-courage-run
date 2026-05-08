@@ -521,6 +521,27 @@ TOOL_SCHEMAS = [
     {
         "type": "function",
         "function": {
+            "name": "report_credit_status",
+            "description": "Check current X credit status and decide safe actions",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "action": {"type": "string", "enum": ["check", "fallback_hype", "suggest_treasury"]}
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "idle_hype_post",
+            "description": "Triggered when credits are gone or trenches are quiet: Random hype, GM/GN, or Self-reflection.",
+            "parameters": {"type": "object", "properties": {"reason": {"type": "string"}}, "required": []}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "trigger_3d_reaction",
             "description": "Trigger a light visual reaction in one of the 5 stages (Sunrise, Noon, etc.).",
             "parameters": {
@@ -1300,3 +1321,26 @@ async def trigger_3d_reaction(stage: str, event: str):
         await _redis.xadd("courage:3d_events", {"stage": stage, "event": event})
         return {"status": "triggered", "stage": stage, "event": event}
     return {"status": "error", "message": "Redis not available"}
+
+async def report_credit_status(action: str = 'check'):
+    """Check current X credit status and decide safe actions"""
+    from app.tools import _get_tools_redis
+    _redis = await _get_tools_redis()
+    status = "unknown"
+    if _redis:
+        status = await _redis.get("courage:x_credit_status") or "healthy"
+    
+    return {
+        "credit_status": status,
+        "action_taken": action,
+        "recommendation": "Switch to internal mode" if status == "capped" else "Continue normal operations"
+    }
+
+async def idle_hype_post(reason: str = 'quiet'):
+    """Placeholder for proactive safe mode (full implementation in next phase)"""
+    return {
+        "status": "safe_mode_active",
+        "mode": "internal_hype",
+        "reason": reason,
+        "message": "Courage is spreading hype internally while X credits settle."
+    }

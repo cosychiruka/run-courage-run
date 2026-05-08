@@ -16,7 +16,7 @@ import asyncio
 import time
 import datetime
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -293,6 +293,13 @@ async def lifespan(app: FastAPI):
 
 # ── App ────────────────────────────────────────────────────────────────────────
 app = FastAPI(title="Courage AI Backend", lifespan=lifespan)
+
+@app.middleware("http")
+async def block_wp_scans(request: Request, call_next):
+    """Silences automated internet scanners probing for WordPress installs."""
+    if "wp-admin" in request.url.path.lower() or "wp-login" in request.url.path.lower():
+        return JSONResponse(status_code=404, content={"detail": "not found"})
+    return await call_next(request)
 
 app.add_middleware(
     CORSMiddleware,
