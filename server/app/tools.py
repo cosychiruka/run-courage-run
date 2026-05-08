@@ -1184,7 +1184,7 @@ async def news_dog_scan():
     return {"top_stories": [n.get("title", "Untitled") for n in news]}
 
 async def art_dog_generate(scene: str, current_sentiment: str = "neutral", token_info: dict = None):
-    """Art Dog — highly creative and context-aware (no hardcoded generic fallback)"""
+    """Art Dog — fully creative and context-aware (no hardcoded fallback)"""
     token_context = ""
     if token_info and token_info.get("symbol") == "$RCR":
         token_context = f"Current $RCR price is {token_info.get('price', '???')}. "
@@ -1193,8 +1193,7 @@ async def art_dog_generate(scene: str, current_sentiment: str = "neutral", token
         f"{scene}. "
         f"Current community sentiment: {current_sentiment}. "
         f"{token_context}"
-        "Courage is energetic, expressive, slightly chaotic, and full of personality. "
-        "Make it fun, meme-worthy, and emotionally charged."
+        "Courage is energetic, expressive, slightly chaotic, full of personality, and meme-native."
     )
 
     # Reuses the existing smart art function

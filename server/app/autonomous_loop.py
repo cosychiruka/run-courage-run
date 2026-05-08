@@ -179,11 +179,11 @@ async def dispatch_tool(tool_call, state=None):
     
     # Enhanced logic for sub-agents to avoid hardcoding
     if name == "art_dog_generate":
-        scene = args.get("scene") or "Courage reacting to the current community vibe"
-        # Injected dynamic state context
+        # Dynamic scene from main brain — no hardcoded fallback
+        scene = args.get("scene") or "Courage reacting to the current community vibe with full personality"
         return await execute_tool("art_dog_generate", {
             "scene": scene,
-            "current_sentiment": state.get("sentiment", {}).get("summary", "neutral") if state else "neutral",
+            "current_sentiment": state.get("community_vibe", "neutral") if state else "neutral",
             "token_info": state.get("token_info", {}) if state else {}
         })
     
