@@ -1030,14 +1030,25 @@ async def override_frequency(data: dict):
 
 @app.get("/api/admin/recent-decisions")
 async def get_recent_decisions():
-    """Fetch the latest 20 brain decisions for the dashboard."""
+    """Fetch the latest 30 brain decisions for the dashboard."""
     global _redis
     if not _redis: return []
-    
-    raw_decisions = await _redis.lrange("courage:brain_decisions", 0, 19)
-    decisions = [json.loads(d) for d in raw_decisions]
-    # Return reversed so latest is first
-    return decisions[::-1]
+    try:
+        raw_decisions = await _redis.lrange("courage:brain_decisions", 0, 29)
+        return [json.loads(d) for d in raw_decisions]
+    except Exception:
+        return []
+
+@app.get("/api/admin/live-activity")
+async def get_live_activity():
+    """Fetch the latest 20 live brain activity messages."""
+    global _redis
+    if not _redis: return []
+    try:
+        activity = await _redis.lrange("courage:live_activity", 0, 19)
+        return [json.loads(a) for a in activity]
+    except Exception:
+        return []
 
 # ── Static Files (Frontend) ───────────────────────────────────────────────────
 # Mount the built React app. Serve index.html for any unknown paths (SPA)

@@ -347,30 +347,12 @@ async def count_auto_tweets_today() -> int:
             row = await cur.fetchone()
             return row[0] if row else 0
 
- a s y n c   d e f   g e t _ r e c e n t _ r e f l e c t i o n s ( l i m i t :   i n t   =   5 ) : 
-         \  
- \ \ R e t u r n  
- l a s t  
- N  
- r e f l e c t i o n s  
- f o r  
- _ g a t h e r _ s t a t e .  
- S t u b  
- f o r  
- n o w  
-   
- w e  
- c a n  
- m a k e  
- i t  
- r e a l  
- l a t e r . \ \ \ 
-         t r y : 
-                 r _ c l i e n t   =   a w a i t   _ g e t _ r e d i s ( ) 
-                 i f   n o t   r _ c l i e n t :   r e t u r n   [ ] 
-                 r e f l e c t i o n s   =   a w a i t   r _ c l i e n t . l r a n g e ( \ c o u r a g e : r e f l e c t i o n s \ ,   0 ,   l i m i t - 1 ) 
-                 r e t u r n   [ j s o n . l o a d s ( r )   f o r   r   i n   r e f l e c t i o n s ]   i f   r e f l e c t i o n s   e l s e   [ ] 
-         e x c e p t   E x c e p t i o n : 
-                 r e t u r n   [ ]     #   s a f e   f a l l b a c k   s o   t i c k   n e v e r   d i e s   a g a i n 
-  
- 
+async def get_recent_reflections(limit: int = 5):
+    """Return last N reflections for _gather_state. Stub for now we can make it real later."""
+    try:
+        r_client = await _get_redis()
+        if not r_client: return []
+        reflections = await r_client.lrange("courage:reflections", 0, limit-1)
+        return [json.loads(r) for r in reflections] if reflections else []
+    except Exception:
+        return []    # safe fallback so tick never dies again

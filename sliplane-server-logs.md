@@ -1,126 +1,97 @@
-**✅ SHIPPED FIX AUDITED — FULL LOG REVIEW COMPLETE**
+**✅ PHASE 1.6 CONFIRMED LIVE**
 
-I read the **entire new log** (from 06:05:53 restart through 15:20+) and cross-checked against your current `autonomous_loop.py`, `twitter_memory.py`, and `main.py`.
+I just verified the new log after your restart.  
+- No more reflection crash  
+- `/api/admin/recent-decisions` and `/api/admin/live-activity` are now returning real data  
+- Dashboard should be showing clickable cards + live feed (refresh it if needed)
 
-### 1. The reflection fix **worked perfectly**
-- `AttributeError: module 'app.twitter_memory' has no attribute 'get_recent_reflections'` is **gone**.
-- Every autonomous_tick now completes `_gather_state()` cleanly.
-- Brain is no longer crashing on every cycle. Good job shipping that.
+Perfect. We’re moving fast.
 
-### 2. New warnings (harmless but noisy)
-**Duplicate Operation ID warning** (repeated at 11:24:20):
+---
 
-```python
-UserWarning: Duplicate Operation ID health_health_get for function health at /app/app/main.py
-```
+### **PHASE 2 — MAKE THE BRAIN ACTUALLY POST TWEETS**
 
-**Cause**: You have **two** `@app.get("/health")` routes (or FastAPI auto-generated the same operation_id twice). This is why the warning fires every time Swagger/OpenAPI is accessed.
+This is the **core execution bug** you’ve been seeing for hours:  
+The brain makes decisions like `TWEET_NEWS` or `TOKEN_HUSTLE`, logs them, but **nothing ever hits X**.
 
-**Fix (one-line change)** – In `server/app/main.py`:
+We fix it now.
 
-Find the health endpoint and change it to:
+**Apply these exact changes (copy-paste):**
 
-```python
-@app.get("/health", operation_id="health_check")  # ← add this
-async def health():
-    return {"status": "ok", "time": datetime.now().isoformat()}
-```
+**1. In `server/app/tools.py` — make sure the real post tool exists**
 
-(If you already have an operation_id, just make it unique like `health_check_v2`.)
-
-**404 on /api/docs/api.json** – Completely harmless. FastAPI’s docs UI is just probing for an old path. Ignore it.
-
-**Suspicious /wp-admin/install.php probes**  
-These are **not** someone trying to log into your admin dashboard.  
-They are automated internet scanners (very common on any public IP). They hit every server looking for old WordPress installs.  
-Your FastAPI app correctly returns **404** → no security issue.  
-You can silence them forever by adding this middleware in `main.py` (optional but clean):
+Add / replace this tool schema at the top (with your other TOOL_SCHEMAS):
 
 ```python
-@app.middleware("http")
-async def block_wp_scans(request: Request, call_next):
-    if "wp-admin" in request.url.path.lower() or "wp-login" in request.url.path.lower():
-        return JSONResponse(status_code=404, content={"detail": "not found"})
-    return await call_next(request)
-```
-
-### 3. Credit-Aware Intelligence — World-Class Upgrade (your idea is excellent)
-
-You are 100% right. The current design is **not intelligent enough** when credits run out.
-
-**Current state (from logs)**:
-- He keeps trying `/tweets/search/recent` every 25 min → instantly gets 403 SpendCapReached.
-- No memory of “I’m broke right now”.
-- No proactive fallback (random meme, GM, hype post, self-reflection).
-- No “treasury suggestion” when credits return.
-
-**This is the major design gap you called out.**
-
-**Proposed World-Class Credit-Aware System (Phase 2.0)**
-
-We make him **self-aware** of his own budget in real time.
-
-**Step-by-step implementation (add these today):**
-
-**A. In `server/app/tools.py` – add new tool**
-
-```python
-{
+"post_tweet": {
     "type": "function",
     "function": {
-        "name": "report_credit_status",
-        "description": "Check current X credit status and decide safe actions",
+        "name": "post_tweet",
+        "description": "Post a tweet to @RunCourageRun. Use this ONLY when the brain decides to publish.",
         "parameters": {
             "type": "object",
             "properties": {
-                "action": {"type": "string", "enum": ["check", "fallback_hype", "suggest_treasury"]}
-            }
+                "text": {"type": "string", "description": "The full tweet text"},
+                "image_url": {"type": "string", "description": "Optional image URL from Fal.ai"}
+            },
+            "required": ["text"]
         }
     }
 }
 ```
 
-**B. In `autonomous_loop.py` – enhance _gather_state()**
+**2. In `server/app/autonomous_loop.py` — fix dispatch_tool so it actually posts**
 
-Add this block inside `_gather_state()`:
-
-```python
-credit_status = await _redis.get("courage:x_credit_status") or "unknown"
-if credit_status == "capped":
-    state["credit_alert"] = "X API credits depleted. Cannot search or post. Switch to internal hype / meme generation mode."
-```
-
-**C. In dispatch_tool – handle credit errors intelligently**
+**Replace your entire `dispatch_tool` function** with this updated version:
 
 ```python
-except Exception as e:
-    if "403" in str(e) or "SpendCapReached" in str(e) or "CreditsDepleted" in str(e):
-        await _redis.set("courage:x_credit_status", "capped", ex=3600)  # remember for 1 hour
-        await log_brain_decision("CREDIT_ALERT", "X credits depleted - switching to safe mode", executed=True)
-        # Force a fun non-X action
-        return await execute_tool("idle_hype_post", {"reason": "credits depleted"})
+async def dispatch_tool(tool_call, state=None):
+    name = tool_call.function.name
+    args = json.loads(tool_call.function.arguments)
+    print(f"[DISPATCH] Courage wants to use: {name} | args: {args}")
+
+    try:
+        if name == "post_tweet":
+            result = await post_tweet_to_x(  # this is your real X posting function
+                text=args.get("text"),
+                image_url=args.get("image_url")
+            )
+            await log_brain_decision("POST_TWEET", args.get("text"), executed=True)
+            await log_live_activity(f"Posted tweet: {args.get('text')[:80]}...")
+            print(f"[POST SUCCESS] Tweet ID: {result.get('id')}")
+            return result
+
+        # All other tools
+        from app.tools import execute_tool
+        result = await execute_tool(name, args)
+        await log_brain_decision(name.upper(), str(args), executed=True)
+        return result
+
+    except Exception as e:
+        print(f"[DISPATCH ERROR] {name} failed: {e}")
+        await log_brain_decision(name.upper(), str(args), executed=False, error=str(e))
+        return {"status": "failed", "error": str(e)}
 ```
 
-**D. New safe tool `idle_hype_post`** (add to tools.py)
+**3. Force one test post (optional but recommended)**
 
-This triggers when credits are gone or trenches are quiet:
-- Random “Spreading Courage” message
-- GM/GN
-- Meme generation without posting to X yet
-- Self-reflection
+In your dashboard, click **FORCE VIBE CHECK** or run this in terminal:
 
-This makes him feel truly alive even when broke.
+```bash
+curl -X POST http://localhost:8000/api/autonomous/trigger-now
+```
 
-**Reply with “PHASE 2.0 CREDIT AWARE DONE”** after you add the above and restart.
+---
 
-Then I will give you:
-- The full `idle_hype_post` implementation
-- Dashboard fix for “Live Brain Activity” + MEMORY VECTORS
-- Clickable decision modals with real context
+**Reply with “PHASE 2 DONE”** after you apply the changes and restart the server.
 
-We are now fixing the **intelligence layer**, not just the UI.
+I will then immediately give you:
 
-**Spreading Courage.**  
-You spotted the real flaw. Let’s make him world-class.  
+- **PHASE 3** — Idle-mode posting + smart credit-aware fallback (so he never goes silent again, even when trenches/game are quiet)
+- **PHASE 4** — Full proactive “Spreading Courage” personality (random memes, GM/GN, hype when bored)
 
-Your move.
+We are now **on track** and moving extremely fast.
+
+**Spreading Courage.** 🐕‍🦺
+
+Your move, legend. Just say **“PHASE 2 DONE”**.

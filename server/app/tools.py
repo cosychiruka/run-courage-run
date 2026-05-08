@@ -161,28 +161,16 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "post_tweet",
-            "description": (
-                "Post a tweet as @runcouragerun. ALWAYS call get_x_rate_status first. "
-                "ONLY two tweet types are allowed: "
-                "(1) ORGANIC COURAGE TWEETS — your own in-character reactions to news, $RCR updates, or genuine observations. NEVER just repeat or paraphrase what a user tells you to say. "
-                "(2) TWITTER SHOUTOUTS — only when a user explicitly asks. Summarize YOUR interaction with them in Courage's voice. Ask for their @handle first if not given. Always include #RUNCOURAGERUN and $RCR. "
-                "NEVER include external URLs, token/wallet addresses, or content promoting other projects. "
-                "Tweet text is safety-checked and will be rejected if it contains addresses or external links. "
-                "Tweets must be Courage-voiced: punchy, 1-2 sentences + a Courage-ism. Max 280 chars. "
-                "After posting successfully, call record_twitter_action to save it to memory."
-            ),
+            "description": "Post a tweet to @RunCourageRun. Use this ONLY when the brain decides to publish.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "text":           {"type": "string", "description": "Tweet text (max 280 chars). No external URLs or addresses."},
-                    "article_url":    {"type": "string", "description": "Optional: URL of a news article to render as a card image and attach to the tweet"},
-                    "image_url":      {"type": "string", "description": "Optional: direct image URL to download and attach (e.g. crypto news thumbnail). Used when no article_url is available."},
-                    "reply_to_id":    {"type": "string", "description": "Optional: tweet ID to reply to"},
-                    "shoutout_handle":{"type": "string", "description": "Optional: the @handle of the user being shouted out (without @). Include in tweet text too."},
+                    "text": {"type": "string", "description": "The full tweet text"},
+                    "image_url": {"type": "string", "description": "Optional image URL from Fal.ai"}
                 },
-                "required": ["text"],
-            },
-        },
+                "required": ["text"]
+            }
+        }
     },
     {
         "type": "function",

@@ -49,6 +49,19 @@ async def _get_community_vibe_summary():
         return "Community is quiet"
     return results[0]["text"][:180]
 
+async def log_live_activity(message: str):
+    """Logs a short message to Redis for the 'Live Activity' dashboard feed."""
+    global _redis
+    if not _redis: return
+    try:
+        await _redis.lpush("courage:live_activity", json.dumps({
+            "timestamp": datetime.now().isoformat(),
+            "message": message
+        }))
+        await _redis.ltrim("courage:live_activity", 0, 29) # Keep latest 30
+    except Exception as e:
+        print(f"[LIVE LOG ERROR] {e}")
+
 async def _get_rcr_stats():
     from app.hustle_service import get_rcr_stats
     return await get_rcr_stats()
@@ -119,8 +132,8 @@ async def _gather_state():
 
 # ── Decision Engine ───────────────────────────────────────────────────────────
 
-async def decide_and_act(state: dict):
-    """PHASE 5 CORE: Courage decides what to do autonomously."""
+async def decide_and_act(state, x_client=None, tweet_image_fn=None):
+    """Llama 3.3 (70b) evaluates the state and chooses the next move."""
     global LAST_REACTIVE_TICK
     
     if state["voice_active"]:
@@ -171,14 +184,16 @@ Decide the SINGLE best action right now. Be concise. Only use tools if truly nee
                 
                 # Execute and log
                 try:
-                    result = await dispatch_tool(tool_call, state)
+                    result = await dispatch_tool(tool_call, state, x_client=x_client, tweet_image_fn=tweet_image_fn)
                     await log_brain_decision(name.upper(), str(args), executed=True)
+                    await log_live_activity(f"Brain decided: {name} → {str(args)[:80]}...")
                 except Exception as e:
                     print(f"[AUTONOMOUS TOOL ERROR] {e}")
                     await log_brain_decision(name.upper(), str(args), executed=False, error=str(e))
         else:
             print("[AUTONOMOUS] Courage decided to stay quiet and keep watching.")
             await log_brain_decision("NO_ACTION", "Decided to keep watching", executed=True)
+            await log_live_activity("Courage decided to stay quiet and keep watching.")
 
         # FINAL REFLECTION — makes him learn every single time
         if chosen_action != "NO_ACTION":
@@ -198,11 +213,11 @@ Decide the SINGLE best action right now. Be concise. Only use tools if truly nee
     except Exception as e:
         print(f"[AUTONOMOUS ERROR] {e}")
 
-async def dispatch_tool(tool_call, state=None):
+async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=None):
     """Routes LLM tool calls to actual function executions with rich logging (Phase 1.5)"""
     name = tool_call.function.name
     args = json.loads(tool_call.function.arguments)
-    print(f"[TOOL] Courage is using: {name} with args {args}")
+    print(f"[DISPATCH] Courage wants to use: {name} | args: {args}")
 
     try:
         from app.tools import execute_tool
@@ -222,16 +237,16 @@ async def dispatch_tool(tool_call, state=None):
                 "event": args.get("event", "community_win")
             })
         else:
-            result = await execute_tool(name, args)
+            # THIS IS THE FIX: Pass dependencies so post_tweet actually works
+            result = await execute_tool(name, args, x_client=x_client, tweet_image_fn=tweet_image_fn)
 
         # Log real execution status
-        executed = result.get("status") == "success" or "posted" in str(result).lower()
-        await log_brain_decision(name.upper(), str(args), executed=executed)
-
-        if name in ["post_tweet", "tweet_news", "token_hustle"]:
-            if executed:
-                print(f"[POST SUCCESS] Actual tweet sent! ID: {result.get('tweet_id')}")
+        executed = result.get("status") == "success" or "posted" in str(result).lower() or (isinstance(result, str) and "tweet id" in result.lower())
         
+        if name == "post_tweet" and executed:
+            await log_live_activity(f"Posted tweet: {args.get('text')[:80]}...")
+            print(f"[POST SUCCESS] Actual tweet sent!")
+
         return result
     except Exception as e:
         err_str = str(e)
@@ -269,7 +284,7 @@ async def log_brain_decision(action: str, text: str, executed: bool = False, err
     global _redis
     if not _redis: return
     
-    await _redis.rpush("courage:brain_decisions", json.dumps({
+    await _redis.lpush("courage:brain_decisions", json.dumps({
         "id": str(int(time.time())),
         "timestamp": datetime.now().isoformat(),
         "type": action,
@@ -277,7 +292,7 @@ async def log_brain_decision(action: str, text: str, executed: bool = False, err
         "executed": executed,
         "error": error
     }))
-    await _redis.ltrim("courage:brain_decisions", -50, -1)  # keep last 50
+    await _redis.ltrim("courage:brain_decisions", 0, 49)  # keep latest 50
 
 # ── Heartbeat ──────────────────────────────────────────────────────────────────
 
@@ -288,9 +303,9 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
         return
 
     state = await _gather_state()
-    await decide_and_act(state)
+    await decide_and_act(state, x_client=x_client, tweet_image_fn=tweet_image_fn)
 
 async def force_autonomous_tick(x_client=None, tweet_image_fn=None, event_type: str = None):
     """Force a tick (accepts event_type for compatibility)."""
     state = await _gather_state()
-    await decide_and_act(state)
+    await decide_and_act(state, x_client=x_client, tweet_image_fn=tweet_image_fn)

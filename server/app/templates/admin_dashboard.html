@@ -81,9 +81,13 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
       <!-- LIVE FEED -->
-      <div class="lg:col-span-4 bg-neutral-900 rounded-3xl p-6 border border-neutral-700 h-fit">
-        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2"><i class="fas fa-brain text-emerald-400"></i> LIVE BRAIN ACTIVITY</h2>
-        <div id="live-feed" class="space-y-3 max-h-[640px] overflow-y-auto pr-2 custom-scroll"></div>
+      <div class="lg:col-span-4 bg-neutral-900 rounded-3xl p-6 border border-neutral-700 h-fit card-hover">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2 uppercase tracking-widest">
+          <i class="fas fa-brain text-emerald-400"></i> 
+          LIVE BRAIN ACTIVITY 
+          <span id="brain-live-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-auto"></span>
+        </h2>
+        <div id="live-activity-feed" class="space-y-3 max-h-[640px] overflow-y-auto pr-2 custom-scroll text-sm"></div>
       </div>
 
       <!-- TABS -->
@@ -123,14 +127,16 @@
     </div>
   </div>
 
-  <div id="decision-modal" class="modal hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-    <div class="bg-neutral-900 border border-neutral-700 rounded-3xl p-8 max-w-2xl w-full mx-4 modal shadow-2xl">
+  <div id="decision-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
+    <div class="bg-neutral-900 border border-neutral-700 rounded-3xl p-8 max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl modal">
       <div class="flex justify-between items-center mb-6">
-        <h3 id="modal-title" class="text-xl font-bold text-emerald-400"></h3>
-        <span class="close-modal text-neutral-400 hover:text-white text-3xl cursor-pointer">×</span>
+        <h3 id="modal-title" class="text-2xl font-bold text-emerald-400"></h3>
+        <span class="close-modal text-neutral-400 hover:text-white text-4xl cursor-pointer transition-colors">×</span>
       </div>
-      <pre id="modal-body" class="bg-black/40 rounded-2xl p-6 mb-6 border border-neutral-800 text-emerald-400 text-sm overflow-x-auto whitespace-pre-wrap font-mono"></pre>
-      <button onclick="copyToClipboard()" class="w-full py-4 bg-neutral-700 hover:bg-neutral-600 rounded-2xl font-medium transition-all">📋 Copy Full Context</button>
+      <pre id="modal-body" class="bg-black/40 rounded-2xl p-6 mb-6 border border-neutral-800 text-emerald-400 text-sm overflow-auto whitespace-pre-wrap font-mono flex-1 custom-scroll"></pre>
+      <button onclick="copyDecisionContext()" class="w-full py-4 bg-emerald-600 hover:bg-emerald-500 rounded-2xl font-bold text-lg transition-all active:scale-95 shadow-lg shadow-emerald-500/20">
+        <i class="fas fa-copy mr-2"></i> COPY FULL CONTEXT
+      </button>
     </div>
   </div>
 
@@ -177,23 +183,16 @@
           </div>
         `;
 
-        // Live Feed
-        const feedHTML = data.live_activity.map(item => `
-          <div class="feed-item bg-neutral-800/70 rounded-2xl p-4 text-sm border border-neutral-700">
-            <span class="font-mono text-neutral-400 text-xs">${item.time}</span>
-            <span class="ml-2 px-3 py-0.5 bg-emerald-900 text-emerald-300 text-xs rounded-full">${item.event}</span>
-            <p class="mt-2 text-neutral-200">${item.message}</p>
-          </div>
-        `).join('');
-        document.getElementById('live-feed').innerHTML = feedHTML || '<p class="text-neutral-400         if (currentTab === 0) { // Brain
+        // Live Feed sidebar is now handled by the separate refreshLiveFeeds() function
+        // to allow for independent refresh rates and cleaner logic.
+
+        let html = '';
+        if (currentTab === 0) { // Brain
           html = `<h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
                     Recent Brain Decisions <span id="decisions-live-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                   </h3>
                   <div id="decisions-list"></div>`;
-          setTimeout(loadDecisions, 10);
-        }
-ono">Error: ${d.error}</p>` : ''}
-              </div>`).join('')}</div>`;
+          setTimeout(refreshLiveFeeds, 10);
         } else if (currentTab === 1) { // Trenches
           html = `<h3 class="text-xl font-semibold mb-6">Latest Trenches</h3>
             <div class="grid gap-4">${data.recent_trenches.map(t => `
@@ -354,31 +353,45 @@ ono">Error: ${d.error}</p>` : ''}
       });
     }
 
-    async function loadDecisions() {
-      const res = await fetch('/api/admin/recent-decisions');
-      const decisions = await res.json();
-      
+    // PHASE 1.6 — Live Dashboard Core logic
+    async function refreshLiveFeeds() {
+      // Decisions
+      const decRes = await fetch('/api/admin/recent-decisions');
+      const decisions = await decRes.json();
       const list = document.getElementById('decisions-list');
       if (list) {
-        list.innerHTML = decisions.map(d => `
-          <div class="bg-neutral-800 hover:bg-neutral-700 rounded-2xl p-5 cursor-pointer transition-all border border-neutral-700 hover:border-emerald-500/50 mb-4" 
-               onclick='showModal(${JSON.stringify(d).replace(/'/g, "&apos;")})'>
-            <div class="flex justify-between items-center mb-3">
-              <span class="font-mono text-xs text-neutral-400">${new Date(d.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-              <span class="px-3 py-1 ${d.executed ? 'bg-emerald-900 text-emerald-400' : 'bg-amber-900 text-amber-400'} rounded-full text-[10px] font-bold tracking-widest uppercase">
-                ${d.executed ? '✅ POSTED ON X' : '⏳ QUEUED'}
-              </span>
+          list.innerHTML = decisions.map(d => `
+            <div class="bg-neutral-800/50 hover:bg-neutral-800 rounded-2xl p-5 cursor-pointer transition-all border border-neutral-700 hover:border-emerald-500/50 mb-4 feed-item" 
+                 onclick="showDecisionModal(${JSON.stringify(d).replace(/"/g, '&quot;')})">
+              <div class="flex justify-between items-center mb-3">
+                <span class="font-mono text-xs text-neutral-400">${new Date(d.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                <span class="px-3 py-1 ${d.executed ? 'bg-emerald-900 text-emerald-300' : 'bg-amber-900 text-amber-300'} rounded-full text-[10px] font-bold tracking-widest uppercase shadow-sm">
+                  ${d.executed ? '✅ EXECUTED' : '⏳ QUEUED'}
+                </span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="px-2 py-0.5 bg-neutral-700 text-neutral-300 rounded text-[10px] font-mono uppercase">${d.type}</span>
+                <div class="text-neutral-200 font-medium">${d.short_text}</div>
+              </div>
             </div>
-            <div class="flex items-center gap-3">
-              <span class="px-2 py-0.5 bg-neutral-700 text-neutral-300 rounded text-[10px] font-mono">${d.type}</span>
-              <div class="text-neutral-200">${d.short_text}</div>
+          `).join('');
+      }
+
+      // Live Brain Activity
+      const actRes = await fetch('/api/admin/live-activity');
+      const activity = await actRes.json();
+      const feed = document.getElementById('live-activity-feed');
+      if (feed) {
+          feed.innerHTML = activity.map(a => `
+            <div class="p-4 bg-neutral-800/40 rounded-2xl border border-neutral-800/50 mb-2 feed-item flex gap-3 items-start">
+              <span class="font-mono text-neutral-500 text-[10px] mt-0.5">${new Date(a.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}</span>
+              <span class="text-neutral-300">${a.message}</span>
             </div>
-          </div>
-        `).join('');
+          `).join('');
       }
     }
 
-    function showModal(d) {
+    function showDecisionModal(d) {
       document.getElementById('modal-title').textContent = d.type;
       document.getElementById('modal-body').textContent = JSON.stringify(d, null, 2);
       document.getElementById('decision-modal').classList.remove('hidden');
@@ -388,22 +401,27 @@ ono">Error: ${d.error}</p>` : ''}
       document.getElementById('decision-modal').classList.add('hidden');
     };
 
-    function copyToClipboard() {
+    function copyDecisionContext() {
       const text = document.getElementById('modal-body').textContent;
-      navigator.clipboard.writeText(text).then(() => alert('✅ Copied context!'));
+      navigator.clipboard.writeText(text).then(() => {
+          const btn = event.target;
+          const orig = btn.innerHTML;
+          btn.innerHTML = '<i class="fas fa-check mr-2"></i> COPIED!';
+          setTimeout(() => btn.innerHTML = orig, 2000);
+      });
     }
 
-    // Tailwind script
-    tailwind.config = { content: ["./**/*.{html,js}"], theme: { extend: {} } };
-    // Auto refresh
+    // Auto-refresh every 8 seconds
     setInterval(() => {
         loadDashboard();
         loadSubAgents();
-        loadDecisions();
+        refreshLiveFeeds();
     }, 8000);
+    
+    // Initial Load
     loadDashboard();
     loadSubAgents();
-    loadDecisions();
+    refreshLiveFeeds();
   </script>
 </body>
 </html>
