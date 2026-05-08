@@ -97,8 +97,8 @@ async def _gather_state():
     }
 
     # Phase 2.0: Credit-Aware Intelligence
-    global _redis
     if _redis:
+
         credit_status = await _redis.get("courage:x_credit_status") or "healthy"
         if credit_status == "capped":
             state["credit_alert"] = "X API credits depleted. Cannot search or post. Switch to internal hype / meme generation mode."

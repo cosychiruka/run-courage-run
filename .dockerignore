@@ -4,6 +4,6 @@ dist
 .env
 .claude
 server/venv
-server/__pycache__
+**/__pycache__
 server/data
 *.log
