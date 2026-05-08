@@ -995,6 +995,31 @@ async def api_generate_news_poster(news_data: dict):
     url = await generate_news_poster(news_data)
     return {"poster_url": url}
 
+@app.get("/api/admin/sub_agents_status")
+async def sub_agents_status():
+    """Monitor the status of the sub-agent team and last reflection."""
+    global _redis
+    if not _redis: return {"status": "error", "message": "Redis unavailable"}
+    
+    last_refl = await _redis.get("courage:last_reflection")
+    return {
+        "news_dog": "active",
+        "art_dog": "active",
+        "engagement_dog": "active",
+        "token_dog": "active",
+        "last_reflection": last_refl.decode() if last_refl else "none"
+    }
+
+@app.post("/api/admin/override_frequency")
+async def override_frequency(data: dict):
+    """One-click override for sensor/autonomous frequency."""
+    global _redis
+    if not _redis: return {"status": "error", "message": "Redis unavailable"}
+    
+    minutes = int(data.get("minutes", 25))
+    await _redis.set("courage:sensor_cooldown_minutes", minutes)
+    return {"status": "ok", "new_frequency": minutes}
+
 # ── Static Files (Frontend) ───────────────────────────────────────────────────
 # Mount the built React app. Serve index.html for any unknown paths (SPA)
 

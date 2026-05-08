@@ -1287,10 +1287,14 @@ async def viral_growth_suggest():
     return {"viral_suggestions": suggestions[:3]}
 
 async def trigger_3d_reaction(stage: str, event: str):
-    """Light 3D reactivity — only visual flair, no heavy load"""
+    """Light 3D reactivity — now intelligently uses Disco for celebrations"""
     from app.tools import _get_tools_redis
     _redis = await _get_tools_redis()
     if _redis:
+        # Surgical fix: intelligently use Disco for celebrations/wins
+        if any(word in event.lower() for word in ["celebrate", "win", "pump", "bullish"]):
+            stage = "disco"
+            
         # This emits a Redis event that the frontend listens to
         await _redis.xadd("courage:3d_events", {"stage": stage, "event": event})
         return {"status": "triggered", "stage": stage, "event": event}

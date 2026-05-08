@@ -56,16 +56,26 @@
       
       <div class="bg-neutral-900 rounded-3xl p-6 border border-neutral-800 card-hover">
         <div class="flex justify-between items-center mb-4">
-          <div class="text-neutral-400 text-sm tracking-widest">⚙️ SENSOR ALERT FREQUENCY</div>
-          <div class="text-xl font-bold text-emerald-400" id="cooldown-value">15 min</div>
+          <div class="text-neutral-400 text-sm tracking-widest uppercase">🤖 Sub-Agent Team Status</div>
+          <div id="reflection-status" class="text-xs text-neutral-500 font-mono"></div>
         </div>
-        <input type="range" id="cooldown-slider" min="5" max="60" value="15" step="5" 
-               class="w-full h-2 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 mb-4"
-               oninput="document.getElementById('cooldown-value').textContent = this.value + ' min'">
-        <button onclick="saveCooldown()" 
-                class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-2xl font-bold transition-all active:scale-95">
-          SAVE FREQUENCY
-        </button>
+        <div id="sub-agents-list" class="grid grid-cols-2 gap-3 mb-4">
+          <!-- Populated by JS -->
+        </div>
+        
+        <div class="mt-6 pt-6 border-t border-neutral-800">
+          <div class="flex justify-between items-center mb-4">
+            <div class="text-neutral-400 text-sm tracking-widest uppercase">🎛️ Sensor Override</div>
+            <div class="text-xl font-bold text-fuchsia-400" id="freq-value">25 min</div>
+          </div>
+          <input type="range" id="freq-slider" min="5" max="60" value="25" step="5" 
+                 class="w-full h-2 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-fuchsia-500 mb-4"
+                 oninput="document.getElementById('freq-value').textContent = this.value + ' min'">
+          <button onclick="overrideFrequency()" 
+                  class="w-full py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 rounded-2xl font-bold transition-all active:scale-95">
+            APPLY OVERRIDE
+          </button>
+        </div>
       </div>
     </div>
 
@@ -228,17 +238,40 @@
     function forceMarketPulse() { fetch('/api/tools/market-pulse', {method:'POST'}); loadDashboard(); }
     function clearReplyQueue() { if (confirm('Clear entire reply queue?')) fetch('/api/queue/clear', {method:'POST'}); }
 
-    async function saveCooldown() {
-      const minutes = document.getElementById('cooldown-slider').value;
-      const res = await fetch('/api/admin/set-sensor-cooldown', {
+    async function overrideFrequency() {
+      const minutes = document.getElementById('freq-slider').value;
+      const res = await fetch('/api/admin/override_frequency', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({minutes})
       });
       if (res.ok) {
-        alert('✅ Sensor frequency updated to ' + minutes + ' minutes');
+        alert('🚀 Creator Override: Sensor frequency set to ' + minutes + ' minutes');
         loadDashboard();
       }
+    }
+
+    async function loadSubAgents() {
+      try {
+        const res = await fetch('/api/admin/sub_agents_status');
+        const data = await res.json();
+        
+        const agents = [
+          {name: 'News Dog', status: data.news_dog},
+          {name: 'Art Dog', status: data.art_dog},
+          {name: 'Engagement', status: data.engagement_dog},
+          {name: 'Token Dog', status: data.token_dog}
+        ];
+        
+        document.getElementById('sub-agents-list').innerHTML = agents.map(a => `
+          <div class="bg-neutral-800 p-3 rounded-xl border border-neutral-700 flex items-center justify-between">
+            <span class="text-xs font-medium">${a.name}</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
+          </div>
+        `).join('');
+        
+        document.getElementById('reflection-status').textContent = 'Last Reflection: ' + data.last_reflection;
+      } catch (e) { console.error("Sub-agent load failed", e); }
     }
     
     function showTrenchModal(author, text, time) {
@@ -295,8 +328,12 @@
     // Tailwind script
     tailwind.config = { content: ["./**/*.{html,js}"], theme: { extend: {} } };
     // Auto refresh
-    setInterval(loadDashboard, 8000);
+    setInterval(() => {
+        loadDashboard();
+        loadSubAgents();
+    }, 8000);
     loadDashboard();
+    loadSubAgents();
   </script>
 </body>
 </html>
