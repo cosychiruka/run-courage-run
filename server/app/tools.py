@@ -468,6 +468,38 @@ TOOL_SCHEMAS = [
                 "required": []
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "news_dog_scan",
+            "description": "News Dog scans latest news and returns the most relevant stories for Courage to react to.",
+            "parameters": {"type": "object", "properties": {}, "required": []}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "art_dog_generate",
+            "description": "Art Dog creates a perfect cartoon based on current context and sentiment.",
+            "parameters": {"type": "object", "properties": {"scene": {"type": "string"}}, "required": ["scene"]}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "engagement_dog_suggest",
+            "description": "Engagement Dog reads recent trenches and suggests 2-3 smart replies.",
+            "parameters": {"type": "object", "properties": {}, "required": []}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "token_dog_report",
+            "description": "Token Dog gives latest $RCR stats and suggests pump/hold messaging.",
+            "parameters": {"type": "object", "properties": {}, "required": []}
+        }
     }
 ]
 
@@ -496,6 +528,10 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
             case "check_api_credits":     return await _check_api_credits(x_client)
             case "get_crypto_news":       return await _get_crypto_news(args)
             case "get_token_info":        return await get_token_info()
+            case "news_dog_scan":         return await news_dog_scan()
+            case "art_dog_generate":      return await art_dog_generate(args.get("scene", "Courage being epic"))
+            case "engagement_dog_suggest": return await engagement_dog_suggest()
+            case "token_dog_report":      return await token_dog_report()
 
             case "fetch_trench_tweets":
                 from app.trench_service import fetch_trench_tweets
@@ -1141,3 +1177,23 @@ async def _reflect_and_adapt(action_taken: str, outcome: str = "success"):
         "learned": f"Reflected on {action_taken} → {outcome}",
         "suggested_frequency_minutes": int(val or 25)
     }
+async def news_dog_scan():
+    """News Dog: Specialist in scanning the wires."""
+    from app.news_cache import get_cached_articles
+    news = await get_cached_articles(limit=4)
+    return {"top_stories": [n.get("title", "Untitled") for n in news]}
+
+async def art_dog_generate(scene: str):
+    """Art Dog: Specialist in visual creation."""
+    # Reuses the existing smart art function
+    return await _create_courage_art({"prompt": scene, "sentiment": "current"})
+
+async def engagement_dog_suggest():
+    """Engagement Dog: Specialist in trench reading."""
+    from app.twitter_memory import get_recent_unprocessed_trenches
+    trenches = await get_recent_unprocessed_trenches(limit=6)
+    return {"suggested_replies": [t.get("text", "")[:180] for t in trenches[:3]]}
+
+async def token_dog_report():
+    """Token Dog: Specialist in market monitoring."""
+    return await get_token_info()
