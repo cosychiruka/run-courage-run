@@ -192,39 +192,44 @@ Decide the SINGLE best action right now. Be concise. Only use tools if truly nee
         print(f"[AUTONOMOUS ERROR] {e}")
 
 async def dispatch_tool(tool_call, state=None):
-    """Routes LLM tool calls to actual function executions."""
+    """Routes LLM tool calls to actual function executions with rich logging (Phase 1.5)"""
     name = tool_call.function.name
     args = json.loads(tool_call.function.arguments)
     print(f"[TOOL] Courage is using: {name} with args {args}")
 
-    from app.tools import execute_tool
-    
-    # Enhanced logic for sub-agents to avoid hardcoding
-    if name == "art_dog_generate":
-        # Dynamic scene from main brain — no hardcoded fallback
-        scene = args.get("scene") or "Courage reacting to the current community vibe with full personality"
-        return await execute_tool("art_dog_generate", {
-            "scene": scene,
-            "current_sentiment": state.get("community_vibe", "neutral") if state else "neutral",
-            "token_info": state.get("token_info", {}) if state else {}
-        })
-    elif name == "news_dog_scan":
-        return await execute_tool("news_dog_scan", {})
-    elif name == "engagement_dog_suggest":
-        return await execute_tool("engagement_dog_suggest", {})
-    elif name == "token_dog_report":
-        return await execute_tool("token_dog_report", {})
-    elif name == "eternal_reflect":
-        return await execute_tool("eternal_reflect", {})
-    elif name == "viral_growth_suggest":
-        return await execute_tool("viral_growth_suggest", {})
-    elif name == "trigger_3d_reaction":
-        return await execute_tool("trigger_3d_reaction", {
-            "stage": args.get("stage", "noon"),
-            "event": args.get("event", "community_win")
-        })
-    
-    await execute_tool(name, args)
+    try:
+        from app.tools import execute_tool
+        
+        # Specialist sub-agent routing (preserves Phase 7 enhancements)
+        if name == "art_dog_generate":
+            result = await execute_tool("art_dog_generate", {
+                "scene": args.get("scene") or "Courage reacting to the vibe",
+                "current_sentiment": state.get("community_vibe", "neutral") if state else "neutral",
+                "token_info": state.get("token_info", {}) if state else {}
+            })
+        elif name in ["news_dog_scan", "engagement_dog_suggest", "token_dog_report", "eternal_reflect", "viral_growth_suggest"]:
+            result = await execute_tool(name, {})
+        elif name == "trigger_3d_reaction":
+            result = await execute_tool("trigger_3d_reaction", {
+                "stage": args.get("stage", "noon"),
+                "event": args.get("event", "community_win")
+            })
+        else:
+            result = await execute_tool(name, args)
+
+        # Log real execution status
+        executed = result.get("status") == "success" or "posted" in str(result).lower()
+        await log_brain_decision(name.upper(), str(args), executed=executed)
+
+        if name in ["post_tweet", "tweet_news", "token_hustle"]:
+            if executed:
+                print(f"[POST SUCCESS] Actual tweet sent! ID: {result.get('tweet_id')}")
+        
+        return result
+    except Exception as e:
+        print(f"[TOOL ERROR] {name} failed: {e}")
+        await log_brain_decision(name.upper(), str(args), executed=False, error=str(e))
+        return {"status": "failed", "error": str(e)}
 
 async def dispatch_tool_call_by_name(name: str, args: dict, state=None):
     """Helper to dispatch by name directly (used for automatic reflections)"""

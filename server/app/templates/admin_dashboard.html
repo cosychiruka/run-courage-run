@@ -179,14 +179,25 @@
         // Tab Content
         let html = '';
         if (currentTab === 0) { // Brain
-          html = `<h3 class="text-xl font-semibold mb-6">Recent Brain Decisions</h3>
-            <div class="space-y-6">${data.brain_decisions.map(d => `
-              <div class="bg-neutral-800 rounded-2xl p-5">
-                <div class="flex justify-between items-baseline">
-                  <span class="font-mono text-xs text-neutral-400">${d.time}</span>
-                  <span class="px-4 py-1 bg-emerald-900 text-emerald-400 rounded-3xl text-xs">${d.action}</span>
+          const dRes = await fetch('/api/admin/recent-decisions');
+          const decisions = await dRes.json();
+          html = `<h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
+                    Recent Brain Decisions <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  </h3>
+            <div class="space-y-4">${decisions.map(d => `
+              <div onclick="showDecisionModal(${JSON.stringify(d).replace(/"/g, '&quot;')})" 
+                   class="bg-neutral-800 hover:bg-neutral-700 rounded-2xl p-5 cursor-pointer transition-all border border-neutral-700 hover:border-emerald-500/50 group">
+                <div class="flex justify-between items-center mb-3">
+                  <span class="font-mono text-xs text-neutral-400">${new Date(d.timestamp).toLocaleTimeString()}</span>
+                  <span class="px-3 py-1 ${d.executed ? 'bg-emerald-900 text-emerald-400' : 'bg-amber-900 text-amber-400'} rounded-full text-[10px] font-bold tracking-widest uppercase">
+                    ${d.executed ? '✅ Posted' : '⏳ Queued'}
+                  </span>
                 </div>
-                <p class="mt-3 text-neutral-300">${d.reasoning}</p>
+                <div class="flex items-center gap-3">
+                    <span class="px-2 py-0.5 bg-neutral-700 text-neutral-300 rounded text-[10px] font-mono">${d.type}</span>
+                    <p class="text-neutral-200 font-medium group-hover:text-white transition-colors">${d.short_text}</p>
+                </div>
+                ${d.error ? `<p class="mt-2 text-xs text-red-400 font-mono">Error: ${d.error}</p>` : ''}
               </div>`).join('')}</div>`;
         } else if (currentTab === 1) { // Trenches
           html = `<h3 class="text-xl font-semibold mb-6">Latest Trenches</h3>
@@ -310,6 +321,29 @@
                   class="flex-1 bg-violet-600 hover:bg-violet-500 py-4 rounded-2xl font-medium">Open Full Size</button>
           <button onclick="hideModal()" 
                   class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-4 rounded-2xl font-medium">Close</button>
+        </div>
+      `;
+      document.getElementById('modal').classList.remove('hidden');
+    }
+
+    function showDecisionModal(d) {
+      document.getElementById('modal-content').innerHTML = `
+        <div class="flex justify-between items-center mb-6">
+          <div class="flex items-center gap-3">
+            <span class="px-3 py-1 bg-emerald-900 text-emerald-400 rounded-lg text-xs font-mono font-bold">${d.type}</span>
+            <span class="text-neutral-400 text-sm">${new Date(d.timestamp).toLocaleString()}</span>
+          </div>
+          <button onclick="hideModal()" class="text-neutral-400 hover:text-white text-3xl">×</button>
+        </div>
+        <div class="bg-black/40 rounded-2xl p-6 mb-6 border border-neutral-800">
+            <h4 class="text-xs font-mono text-neutral-500 uppercase tracking-widest mb-2">Decision Context</h4>
+            <pre class="text-emerald-400 text-sm overflow-x-auto whitespace-pre-wrap font-mono">${JSON.stringify(d, null, 2)}</pre>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="copyToClipboard('${JSON.stringify(d).replace(/'/g, "\\'")}')" 
+                  class="flex-1 bg-neutral-700 hover:bg-neutral-600 py-4 rounded-2xl font-medium">📋 Copy Full JSON</button>
+          <button onclick="hideModal()" 
+                  class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-4 rounded-2xl font-medium">Done</button>
         </div>
       `;
       document.getElementById('modal').classList.remove('hidden');
