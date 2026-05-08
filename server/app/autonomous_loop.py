@@ -141,7 +141,10 @@ Decide the SINGLE best action right now. Be concise. Only use tools if truly nee
     try:
         completion = await groq_client.chat.completions.create(
             model=GROQ_MODEL,
-            messages=[{"role": "user", "content": decision_prompt}],
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT_MINIMAL},
+                {"role": "user", "content": decision_prompt}
+            ],
             tools=_get_tools_spec(),
             tool_choice="auto",
             temperature=0.7,

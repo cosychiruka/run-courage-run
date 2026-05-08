@@ -60,6 +60,7 @@ def get_redis() -> aioredis.Redis | None:
 # ── Scheduler + shared state ───────────────────────────────────────────────────
 scheduler = AsyncIOScheduler()
 x_client  = None
+_redis    = None
 
 
 async def _tweet_image_fn(article_url: str):
