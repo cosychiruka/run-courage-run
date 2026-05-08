@@ -155,8 +155,6 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="admin-grid">
-
-                <div className="admin-grid">
                     <div className="admin-card glass-card">
                         <h3><FaChartLine /> Growth Pulse</h3>
                         <div className="stat-block">
@@ -233,7 +231,7 @@ const AdminDashboard = () => {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setSelectedDecision(null)}
-                        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyCenter: 'center', padding: '20px' }}
+                        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
                     >
                         <motion.div 
                             initial={{ scale: 0.9, y: 20 }}
