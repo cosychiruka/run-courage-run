@@ -123,6 +123,17 @@
     </div>
   </div>
 
+  <div id="decision-modal" class="modal hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+    <div class="bg-neutral-900 border border-neutral-700 rounded-3xl p-8 max-w-2xl w-full mx-4 modal shadow-2xl">
+      <div class="flex justify-between items-center mb-6">
+        <h3 id="modal-title" class="text-xl font-bold text-emerald-400"></h3>
+        <span class="close-modal text-neutral-400 hover:text-white text-3xl cursor-pointer">×</span>
+      </div>
+      <pre id="modal-body" class="bg-black/40 rounded-2xl p-6 mb-6 border border-neutral-800 text-emerald-400 text-sm overflow-x-auto whitespace-pre-wrap font-mono"></pre>
+      <button onclick="copyToClipboard()" class="w-full py-4 bg-neutral-700 hover:bg-neutral-600 rounded-2xl font-medium transition-all">📋 Copy Full Context</button>
+    </div>
+  </div>
+
   <script>
     let currentTab = 0;
     let priceChart, trenchChart;
@@ -174,30 +185,14 @@
             <p class="mt-2 text-neutral-200">${item.message}</p>
           </div>
         `).join('');
-        document.getElementById('live-feed').innerHTML = feedHTML || '<p class="text-neutral-400 italic">No activity yet...</p>';
-
-        // Tab Content
-        let html = '';
-        if (currentTab === 0) { // Brain
-          const dRes = await fetch('/api/admin/recent-decisions');
-          const decisions = await dRes.json();
+        document.getElementById('live-feed').innerHTML = feedHTML || '<p class="text-neutral-400         if (currentTab === 0) { // Brain
           html = `<h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
-                    Recent Brain Decisions <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Recent Brain Decisions <span id="decisions-live-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                   </h3>
-            <div class="space-y-4">${decisions.map(d => `
-              <div onclick="showDecisionModal(${JSON.stringify(d).replace(/"/g, '&quot;')})" 
-                   class="bg-neutral-800 hover:bg-neutral-700 rounded-2xl p-5 cursor-pointer transition-all border border-neutral-700 hover:border-emerald-500/50 group">
-                <div class="flex justify-between items-center mb-3">
-                  <span class="font-mono text-xs text-neutral-400">${new Date(d.timestamp).toLocaleTimeString()}</span>
-                  <span class="px-3 py-1 ${d.executed ? 'bg-emerald-900 text-emerald-400' : 'bg-amber-900 text-amber-400'} rounded-full text-[10px] font-bold tracking-widest uppercase">
-                    ${d.executed ? '✅ Posted' : '⏳ Queued'}
-                  </span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span class="px-2 py-0.5 bg-neutral-700 text-neutral-300 rounded text-[10px] font-mono">${d.type}</span>
-                    <p class="text-neutral-200 font-medium group-hover:text-white transition-colors">${d.short_text}</p>
-                </div>
-                ${d.error ? `<p class="mt-2 text-xs text-red-400 font-mono">Error: ${d.error}</p>` : ''}
+                  <div id="decisions-list"></div>`;
+          setTimeout(loadDecisions, 10);
+        }
+ono">Error: ${d.error}</p>` : ''}
               </div>`).join('')}</div>`;
         } else if (currentTab === 1) { // Trenches
           html = `<h3 class="text-xl font-semibold mb-6">Latest Trenches</h3>
@@ -359,15 +354,56 @@
       });
     }
 
+    async function loadDecisions() {
+      const res = await fetch('/api/admin/recent-decisions');
+      const decisions = await res.json();
+      
+      const list = document.getElementById('decisions-list');
+      if (list) {
+        list.innerHTML = decisions.map(d => `
+          <div class="bg-neutral-800 hover:bg-neutral-700 rounded-2xl p-5 cursor-pointer transition-all border border-neutral-700 hover:border-emerald-500/50 mb-4" 
+               onclick='showModal(${JSON.stringify(d).replace(/'/g, "&apos;")})'>
+            <div class="flex justify-between items-center mb-3">
+              <span class="font-mono text-xs text-neutral-400">${new Date(d.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+              <span class="px-3 py-1 ${d.executed ? 'bg-emerald-900 text-emerald-400' : 'bg-amber-900 text-amber-400'} rounded-full text-[10px] font-bold tracking-widest uppercase">
+                ${d.executed ? '✅ POSTED ON X' : '⏳ QUEUED'}
+              </span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="px-2 py-0.5 bg-neutral-700 text-neutral-300 rounded text-[10px] font-mono">${d.type}</span>
+              <div class="text-neutral-200">${d.short_text}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    function showModal(d) {
+      document.getElementById('modal-title').textContent = d.type;
+      document.getElementById('modal-body').textContent = JSON.stringify(d, null, 2);
+      document.getElementById('decision-modal').classList.remove('hidden');
+    }
+
+    document.querySelector('.close-modal').onclick = () => {
+      document.getElementById('decision-modal').classList.add('hidden');
+    };
+
+    function copyToClipboard() {
+      const text = document.getElementById('modal-body').textContent;
+      navigator.clipboard.writeText(text).then(() => alert('✅ Copied context!'));
+    }
+
     // Tailwind script
     tailwind.config = { content: ["./**/*.{html,js}"], theme: { extend: {} } };
     // Auto refresh
     setInterval(() => {
         loadDashboard();
         loadSubAgents();
+        loadDecisions();
     }, 8000);
     loadDashboard();
     loadSubAgents();
+    loadDecisions();
   </script>
 </body>
 </html>
