@@ -68,6 +68,9 @@ async def _gather_state():
     state = {
         "current_time": datetime.now().isoformat(),
         "voice_active": await is_voice_active(),
+        "game_sensor": await sensor_mgr.get_summary(),
+        "token_info": await tools.get_token_info(),
+        "past_reflections": await twitter_memory.get_recent_reflections(limit=3),
         "unreplied_trenches_count": await _count_unreplied_trenches(),
         "auto_tweets_today": await _count_auto_tweets_today(),
         "rcr_or_sol_stats": await _get_rcr_stats(),           # always keep this
@@ -115,15 +118,20 @@ async def decide_and_act(state: dict):
     # Compact JSON context
     context = json.dumps(state, ensure_ascii=False, separators=(",", ":"))
 
-    full_prompt = f"""{SYSTEM_PROMPT_MINIMAL}
+    decision_prompt = f"""
+== AUTONOMOUS DECISION ==
+You are Courage. Review your state and decide the best ACTION.
+Current Token ({state['token_info']['symbol']}): {state['token_info']['launch_status']} | Price: {state['token_info']['price']}
+Recent Reflections: {state['past_reflections']}
+Game World: {state['game_sensor']['status']}
 
-Current minimal state:
+Full context:
 {context}
 
 Decide the SINGLE best action right now. Be concise. Only use tools if truly needed.
 """
 
-    print(f"[AUTONOMOUS] Thinking... (Payload size: {len(full_prompt)} chars)")
+    print(f"[AUTONOMOUS] Thinking... (Payload size: {len(decision_prompt)} chars)")
     
     try:
         completion = await groq_client.chat.completions.create(

@@ -457,6 +457,18 @@ TOOL_SCHEMAS = [
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_token_info",
+            "description": "Get live $RCR (or SOL fallback) token stats, price, volume, and launch status.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    }
 ]
 
 # ── Tool name lookup ───────────────────────────────────────────────────────────
@@ -483,6 +495,7 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
             case "record_twitter_action": return await _record_twitter_action(args)
             case "check_api_credits":     return await _check_api_credits(x_client)
             case "get_crypto_news":       return await _get_crypto_news(args)
+            case "get_token_info":        return await get_token_info()
 
             case "fetch_trench_tweets":
                 from app.trench_service import fetch_trench_tweets
@@ -1088,6 +1101,27 @@ async def _learn_from_past_posts(limit: int = 12):
         "avoid": list(dict.fromkeys(avoid))[:3],
         "summary": f"Learned from {len(past_posts)} recent posts — GM/GN + Brrrr style is strong"
     }
+
+async def get_token_info():
+    """Smart token awareness with SOL fallback"""
+    token_address = os.getenv("RCR_TOKEN_ADDRESS")
+    if token_address and token_address != "SOL_FALLBACK":
+        # TODO: DexScreener or DexTools call (we'll expand in 7.3)
+        return {
+            "symbol": "$RCR",
+            "price": "0.00",           # placeholder until real API
+            "volume_24h": "0",
+            "launch_status": "live",
+            "message": "Real $RCR token monitoring active"
+        }
+    else:
+        return {
+            "symbol": "SOL",
+            "price": "0.00",           # placeholder
+            "volume_24h": "0",
+            "launch_status": "pre-launch",
+            "message": "Still tracking SOL as placeholder until $RCR launches"
+        }
 
 async def _reflect_and_adapt(action_taken: str, outcome: str = "success"):
     """Final self-reflection step — makes Courage evolve"""

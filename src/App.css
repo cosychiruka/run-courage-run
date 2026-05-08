@@ -2926,8 +2926,24 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 /* Tokenomics grid */
 .token-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.token-card {
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 1024px) {
+  .token-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .token-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 

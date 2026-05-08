@@ -853,30 +853,32 @@ export default function App() {
         </section>
 
         {/* Tokenomics */}
-        <section className="landing-section container glass-panel" style={{ padding: '2rem' }}>
-          <div className="comic-banner">
-            <h2 className="landing-heading"><span className="icon-chart-grow">📊</span> Tokenomics</h2>
-          </div>
-          <div className="token-grid">
-            <div className="token-card">
-              <span className="token-icon icon-pill-bounce">💊</span>
-              <span className="token-label">Total Supply</span>
-              <span className="token-value">1,000,000,000</span>
+        <section className="landing-section tokenomics container py-12 px-4 md:px-8">
+          <div className="max-w-6xl mx-auto glass-panel" style={{ padding: '2rem' }}>
+            <div className="comic-banner">
+              <h2 className="landing-heading text-4xl font-bold text-center mb-8"><span className="icon-chart-grow">📊</span> Tokenomics</h2>
             </div>
-            <div className="token-card">
-              <span className="token-icon icon-fire-glow">🔥</span>
-              <span className="token-label">Liquidity</span>
-              <span className="token-value">Locked</span>
-            </div>
-            <div className="token-card">
-              <span className="token-icon icon-chart-line">📈</span>
-              <span className="token-label">Tax</span>
-              <span className="token-value">0.5%</span>
-            </div>
-            <div className="token-card">
-              <span className="token-icon icon-dog-wag">🐕</span>
-              <span className="token-label">Dev Wallet</span>
-              <span className="token-value">0% (he's a dog)</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 token-grid">
+              <div className="token-card bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 text-center">
+                <span className="token-icon icon-pill-bounce">💊</span>
+                <span className="token-label">Total Supply</span>
+                <span className="token-value">1,000,000,000</span>
+              </div>
+              <div className="token-card bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 text-center">
+                <span className="token-icon icon-fire-glow">🔥</span>
+                <span className="token-label">Liquidity</span>
+                <span className="token-value">Locked</span>
+              </div>
+              <div className="token-card bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 text-center">
+                <span className="token-icon icon-chart-line">📈</span>
+                <span className="token-label">Tax</span>
+                <span className="token-value">0.5%</span>
+              </div>
+              <div className="token-card bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 text-center">
+                <span className="token-icon icon-dog-wag">🐕</span>
+                <span className="token-label">Dev Wallet</span>
+                <span className="token-value">0% (he's a dog)</span>
+              </div>
             </div>
           </div>
         </section>

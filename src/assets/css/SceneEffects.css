@@ -11,8 +11,16 @@
   overflow: hidden;
 }
 /* Allow click targets on interactive layers */
-.flies-layer  { pointer-events: none; }
-.flies-layer .scene-fly  { pointer-events: all; }
+.flies-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+.flies-layer .scene-fly {
+  pointer-events: all !important;
+  z-index: 10000;
+}
 .ghosts-layer { pointer-events: none; }
 .ghosts-layer .scene-ghost { pointer-events: all; }
 
