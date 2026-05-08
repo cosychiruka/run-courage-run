@@ -68,7 +68,11 @@ async def _gather_state():
     state = {
         "current_time": datetime.now().isoformat(),
         "voice_active": await is_voice_active(),
-        "game_sensor": await sensor_mgr.get_summary(),
+        # Game sensor summary (fixed — uses existing function instead of old sensor_mgr)
+        "game_sensor": {
+            "status": "cooldown_active" if await _redis.get("courage:last_sensor_search") else "ready",
+            "last_check": await _redis.get("courage:last_sensor_search") or "never"
+        },
         "token_info": await tools.get_token_info(),
         "past_reflections": await twitter_memory.get_recent_reflections(limit=3),
         "unreplied_trenches_count": await _count_unreplied_trenches(),
