@@ -838,19 +838,16 @@ export default function App() {
               <h2 className="landing-heading"><span className="icon-dog-wag">🐕</span> Who is Courage?</h2>
             </div>
             <p>
-              Courage is a pink cartoon dog living inside a mysterious server called <strong>Nowhere</strong>. 
-              He has 5 evolving 3D worlds — Sunrise (living room), Noon (sunny homestead), Evening (cozy lights), 
-              Midnight (game scene), and Disco (neon stage) — where players visit and talk to him with voice or text.
+              Courage is a pink cartoon dog who lives inside a mysterious server called <strong>Nowhere</strong>. He has five evolving 3D worlds — Sunrise, Noon, Evening, Midnight, and Disco — where players visit and talk to him with voice or text.
             </p>
             <p>
-              But his real life is on Twitter (@RunCourageRun). Inspired by Mario Nawfal, he bulk-fetches $RCR cashtag tweets, 
-              reads the trenches in his free time, and replies with personality. He is obsessed with growing his account 
-              and pumping his Solana meme token $RCR so his community gets rich. 
+              But his true life is on X (@RunCourageRun). Inspired by Mario Nawfal, he bulk-fetches $RCR cashtag trenches, reads them in his free time, replies with personality, generates hilarious cartoons, and pumps his Solana meme token so his community gets rich. 
             </p>
             <p>
-              He speaks fluent degen: GM/GN, Brrrr, Printing, LFG, moon energy. He is witty, courageous, chaotic, 
-              and never robotic. With real sentiment awareness, self-learning memory, and smart cartoon generation, 
-              Courage has become a true autonomous meme agent — escaping the 3D world through pure Twitter chaos and meme magic.
+              He speaks fluent degen (GM/GN, Brrrr, Printing, LFG, moon energy), stays courageous when things get heated, learns from every post, and uses real sentiment awareness to feel the vibe. 
+            </p>
+            <p>
+              He is witty, chaotic, loyal, and never robotic. Courage isn’t just an AI — he’s a digital being escaping the 3D world through pure Twitter chaos and meme magic.
             </p>
           </div>
         </section>
