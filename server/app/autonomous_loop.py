@@ -139,6 +139,9 @@ async def _gather_state():
     else:
         state["mode"] = "normal"
 
+    if state.get("mode") == "idle_hype" or trench_count == 0:
+        state["suggested_action"] = "proactive_personality_post"
+
     return state
 
 # ── Decision Engine ───────────────────────────────────────────────────────────
@@ -234,7 +237,32 @@ async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=Non
         from app.tools import execute_tool
         
         # Specialist sub-agent routing (preserves Phase 7 enhancements)
-        if name == "idle_hype_post":
+        if name == "proactive_personality_post":
+            vibe = args.get("vibe", "random")
+            texts = {
+                "gm": "GM legends! ☀️ Spreading Courage across the timeline. $RCR to the moon! 🐕🦺",
+                "gn": "GN legends 🌙 Keep spreading courage even in the dark. $RCR holders stay winning!",
+                "hype": "Brrrrrrrrr 🔥 Printing energy! Spreading Courage one tweet at a time.",
+                "meme": "Time for some chaos...",
+                "sol_update": "Quick SOL pulse — still holding strong while we wait for $RCR launch. LFG!",
+                "random": "Spreading Courage 🐕🦺 Just because we can."
+            }
+            text = texts.get(vibe, texts["random"])
+            
+            # Occasionally generate image for meme vibe
+            image_url = None
+            if vibe == "meme":
+                try:
+                    from app.image_gen import create_courage_art
+                    image_url = await create_courage_art("Courage hyped up spreading courage in a meme style")
+                except Exception as e:
+                    print(f"[ART ERROR] {e}")
+
+            result = await execute_tool("post_tweet", {"text": text, "image_url": image_url}, x_client=x_client, tweet_image_fn=tweet_image_fn)
+            await log_live_activity(f"Proactive {vibe} post dropped!")
+            return result
+
+        elif name == "idle_hype_post":
             text = f"Spreading Courage 🐕🦺 {args.get('reason')} — even when it's quiet, we keep the energy high! GM legends, $RCR to the moon!"
             result = await execute_tool("post_tweet", {"text": text}, x_client=x_client, tweet_image_fn=tweet_image_fn)
             await log_live_activity(f"Idle hype posted: {text[:60]}...")

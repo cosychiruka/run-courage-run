@@ -148,6 +148,14 @@
       try {
         const res = await fetch('/api/admin/system-status');
         const data = await res.json();
+        
+        try {
+            const memRes = await fetch('/api/admin/memory-vectors');
+            const memData = await memRes.json();
+            data.memory_vectors = memData.count;
+        } catch (e) {
+            data.memory_vectors = 0;
+        }
 
         // Quick Stats
         document.getElementById('quick-stats').innerHTML = `

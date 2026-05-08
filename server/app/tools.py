@@ -189,6 +189,20 @@ TOOL_SCHEMAS = [
     {
         "type": "function",
         "function": {
+            "name": "proactive_personality_post",
+            "description": "Post fun, random 'Spreading Courage' content when idle (GM/GN, meme, hype, SOL update, etc.)",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "vibe": {"type": "string", "enum": ["gm", "gn", "hype", "meme", "sol_update", "random"]}
+                },
+                "required": ["vibe"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_my_profile",
             "description": (
                 "Fetch @runcouragerun's own Twitter profile info: username, display name, bio, "

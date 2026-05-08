@@ -1028,6 +1028,18 @@ async def override_frequency(data: dict):
     await _redis.set("courage:sensor_cooldown_minutes", minutes)
     return {"status": "ok", "new_frequency": minutes}
 
+@app.get("/api/admin/memory-vectors")
+async def get_memory_vectors():
+    global _redis
+    if not _redis: return {"count": 0, "status": "error"}
+    try:
+        # Check if length can be retrieved for lists; otherwise might need different handling if it's a different type
+        # But instructions say use llen
+        count = await _redis.llen("courage:rag_vectors") or 0
+        return {"count": count, "status": "healthy" if count > 0 else "empty"}
+    except Exception:
+        return {"count": 0, "status": "error"}
+
 @app.get("/api/admin/recent-decisions")
 async def get_recent_decisions():
     """Fetch the latest 30 brain decisions for the dashboard."""
