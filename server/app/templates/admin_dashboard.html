@@ -66,11 +66,11 @@
         <div class="mt-6 pt-6 border-t border-neutral-800">
           <div class="flex justify-between items-center mb-4">
             <div class="text-neutral-400 text-sm tracking-widest uppercase">🎛️ Sensor Override</div>
-            <div class="text-xl font-bold text-fuchsia-400" id="freq-value">25 min</div>
+            <div class="text-xl font-bold text-fuchsia-400" id="cooldown-value">25 min</div>
           </div>
-          <input type="range" id="freq-slider" min="5" max="60" value="25" step="5" 
+          <input type="range" id="cooldown-slider" min="5" max="60" value="25" step="5" 
                  class="w-full h-2 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-fuchsia-500 mb-4"
-                 oninput="document.getElementById('freq-value').textContent = this.value + ' min'">
+                 oninput="document.getElementById('cooldown-value').textContent = this.value + ' min'">
           <button onclick="overrideFrequency()" 
                   class="w-full py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 rounded-2xl font-bold transition-all active:scale-95">
             APPLY OVERRIDE
@@ -237,11 +237,18 @@
         document.getElementById('tab-content').innerHTML = html;
         document.getElementById('last-updated').innerHTML = `Last updated: ${new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', second:'2-digit'})}`;
 
-        // Phase 5.8: Update Spend & Cooldown
-        document.getElementById('x-spend-today').textContent = '$' + data.x_spend_today.toFixed(2);
-        document.getElementById('x-spend-total').textContent = data.x_spend_total.toFixed(2);
-        document.getElementById('cooldown-slider').value = data.sensor_cooldown_minutes;
-        document.getElementById('cooldown-value').textContent = data.sensor_cooldown_minutes + ' min';
+        // Phase 5.8: Update Spend & Cooldown (Null-safe)
+        const spendToday = document.getElementById('x-spend-today');
+        if (spendToday) spendToday.textContent = '$' + data.x_spend_today.toFixed(2);
+        
+        const spendTotal = document.getElementById('x-spend-total');
+        if (spendTotal) spendTotal.textContent = data.x_spend_total.toFixed(2);
+        
+        const slider = document.getElementById('cooldown-slider');
+        if (slider) slider.value = data.sensor_cooldown_minutes;
+        
+        const cooldownVal = document.getElementById('cooldown-value');
+        if (cooldownVal) cooldownVal.textContent = data.sensor_cooldown_minutes + ' min';
 
       } catch (e) {
         console.error("Dashboard fetch error", e);
@@ -262,7 +269,9 @@
     function clearReplyQueue() { if (confirm('Clear entire reply queue?')) fetch('/api/queue/clear', {method:'POST'}); }
 
     async function overrideFrequency() {
-      const minutes = document.getElementById('freq-slider').value;
+      const slider = document.getElementById('cooldown-slider');
+      if (!slider) return;
+      const minutes = slider.value;
       const res = await fetch('/api/admin/override_frequency', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
