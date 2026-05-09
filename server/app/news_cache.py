@@ -246,5 +246,20 @@ async def get_cached_tweet_search(query: str) -> Optional[str]:
     try: return await r.get(key)
     except: return None
 
-async def get_budget_status():
-    return {"guardian": {"used": -1, "limit": 5000}}
+async def get_budget_status() -> dict:
+    """Return current daily API usage across all news sources."""
+    from app.config import GNEWS_DAILY_BUDGET, NEWSAPI_DAILY_BUDGET
+    r = await get_redis()
+    today = datetime.date.today().isoformat()
+    gnews_used = newsapi_used = 0
+    if r:
+        try:
+            gnews_used   = int(await r.get(f"budget:gnews:{today}") or 0)
+            newsapi_used = int(await r.get(f"budget:newsapi:{today}") or 0)
+        except Exception:
+            pass
+    return {
+        "guardian": {"used": -1,          "limit": 5000},
+        "gnews":    {"used": gnews_used,   "limit": GNEWS_DAILY_BUDGET},
+        "newsapi":  {"used": newsapi_used, "limit": NEWSAPI_DAILY_BUDGET},
+    }

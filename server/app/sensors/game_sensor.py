@@ -37,6 +37,12 @@ async def game_sensor_loop():
             count = len(tweets.data) if tweets.data else 0
             await track_x_search_cost(count)
 
+            # Build author_id → username lookup from includes (search_recent requests this)
+            user_map = {}
+            if tweets and tweets.includes and "users" in tweets.includes:
+                for u in tweets.includes["users"]:
+                    user_map[u.id] = u.username
+
             for t in tweets.data or []:
                 if any(kw in t.text.lower() for kw in [
                     "monster", "homestead", "courage", "runcouragerun",
@@ -47,10 +53,13 @@ async def game_sensor_loop():
                     if last_event and (time.time() - float(last_event)) < 30:
                         print("[GAME_SENSOR] Event debounce active — skipping emit")
                         break
-                        
+
+                    # Use username if available so brain can write "@handle" shoutouts
+                    author_username = user_map.get(t.author_id, str(t.author_id))
+
                     moment = {
                         "tweet_id": str(t.id),
-                        "author": str(t.author_id),
+                        "author": author_username,
                         "text": t.text[:120]
                     }
                     await emit_event("GAME_MOMENT", moment)
