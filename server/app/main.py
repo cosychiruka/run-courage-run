@@ -86,7 +86,7 @@ async def _tweet_image_fn(article_url: str):
         "headline": article.get("title", ""),
         "story": article.get("description", "") or article.get("content", ""),
         "image_url": article.get("image_url") or article.get("image") or article.get("urlToImage"),
-        "source": article.get("source_name") or article.get("source", {}).get("name") or "Nowhere News",
+        "source": "Nowhere News",
         "time_ago": "Latest",
         "is_crypto": is_crypto
     }

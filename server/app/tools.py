@@ -644,7 +644,7 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
                 return f"Generated Courage cartoon: {url}" if url else "Image gen failed — check FAL key."
 
             case "auto_reply_with_art":
-                return f"QUEUED: Auto-reply to {args.get('trench_ids')} with text: {args.get('reply_text')}. Art queued: {args.get('art_prompt')}"
+                return await _auto_reply_with_art(args)
             case "auto_hustle_post":
                 return await _auto_hustle_post(args, x_client, tweet_image_fn)
             case "auto_news_react":
@@ -1409,11 +1409,54 @@ async def art_dog_generate(scene: str, current_sentiment: str = "neutral", token
     # Reuses the existing smart art function
     return await _create_courage_art({"prompt": enhanced_prompt, "sentiment": current_sentiment})
 
+async def _auto_reply_with_art(args: dict) -> str:
+    """Push trench replies into the engagement queue (rate-limited at 45s intervals by queue worker)."""
+    from app.engagement_queue import queue_post_with_media
+    import app.twitter_memory as tw_mem
+
+    trench_ids  = args.get("trench_ids") or []
+    reply_text  = (args.get("reply_text") or "Spreading Courage 🐕‍🦺")[:280]
+    art_prompt  = args.get("art_prompt") or ""
+
+    if not trench_ids:
+        return "No trench IDs provided — nothing queued."
+
+    # Generate art once and reuse for all replies (saves Fal.ai budget)
+    image_url = None
+    if art_prompt:
+        try:
+            from app.image_gen import create_courage_art
+            image_url = await create_courage_art(art_prompt)
+        except Exception as e:
+            print(f"[AUTO_REPLY] Art gen failed (text-only replies): {e}")
+
+    queued = 0
+    for tweet_id in trench_ids[:2]:   # max 2 per tick to respect X rate limits
+        if not tweet_id:
+            continue
+        await queue_post_with_media(reply_text, image_url, reply_to_tweet_id=str(tweet_id))
+        await tw_mem.mark_trench_processed(str(tweet_id))
+        queued += 1
+
+    return f"Queued {queued} trench repl{'y' if queued == 1 else 'ies'} with {'art' if image_url else 'text only'}."
+
+
 async def engagement_dog_suggest():
-    """Engagement Dog: Specialist in trench reading."""
+    """Engagement Dog: reads trenches and returns tweet_ids + draft replies for auto_reply_with_art."""
     from app.twitter_memory import get_recent_unprocessed_trenches
     trenches = await get_recent_unprocessed_trenches(limit=8)
-    return {"suggested_replies": [t.get("text", "")[:220] for t in trenches[:4]]}
+    suggestions = [
+        {
+            "tweet_id": t.get("tweet_id", ""),
+            "author":   t.get("author", ""),
+            "text":     t.get("text", "")[:220],
+        }
+        for t in trenches[:4]
+    ]
+    return {
+        "suggested_replies": suggestions,
+        "instruction": "Call auto_reply_with_art with trench_ids from this list to actually post the replies."
+    }
 
 async def token_dog_report():
     """Token Dog: Specialist in market monitoring."""

@@ -105,7 +105,7 @@ async def generate_news_poster_image(news: dict) -> Image.Image:
     draw_text_with_shadow(story, (510, 330), body_font, story_color, max_width=620)
 
     # Source + time
-    source_line = f"{news.get('source', 'Guardian')} • {news.get('time_ago', 'now')}"
+    source_line = f"Nowhere News • {news.get('time_ago', 'now')}"
     draw_text_with_shadow(source_line, (70, 630), small_font, "#666666" if not is_crypto else "#00FF9F")
 
     # ── COURAGE BOTTOM BAR ──

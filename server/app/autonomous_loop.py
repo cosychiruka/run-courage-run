@@ -156,13 +156,14 @@ async def _gather_state():
         if credit_status == "capped":
             state["credit_alert"] = "X API credits depleted. Cannot search or post. Switch to internal hype / meme generation mode."
 
-    # === SHARP TRENCHES (top 6, short but flavorful) ===
+    # === SHARP TRENCHES (top 6, short but flavorful — tweet_id included for replies) ===
     trenches = await get_recent_trenches(limit=6)
     state["trenches"] = [
         {
-            "author": t["author"],
-            "text": t["text"][:320],                    # enough for wit
-            "cashtag": "$RCR" in t["text"].upper()
+            "tweet_id": t.get("tweet_id", ""),          # LLM needs this to reply
+            "author":   t["author"],
+            "text":     t["text"][:320],
+            "cashtag":  "$RCR" in t["text"].upper()
         }
         for t in trenches
     ]
@@ -181,7 +182,7 @@ async def _gather_state():
             "signal_score": x["score"],
             "article_url":  x["a"].get("url", ""),          # pass to auto_news_react for newspaper render
             "image_url":    x["a"].get("image_url") or x["a"].get("image") or x["a"].get("urlToImage") or "",
-            "source":       x["a"].get("source_name") or "The Guardian",
+            "source":       "Nowhere News",
         }
         for x in scored
     ]
