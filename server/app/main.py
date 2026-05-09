@@ -785,12 +785,13 @@ async def _get_live_activity_feed(limit: int = 20):
     if not r: return []
     try:
         # We use xrevrange to get the most recent events first
+        # decode_responses=True means entries are strings, not bytes
         events = await r.xrevrange("courage:activity_log", "+", "-", count=limit)
         return [
             {
-                "time": e[0].decode().split("-")[0][-5:], # Just HH:MM or similar
-                "event": e[1].get(b"type", b"unknown").decode(),
-                "message": e[1].get(b"msg", b"").decode()
+                "time": str(e[0]).split("-")[0][-5:],
+                "event": e[1].get("type", "unknown") if isinstance(e[1], dict) else "unknown",
+                "message": e[1].get("msg", "") if isinstance(e[1], dict) else "",
             }
             for e in events
         ]

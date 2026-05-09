@@ -63,15 +63,44 @@ class MockRedis:
     async def lrange(self, name, start, end):
         return self._data.get(name, [])[start:end+1]
 
-    async def rpush(self, name, value):
+    async def rpush(self, name, *values):
         if name not in self._data: self._data[name] = []
-        self._data[name].append(value)
+        for v in values:
+            self._data[name].append(v)
         return len(self._data[name])
+
+    async def lpush(self, name, *values):
+        if name not in self._data: self._data[name] = []
+        for v in values:
+            self._data[name].insert(0, v)
+        return len(self._data[name])
+
+    async def ltrim(self, name, start, end):
+        if name in self._data:
+            self._data[name] = self._data[name][start:end + 1]
+        return True
+
+    async def incr(self, name, amount=1):
+        val = int(self._data.get(name, 0)) + amount
+        self._data[name] = str(val)
+        return val
 
     async def lpop(self, name):
         if name in self._data and self._data[name]:
             return self._data[name].pop(0)
         return None
+
+    async def xadd(self, name, fields, maxlen=None, **kwargs):
+        if name not in self._data: self._data[name] = []
+        entry_id = f"{int(time.time() * 1000)}-0"
+        self._data[name].append((entry_id, fields))
+        if maxlen and len(self._data[name]) > maxlen:
+            self._data[name] = self._data[name][-maxlen:]
+        return entry_id
+
+    async def xrevrange(self, name, max="+", min="-", count=None):
+        entries = list(reversed(self._data.get(name, [])))
+        return entries[:count] if count else entries
 
     async def scard(self, name):
         return len(self._data.get(name, set()))
