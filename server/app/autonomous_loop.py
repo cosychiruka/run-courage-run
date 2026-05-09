@@ -94,6 +94,49 @@ async def get_x_rate_status():
     x = make_x_client()
     return x.get_rate_status() if x else {}
 
+
+async def _generate_personality_post(
+    vibe: str, time_ctx: dict, community_vibe: str, game_moments: list
+) -> str | None:
+    """Groq-authored personality post — makes idle ticks sound alive, not canned."""
+    hour  = time_ctx.get("hour", 12)
+    phase = time_ctx.get("day_phase", "noon")
+    energy = time_ctx.get("energy", "midday grind")
+    day   = time_ctx.get("day_of_week", "Friday")
+
+    shoutout = ""
+    if game_moments:
+        players = " ".join(f"@{m.get('author', 'someone')}" for m in game_moments[:2])
+        shoutout = f"\nPlayers just visited the Homestead: {players} — mention them in the tweet!"
+
+    prompt = (
+        f"You are Courage the Cowardly Dog. Write ONE tweet for a {vibe} post.\n"
+        f"Time: {hour}:00 {day}, {phase} phase — {energy}\n"
+        f"Community vibe: {community_vibe}\n"
+        f"{shoutout}\n"
+        "Rules:\n"
+        "- Max 240 chars\n"
+        "- Include 1 sound effect (*whimper* / *gulp* / *gasp*) or a classic Courage catchphrase\n"
+        "- Include $RCR and 1-2 relevant emojis\n"
+        "- Sound alive and fun — never robotic, never generic\n"
+        "- No external URLs\n"
+        "Tweet text only (no quotes, no extra commentary):"
+    )
+    try:
+        resp = await groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=110,
+            temperature=0.93,
+        )
+        text = resp.choices[0].message.content.strip().strip('"').strip("'")
+        import re as _re
+        text = _re.sub(r'https?://\S+', '', text).strip()
+        return text[:240] if text else None
+    except Exception as e:
+        print(f"[PERSONALITY_POST] LLM gen failed: {e}")
+        return None
+
 # ── State gathering ────────────────────────────────────────────────────────────
 
 async def _gather_state():
@@ -242,17 +285,34 @@ async def decide_and_act(state, x_client=None, tweet_image_fn=None):
     # Compact JSON context
     context = json.dumps(state, ensure_ascii=False, separators=(",", ":"))
 
-    decision_prompt = f"""
-== AUTONOMOUS DECISION ==
-You are Courage. Review your state and decide the best ACTION.
-Current Token ({state['token_info']['symbol']}): {state['token_info']['launch_status']} | Price: {state['token_info']['price']}
-Recent Reflections: {state['past_reflections']}
-Game World: {state['game_sensor']['status']}
+    # Surface the highest-signal alerts above the JSON blob so LLM sees them first
+    game_alert = ""
+    if state.get("game_moments"):
+        players = ", ".join("@" + m.get("author", "?") for m in state["game_moments"][:3])
+        game_alert = f"\n⚡⚡ GAME MOMENTS — Players just engaged: {players} — SHOUT THEM OUT NOW with post_tweet!\n"
 
-Full context:
+    top_story = state["news"][0] if state.get("news") else None
+    news_alert = ""
+    if top_story and state.get("top_news_signal", 0) >= 60:
+        news_alert = (
+            f"\n🔥 HIGH SIGNAL NEWS (score={state['top_news_signal']}/80): "
+            f"\"{top_story['title'][:80]}\" — REACT with auto_news_react!\n"
+        )
+
+    t = state.get("time_context", {})
+    credit_note = state.get("credit_alert", state.get("credit_override", "healthy"))
+
+    decision_prompt = f"""== AUTONOMOUS DECISION ==
+You are Courage. Pick the SINGLE best action right now.
+{game_alert}{news_alert}
+🕐 {t.get('day_of_week','')} {t.get('day_phase','')} | {t.get('energy','')} | Hour {t.get('hour','')}
+💬 Trenches waiting: {state.get('unreplied_trenches_count', 0)} | Mode: {state.get('mode', 'normal')} | Credits: {credit_note}
+📰 Top news signal: {state.get('top_news_signal', 0)}/80 | Auto tweets today: {state.get('auto_tweets_today', 0)}
+
+Full context (JSON):
 {context}
 
-Decide the SINGLE best action right now. Be concise. Only use tools if truly needed.
+Follow the DECISION TREE from your system prompt. Be decisive. Act now.
 """
 
     print(f"[AUTONOMOUS] Thinking... (Payload size: {len(decision_prompt)} chars)")
@@ -333,22 +393,31 @@ async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=Non
         # Specialist sub-agent routing (preserves Phase 7 enhancements)
         if name == "proactive_personality_post":
             vibe = args.get("vibe", "random")
-            texts = {
-                "gm": "GM legends! ☀️ Spreading Courage across the timeline. $RCR to the moon! 🐕🦺",
-                "gn": "GN legends 🌙 Keep spreading courage even in the dark. $RCR holders stay winning!",
-                "hype": "Brrrrrrrrr 🔥 Printing energy! Spreading Courage one tweet at a time.",
-                "meme": "Time for some chaos...",
-                "sol_update": "Quick SOL pulse — still holding strong while we wait for $RCR launch. LFG!",
-                "random": "Spreading Courage 🐕🦺 Just because we can."
-            }
-            text = texts.get(vibe, texts["random"])
-            
-            # Occasionally generate image for meme vibe
+            time_ctx      = state.get("time_context", {}) if state else {}
+            community_vibe = state.get("community_vibe", "quiet") if state else "quiet"
+            game_moments  = state.get("game_moments", []) if state else []
+
+            # LLM writes the post — falls back to canned text only if Groq fails
+            text = await _generate_personality_post(vibe, time_ctx, community_vibe, game_moments)
+            if not text:
+                _FALLBACK = {
+                    "gm":        "GM legends! ☀️ *wags tail* Spreading Courage. $RCR to the moon! 🐕🦺",
+                    "gn":        "GN legends 🌙 *whimper* $RCR holders rest easy, we're gonna make it.",
+                    "hype":      "Brrrrrrrr 🔥 *gulp* Printing energy! Spreading Courage. $RCR LFG!",
+                    "meme":      "*gasp* Time for some chaos... $RCR Spreading Courage 🐕🦺 MMGA!",
+                    "sol_update":"SOL pulse check — holding strong. $RCR launch incoming. The things I do for love...",
+                    "random":    "Spreading Courage 🐕🦺 *wags tail* $RCR Just because we can. MMGA!",
+                }
+                text = _FALLBACK.get(vibe, _FALLBACK["random"])
+
+            # Generate art for meme vibe
             image_url = None
             if vibe == "meme":
                 try:
                     from app.image_gen import create_courage_art
-                    image_url = await create_courage_art("Courage hyped up spreading courage in a meme style")
+                    image_url = await create_courage_art(
+                        "Courage the Cowardly Dog spreading pure chaotic meme energy, surprised expression, vibrant cartoon art"
+                    )
                 except Exception as e:
                     print(f"[ART ERROR] {e}")
 
@@ -369,7 +438,30 @@ async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=Non
                 "current_sentiment": state.get("community_vibe", "neutral") if state else "neutral",
                 "token_info": state.get("token_info", {}) if state else {}
             })
-        elif name in ["news_dog_scan", "engagement_dog_suggest", "token_dog_report", "eternal_reflect", "viral_growth_suggest"]:
+        elif name == "engagement_dog_suggest":
+            result = await execute_tool("engagement_dog_suggest", {})
+            # Auto-queue replies immediately — LLM only gets 1 tool call per tick
+            if isinstance(result, dict) and result.get("suggested_replies"):
+                trench_ids = [
+                    s["tweet_id"] for s in result["suggested_replies"][:2]
+                    if s.get("tweet_id")
+                ]
+                if trench_ids:
+                    try:
+                        community_vibe = state.get("community_vibe", "neutral") if state else "neutral"
+                        await execute_tool("auto_reply_with_art", {
+                            "trench_ids": trench_ids,
+                            "reply_text": "Spreading Courage 🐕🦺 $RCR LFG! The things I do for love...",
+                            "art_prompt": (
+                                f"Courage the Cowardly Dog excited and waving at the community. "
+                                f"Vibe: {community_vibe}"
+                            ),
+                        }, x_client=x_client, tweet_image_fn=tweet_image_fn)
+                        await log_live_activity(f"Auto-queued {len(trench_ids)} trench repl(ies) from engagement_dog_suggest")
+                    except Exception as eq_err:
+                        print(f"[ENGAGEMENT AUTO-QUEUE] Failed: {eq_err}")
+
+        elif name in ["news_dog_scan", "token_dog_report", "eternal_reflect", "viral_growth_suggest"]:
             result = await execute_tool(name, {})
         elif name == "trigger_3d_reaction":
             result = await execute_tool("trigger_3d_reaction", {

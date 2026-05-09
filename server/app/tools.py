@@ -666,6 +666,14 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
                 result = await _reflect_and_adapt(action_taken=action, outcome=outcome)
                 return json.dumps(result, separators=(",", ":"))
 
+            case "report_credit_status":
+                result = await report_credit_status(args.get("action", "check"))
+                return json.dumps(result, separators=(",", ":"))
+
+            case "idle_hype_post":
+                result = await idle_hype_post(args.get("reason", "quiet"))
+                return json.dumps(result, separators=(",", ":"))
+
             case _:                       return f"Unknown tool: {name}"
     except Exception as e:
         return f"Tool error ({name}): {e}"
@@ -1147,7 +1155,9 @@ async def _get_rcr_stats():
 
 async def _create_courage_art(args: dict):
     from app.image_gen import create_courage_art
-    url = await create_courage_art(args.get("prompt_description", "just being brave"))
+    # Accept both "prompt" and legacy "prompt_description" key names
+    prompt = args.get("prompt") or args.get("prompt_description") or "just being brave"
+    url = await create_courage_art(prompt)
     return f"Generated Courage cartoon: {url}" if url else "Image gen failed — check FAL key."
 
 # === BACKWARD COMPATIBILITY FOR AUTONOMOUS_LOOP ===
@@ -1286,12 +1296,12 @@ async def _auto_news_react(args: dict, x_client, tweet_image_fn) -> str:
 
     # ── Path 1: Newspaper design (The Courageous Chronicle) ───────────────
     # Use article_url → _tweet_image_fn renders the full newspaper poster
-    # This is the beautiful design from the May 7 commit
     if article_url and tweet_image_fn:
         print(f"[AUTO_NEWS_REACT] Rendering newspaper poster for: {news_title[:60]}")
+        tweet_text = await _llm_news_tweet(news_title, news_summary)
         return await _post_tweet(
             {
-                "text":        _build_news_tweet(news_title, news_summary),
+                "text":        tweet_text,
                 "article_url": article_url,
             },
             x_client,
@@ -1316,13 +1326,14 @@ async def _auto_news_react(args: dict, x_client, tweet_image_fn) -> str:
             img_bytes = await generate_news_poster_bytes(news_data)
             if img_bytes and x_client:
                 media_id = x_client.upload_media(img_bytes)
+                tweet_text = await _llm_news_tweet(news_title, news_summary)
                 resp = x_client.create_tweet(
-                    text=_build_news_tweet(news_title, news_summary),
+                    text=tweet_text,
                     media_ids=[media_id],
                 )
                 tweet_id = resp.data.get("id", "?")
                 import app.twitter_memory as tw_mem
-                await tw_mem.record_tweet(str(tweet_id), _build_news_tweet(news_title, news_summary))
+                await tw_mem.record_tweet(str(tweet_id), tweet_text)
                 print(f"[AUTO_NEWS_REACT] Newspaper posted! ID: {tweet_id}")
                 return f"Tweet posted successfully! ID: {tweet_id}"
         except Exception as e:
@@ -1341,15 +1352,48 @@ async def _auto_news_react(args: dict, x_client, tweet_image_fn) -> str:
         except Exception as e:
             print(f"[AUTO_NEWS_REACT] Fal.ai also failed (text-only): {e}")
 
+    tweet_text = await _llm_news_tweet(news_title, news_summary)
     return await _post_tweet(
-        {"text": _build_news_tweet(news_title, news_summary), "image_url": poster_url},
+        {"text": tweet_text, "image_url": poster_url},
         x_client,
         tweet_image_fn,
     )
 
 
+async def _llm_news_tweet(title: str, summary: str) -> str:
+    """Fast 8b model writes a Courage-voiced reaction. Falls back to _build_news_tweet."""
+    try:
+        from groq import AsyncGroq
+        from app.config import GROQ_API_KEY
+        _model = os.getenv("GROQ_MODEL_FAST", "llama-3.1-8b-instant")
+        _client = AsyncGroq(api_key=GROQ_API_KEY)
+        resp = await _client.chat.completions.create(
+            model=_model,
+            messages=[{"role": "user", "content": (
+                f"You are Courage the Cowardly Dog reacting to breaking news. Write ONE tweet.\n\n"
+                f"Headline: {title[:120]}\n"
+                f"Summary: {summary[:200]}\n\n"
+                "Rules:\n"
+                "- Max 240 chars\n"
+                "- Courage voice: dramatic, panicked but brave, meme-native\n"
+                "- Include 1 sound effect (*whimper* / *gulp* / *gasp*) AND 1 catchphrase\n"
+                "- End with: 'The things I do for love...' OR 'MMGA!' OR 'LFG!'\n"
+                "- No external URLs, no contract addresses, no quotes around the tweet\n"
+                "Tweet text only:"
+            )}],
+            max_tokens=100,
+            temperature=0.88,
+        )
+        text = resp.choices[0].message.content.strip().strip('"').strip("'")
+        text = re.sub(r'https?://\S+', '', text).strip()
+        return (text[:237] + "...") if len(text) > 240 else text
+    except Exception as e:
+        print(f"[LLM_TWEET] Failed ({e}), using fallback")
+        return _build_news_tweet(title, summary)
+
+
 def _build_news_tweet(title: str, summary: str) -> str:
-    """Fit title + summary + Courage signature inside 280 chars."""
+    """Sync fallback: fit title + summary + Courage signature inside 280 chars."""
     signature = "\n\nSpreading Courage 🐕‍🦺"
     sep = "\n\n"
     max_summary = max(0, 280 - len(title) - len(sep) - len(signature) - 2)
