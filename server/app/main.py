@@ -794,7 +794,7 @@ async def _get_replies_today_count():
         today_start = time.time() - (time.time() % 86400)
         async with aiosqlite.connect(DB_PATH) as db:
             async with db.execute(
-                "SELECT COUNT(*) FROM tw_posted_tweets WHERE created_at >= ?", (today_start,)
+                "SELECT COUNT(*) FROM tw_tweets WHERE created_at >= ?", (today_start,)
             ) as cur:
                 row = await cur.fetchone()
         return row[0] if row else 0
@@ -1220,14 +1220,6 @@ if os.path.exists("/app/static"):
 
 if os.path.exists("public"):
     app.mount("/public", StaticFiles(directory="public"), name="public")
-
-@app.get("/admin")
-async def serve_admin():
-    # Serve the new rich dashboard if it exists
-    rich_path = os.path.join(os.path.dirname(__file__), "templates", "admin_dashboard.html")
-    if os.path.exists(rich_path):
-        return FileResponse(rich_path)
-    return FileResponse("/app/static/index.html")
 
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):
