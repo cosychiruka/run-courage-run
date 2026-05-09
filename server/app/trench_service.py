@@ -43,22 +43,20 @@ async def fetch_trench_tweets(cashtag: str = "$RCR", limit: int = 50, since_days
         if _redis:
             await _redis.set("courage:last_sensor_search", time.time())
 
-        # Save to DB
-        async with aiosqlite.connect(DB_PATH) as db:
-            added_count = 0
-            for t in tweets.data:
-                # Basic dedup check
-                exists = await db.execute("SELECT id FROM tweets WHERE tweet_id = ?", (str(t.id),))
-                if await exists.fetchone():
-                    continue
-                
-                await db.execute(
-                    "INSERT INTO tweets (tweet_id, author_id, text, timestamp, processed) VALUES (?, ?, ?, ?, ?)",
-                    (str(t.id), str(t.author_id), t.text, time.strftime('%Y-%m-%d %H:%M:%S'), 0)
+        # Save to DB via twitter_memory helper (correct table + columns)
+        added_count = 0
+        for t in tweets.data:
+            try:
+                await tw_mem.record_trench_tweet(
+                    tweet_id=str(t.id),
+                    author=str(getattr(t, "author_id", t.id)),
+                    text=t.text,
+                    cashtag=cashtag,
                 )
                 added_count += 1
-            await db.commit()
-            
+            except Exception as insert_err:
+                print(f"[TRENCH] Insert skipped (dupe or error): {insert_err}")
+
         return added_count
     except Exception as e:
         print(f"[TRENCH ERROR] {e}")

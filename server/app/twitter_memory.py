@@ -313,13 +313,26 @@ async def mark_trench_processed(tweet_id: str):
         await db.commit()
 
 
-from app.rag import embed_and_store
+async def record_trench_tweet(tweet_id: str, author: str, text: str, cashtag: str = "$RCR"):
+    """Save a fetched trench tweet to tw_trench_tweets."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT OR IGNORE INTO tw_trench_tweets (tweet_id, author, text, cashtag, created_at, processed)"
+            " VALUES (?,?,?,?,?,0)",
+            (tweet_id, author, text, cashtag, time.time()),
+        )
+        await db.commit()
+
 
 async def save_trench_tweet_with_rag(tweet: dict):
     """Called from trench_service after insert."""
-    content = f"@{tweet['author']}: {tweet['text']}"
-    metadata = {"tweet_id": tweet["tweet_id"], "cashtag": tweet["cashtag"]}
-    await embed_and_store(content, source="trench", metadata=metadata)
+    try:
+        from app.rag import embed_and_store  # lazy import — RAG may not be available
+        content = f"@{tweet['author']}: {tweet['text']}"
+        metadata = {"tweet_id": tweet["tweet_id"], "cashtag": tweet["cashtag"]}
+        await embed_and_store(content, source="trench", metadata=metadata)
+    except Exception as e:
+        print(f"[RAG] embed_and_store failed (non-fatal): {e}")
 
 
 async def get_unprocessed_trench_tweets_count() -> int:

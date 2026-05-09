@@ -391,12 +391,39 @@ async def api_render_card(payload: dict):
     article = payload.get("article")
     url     = payload.get("url")
 
+    from app.news_poster import generate_news_poster_bytes
+
+    news_data = None
     if article:
-        png = await render_news_card(article)
+        news_data = {
+            "headline": article.get("title", "Breaking News"),
+            "story": article.get("description") or article.get("content") or "",
+            "image_url": article.get("image_url") or article.get("urlToImage") or "",
+            "source": "Nowhere News",
+            "time_ago": "Latest",
+        }
     elif url:
-        png = await render_card_for_url(url)
+        # Fetch article metadata from cache and render
+        from app.news_cache import get_all_recent
+        cached = await get_all_recent(limit=30)
+        matched = next((a for a in cached if a.get("url") == url), None)
+        if matched:
+            news_data = {
+                "headline": matched.get("title", url),
+                "story": matched.get("description") or matched.get("content") or "",
+                "image_url": matched.get("image_url") or matched.get("urlToImage") or "",
+                "source": "Nowhere News",
+                "time_ago": "Latest",
+            }
+        else:
+            news_data = {"headline": url, "story": "", "source": "Nowhere News", "time_ago": "Latest"}
     else:
         raise HTTPException(400, "Provide 'url' or 'article'")
+
+    try:
+        png = await generate_news_poster_bytes(news_data)
+    except Exception as e:
+        raise HTTPException(500, f"Render failed: {e}")
 
     if not png:
         raise HTTPException(500, "Render failed")
@@ -709,7 +736,7 @@ async def admin_history(limit: int = 50):
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(
-            "SELECT * FROM autonomous_decisions ORDER BY decided_at DESC LIMIT ?", (limit,)
+            "SELECT * FROM autonomous_ticks ORDER BY timestamp DESC LIMIT ?", (limit,)
         ) as cur:
             rows = [dict(r) for r in await cur.fetchall()]
     return JSONResponse(rows)
@@ -777,14 +804,14 @@ async def _get_brain_decisions(limit: int = 15):
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
             async with db.execute("""
-                SELECT decided_at, action, reasoning 
-                FROM autonomous_decisions 
-                ORDER BY decided_at DESC LIMIT ?
+                SELECT timestamp, action, reasoning, tool_used, success
+                FROM autonomous_ticks
+                ORDER BY timestamp DESC LIMIT ?
             """, (limit,)) as cur:
                 rows = await cur.fetchall()
         return [
             {
-                "time": row["decided_at"].split("T")[1][:8] if "T" in row["decided_at"] else row["decided_at"],
+                "time": row["timestamp"].split("T")[1][:8] if row["timestamp"] and "T" in row["timestamp"] else (row["timestamp"] or ""),
                 "action": row["action"],
                 "reasoning": row["reasoning"] or "No reasoning provided."
             }

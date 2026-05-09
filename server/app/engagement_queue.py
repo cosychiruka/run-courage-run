@@ -71,7 +71,7 @@ async def process_reply_queue(x_client):
                 response = x_client.client.create_tweet(text=text, media_ids=[media_id] if media_id else None)
 
             tweet_id = response.data['id']
-            await save_posted_tweet(tweet_id, text, image_url)
+            await save_posted_tweet(tweet_id, text, reply_to)
             print(f"[POSTED] ✅ {text[:80]}... (tweet_id: {tweet_id})")
 
             # Log successful post to activity stream for dashboard

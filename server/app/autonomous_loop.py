@@ -340,15 +340,32 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
                 args = json.loads(tool_call.function.arguments)
                 chosen_action = name
                 print(f"[AUTONOMOUS] Executing tool: {name}")
-                
+
                 # Execute and log
+                success = False
                 try:
                     result = await dispatch_tool(tool_call, state, x_client=x_client, tweet_image_fn=tweet_image_fn)
+                    success = True
                     await log_brain_decision(name.upper(), str(args), executed=True)
                     await log_live_activity(f"Brain decided: {name} → {str(args)[:80]}...")
                 except Exception as e:
                     print(f"[AUTONOMOUS TOOL ERROR] {e}")
                     await log_brain_decision(name.upper(), str(args), executed=False, error=str(e))
+                finally:
+                    # Persist every decision to autonomous_ticks (the dead SQLite table)
+                    try:
+                        import aiosqlite as _aiosqlite
+                        from app.config import DB_PATH as _DB_PATH
+                        reasoning = (message.content or "")[:400] if message.content else ""
+                        async with _aiosqlite.connect(_DB_PATH) as _db:
+                            await _db.execute(
+                                "INSERT INTO autonomous_ticks (timestamp, action, reasoning, tool_used, success)"
+                                " VALUES (?,?,?,?,?)",
+                                (datetime.now().isoformat(), name, reasoning, name, 1 if success else 0)
+                            )
+                            await _db.commit()
+                    except Exception as tick_err:
+                        print(f"[TICK LOG] Failed: {tick_err}")
         else:
             print("[AUTONOMOUS] Courage decided to stay quiet and keep watching.")
             await log_brain_decision("NO_ACTION", "Decided to keep watching", executed=True)
