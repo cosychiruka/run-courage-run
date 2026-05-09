@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaRobot, FaBrain, FaBolt, FaHistory, FaChartLine,
   FaUsers, FaDog, FaNewspaper, FaGamepad, FaList,
-  FaTrash, FaSync, FaCheckCircle, FaClock, FaExclamationTriangle, FaCopy,
+  FaTrash, FaSync, FaCheckCircle, FaClock, FaCopy,
 } from 'react-icons/fa';
 
 const TABS = [
@@ -474,7 +474,7 @@ const AdminDashboard = () => {
                     <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>
                       {trenches.total_unprocessed} unprocessed
                     </span>
-                    <button style={styles.btnSmall} onClick={loadTrenches}>Refresh</button>
+                    <button style={styles.btnSmall} onClick={() => withTabLoad(loadTrenches)}>Refresh</button>
                   </div>
                 </div>
                 <div style={{ ...styles.feedScroll, maxHeight: '65vh' }}>
@@ -539,7 +539,10 @@ const AdminDashboard = () => {
             {activeTab === 'moments' && (
               <div style={styles.grid2}>
                 <div className="glass-card" style={styles.card}>
-                  <h3 style={styles.cardTitle}><FaGamepad style={{ marginRight: 8 }} />Pending Shoutouts</h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <h3 style={{ ...styles.cardTitle, margin: 0 }}><FaGamepad style={{ marginRight: 8 }} />Pending Shoutouts</h3>
+                    <button style={styles.btnSmall} onClick={() => withTabLoad(loadMoments)}>Refresh</button>
+                  </div>
                   <p style={{ fontSize: '0.75rem', opacity: 0.5, marginTop: -8, marginBottom: 12 }}>
                     {moments.total_pending || 0} pending — will be used next brain tick
                   </p>
@@ -580,7 +583,7 @@ const AdminDashboard = () => {
                     {queue.count > 0 && <span style={{ ...styles.badge, marginLeft: 10 }}>{queue.count}</span>}
                   </h3>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button style={styles.btnSmall} onClick={loadQueue}>Refresh</button>
+                    <button style={styles.btnSmall} onClick={() => withTabLoad(loadQueue)}>Refresh</button>
                     {queue.count > 0 && (
                       <button style={{ ...styles.btnSmall, borderColor: '#ff4444', color: '#ff4444' }} onClick={clearQueue}>
                         <FaTrash style={{ marginRight: 4 }} />Clear All
