@@ -686,7 +686,7 @@ async def system_status():
         "status": "ELITE TIER 4.0 — FULLY ALIVE",
         "timestamp": time.time(),
         "voice_active": await is_voice_active(),
-        "reply_queue_size": await r.llen("courage:reply_queue") if r else 0,
+        "reply_queue_size": await r.llen("courage:reply_queue_v5") if r else 0,
         "unread_trenches": trench_count,
         "rcr_price": rcr.get("price", 0.0),
         "rcr_stats": rcr,
@@ -768,12 +768,38 @@ async def _get_price_history_last_24h():
         return []
 
 async def _get_trench_activity_last_12h():
-    # Placeholder — you can expand with a real hourly query later
-    return [12, 8, 15, 22, 9, 14, 18, 11, 7, 13, 19, 10]
+    """Real hourly trench tweet counts for the last 12 hours."""
+    try:
+        start_ts = time.time() - 12 * 3600
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("""
+                SELECT CAST((created_at - ?) / 3600 AS INTEGER) as bucket, COUNT(*) as cnt
+                FROM tw_trench_tweets
+                WHERE created_at >= ?
+                GROUP BY bucket
+                ORDER BY bucket
+            """, (start_ts, start_ts)) as cur:
+                rows = await cur.fetchall()
+        counts = [0] * 12
+        for bucket, cnt in rows:
+            if 0 <= bucket < 12:
+                counts[bucket] = cnt
+        return counts
+    except Exception as e:
+        print(f"[ADMIN] Trench activity error: {e}")
+        return [0] * 12
 
 async def _get_replies_today_count():
-    # Placeholder
-    return 87
+    try:
+        today_start = time.time() - (time.time() % 86400)
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute(
+                "SELECT COUNT(*) FROM tw_posted_tweets WHERE created_at >= ?", (today_start,)
+            ) as cur:
+                row = await cur.fetchone()
+        return row[0] if row else 0
+    except Exception:
+        return 0
 
 
 # === NEW HELPERS FOR MISSION CONTROL (Elite Tier 4.0) ===
@@ -1039,17 +1065,36 @@ async def api_generate_news_poster(news_data: dict):
 
 @app.get("/api/admin/sub_agents_status")
 async def sub_agents_status():
-    """Monitor the status of the sub-agent team and last reflection."""
-    global _redis
-    if not _redis: return {"status": "error", "message": "Redis unavailable"}
-    
-    last_refl = await _redis.get("courage:last_reflection")
+    """Monitor the status of the sub-agent team using real Redis timestamps."""
+    from app.redis_utils import get_redis_client
+    r = await get_redis_client()
+    now = time.time()
+
+    async def _agent_status(key: str, stale_minutes: int = 90) -> dict:
+        try:
+            raw = await r.get(key) if r else None
+            if not raw:
+                return {"status": "idle", "last_seen": None, "minutes_ago": None}
+            ts = float(raw)
+            mins_ago = int((now - ts) / 60)
+            return {
+                "status": "active" if mins_ago < stale_minutes else "stale",
+                "last_seen": datetime.datetime.fromtimestamp(ts).isoformat(),
+                "minutes_ago": mins_ago,
+            }
+        except Exception:
+            return {"status": "unknown", "last_seen": None, "minutes_ago": None}
+
+    last_refl = await r.get("courage:last_reflection") if r else None
+    queue_size = await r.llen("courage:reply_queue_v5") if r else 0
+
     return {
-        "news_dog": "active",
-        "art_dog": "active",
-        "engagement_dog": "active",
-        "token_dog": "active",
-        "last_reflection": last_refl.decode() if last_refl else "none"
+        "brain": await _agent_status("courage:last_startup_tick", 120),
+        "news_dog": await _agent_status("courage:last_autonomous_post", 120),
+        "game_sensor": await _agent_status("courage:last_sensor_search", 60),
+        "engagement_dog": await _agent_status("courage:last_game_moment_event", 120),
+        "queue_size": queue_size,
+        "last_reflection": last_refl if last_refl else "none",
     }
 
 @app.post("/api/admin/override_frequency")
@@ -1064,37 +1109,108 @@ async def override_frequency(data: dict):
 
 @app.get("/api/admin/memory-vectors")
 async def get_memory_vectors():
-    global _redis
-    if not _redis: return {"count": 0, "status": "error"}
     try:
-        # Check if length can be retrieved for lists; otherwise might need different handling if it's a different type
-        # But instructions say use llen
-        count = await _redis.llen("courage:rag_vectors") or 0
+        from app.rag import get_rag_vector_count
+        count = await get_rag_vector_count()
         return {"count": count, "status": "healthy" if count > 0 else "empty"}
-    except Exception:
-        return {"count": 0, "status": "error"}
+    except Exception as e:
+        return {"count": 0, "status": "error", "detail": str(e)}
 
 @app.get("/api/admin/recent-decisions")
 async def get_recent_decisions():
-    """Fetch the latest 30 brain decisions for the dashboard."""
-    global _redis
-    if not _redis: return []
-    try:
-        raw_decisions = await _redis.lrange("courage:brain_decisions", 0, 29)
-        return [json.loads(d) for d in raw_decisions]
-    except Exception:
-        return []
+    """Fetch the latest 30 brain decisions from SQLite autonomous_ticks."""
+    return await _get_brain_decisions(30)
 
 @app.get("/api/admin/live-activity")
 async def get_live_activity():
-    """Fetch the latest 20 live brain activity messages."""
-    global _redis
-    if not _redis: return []
+    """Fetch the latest 20 live brain activity messages from Redis stream."""
+    return await _get_live_activity_feed(20)
+
+@app.get("/api/admin/queue")
+async def get_reply_queue():
+    """View current reply queue contents from Redis."""
+    from app.redis_utils import get_redis_client
+    r = await get_redis_client()
+    if not r:
+        return {"items": [], "count": 0}
     try:
-        activity = await _redis.lrange("courage:live_activity", 0, 19)
-        return [json.loads(a) for a in activity]
-    except Exception:
-        return []
+        raw = await r.lrange("courage:reply_queue_v5", 0, 49)
+        items = []
+        for entry in raw:
+            try:
+                items.append(json.loads(entry))
+            except Exception:
+                items.append({"text": str(entry)})
+        return {"items": items, "count": len(items)}
+    except Exception as e:
+        return {"items": [], "count": 0, "error": str(e)}
+
+@app.delete("/api/admin/queue")
+async def clear_reply_queue():
+    """Clear the entire reply queue."""
+    from app.redis_utils import get_redis_client
+    r = await get_redis_client()
+    if not r:
+        raise HTTPException(503, "Redis unavailable")
+    try:
+        await r.delete("courage:reply_queue_v5")
+        return {"status": "ok", "message": "Reply queue cleared."}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+@app.get("/api/admin/game-moments")
+async def get_game_moments():
+    """Fetch pending + recent game moments from Redis."""
+    from app.redis_utils import get_redis_client
+    r = await get_redis_client()
+    if not r:
+        return {"pending": [], "history": []}
+    try:
+        raw_pending = await r.lrange("courage:pending_game_moments", 0, 9)
+        pending = [json.loads(m) for m in raw_pending]
+        raw_history = await r.lrange("courage:game_moment_history", 0, 19)
+        history = [json.loads(m) for m in raw_history]
+        return {"pending": pending, "history": history, "total_pending": len(pending)}
+    except Exception as e:
+        return {"pending": [], "history": [], "error": str(e)}
+
+@app.get("/api/admin/news-posters")
+async def get_news_posters(limit: int = 12):
+    """List recently generated news poster images."""
+    return await _get_news_posters(limit)
+
+@app.get("/api/admin/trenches")
+async def get_trenches(limit: int = 30, unprocessed_only: bool = False):
+    """Fetch trench tweets with optional unprocessed filter."""
+    try:
+        query = "SELECT tweet_id, author, text, cashtag, created_at, processed FROM tw_trench_tweets"
+        params = []
+        if unprocessed_only:
+            query += " WHERE processed = 0"
+        query += " ORDER BY created_at DESC LIMIT ?"
+        params.append(limit)
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(query, params) as cur:
+                rows = await cur.fetchall()
+        result = []
+        for row in rows:
+            result.append({
+                "tweet_id": row["tweet_id"],
+                "author": row["author"],
+                "text": row["text"][:160] if row["text"] else "",
+                "cashtag": row["cashtag"],
+                "time": datetime.datetime.fromtimestamp(row["created_at"]).strftime("%H:%M") if row["created_at"] else "",
+                "processed": bool(row["processed"]),
+            })
+        total_unprocessed = 0
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute("SELECT COUNT(*) FROM tw_trench_tweets WHERE processed = 0") as cur:
+                r2 = await cur.fetchone()
+                total_unprocessed = r2[0] if r2 else 0
+        return {"tweets": result, "total_unprocessed": total_unprocessed, "returned": len(result)}
+    except Exception as e:
+        return {"tweets": [], "total_unprocessed": 0, "error": str(e)}
 
 # ── Static Files (Frontend) ───────────────────────────────────────────────────
 # Mount the built React app. Serve index.html for any unknown paths (SPA)

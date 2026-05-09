@@ -67,9 +67,13 @@ async def game_sensor_loop():
                     # Store in Redis so _gather_state() can inject it into brain context
                     if _redis:
                         import json as _json
-                        await _redis.lpush("courage:pending_game_moments", _json.dumps(moment))
+                        moment_json = _json.dumps(moment)
+                        await _redis.lpush("courage:pending_game_moments", moment_json)
                         await _redis.ltrim("courage:pending_game_moments", 0, 4)   # keep latest 5
                         await _redis.expire("courage:pending_game_moments", 1800)  # 30-min TTL
+                        # Also persist to permanent history for admin dashboard
+                        await _redis.lpush("courage:game_moment_history", moment_json)
+                        await _redis.ltrim("courage:game_moment_history", 0, 49)  # keep last 50
                         await _redis.set("courage:last_game_moment_event", time.time())
                     break  # one at a time
         except Exception as e:
