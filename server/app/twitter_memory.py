@@ -120,6 +120,7 @@ async def log_reflection(action_taken: str, outcome: str):
 
 async def init_twitter_db():
     async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("PRAGMA journal_mode=WAL")
         for stmt in _SCHEMA.strip().split(";"):
             if stmt.strip():
                 await db.execute(stmt)
@@ -127,8 +128,6 @@ async def init_twitter_db():
 
 
 # ── Write helpers ──────────────────────────────────────────────────────────────
-
-        await db.commit()
 
 async def record_tweet(tweet_id: str, text: str, reply_to_id: Optional[str] = None):
     async with aiosqlite.connect(DB_PATH) as db:

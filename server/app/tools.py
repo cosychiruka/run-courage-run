@@ -419,13 +419,20 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "auto_news_react",
-            "description": "Take a fresh news article and generate a Courage-style poster + witty comment, then queue the post.",
+            "description": (
+                "Take a fresh news article and generate 'The Courageous Chronicle' newspaper image + "
+                "witty Courage-style tweet, then post it. Always pass article_url and image_url from "
+                "the news state so the newspaper renders the actual article photo."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "news_title": {"type": "string"},
-                    "news_summary": {"type": "string"},
-                    "poster_url": {"type": "string"}
+                    "news_title":   {"type": "string", "description": "Headline of the article"},
+                    "news_summary": {"type": "string", "description": "First 1-2 sentences of the article"},
+                    "article_url":  {"type": "string", "description": "Original article URL — triggers newspaper design"},
+                    "image_url":    {"type": "string", "description": "Article thumbnail URL for the newspaper photo"},
+                    "source":       {"type": "string", "description": "Source name, e.g. 'The Guardian'"},
+                    "poster_url":   {"type": "string", "description": "Pre-generated poster URL (optional override)"},
                 },
                 "required": ["news_title", "news_summary"]
             }
@@ -639,9 +646,9 @@ async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=Non
             case "auto_reply_with_art":
                 return f"QUEUED: Auto-reply to {args.get('trench_ids')} with text: {args.get('reply_text')}. Art queued: {args.get('art_prompt')}"
             case "auto_hustle_post":
-                return f"QUEUED: Hustle post: {args.get('post_text')}. Art queued: {args.get('art_prompt')}"
+                return await _auto_hustle_post(args, x_client, tweet_image_fn)
             case "auto_news_react":
-                return f"QUEUED: News reaction to {args.get('news_title')}. Poster: {args.get('poster_url')}"
+                return await _auto_news_react(args, x_client, tweet_image_fn)
 
             case "analyze_sentiment":
                 focus = args.get("focus", "both")
@@ -850,7 +857,6 @@ async def _post_tweet(args: dict, x_client, tweet_image_fn) -> str:
 
     try:
         if article_url and tweet_image_fn:
-            # Render a PIL news card from the article URL
             try:
                 img_bytes = await tweet_image_fn(article_url)
                 if img_bytes:
@@ -858,7 +864,6 @@ async def _post_tweet(args: dict, x_client, tweet_image_fn) -> str:
             except Exception as e:
                 print(f"[TWEET IMAGE] News card render failed: {e}")
         elif image_url:
-            # Download article's own thumbnail (e.g. from crypto news)
             try:
                 tmp_path = await _download_article_image(image_url)
                 if tmp_path:
@@ -866,11 +871,29 @@ async def _post_tweet(args: dict, x_client, tweet_image_fn) -> str:
             except Exception as e:
                 print(f"[TWEET IMAGE] Thumbnail upload failed: {e}")
 
-        resp = x_client.create_tweet(
-            text=text,
-            media_ids=[media_id] if media_id else None,
-            reply_to=reply_to,
-        )
+        # Retry up to 3 times on transient failures — skip retry on auth/rate errors
+        import asyncio as _asyncio
+        last_err = None
+        resp = None
+        for attempt in range(3):
+            try:
+                resp = x_client.create_tweet(
+                    text=text,
+                    media_ids=[media_id] if media_id else None,
+                    reply_to=reply_to,
+                )
+                break
+            except Exception as e:
+                last_err = e
+                if any(code in str(e) for code in ["403", "401", "429", "duplicate"]):
+                    raise  # non-retriable
+                if attempt < 2:
+                    wait = 10 * (2 ** attempt)  # 10s then 20s
+                    print(f"[TWITTER] post_tweet transient error, retry {attempt + 1}/2 in {wait}s: {e}")
+                    await _asyncio.sleep(wait)
+        if resp is None:
+            raise last_err
+
         tweet_id = resp.data.get("id", "?")
         await tw_mem.record_tweet(str(tweet_id), text, reply_to)
         if reply_to:
@@ -1249,10 +1272,125 @@ async def _reflect_and_adapt(action_taken: str, outcome: str = "success"):
         "learned": f"Reflected on {action_taken} → {outcome}",
         "suggested_frequency_minutes": int(val or 25)
     }
+async def _auto_news_react(args: dict, x_client, tweet_image_fn) -> str:
+    """
+    Post a news reaction using 'The Courageous Chronicle' newspaper design.
+    Falls back to Fal.ai meme art if newspaper generation fails.
+    """
+    news_title   = (args.get("news_title") or "Breaking news")[:120]
+    news_summary = args.get("news_summary") or ""
+    article_url  = args.get("article_url") or ""
+    image_url    = args.get("image_url") or ""
+    source       = args.get("source") or "The Guardian"
+    poster_url   = args.get("poster_url")   # pre-supplied override
+
+    # ── Path 1: Newspaper design (The Courageous Chronicle) ───────────────
+    # Use article_url → _tweet_image_fn renders the full newspaper poster
+    # This is the beautiful design from the May 7 commit
+    if article_url and tweet_image_fn:
+        print(f"[AUTO_NEWS_REACT] Rendering newspaper poster for: {news_title[:60]}")
+        return await _post_tweet(
+            {
+                "text":        _build_news_tweet(news_title, news_summary),
+                "article_url": article_url,
+            },
+            x_client,
+            tweet_image_fn,
+        )
+
+    # ── Path 2: Build newspaper directly from title+summary (no URL needed) ──
+    # Happens when article_url isn't available but we still want the newspaper look
+    if not poster_url:
+        try:
+            from app.news_poster import generate_news_poster_bytes
+            is_crypto = any(k in (news_title + news_summary).lower()
+                           for k in ["bitcoin", "solana", "crypto", "$rcr", "memecoin"])
+            news_data = {
+                "headline":  news_title,
+                "story":     news_summary[:420],
+                "image_url": image_url or None,
+                "source":    source,
+                "time_ago":  "Latest",
+                "is_crypto": is_crypto,
+            }
+            img_bytes = await generate_news_poster_bytes(news_data)
+            if img_bytes and x_client:
+                media_id = x_client.upload_media(img_bytes)
+                resp = x_client.create_tweet(
+                    text=_build_news_tweet(news_title, news_summary),
+                    media_ids=[media_id],
+                )
+                tweet_id = resp.data.get("id", "?")
+                import app.twitter_memory as tw_mem
+                await tw_mem.record_tweet(str(tweet_id), _build_news_tweet(news_title, news_summary))
+                print(f"[AUTO_NEWS_REACT] Newspaper posted! ID: {tweet_id}")
+                return f"Tweet posted successfully! ID: {tweet_id}"
+        except Exception as e:
+            print(f"[AUTO_NEWS_REACT] Newspaper render failed, falling back to Fal.ai: {e}")
+
+    # ── Path 3: Fal.ai meme art fallback ──────────────────────────────────
+    if not poster_url:
+        try:
+            from app.image_gen import create_courage_art
+            art_prompt = (
+                f"Courage the Cowardly Dog dramatically reacting to shocking news: {news_title[:70]}. "
+                "Meme style, surprised expression, news ticker background, vibrant cartoon art"
+            )
+            poster_url = await create_courage_art(art_prompt)
+            print(f"[AUTO_NEWS_REACT] Fal.ai fallback art: {poster_url}")
+        except Exception as e:
+            print(f"[AUTO_NEWS_REACT] Fal.ai also failed (text-only): {e}")
+
+    return await _post_tweet(
+        {"text": _build_news_tweet(news_title, news_summary), "image_url": poster_url},
+        x_client,
+        tweet_image_fn,
+    )
+
+
+def _build_news_tweet(title: str, summary: str) -> str:
+    """Fit title + summary + Courage signature inside 280 chars."""
+    signature = "\n\nSpreading Courage 🐕‍🦺"
+    sep = "\n\n"
+    max_summary = max(0, 280 - len(title) - len(sep) - len(signature) - 2)
+    parts = [title]
+    if summary:
+        parts.append(summary[:max_summary])
+    parts.append("Spreading Courage 🐕‍🦺")
+    return "\n\n".join(parts)
+
+
+async def _auto_hustle_post(args: dict, x_client, tweet_image_fn) -> str:
+    """Actually post a token hustle/market update with optional generated art."""
+    post_text = (args.get("post_text") or "Spreading Courage 🐕‍🦺 $RCR to the moon!")
+    if len(post_text) > 280:
+        post_text = post_text[:277] + "..."
+    art_prompt = args.get("art_prompt", "")
+
+    safety_error = _check_tweet_safety(post_text)
+    if safety_error:
+        return safety_error
+
+    poster_url = None
+    if art_prompt:
+        try:
+            from app.image_gen import create_courage_art
+            poster_url = await create_courage_art(art_prompt)
+            print(f"[AUTO_HUSTLE_POST] Art generated: {poster_url}")
+        except Exception as e:
+            print(f"[AUTO_HUSTLE_POST] Art gen failed (posting text-only): {e}")
+
+    return await _post_tweet(
+        {"text": post_text, "image_url": poster_url},
+        x_client,
+        tweet_image_fn,
+    )
+
+
 async def news_dog_scan():
     """News Dog: Specialist in scanning the wires."""
-    from app.news_cache import get_cached_articles
-    news = await get_cached_articles(limit=5)
+    from app.news_cache import get_all_recent
+    news = await get_all_recent(limit=5)
     return {"top_stories": [n.get("title", "Untitled") for n in news]}
 
 async def art_dog_generate(scene: str, current_sentiment: str = "neutral", token_info: dict = None):
@@ -1312,8 +1450,7 @@ async def eternal_reflect():
 
 async def viral_growth_suggest():
     """Viral Growth Engine — suggests smart community actions"""
-    # Simple summary of the community vibe for momentum check
-    sentiment = await _analyze_sentiment({"focus": "both"})
+    sentiment = await _analyze_sentiment(focus="both")
     momentum = sentiment.get("summary", "neutral")
     
     suggestions = []

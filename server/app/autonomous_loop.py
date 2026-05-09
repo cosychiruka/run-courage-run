@@ -13,7 +13,7 @@ from groq import AsyncGroq
 from app.config import GROQ_API_KEY, GROQ_MODEL
 from app.x_client import make_x_client
 from app.hustle_service import get_rcr_stats
-from app.news_cache import get_recent_articles as get_recent_news
+from app.news_cache import get_all_recent as get_recent_news
 from app.rag import retrieve_top_k
 from app import rag
 from app import twitter_memory
@@ -24,6 +24,30 @@ from app.voice_priority import is_voice_active
 from app.system_prompt import SYSTEM_PROMPT_MINIMAL
 from app.tools import TOOL_SCHEMAS as COURAGE_TOOLS
 import app.tools as tools
+
+# ── News Signal Scoring ───────────────────────────────────────────────────────
+# Tiers: (score, keywords). First match wins. Score ≥ 80 = EXTREME override.
+_SIGNAL_TIERS = [
+    (80, ["alien", "ufo", "classified", "whistleblower", "extraterrestrial",
+          "government files", "government release", "pentagon ufo", "government secret",
+          "nuclear", "released today", "declassified", "area 51"]),
+    (60, ["bitcoin", "solana", "memecoin", "crypto crash", "pump", "surge",
+          "all time high", "record high", "100k", "breakthrough", "scandal",
+          "major hack", "exploit", "rug pull"]),
+    (40, ["crypto", "blockchain", "regulation", "fed rate", "inflation",
+          "market rally", "market crash", "bullish", "bearish"]),
+    (20, ["stocks", "economy", "business", "earnings", "gdp"]),
+]
+
+def _score_article(article: dict) -> int:
+    text = (
+        article.get("title", "") + " " +
+        (article.get("description") or article.get("content") or "")
+    ).lower()
+    for score, keywords in _SIGNAL_TIERS:
+        if any(k in text for k in keywords):
+            return score
+    return 10
 
 # ── Phase 5 Globals ───────────────────────────────────────────────────────────
 groq_client = AsyncGroq(api_key=GROQ_API_KEY)
@@ -79,10 +103,39 @@ async def _gather_state():
         from app.redis_utils import get_redis_client
         _redis = await get_redis_client()
 
+    # ── Time-of-day context ───────────────────────────────────────────────────
+    _now = datetime.now()
+    _hour = _now.hour
+    if 5 <= _hour < 10:
+        _energy, _phase = "GM energy", "sunrise"
+    elif 10 <= _hour < 15:
+        _energy, _phase = "midday grind", "noon"
+    elif 15 <= _hour < 20:
+        _energy, _phase = "afternoon hustle", "evening"
+    elif 20 <= _hour < 24:
+        _energy, _phase = "GN wind-down", "evening"
+    else:
+        _energy, _phase = "midnight chaos", "midnight"
+
+    # ── Pending game moments (set by game_sensor, cleared after this tick) ──
+    raw_moments = await _redis.lrange("courage:pending_game_moments", 0, 4) if _redis else []
+    pending_game_moments = [json.loads(m) for m in raw_moments] if raw_moments else []
+
+    # ── Recent trending topics from SQLite memory ─────────────────────────
+    recent_trends = await twitter_memory.get_recent_trends(limit=10)
+    unique_trends = list({t["topic"] for t in recent_trends})[:5]
+
     state = {
         "current_time": datetime.now().isoformat(),
+        "time_context": {
+            "hour": _hour,
+            "energy": _energy,
+            "day_phase": _phase,
+            "day_of_week": _now.strftime("%A"),
+        },
         "voice_active": await is_voice_active(),
-        # Game sensor summary (fixed — uses existing function instead of old sensor_mgr)
+        "game_moments": pending_game_moments,   # ← brain now sees who triggered the wake
+        "trending_topics": unique_trends,       # ← recent Twitter trends from memory
         "game_sensor": {
             "status": "cooldown_active" if await _redis.get("courage:last_sensor_search") else "ready",
             "last_check": await _redis.get("courage:last_sensor_search") or "never"
@@ -114,28 +167,50 @@ async def _gather_state():
         for t in trenches
     ]
 
-    # === SHARP NEWS (title + meaningful 2-sentence summary) ===
-    news = await get_recent_news(limit=5)
+    # === SHARP NEWS (scored + sorted — all categories, not just general) ===
+    news = await get_recent_news(limit=8)
+    scored = sorted(
+        [{"a": n, "score": _score_article(n)} for n in news],
+        key=lambda x: x["score"], reverse=True
+    )
     state["news"] = [
         {
-            "title": n["title"],
-            "summary": (n.get("description") or n.get("content") or "No summary")[:280]
+            "title":        x["a"]["title"],
+            "summary":      (x["a"].get("description") or x["a"].get("content") or "No summary")[:320],
+            "category":     x["a"].get("category", "general"),
+            "signal_score": x["score"],
+            "article_url":  x["a"].get("url", ""),          # pass to auto_news_react for newspaper render
+            "image_url":    x["a"].get("image_url") or x["a"].get("image") or x["a"].get("urlToImage") or "",
+            "source":       x["a"].get("source_name") or "The Guardian",
         }
-        for n in news
+        for x in scored
     ]
+    state["top_news_signal"] = scored[0]["score"] if scored else 0
 
     # === LIGHT RAG (top 4 relevant snippets) ===
     rag_results = await rag.retrieve_top_k("current community vibe and $RCR sentiment", k=4)
     state["rag_context"] = [r["text"][:240] for r in rag_results]
 
-    # Smart idle / credit awareness
+    # Smart idle / credit awareness — with EXTREME signal override
     credit_status = await _redis.get("courage:x_credit_status") or "ok"
     trench_count = len(state.get("trenches", []))
     game_active = len(state.get("game_moments", [])) > 0
+    extreme_news = state.get("top_news_signal", 0) >= 80
 
-    if credit_status == "capped" or (trench_count == 0 and not game_active):
+    if extreme_news:
+        # EXTREME signal always breaks through — alien/gov news is too big to miss
+        state["mode"] = "normal"
+        if credit_status == "capped":
+            state["credit_override"] = (
+                f"EXTREME news signal (score={state['top_news_signal']}) detected — "
+                "overriding credit cap. React now."
+            )
+    elif credit_status == "capped":
         state["mode"] = "idle_hype"
-        state["idle_reason"] = "credits_capped" if credit_status == "capped" else "quiet_trenches"
+        state["idle_reason"] = "credits_capped"
+    elif trench_count == 0 and not game_active:
+        state["mode"] = "idle_hype"
+        state["idle_reason"] = "quiet_trenches"
     else:
         state["mode"] = "normal"
 
@@ -149,10 +224,19 @@ async def _gather_state():
 async def decide_and_act(state, x_client=None, tweet_image_fn=None):
     """Llama 3.3 (70b) evaluates the state and chooses the next move."""
     global LAST_REACTIVE_TICK
-    
+
     if state["voice_active"]:
         print("[VOICE PRIORITY] Skipping autonomous actions — voice session active")
         return
+
+    # Groq 429 circuit breaker — mirrors the voice agent's protection
+    if _redis:
+        backoff_until = await _redis.get("courage:groq_backoff_until")
+        if backoff_until and time.time() < float(backoff_until):
+            remaining = int(float(backoff_until) - time.time())
+            print(f"[AUTONOMOUS] Groq circuit breaker active — {remaining // 60}m {remaining % 60}s remaining")
+            await log_live_activity(f"Groq rate-limit backoff active ({remaining // 60}m left) — staying quiet")
+            return
 
     # Compact JSON context
     context = json.dumps(state, ensure_ascii=False, separators=(",", ":"))
@@ -209,6 +293,10 @@ Decide the SINGLE best action right now. Be concise. Only use tools if truly nee
             await log_brain_decision("NO_ACTION", "Decided to keep watching", executed=True)
             await log_live_activity("Courage decided to stay quiet and keep watching.")
 
+        # Clear processed game moments so they don't re-fire next tick
+        if _redis and state.get("game_moments"):
+            await _redis.delete("courage:pending_game_moments")
+
         # FINAL REFLECTION — makes him learn every single time
         if chosen_action != "NO_ACTION":
             try:
@@ -226,6 +314,11 @@ Decide the SINGLE best action right now. Be concise. Only use tools if truly nee
 
     except Exception as e:
         print(f"[AUTONOMOUS ERROR] {e}")
+        err_str = str(e)
+        if "429" in err_str or "rate_limit" in err_str.lower() or "RateLimitError" in type(e).__name__:
+            if _redis:
+                await _redis.set("courage:groq_backoff_until", time.time() + 3600, ex=3600)
+                await log_live_activity("Groq 429 hit — circuit breaker set for 1 hour")
 
 async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=None):
     """Routes LLM tool calls to actual function executions with rich logging (Phase 1.5)"""

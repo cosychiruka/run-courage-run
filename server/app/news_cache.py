@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS articles (
 
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("PRAGMA journal_mode=WAL")
         await db.execute(CREATE_TABLE)
         await db.commit()
 
@@ -139,8 +140,19 @@ async def get_cached_articles(country: str = "us", category: str = "general") ->
     except: return None
 
 # ── Guardian fetch ────────────────────────────────────────────────────────────
+# Maps our internal category names to Guardian's actual section slugs
+_GUARDIAN_SECTION_MAP = {
+    "general":    "news",
+    "technology": "technology",
+    "business":   "business",
+    "world":      "world",
+    "politics":   "us-news",   # Guardian uses 'us-news' for US political/government news
+    "science":    "science",
+    "environment":"environment",
+}
+
 async def fetch_from_guardian(category: str = "general", max_results: int = 10) -> list[dict]:
-    section = "news" if category == "general" else category
+    section = _GUARDIAN_SECTION_MAP.get(category, category)
     params = {
         "api-key":    GUARDIAN_API_KEY or "test",
         "section":    section,
@@ -181,6 +193,9 @@ DISCOVERY_PAIRS = [
     ("us", "general"),
     ("us", "technology"),
     ("us", "business"),
+    ("us", "world"),      # world news — government events, international incidents
+    ("us", "politics"),   # US politics → Guardian us-news section (alien files, gov releases)
+    ("us", "science"),    # science — space, UFO research, breakthroughs
 ]
 
 async def discovery_round():

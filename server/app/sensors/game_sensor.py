@@ -25,8 +25,12 @@ async def game_sensor_loop():
             continue
 
         try:
-            # Search for game-related activity (no cashtag required)
-            query = '"become a monster" OR "courage" OR "homestead" OR "runcouragerun" -is:retweet lang:en'
+            # Search for game-related + direct community activity
+            # Removed bare "courage" — too broad, burns budget on unrelated tweets
+            query = (
+                '"become a monster" OR "@runcouragerun" OR "runcouragerun" '
+                'OR "$RCR" OR "cowardly dog" OR "homestead" -is:retweet lang:en'
+            )
             tweets = x.search_recent(query=query, max_results=10)
 
             # Track cost
@@ -34,19 +38,29 @@ async def game_sensor_loop():
             await track_x_search_cost(count)
 
             for t in tweets.data or []:
-                if any(kw in t.text.lower() for kw in ["monster", "homestead", "courage", "runcouragerun"]):
+                if any(kw in t.text.lower() for kw in [
+                    "monster", "homestead", "courage", "runcouragerun",
+                    "@runcouragerun", "$rcr", "cowardly dog",
+                ]):
                     # PHASE 5.9: Debounce events to prevent Groq spam (max 1 every 30s)
                     last_event = await _redis.get("courage:last_game_moment_event") if _redis else None
                     if last_event and (time.time() - float(last_event)) < 30:
                         print("[GAME_SENSOR] Event debounce active — skipping emit")
                         break
                         
-                    await emit_event("GAME_MOMENT", {
+                    moment = {
                         "tweet_id": str(t.id),
                         "author": str(t.author_id),
                         "text": t.text[:120]
-                    })
+                    }
+                    await emit_event("GAME_MOMENT", moment)
+
+                    # Store in Redis so _gather_state() can inject it into brain context
                     if _redis:
+                        import json as _json
+                        await _redis.lpush("courage:pending_game_moments", _json.dumps(moment))
+                        await _redis.ltrim("courage:pending_game_moments", 0, 4)   # keep latest 5
+                        await _redis.expire("courage:pending_game_moments", 1800)  # 30-min TTL
                         await _redis.set("courage:last_game_moment_event", time.time())
                     break  # one at a time
         except Exception as e:
