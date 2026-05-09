@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaRobot, FaBrain, FaBolt, FaHistory, FaChartLine,
   FaUsers, FaDog, FaNewspaper, FaGamepad, FaList,
-  FaTrash, FaSync, FaCheckCircle, FaClock, FaExclamationTriangle,
+  FaTrash, FaSync, FaCheckCircle, FaClock, FaExclamationTriangle, FaCopy,
 } from 'react-icons/fa';
 
 const TABS = [
@@ -68,7 +68,13 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab]     = useState('overview');
   const [initialLoad, setInitialLoad] = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
-  const [actionMsg, setActionMsg]     = useState('');
+  const [tabLoading, setTabLoading]   = useState(false);
+  const [toast, setToast]             = useState(null); // { msg, type: 'ok'|'err' }
+
+  // pagination display limits (data is fetched in full; we slice for display)
+  const [histLimit,   setHistLimit]   = useState(20);
+  const [trenchLimit, setTrenchLimit] = useState(20);
+  const [actLimit,    setActLimit]    = useState(20);
 
   // ── Data slices — each fetched independently so updates don't flash ──────────
   const [status,      setStatus]      = useState(null);
@@ -154,25 +160,37 @@ const AdminDashboard = () => {
   };
 
   // ── Actions ──────────────────────────────────────────────────────────────────
-  const notify = (msg) => { setActionMsg(msg); setTimeout(() => setActionMsg(''), 4000); };
+  const showToast = (msg, type = 'ok') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const withTabLoad = async (fn) => {
+    setTabLoading(true);
+    try { await fn(); } finally { setTabLoading(false); }
+  };
 
   const triggerTick = async () => {
     const d = await safeFetch(`${API}/api/autonomous/trigger-now`, { method: 'POST' });
-    notify(d?.message || 'Tick triggered!');
+    showToast(d?.message || 'Tick triggered!');
     setTimeout(loadBrain, 3000);
   };
 
   const resetBreaker = async () => {
     const d = await safeFetch(`${API}/api/autonomous/reset-circuit-breaker`, { method: 'POST' });
-    notify(d?.message || 'Circuit breaker reset!');
+    showToast(d?.message || 'Circuit breaker reset!');
     await loadStatus();
   };
 
   const clearQueue = async () => {
     if (!window.confirm('Clear the entire reply queue?')) return;
     const d = await safeFetch(`${API}/api/admin/queue`, { method: 'DELETE' });
-    notify(d?.message || 'Queue cleared!');
+    showToast(d?.message || 'Queue cleared!', d ? 'ok' : 'err');
     await loadQueue();
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard?.writeText(text).then(() => showToast('Copied!')).catch(() => showToast('Copy failed', 'err'));
   };
 
   if (initialLoad) {
@@ -195,7 +213,6 @@ const AdminDashboard = () => {
       <nav style={styles.nav}>
         <h1 style={styles.navTitle}>COURAGE COMMAND CENTER</h1>
         <div style={styles.navActions}>
-          {actionMsg && <span style={styles.actionMsg}>{actionMsg}</span>}
           <button style={styles.navBtn} onClick={doRefresh} disabled={refreshing}>
             <FaSync style={{ marginRight: 6, ...(refreshing ? { animation: 'spin 1s linear infinite' } : {}) }} />
             {refreshing ? 'Syncing...' : 'Refresh'}
@@ -224,7 +241,14 @@ const AdminDashboard = () => {
       </div>
 
       {/* MAIN */}
-      <main style={{ padding: '0 0 4rem' }}>
+      <main style={{ padding: '0 0 4rem', position: 'relative' }}>
+        {tabLoading && (
+          <div style={styles.tabSpinner}>
+            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}>
+              <FaSync size={20} color="#ff00ff" />
+            </motion.div>
+          </div>
+        )}
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -321,7 +345,7 @@ const AdminDashboard = () => {
                     {activity.length === 0 && (
                       <p style={{ opacity: 0.4, fontSize: '0.85rem' }}>No activity yet — queue is quiet...</p>
                     )}
-                    {activity.map((a, i) => (
+                    {activity.slice(0, actLimit).map((a, i) => (
                       <div key={i} style={styles.feedItem}>
                         <span style={styles.feedTime}>{a.time || '—'}</span>
                         <span style={{ ...styles.feedEvent, color: a.event === 'POST_SUCCESS' ? '#00ffaa' : '#ff9900' }}>
@@ -330,6 +354,11 @@ const AdminDashboard = () => {
                         <span style={styles.feedMsg}>{a.message}</span>
                       </div>
                     ))}
+                    {activity.length > actLimit && (
+                      <button style={styles.loadMoreBtn} onClick={() => setActLimit(n => n + 20)}>
+                        Load {Math.min(20, activity.length - actLimit)} more
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -362,7 +391,7 @@ const AdminDashboard = () => {
                   {history.length === 0 && (
                     <p style={{ opacity: 0.4 }}>No decisions logged yet — autonomous loop hasn't run.</p>
                   )}
-                  {history.map((h, i) => (
+                  {history.slice(0, histLimit).map((h, i) => (
                     <motion.div
                       key={h.id || i}
                       initial={{ opacity: 0, x: -10 }}
@@ -394,6 +423,11 @@ const AdminDashboard = () => {
                       </div>
                     </motion.div>
                   ))}
+                  {history.length > histLimit && (
+                    <button style={styles.loadMoreBtn} onClick={() => setHistLimit(n => n + 20)}>
+                      Load {Math.min(20, history.length - histLimit)} more ({history.length - histLimit} remaining)
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -447,7 +481,7 @@ const AdminDashboard = () => {
                   {trenches.tweets.length === 0 && (
                     <p style={{ opacity: 0.4 }}>No trench tweets captured yet — sensor hasn't fired.</p>
                   )}
-                  {trenches.tweets.map((t, i) => (
+                  {trenches.tweets.slice(0, trenchLimit).map((t, i) => (
                     <div key={t.tweet_id || i} style={{
                       ...styles.timelineItem,
                       borderLeftColor: t.processed ? '#333' : '#ff00ff',
@@ -463,6 +497,11 @@ const AdminDashboard = () => {
                       <p style={{ margin: 0, fontSize: '0.875rem', opacity: 0.85 }}>{t.text}</p>
                     </div>
                   ))}
+                  {trenches.tweets.length > trenchLimit && (
+                    <button style={styles.loadMoreBtn} onClick={() => setTrenchLimit(n => n + 20)}>
+                      Load {Math.min(20, trenches.tweets.length - trenchLimit)} more ({trenches.tweets.length - trenchLimit} remaining)
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -568,7 +607,16 @@ const AdminDashboard = () => {
                             <span style={{ fontSize: '0.65rem', color: '#ff9900' }}>Reply to: {item.reply_to_tweet_id}</span>
                           )}
                         </div>
-                        <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.9 }}>{item.text}</p>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                          <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.9, flex: 1 }}>{item.text}</p>
+                          <button
+                            title="Copy tweet text"
+                            onClick={() => copyToClipboard(item.text)}
+                            style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '2px 4px', flexShrink: 0 }}
+                          >
+                            <FaCopy size={13} />
+                          </button>
+                        </div>
                         {item.image_url && (
                           <img
                             src={item.image_url}
@@ -614,6 +662,30 @@ const AdminDashboard = () => {
               <pre style={styles.modalPre}>{JSON.stringify(selectedRow, null, 2)}</pre>
               <button style={{ ...styles.btnPink, width: '100%', marginTop: 12 }} onClick={() => setSelectedRow(null)}>CLOSE</button>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* TOAST */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 20 }}
+            style={{
+              position: 'fixed', bottom: '2rem', left: '50%', transform: 'translateX(-50%)',
+              background: toast.type === 'err' ? '#1a0000' : '#001a0e',
+              border: `1px solid ${toast.type === 'err' ? '#ff4444' : '#00ffaa'}`,
+              color: toast.type === 'err' ? '#ff4444' : '#00ffaa',
+              padding: '0.75rem 1.5rem', borderRadius: 12,
+              fontWeight: 'bold', fontSize: '0.9rem', zIndex: 2000,
+              boxShadow: `0 8px 32px ${toast.type === 'err' ? 'rgba(255,68,68,0.3)' : 'rgba(0,255,170,0.2)'}`,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {toast.type === 'err' ? '✗ ' : '✓ '}{toast.msg}
           </motion.div>
         )}
       </AnimatePresence>
@@ -671,9 +743,15 @@ const styles = {
     padding: '0.5rem 1rem', borderRadius: 8, textDecoration: 'none',
     fontWeight: 'bold', fontSize: '0.85rem',
   },
-  actionMsg: {
-    background: '#00ffaa22', border: '1px solid #00ffaa', color: '#00ffaa',
-    padding: '0.4rem 0.8rem', borderRadius: 6, fontSize: '0.8rem',
+  tabSpinner: {
+    position: 'absolute', top: 12, right: 0, display: 'flex', alignItems: 'center',
+    gap: 6, fontSize: '0.75rem', color: '#ff00ff', opacity: 0.7, zIndex: 10,
+  },
+  loadMoreBtn: {
+    display: 'block', width: '100%', marginTop: 10, padding: '0.6rem',
+    background: 'transparent', border: '1px dashed #333', color: '#666',
+    borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem', textAlign: 'center',
+    transition: 'border-color 0.2s, color 0.2s',
   },
   tabBar: {
     display: 'flex', gap: '0.5rem', marginBottom: '2rem',
