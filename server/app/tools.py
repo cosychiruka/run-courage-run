@@ -867,26 +867,15 @@ async def _post_tweet(args: dict, x_client, tweet_image_fn) -> str:
 
     # PHASE 5.3: UNIFIED QUEUE
     from app.engagement_queue import queue_post_with_media
+    post_type = args.get("type", "GENERIC")
     try:
-        # If we have an article_url, we should probably generate the news card NOW
-        # so the image is ready for the queue worker.
-        final_image_url = image_url
-        if article_url and tweet_image_fn:
-            try:
-                # This returns bytes or a local path. 
-                # Note: The queue worker expects a URL or something it can handle.
-                # For now, we'll let the worker handle image_url.
-                pass
-            except: pass
-
         await queue_post_with_media(
             text=text,
-            image_url=final_image_url,
-            reply_to_tweet_id=str(reply_to) if reply_to else None
+            image_url=image_url,
+            reply_to_tweet_id=str(reply_to) if reply_to else None,
+            post_type=post_type
         )
-        
-        return f"Post enqueued successfully! It will be pulsed out via the Engagement Queue (45s padding). Content: {text[:60]}..."
-
+        return f"Post enqueued ({post_type})! Will be pulsed shortly. Preview: {text[:60]}..."
     except Exception as e:
         print(f"[TWITTER] Enqueue failed: {e}")
         return f"Error adding tweet to queue: {e}"
@@ -1303,18 +1292,22 @@ async def _auto_news_react(args: any, x_client, tweet_image_fn) -> str:
                 "is_crypto": is_crypto,
             }
             img_bytes = await generate_news_poster_bytes(news_data)
-            if img_bytes and x_client:
-                media_id = x_client.upload_media(img_bytes)
+            if img_bytes:
+                # Save to temp file for the queue worker
+                import tempfile
+                with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+                    tmp.write(img_bytes)
+                    tmp_path = tmp.name
+                
                 tweet_text = await _llm_news_tweet(news_title, news_summary)
-                resp = x_client.create_tweet(
+                from app.engagement_queue import queue_post_with_media
+                await queue_post_with_media(
                     text=tweet_text,
-                    media_ids=[media_id],
+                    image_url=tmp_path,
+                    post_type="NEWS_REACT"
                 )
-                tweet_id = resp.data.get("id", "?")
-                import app.twitter_memory as tw_mem
-                await tw_mem.record_tweet(str(tweet_id), tweet_text)
-                print(f"[AUTO_NEWS_REACT] Newspaper posted! ID: {tweet_id}")
-                return f"Tweet posted successfully! ID: {tweet_id}"
+                print(f"[AUTO_NEWS_REACT] Newspaper enqueued! Path: {tmp_path}")
+                return f"Newspaper reaction enqueued! Will be posted shortly. Preview: {tweet_text[:60]}..."
         except Exception as e:
             print(f"[AUTO_NEWS_REACT] Newspaper render failed, falling back to Fal.ai: {e}")
 
@@ -1333,7 +1326,7 @@ async def _auto_news_react(args: any, x_client, tweet_image_fn) -> str:
 
     tweet_text = await _llm_news_tweet(news_title, news_summary)
     return await _post_tweet(
-        {"text": tweet_text, "image_url": poster_url},
+        {"text": tweet_text, "image_url": poster_url, "type": "NEWS_REACT"},
         x_client,
         tweet_image_fn,
     )
@@ -1405,7 +1398,7 @@ async def _auto_hustle_post(args: any, x_client, tweet_image_fn) -> str:
             print(f"[AUTO_HUSTLE_POST] Art gen failed (posting text-only): {e}")
 
     return await _post_tweet(
-        {"text": post_text, "image_url": poster_url},
+        {"text": post_text, "image_url": poster_url, "type": "HUSTLE_UP"},
         x_client,
         tweet_image_fn,
     )
@@ -1458,7 +1451,7 @@ async def _auto_reply_with_art(args: dict) -> str:
     for tweet_id in trench_ids[:2]:   # max 2 per tick to respect X rate limits
         if not tweet_id:
             continue
-        await queue_post_with_media(reply_text, image_url, reply_to_tweet_id=str(tweet_id))
+        await queue_post_with_media(reply_text, image_url, reply_to_tweet_id=str(tweet_id), post_type="REPLY")
         await tw_mem.mark_trench_processed(str(tweet_id))
         queued += 1
 

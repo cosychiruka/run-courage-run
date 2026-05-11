@@ -1234,47 +1234,121 @@ const AdminDashboard = () => {
               </div>
             )}
 
-            {/* ── QUEUE INSPECTOR ────────────────────────────────────────── */}
+            {/* ── QUEUE INSPECTOR (EPIC UPGRADE) ────────────────────────────────── */}
             {activeTab === 'queue' && (
-              <div style={styles.grid2}>
-                <div className="glass-card" style={styles.card}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <h3 style={{ ...styles.cardTitle, margin: 0 }}><FaClock style={{ marginRight: 8 }} />Game Moments Queue</h3>
-                    <span style={styles.badge}>{queueData?.counts?.game_moments || 0}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                {/* Queue Health Header */}
+                <div className="glass-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', borderLeft: '6px solid #ff00ff' }}>
+                  <div>
+                    <h2 style={{ ...styles.navTitle, fontSize: '1.5rem', marginBottom: 4 }}>
+                      <FaHistory style={{ marginRight: 12, fontSize: '1.2rem' }} />
+                      ENGAGEMENT PIPELINE HEALTH
+                    </h2>
+                    <p style={{ opacity: 0.5, fontSize: '0.85rem', margin: 0 }}>
+                      Current Pulse: <strong>1 post every 45s</strong> • Auto-Processing: <strong>ENABLED</strong>
+                    </p>
                   </div>
-                  <div style={styles.feedScroll}>
-                    {(queueData?.pending_game_moments || []).length === 0 && <p style={{ opacity: 0.4 }}>No pending game moments.</p>}
-                    {(queueData?.pending_game_moments || []).map((m, i) => (
-                      <div key={i} style={{ ...styles.timelineItem, borderLeftColor: '#ff9900' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                          <span style={{ fontWeight: 'bold', color: '#00ffaa' }}>@{m.author}</span>
-                          <button style={styles.btnSmall} onClick={() => processQueueItem('courage:pending_game_moments', i)}>Process Now</button>
-                        </div>
-                        <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.8 }}>{m.text}</p>
-                      </div>
-                    ))}
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#ff00ff', fontFamily: 'Bangers, cursive' }}>
+                      {((queueData?.counts?.replies || 0) * 0.75).toFixed(1)} MIN
+                    </div>
+                    <div style={{ fontSize: '0.65rem', opacity: 0.4, textTransform: 'uppercase', letterSpacing: 1 }}>Est. Time to Clear</div>
                   </div>
                 </div>
 
-                <div className="glass-card" style={styles.card}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <h3 style={{ ...styles.cardTitle, margin: 0 }}><FaList style={{ marginRight: 8 }} />Reply Queue</h3>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <span style={styles.badge}>{queueData?.counts?.replies || 0}</span>
-                      <button style={{ ...styles.btnSmall, borderColor: '#ff4444', color: '#ff4444' }} onClick={clearQueue}>Clear</button>
+                <div style={styles.grid2}>
+                  {/* Left: Game Moments Sensor Queue */}
+                  <div className="glass-card" style={styles.card}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <h3 style={{ ...styles.cardTitle, margin: 0, color: '#ff9900' }}><FaClock style={{ marginRight: 8 }} />Game Sensor Queue</h3>
+                      <span style={{ ...styles.badge, background: '#ff9900' }}>{queueData?.counts?.game_moments || 0}</span>
+                    </div>
+                    <div style={{ ...styles.feedScroll, maxHeight: '60vh' }}>
+                      {(queueData?.pending_game_moments || []).length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '3rem 1rem', opacity: 0.3 }}>
+                          <FaGamepad style={{ fontSize: '2.5rem', marginBottom: '1rem' }} />
+                          <p>No pending game moments. Homestead is quiet.</p>
+                        </div>
+                      )}
+                      {(queueData?.pending_game_moments || []).map((m, i) => (
+                        <div key={i} className="decision-card-v2" style={{ borderLeft: '3px solid #ff9900' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                            <span style={{ fontWeight: 'bold', color: '#ff9900' }}>@{m.author}</span>
+                            <button className="btn-small" onClick={() => processQueueItem('courage:pending_game_moments', i)}>Process Now</button>
+                          </div>
+                          <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.8, color: '#eee' }}>{m.text}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <div style={styles.feedScroll}>
-                    {(queueData?.reply_queue || []).length === 0 && <p style={{ opacity: 0.4 }}>No pending replies.</p>}
-                    {(queueData?.reply_queue || []).map((r, i) => (
-                      <div key={i} style={{ ...styles.timelineItem, borderLeftColor: '#ff00ff' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                          <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>{r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : `#${i+1}`}</span>
-                          <button className="btn-small" onClick={() => processQueueItem('courage:reply_queue_v5', i)}><FaPlay /> Force Send</button>
-                        </div>
-                        <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.8 }}>{r.text}</p>
+
+                  {/* Right: Unified Post Queue (The Real Juice) */}
+                  <div className="glass-card" style={styles.card}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <h3 style={{ ...styles.cardTitle, margin: 0, color: '#ff00ff' }}><FaList style={{ marginRight: 8 }} />Unified Post Queue</h3>
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                        <span style={{ ...styles.badge, background: '#ff00ff' }}>{queueData?.counts?.replies || 0}</span>
+                        <button style={{ ...styles.btnSmall, borderColor: '#ff4444', color: '#ff4444', background: 'rgba(255,68,68,0.1)' }} onClick={clearQueue}>
+                          <FaTrash style={{ marginRight: 6 }} /> CLEAR ALL
+                        </button>
                       </div>
-                    ))}
+                    </div>
+
+                    <div style={{ ...styles.feedScroll, maxHeight: '60vh' }}>
+                      {(queueData?.reply_queue || []).length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '3rem 1rem', opacity: 0.3 }}>
+                          <FaTwitter style={{ fontSize: '2.5rem', marginBottom: '1rem' }} />
+                          <p>Reply queue is empty. Courage is contemplating.</p>
+                        </div>
+                      )}
+                      {(queueData?.reply_queue || []).map((r, i) => {
+                        const isNews = r.type === 'NEWS_REACT';
+                        const isHustle = r.type === 'HUSTLE_UP';
+                        const isReply = r.type === 'REPLY';
+                        const typeColor = isNews ? '#00ffaa' : isHustle ? '#ff00ff' : '#00ccff';
+                        
+                        return (
+                          <div key={i} className="decision-card-v2" style={{ borderLeft: `4px solid ${typeColor}`, padding: '1.25rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                <span style={{ 
+                                  fontSize: '0.6rem', fontWeight: 'bold', padding: '2px 8px', borderRadius: 4,
+                                  background: `${typeColor}22`, color: typeColor, border: `1px solid ${typeColor}44` 
+                                }}>
+                                  {r.type || 'POST'}
+                                </span>
+                                <span style={{ fontSize: '0.65rem', opacity: 0.4 }}>{r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : 'PENDING'}</span>
+                              </div>
+                              <button className="btn-small" style={{ borderColor: typeColor, color: typeColor }} onClick={() => processQueueItem('courage:reply_queue_v5', i)}>
+                                <FaPlay /> SEND NOW
+                              </button>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: 15 }}>
+                              {r.image_url && (
+                                <div style={{ width: 80, height: 80, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: '#000', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                  {r.image_url.includes('http') ? (
+                                    <SafeImage src={r.image_url} alt="queue-preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  ) : (
+                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.5rem', textAlign: 'center', opacity: 0.5 }}>
+                                      LOCAL MEDIA<br/>(NEWS CARD)
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              <div style={{ flex: 1 }}>
+                                {r.reply_to_tweet_id && r.reply_to_tweet_id !== 'none' && (
+                                  <div style={{ fontSize: '0.65rem', color: '#ff9900', marginBottom: 4 }}>
+                                    Replying to: <span style={{ opacity: 0.6 }}>{r.reply_to_tweet_id}</span>
+                                  </div>
+                                )}
+                                <p style={{ margin: 0, fontSize: '0.875rem', lineHeight: 1.5, color: '#eee' }}>{r.text}</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
