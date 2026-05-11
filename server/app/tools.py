@@ -869,6 +869,16 @@ async def _post_tweet(args: dict, x_client, tweet_image_fn) -> str:
     from app.engagement_queue import queue_post_with_media
     post_type = args.get("type", "GENERIC")
     try:
+        # Increment total daily tweet counter
+        try:
+            import datetime
+            r_redis = await _get_tools_redis()
+            if r_redis:
+                today_key = f"courage:total_tweets:{datetime.date.today().isoformat()}"
+                await r_redis.incr(today_key)
+                await r_redis.expire(today_key, 86400)
+        except: pass
+
         await queue_post_with_media(
             text=text,
             image_url=image_url,
@@ -879,35 +889,6 @@ async def _post_tweet(args: dict, x_client, tweet_image_fn) -> str:
     except Exception as e:
         print(f"[TWITTER] Enqueue failed: {e}")
         return f"Error adding tweet to queue: {e}"
-                r_redis = await _get_tools_redis()
-                if r_redis:
-                    await r_redis.lpush("courage:covered_urls", article_url)
-                    await r_redis.ltrim("courage:covered_urls", 0, 29)   # capped at 30 entries
-                    await r_redis.expire("courage:covered_urls", 172800) # 48 h TTL
-            except Exception:
-                pass
-
-        # Increment total daily tweet counter (autonomous + interactive combined)
-        try:
-            r_redis = await _get_tools_redis()
-            if r_redis:
-                today_key = f"courage:total_tweets:{datetime.date.today().isoformat()}"
-                await r_redis.incr(today_key)
-                await r_redis.expire(today_key, 86400)
-        except Exception:
-            pass
-
-        return f"Tweet posted successfully! ID: {tweet_id}"
-    except Exception as e:
-        print(f"[TWITTER] post_tweet FAILED: {e}")
-        return f"Tweet failed: {e}"
-    finally:
-        # Always clean up temp image file regardless of outcome
-        if tmp_path and tmp_path.exists():
-            try:
-                tmp_path.unlink()
-            except Exception:
-                pass
 
 
 async def _search_tweets(args: dict, x_client) -> str:
