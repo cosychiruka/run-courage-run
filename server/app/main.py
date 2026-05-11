@@ -727,6 +727,20 @@ async def trigger_now(request: Request):
     asyncio.create_task(autonomous_tick(x_client=x_client, tweet_image_fn=_tweet_image_fn))
     return JSONResponse({"status": "ok", "message": "Autonomous tick triggered in background."})
 
+@app.post("/api/autonomous/trench-scan")
+async def manual_trench_scan():
+    """Manually trigger a scan for community trench tweets."""
+    from app.twitter_memory import fetch_trench_tweets
+    count = await fetch_trench_tweets(x_client)
+    return JSONResponse({"status": "ok", "message": f"Trench scan complete. Captured {count} new tweets."})
+
+@app.post("/api/autonomous/market-pulse")
+async def manual_market_pulse():
+    """Manually trigger a market price update and RAG embedding."""
+    from app.hustle_service import get_rcr_stats
+    stats = await get_rcr_stats()
+    return JSONResponse({"status": "ok", "message": f"Market pulse updated: $RCR at ${stats.get('price', 0):.6f}"})
+
 @app.post("/api/admin/set-sensor-cooldown")
 @app.post("/api/admin/override_frequency")
 async def set_sensor_cooldown(data: dict):

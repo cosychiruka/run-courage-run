@@ -547,6 +547,18 @@ const AdminDashboard = () => {
     setTimeout(loadBrain, 3000);
   };
 
+  const triggerTrenchScan = async () => {
+    const d = await safeFetch(`${API}/api/autonomous/trench-scan`, { method: 'POST' });
+    showToast(d?.message || 'Trench scan complete!');
+    await loadTrenches();
+  };
+
+  const triggerMarketPulse = async () => {
+    const d = await safeFetch(`${API}/api/autonomous/market-pulse`, { method: 'POST' });
+    showToast(d?.message || 'Market pulse updated!');
+    await loadStatus();
+  };
+
   const resetBreaker = async () => {
     const d = await safeFetch(`${API}/api/autonomous/reset-circuit-breaker`, { method: 'POST' });
     showToast(d?.message || 'Circuit breaker reset!');
@@ -742,8 +754,12 @@ const AdminDashboard = () => {
                   <div className="glass-card" style={styles.card}>
                     <h3 style={styles.cardTitle}><FaBolt style={{ marginRight: 8 }} />Quick Actions</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      <button style={styles.btnPink} onClick={triggerTick}>⚡ Force Autonomous Tick</button>
-                      <button style={styles.btnSmall} onClick={resetBreaker}>Reset Groq Circuit Breaker</button>
+                      <button style={styles.btnPink} onClick={triggerTick}>⚡ FORCE BRAIN TICK</button>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        <button style={{ ...styles.btnSmall, padding: '10px' }} onClick={triggerTrenchScan}>🔍 TRENCH SCAN</button>
+                        <button style={{ ...styles.btnSmall, padding: '10px' }} onClick={triggerMarketPulse}>📈 MARKET PULSE</button>
+                      </div>
+                      <button style={{ ...styles.btnSmall, opacity: 0.7 }} onClick={resetBreaker}>Reset Groq Circuit Breaker</button>
                     </div>
                     <div style={{ marginTop: 20, padding: 12, background: '#0a0a0a', borderRadius: 8 }}>
                       <p style={{ fontSize: '0.75rem', opacity: 0.6, margin: 0 }}>Groq Status</p>
