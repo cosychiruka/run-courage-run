@@ -539,17 +539,24 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
 
     now = time.time()
     
-    # DYNAMIC COOLDOWN: Read directly from your dashboard slider setting
-    cooldown_min = 25
+    # LAYERED COOLDOWN: Respect both the slider and the AI's own suggested frequency
+    slider_min = 25
+    suggested_min = 25
     if _redis:
         try:
-            val = await _redis.get("courage:sensor_cooldown_minutes")
-            if val: cooldown_min = int(val)
+            s_val = await _redis.get("courage:sensor_cooldown_minutes")
+            if s_val: slider_min = int(s_val)
+            
+            a_val = await _redis.get("courage:suggested_frequency")
+            if a_val: suggested_min = int(a_val)
         except: pass
+    
+    # Pick the most restrictive (longest) cooldown to save costs
+    cooldown_min = max(slider_min, suggested_min)
     
     cooldown_sec = cooldown_min * 60
     if now - LAST_REACTIVE_TICK < cooldown_sec:
-        # Respect the user's manual slider setting
+        # Respect the layered layers of defense
         return
 
     state = await _gather_state()

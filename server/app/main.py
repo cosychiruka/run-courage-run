@@ -221,9 +221,12 @@ async def lifespan(app: FastAPI):
                                 data = json.loads(message["data"])
                                 event_type = data["type"]
                                 await r.set("courage:last_urgent_event", json.dumps(data), ex=300)
-                                if event_type in ("MARKET_SURGE", "GAME_MOMENT"):
+                                if event_type == "MARKET_SURGE":
                                     print(f"[EVENT] Emitted {event_type} → requesting cooldown-protected tick")
                                     asyncio.create_task(force_autonomous_tick(x_client, _tweet_image_fn, event_type=event_type))
+                                elif event_type == "GAME_MOMENT":
+                                    print(f"[EVENT] Emitted {event_type} → grouping for next scheduled pulse")
+                                    # We don't wake him up instantly for games — saves post costs
                     except Exception as e:
                         print(f"[EVENT ERROR] Urgent listener failed: {e}")
 
