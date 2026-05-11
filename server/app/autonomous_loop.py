@@ -189,6 +189,10 @@ async def _gather_state():
         "rcr_or_sol_stats": await _get_rcr_stats(),           # always keep this
         "x_rate_status": await get_x_rate_status(),           # critical for safety
         "community_vibe": await _get_community_vibe_summary(), # short 1-2 sentence vibe
+        "hustle_stats": {
+            "x_spend_today": float(await _redis.get("courage:x_spend_today") or 0) if _redis else 0,
+            "rcr_revenue": float(await _redis.get("courage:rcr_revenue") or 0) if _redis else 0,
+        }
     }
 
     # Phase 2.0: Credit-Aware Intelligence
@@ -197,6 +201,11 @@ async def _gather_state():
         credit_status = await _redis.get("courage:x_credit_status") or "healthy"
         if credit_status == "capped":
             state["credit_alert"] = "X API credits depleted. Cannot search or post. Switch to internal hype / meme generation mode."
+        
+        # Smart Treasury Request
+        rev = state["hustle_stats"]["rcr_revenue"]
+        if rev > 50:
+            state["treasury_notice"] = f"Treasury balance is healthy (${rev:.2f}). You are authorized to be more aggressive with X tool calls."
 
     # === SHARP TRENCHES (top 6, short but flavorful — tweet_id included for replies) ===
     trenches = await get_recent_trenches(limit=6)
@@ -553,6 +562,18 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
     
     # Pick the most restrictive (longest) cooldown to save costs
     cooldown_min = max(slider_min, suggested_min)
+
+    # === HUSTLE OVERRIDE: Hyper-Active Mode during Pumps ===
+    try:
+        stats = await _get_rcr_stats()
+        change = float(stats.get("change_24h", 0))
+        rev = float(await _redis.get("courage:rcr_revenue") or 0)
+        
+        if change > 5.0 or rev > 100:
+            # Courage enters Hustle Mode: Cut cooldown in half (min 5 mins)
+            cooldown_min = max(5, int(cooldown_min / 2))
+            print(f"[HUSTLE MODE] Token is pumping ({change:+.1f}%) or Treasury is rich (${rev:.2f}). Frequency boosted!")
+    except: pass
     
     cooldown_sec = cooldown_min * 60
     if now - LAST_REACTIVE_TICK < cooldown_sec:
