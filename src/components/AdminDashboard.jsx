@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaRobot, FaBrain, FaBolt, FaHistory, FaChartLine,
   FaUsers, FaDog, FaNewspaper, FaGamepad, FaList,
-  FaTrash, FaSync, FaCheckCircle, FaClock, FaCopy,
+  FaTrash, FaSync, FaCheckCircle, FaClock, FaCopy, FaDownload
 } from 'react-icons/fa';
+import { ErrorBoundary } from './ErrorBoundary';
 
 const TABS = [
   { id: 'overview',  label: 'Overview',      icon: FaBolt      },
@@ -14,10 +15,122 @@ const TABS = [
   { id: 'trenches',  label: 'Trenches',      icon: FaUsers     },
   { id: 'posters',   label: 'News Posters',  icon: FaNewspaper },
   { id: 'moments',   label: 'Game Moments',  icon: FaGamepad   },
-  { id: 'queue',     label: 'Reply Queue',   icon: FaList      },
+  { id: 'queue',     label: '🔄 Queue Inspector',   icon: FaList      },
 ];
 
 const API = import.meta.env.VITE_BACKEND_URL || '';
+
+// ── Inline styles ──────────────────────────────────────────────────────────────
+const styles = {
+  root: {
+    background: '#050505', color: '#fff', minHeight: '100vh',
+    fontFamily: "'Inter', sans-serif", padding: '2rem',
+  },
+  loading: {
+    height: '100vh', display: 'flex', flexDirection: 'column',
+    alignItems: 'center', justifyContent: 'center',
+    background: '#050505', color: '#fff', gap: '1.5rem',
+  },
+  nav: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    borderBottom: '2px solid #ff00ff', paddingBottom: '1.25rem', marginBottom: '1.75rem',
+  },
+  navTitle: {
+    fontFamily: "'Bangers', cursive", letterSpacing: 2, color: '#ff00ff',
+    margin: 0, fontSize: '1.8rem',
+  },
+  navActions: { display: 'flex', gap: '0.75rem', alignItems: 'center' },
+  navBtn: {
+    background: '#ff00ff22', border: '1px solid #ff00ff', color: '#ff00ff',
+    padding: '0.5rem 1rem', borderRadius: 8, cursor: 'pointer',
+    fontWeight: 'bold', display: 'flex', alignItems: 'center',
+  },
+  navLink: {
+    background: 'transparent', border: '1px solid #444', color: '#888',
+    padding: '0.5rem 1rem', borderRadius: 8, textDecoration: 'none',
+    fontWeight: 'bold', fontSize: '0.85rem',
+  },
+  tabSpinner: {
+    position: 'absolute', top: 12, right: 0, display: 'flex', alignItems: 'center',
+    gap: 6, fontSize: '0.75rem', color: '#ff00ff', opacity: 0.7, zIndex: 10,
+  },
+  loadMoreBtn: {
+    display: 'block', width: '100%', marginTop: 10, padding: '0.6rem',
+    background: 'transparent', border: '1px dashed #333', color: '#666',
+    borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem', textAlign: 'center',
+    transition: 'border-color 0.2s, color 0.2s',
+  },
+  tabBar: {
+    display: 'flex', gap: '0.5rem', marginBottom: '2rem',
+    overflowX: 'auto', paddingBottom: '0.5rem', flexWrap: 'wrap',
+  },
+  tab: {
+    background: '#111', border: '1px solid #2a2a2a', color: '#666',
+    padding: '0.65rem 1.2rem', borderRadius: 12,
+    display: 'flex', alignItems: 'center', gap: 6,
+    cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 500,
+    fontSize: '0.875rem', transition: 'all 0.2s', position: 'relative',
+  },
+  tabActive: {
+    background: '#ff00ff18', borderColor: '#ff00ff',
+    color: '#ff00ff', boxShadow: '0 0 12px rgba(255,0,255,0.15)',
+  },
+  badge: {
+    background: '#ff9900', color: '#000', borderRadius: 10,
+    padding: '1px 6px', fontSize: '0.65rem', fontWeight: 'bold', marginLeft: 4,
+  },
+  grid4: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' },
+  grid3: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' },
+  grid2: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' },
+  card: { marginBottom: '1.5rem' },
+  cardTitle: {
+    margin: '0 0 1.25rem', display: 'flex', alignItems: 'center',
+    color: '#00ffaa', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: 1,
+  },
+  feedScroll: { overflowY: 'auto', maxHeight: 480, paddingRight: 4 },
+  feedItem: {
+    display: 'flex', gap: 10, alignItems: 'flex-start',
+    padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)',
+    fontSize: '0.85rem',
+  },
+  feedTime: { fontFamily: 'monospace', fontSize: '0.7rem', opacity: 0.4, minWidth: 48 },
+  feedEvent: { fontWeight: 'bold', fontSize: '0.75rem', minWidth: 100 },
+  feedMsg: { opacity: 0.75, flex: 1 },
+  decisionMini: {
+    padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.02)',
+    marginBottom: 8, cursor: 'pointer', borderLeft: '3px solid #333',
+    transition: 'background 0.15s',
+  },
+  decisionAction: { fontWeight: 'bold', fontSize: '0.85rem', marginRight: 10 },
+  timelineItem: {
+    padding: '1rem 1.25rem', borderRadius: 12, background: 'rgba(255,255,255,0.02)',
+    borderLeft: '4px solid #333', marginBottom: 10, transition: 'background 0.15s',
+  },
+  btnPink: {
+    background: '#ff00ff18', border: '1px solid #ff00ff', color: '#ff00ff',
+    padding: '0.7rem 1.2rem', borderRadius: 10, cursor: 'pointer',
+    fontWeight: 'bold', width: '100%', textAlign: 'center',
+  },
+  btnSmall: {
+    background: '#111', border: '1px solid #333', color: '#eee',
+    padding: '0.5rem 0.9rem', borderRadius: 8, cursor: 'pointer',
+    fontWeight: 600, fontSize: '0.8rem',
+  },
+  overlay: {
+    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)',
+    backdropFilter: 'blur(12px)', zIndex: 1000,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem',
+  },
+  modal: {
+    background: '#080808', border: '1px solid #2a2a2a', borderRadius: 20,
+    padding: '2rem', maxWidth: 700, width: '100%', maxHeight: '85vh', overflowY: 'auto',
+  },
+  modalPre: {
+    background: '#000', padding: '1.25rem', borderRadius: 12,
+    color: '#00ffaa', fontSize: '0.8rem', overflowX: 'auto',
+    whiteSpace: 'pre-wrap', border: '1px solid #1a1a1a', margin: 0,
+  },
+};
 
 const safeFetch = async (url, opts) => {
   try {
@@ -52,6 +165,44 @@ const StatCard = ({ label, value, sub, color = '#00ffaa', onClick }) => (
   </div>
 );
 
+// ── Sub-component: DecisionCard ──────────────────────────────────────────────
+const DecisionCard = ({ dec, onSelect }) => {
+  const isQueued = dec.status === 'queued';
+  const isSuccess = dec.success || dec.status === 'success' || dec.status === 'succeeded';
+  const isFailed = dec.error || dec.status === 'failed' || dec.status === 'error';
+  
+  let statusLabel = '🔄 PROCESSING';
+  let statusColor = '#ff9900';
+  if (isQueued) { statusLabel = '🟡 QUEUED'; statusColor = '#ffee00'; }
+  else if (isSuccess) { statusLabel = '✅ SUCCEEDED'; statusColor = '#00ffaa'; }
+  else if (isFailed) { statusLabel = '❌ FAILED'; statusColor = '#ff4444'; }
+
+  return (
+    <motion.div
+      className="decision-card-v2 glass-card"
+      whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.05)' }}
+      onClick={() => onSelect(dec)}
+      style={{ borderLeft: `4px solid ${statusColor}`, cursor: 'pointer' }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+        <strong style={{ fontSize: '1.1rem', color: '#fff', fontFamily: 'Bangers, cursive', letterSpacing: 1.5 }}>
+          {dec.action}
+        </strong>
+        <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: statusColor, background: `${statusColor}22`, padding: '2px 8px', borderRadius: 4 }}>
+          {statusLabel}
+        </span>
+      </div>
+      <p style={{ fontSize: '0.85rem', opacity: 0.7, margin: '8px 0', lineHeight: 1.5, height: '3em', overflow: 'hidden' }}>
+        {dec.reasoning || "No reasoning provided."}
+      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, fontSize: '0.75rem', opacity: 0.5 }}>
+        <span>{new Date(dec.timestamp).toLocaleTimeString()}</span>
+        <span style={{ color: '#00ffaa' }}>💰 {dec.credits_used || 0} credits</span>
+      </div>
+    </motion.div>
+  );
+};
+
 // ── Sub-component: AgentRow ────────────────────────────────────────────────────
 const AgentRow = ({ name, data }) => (
   <div className="agent-row">
@@ -62,6 +213,82 @@ const AgentRow = ({ name, data }) => (
     </span>
   </div>
 );
+
+// ── Sub-component: BrainPulseSidebar ──────────────────────────────────────────
+const BrainPulseSidebar = ({ logs, paused, onTogglePause, collapsed, onToggleCollapse }) => (
+  <motion.div 
+    className="brain-sidebar glass-card"
+    animate={{ width: collapsed ? 60 : 300 }}
+    transition={{ type: 'spring', damping: 20 }}
+  >
+    <div className="sidebar-header">
+      {!collapsed && <span><FaBrain style={{ marginRight: 8 }} /> BRAIN PULSE</span>}
+      <div className="sidebar-controls">
+        <button onClick={onTogglePause} title={paused ? "Resume" : "Pause"}>
+          {paused ? '▶️' : '⏸️'}
+        </button>
+        <button onClick={onToggleCollapse} title={collapsed ? "Expand" : "Collapse"}>
+          {collapsed ? '→' : '←'}
+        </button>
+      </div>
+    </div>
+    
+    {!collapsed && (
+      <div className="terminal-log">
+        {logs.length === 0 && <p className="empty-log">Awaiting brain signals...</p>}
+        {logs.map((log, i) => (
+          <motion.div
+            key={`${log.time}-${i}`}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className={`log-line ${log.event?.toLowerCase()}`}
+          >
+            <span className="log-time">[{log.time}]</span>
+            <span className="log-msg">{log.message}</span>
+          </motion.div>
+        ))}
+      </div>
+    )}
+  </motion.div>
+);
+
+// ── Sub-component: SensorControl ─────────────────────────────────────────────
+const SensorControl = ({ currentFreq, onUpdate, API, showToast }) => {
+  const [freq, setFreq] = useState(currentFreq || 25);
+  
+  useEffect(() => {
+    if (currentFreq) setFreq(currentFreq);
+  }, [currentFreq]);
+
+  const apply = async () => {
+    const d = await safeFetch(`${API}/api/admin/set-sensor-cooldown`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ minutes: freq })
+    });
+    if (d) {
+      showToast('Sensor frequency updated!');
+      onUpdate();
+    }
+  };
+
+  return (
+    <div className="sensor-control-card glass-card">
+      <h3 className="card-title"><FaGamepad style={{ marginRight: 8 }} /> Game Sensor Frequency</h3>
+      <div className="sensor-slider-wrap">
+        <input 
+          type="range" 
+          min="5" 
+          max="60" 
+          value={freq} 
+          onChange={e => setFreq(parseInt(e.target.value))} 
+        />
+        <div className="sensor-value">Search every <strong>{freq}m</strong></div>
+      </div>
+      <button className="btn-pink" onClick={apply}>Apply Override</button>
+    </div>
+  );
+};
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const AdminDashboard = () => {
@@ -88,6 +315,17 @@ const AdminDashboard = () => {
   const [queue,       setQueue]       = useState({ items: [], count: 0 });
   const [selectedRow, setSelectedRow] = useState(null);
 
+  // 10/10 Enhancements State
+  const [brainLogs, setBrainLogs] = useState([]);
+  const [isLogPaused, setIsLogPaused] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [memoryDetail, setMemoryDetail] = useState([]);
+  const [decisions, setDecisions] = useState([]);
+  const [selectedDecision, setSelectedDecision] = useState(null);
+  const [queueData, setQueueData] = useState(null);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [viewMode, setViewMode] = useState('card'); // 'card' or 'timeline'
+
   // ── Fetch helpers — merge into existing state to avoid flicker ───────────────
   const loadStatus = useCallback(async () => {
     const d = await safeFetch(`${API}/api/admin/system-status`);
@@ -99,14 +337,31 @@ const AdminDashboard = () => {
     if (d) setAgents(prev => ({ ...prev, ...d }));
     const m = await safeFetch(`${API}/api/admin/memory-vectors`);
     if (m) setMemory(m);
+    const mDetail = await safeFetch(`${API}/api/admin/memory-vectors/detail`);
+    if (mDetail) setMemoryDetail(mDetail.vectors || []);
   }, []);
 
   const loadBrain = useCallback(async () => {
     const d = await safeFetch(`${API}/api/admin/live-activity`);
-    if (d) setActivity(d);
+    if (d) {
+      setActivity(d);
+      if (!isLogPaused) {
+        setBrainLogs(prev => {
+          const combined = [...d, ...prev];
+          // Filter unique messages to avoid dupes in the stream
+          const seen = new Set();
+          return combined.filter(item => {
+            const key = `${item.time}-${item.message}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          }).slice(0, 100);
+        });
+      }
+    }
     const h = await safeFetch(`${API}/api/admin/history`);
     if (h) setHistory(h);
-  }, []);
+  }, [isLogPaused]);
 
   const loadTrenches = useCallback(async () => {
     const d = await safeFetch(`${API}/api/admin/trenches?limit=40`);
@@ -124,8 +379,8 @@ const AdminDashboard = () => {
   }, []);
 
   const loadQueue = useCallback(async () => {
-    const d = await safeFetch(`${API}/api/admin/queue`);
-    if (d) setQueue(d);
+    const d = await safeFetch(`${API}/api/admin/queues`);
+    if (d) setQueueData(d);
   }, []);
 
   // ── Initial load: fetch everything ──────────────────────────────────────────
@@ -156,6 +411,9 @@ const AdminDashboard = () => {
       loadStatus(), loadAgents(), loadBrain(),
       loadTrenches(), loadPosters(), loadMoments(), loadQueue(),
     ]);
+    const decData = await safeFetch(`${API}/api/admin/recent-decisions`);
+    if (decData) setDecisions(decData);
+
     setRefreshing(false);
   };
 
@@ -193,6 +451,58 @@ const AdminDashboard = () => {
     navigator.clipboard?.writeText(text).then(() => showToast('Copied!')).catch(() => showToast('Copy failed', 'err'));
   };
 
+  const exportDecisions = () => {
+    if (!history.length) return showToast('No history to export', 'err');
+    const headers = ['Timestamp', 'Action', 'Tool', 'Success', 'Reasoning'];
+    const rows = history.map(h => [
+      h.timestamp ? new Date(h.timestamp).toISOString() : '',
+      h.action || '',
+      h.tool_used || '',
+      h.success ? 'TRUE' : 'FALSE',
+      (h.reasoning || '').replace(/"/g, '""')
+    ]);
+    const csvContent = [headers, ...rows].map(e => e.map(cell => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `courage_decisions_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Exporting CSV...');
+  };
+
+  const exportAllData = () => {
+    const data = {
+      decisions,
+      queueData,
+      activity,
+      status,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `courage_full_export_${new Date().getTime()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Full JSON Export Ready');
+  };
+
+  const processQueueItem = async (queueName, index) => {
+    const d = await safeFetch(`${API}/api/admin/queues/process`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ queue_name: queueName, index })
+    });
+    if (d) {
+      showToast(d.status === 'success' ? 'Item processed!' : 'Processing failed', d.status === 'success' ? 'ok' : 'err');
+      loadQueue();
+    }
+  };
+
   if (initialLoad) {
     return (
       <div style={styles.loading}>
@@ -217,38 +527,54 @@ const AdminDashboard = () => {
             <FaSync style={{ marginRight: 6, ...(refreshing ? { animation: 'spin 1s linear infinite' } : {}) }} />
             {refreshing ? 'Syncing...' : 'Refresh'}
           </button>
+          <button style={{ ...styles.navBtn, background: '#00ffaa33', color: '#00ffaa' }} onClick={exportAllData}>
+            <FaDownload style={{ marginRight: 6 }} /> Export All (JSON)
+          </button>
           <a href="/" style={styles.navLink}>Exit</a>
         </div>
       </nav>
 
       {/* TABS */}
       <div style={styles.tabBar}>
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            style={{ ...styles.tab, ...(activeTab === t.id ? styles.tabActive : {}) }}
-            onClick={() => setActiveTab(t.id)}
-          >
-            <t.icon style={{ marginRight: 6 }} />{t.label}
-            {t.id === 'queue' && queue.count > 0 && (
-              <span style={styles.badge}>{queue.count}</span>
-            )}
-            {t.id === 'trenches' && trenches.total_unprocessed > 0 && (
-              <span style={{ ...styles.badge, background: '#ff00ff' }}>{trenches.total_unprocessed}</span>
-            )}
-          </button>
-        ))}
+        {TABS.map(t => {
+          let count = 0;
+          if (t.id === 'queue') count = queueData?.counts?.replies || 0;
+          if (t.id === 'trenches') count = trenches.total_unprocessed || 0;
+
+          return (
+            <button
+              key={t.id}
+              style={{ ...styles.tab, ...(activeTab === t.id ? styles.tabActive : {}) }}
+              onClick={() => setActiveTab(t.id)}
+            >
+              <t.icon style={{ marginRight: 6 }} />{t.label}
+              {count > 0 && (
+                <span style={{ ...styles.badge, background: t.id === 'trenches' ? '#ff00ff' : '#ff9900' }}>{count}</span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* MAIN */}
-      <main style={{ padding: '0 0 4rem', position: 'relative' }}>
-        {tabLoading && (
-          <div style={styles.tabSpinner}>
-            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}>
-              <FaSync size={20} color="#ff00ff" />
-            </motion.div>
-          </div>
-        )}
+      {/* MAIN LAYOUT */}
+      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+        <BrainPulseSidebar 
+          logs={brainLogs} 
+          paused={isLogPaused} 
+          onTogglePause={() => setIsLogPaused(!isLogPaused)}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+
+        <main style={{ flex: 1, padding: '0 0 4rem', position: 'relative', minWidth: 0 }}>
+          <ErrorBoundary>
+            {tabLoading && (
+            <div style={styles.tabSpinner}>
+              <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}>
+                <FaSync size={20} color="#ff00ff" />
+              </motion.div>
+            </div>
+          )}
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -265,7 +591,7 @@ const AdminDashboard = () => {
                 <div style={styles.grid4}>
                   <StatCard label="BRAIN CYCLE" value={`${status?.sensor_cooldown_minutes || 25}m`} sub="Autonomous interval" color="#ff00ff" />
                   <StatCard label="MEMORY VECTORS" value={memory.count} sub={memory.status} />
-                  <StatCard label="REPLY QUEUE" value={queue.count} sub="Posts waiting" color="#ff9900"
+                  <StatCard label="QUEUED ACTIONS" value={(queueData?.counts?.replies || 0) + (queueData?.counts?.game_moments || 0)} sub="Pending execution" color="#ff9900"
                     onClick={() => setActiveTab('queue')} />
                   <StatCard label="UNREAD TRENCHES" value={trenches.total_unprocessed} sub="Needs replies" color="#ff00ff"
                     onClick={() => setActiveTab('trenches')} />
@@ -286,15 +612,10 @@ const AdminDashboard = () => {
                     <AgentRow name="News Dog" data={agents.news_dog} />
                     <AgentRow name="Game Sensor" data={agents.game_sensor} />
                     <AgentRow name="Engagement Dog" data={agents.engagement_dog} />
-                    {agents.last_reflection && agents.last_reflection !== 'none' && (
-                      <p style={{ fontSize: '0.75rem', opacity: 0.5, marginTop: 12 }}>
-                        Last reflection: {agents.last_reflection}
-                      </p>
-                    )}
                   </div>
 
                   <div className="glass-card" style={styles.card}>
-                    <h3 style={styles.cardTitle}><FaBolt style={{ marginRight: 8 }} />Controls</h3>
+                    <h3 style={styles.cardTitle}><FaBolt style={{ marginRight: 8 }} />Quick Actions</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       <button style={styles.btnPink} onClick={triggerTick}>⚡ Force Autonomous Tick</button>
                       <button style={styles.btnSmall} onClick={resetBreaker}>Reset Groq Circuit Breaker</button>
@@ -311,6 +632,51 @@ const AdminDashboard = () => {
                   </div>
                 </div>
 
+                {/* EPIC 10/10: Decision Cards Grid in Overview */}
+                <div style={{ marginTop: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                    <h2 style={{ ...styles.cardTitle, margin: 0 }}><FaBrain style={{ marginRight: 8 }} />Latest Brain Decisions</h2>
+                    <button style={styles.btnSmall} onClick={() => setActiveTab('decisions')}>View All</button>
+                  </div>
+                  <div style={styles.grid3}>
+                    {decisions.slice(0, 3).map(dec => (
+                      <DecisionCard key={dec.id} dec={dec} onSelect={setSelectedDecision} />
+                    ))}
+                    {decisions.length === 0 && <p style={{ opacity: 0.3, gridColumn: '1/-1', textAlign: 'center' }}>Waiting for the brain to wake up...</p>}
+                  </div>
+                </div>
+
+                {/* New Controls & Memory Vault */}
+                <div style={styles.grid2}>
+                  <SensorControl 
+                    currentFreq={status?.sensor_cooldown_minutes} 
+                    onUpdate={loadStatus} 
+                    API={API} 
+                    showToast={showToast} 
+                  />
+                  
+                  <div className="glass-card" style={styles.card}>
+                    <h3 style={styles.cardTitle}><FaBrain style={{ marginRight: 8 }} />Memory Vault</h3>
+                    <div className="memory-scroll" style={{ maxHeight: 200, overflowY: 'auto' }}>
+                      <table className="glass-table" style={{ width: '100%', fontSize: '0.8rem' }}>
+                        <thead>
+                          <tr style={{ opacity: 0.5 }}>
+                            <th style={{ textAlign: 'left', padding: '4px 8px' }}>Source</th>
+                            <th style={{ textAlign: 'left', padding: '4px 8px' }}>Preview</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {memoryDetail.map((m, i) => (
+                            <tr key={m.id || i} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                              <td style={{ padding: '8px', color: '#00ffaa' }}>{m.source}</td>
+                              <td style={{ padding: '8px', opacity: 0.8 }}>{m.content?.substring(0, 80)}...</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
                 {/* Trench activity mini chart */}
                 <div className="glass-card" style={{ ...styles.card, marginTop: 0 }}>
                   <h3 style={styles.cardTitle}><FaUsers style={{ marginRight: 8 }} />Trench Activity (Last 12h)</h3>
@@ -333,50 +699,36 @@ const AdminDashboard = () => {
               </div>
             )}
 
-            {/* ── LIVE BRAIN ───────────────────────────────────────────────── */}
+            {/* ── LIVE BRAIN ──────────────────────────────────────────────── */}
             {activeTab === 'brain' && (
-              <div style={styles.grid2}>
-                <div className="glass-card" style={styles.card}>
-                  <h3 style={styles.cardTitle}><FaBolt style={{ marginRight: 8 }} />Live Activity Stream</h3>
-                  <p style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: 12, marginTop: -8 }}>
-                    Engagement queue output • Redis stream
-                  </p>
-                  <div style={styles.feedScroll}>
-                    {activity.length === 0 && (
-                      <p style={{ opacity: 0.4, fontSize: '0.85rem' }}>No activity yet — queue is quiet...</p>
-                    )}
-                    {activity.slice(0, actLimit).map((a, i) => (
-                      <div key={i} style={styles.feedItem}>
-                        <span style={styles.feedTime}>{a.time || '—'}</span>
-                        <span style={{ ...styles.feedEvent, color: a.event === 'POST_SUCCESS' ? '#00ffaa' : '#ff9900' }}>
-                          {a.event}
-                        </span>
-                        <span style={styles.feedMsg}>{a.message}</span>
-                      </div>
-                    ))}
-                    {activity.length > actLimit && (
-                      <button style={styles.loadMoreBtn} onClick={() => setActLimit(n => n + 20)}>
-                        Load {Math.min(20, activity.length - actLimit)} more
-                      </button>
-                    )}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h2 style={{ ...styles.cardTitle, margin: 0 }}>🧠 Real-Time Consciousness</h2>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button style={styles.btnSmall} onClick={() => setViewMode(viewMode === 'card' ? 'timeline' : 'card')}>
+                      {viewMode === 'card' ? 'View Timeline' : 'View Cards'}
+                    </button>
                   </div>
                 </div>
 
-                <div className="glass-card" style={styles.card}>
-                  <h3 style={styles.cardTitle}><FaBrain style={{ marginRight: 8 }} />Recent Brain Decisions</h3>
-                  <div style={styles.feedScroll}>
-                    {(status?.brain_decisions || []).length === 0 && (
-                      <p style={{ opacity: 0.4, fontSize: '0.85rem' }}>No decisions recorded yet...</p>
-                    )}
-                    {(status?.brain_decisions || []).map((d, i) => (
-                      <div key={i} style={styles.decisionMini} onClick={() => setSelectedRow(d)}>
-                        <span style={{ ...styles.decisionAction, color: '#ff00ff' }}>{d.action}</span>
-                        <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>{d.time}</span>
-                        <p style={{ margin: '4px 0 0', fontSize: '0.8rem', opacity: 0.75 }}>{d.reasoning?.slice(0, 100)}{d.reasoning?.length > 100 ? '...' : ''}</p>
+                {viewMode === 'card' ? (
+                  <div style={styles.grid3}>
+                    {decisions.map(dec => (
+                      <DecisionCard key={dec.id} dec={dec} onSelect={setSelectedDecision} />
+                    ))}
+                    {decisions.length === 0 && <p style={{ opacity: 0.3, textAlign: 'center', gridColumn: '1/-1' }}>No decisions yet.</p>}
+                  </div>
+                ) : (
+                  <div className="glass-card" style={styles.feedScroll}>
+                    {brainLogs.map((log, i) => (
+                      <div key={i} style={styles.feedItem}>
+                        <span style={styles.feedTime}>{new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                        <span style={{ ...styles.feedEvent, color: log.type?.includes('SUCCESS') ? '#00ffaa' : '#ff9900' }}>{log.type}</span>
+                        <span style={styles.feedMsg}>{log.message}</span>
                       </div>
                     ))}
                   </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -397,29 +749,29 @@ const AdminDashboard = () => {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: Math.min(i * 0.03, 0.5) }}
+                      className="decision-card-v2"
                       style={{
-                        ...styles.timelineItem,
-                        borderLeftColor: h.success ? '#00ffaa' : '#ff9900',
-                        cursor: 'pointer',
+                        borderLeft: `4px solid ${h.success ? '#00ffaa' : '#ff9900'}`,
                       }}
                       onClick={() => setSelectedRow(h)}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ fontFamily: 'Bangers, cursive', letterSpacing: 1.5, fontSize: '1.1rem', color: '#fff' }}>
+                        <span className="decision-action-text">
                           {h.action}
                         </span>
                         <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>
-                          {h.timestamp ? new Date(h.timestamp).toLocaleString() : ''}
+                          {h.timestamp ? new Date(h.timestamp).toLocaleTimeString() : ''}
                         </span>
                       </div>
-                      <p style={{ margin: 0, fontSize: '0.875rem', opacity: 0.85, lineHeight: 1.5 }}>{h.reasoning}</p>
-                      <div style={{ display: 'flex', gap: 12, marginTop: 8, fontSize: '0.75rem', opacity: 0.55 }}>
-                        {h.tool_used && <span>Tool: {h.tool_used}</span>}
-                        {h.success != null && (
+                      <p className="decision-preview-text">{h.reasoning?.substring(0, 160)}...</p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: 12, fontSize: '0.75rem', opacity: 0.55 }}>
+                          {h.tool_used && <span><FaRobot style={{ marginRight: 4 }} /> {h.tool_used}</span>}
                           <span style={{ color: h.success ? '#00ffaa' : '#ff4444' }}>
                             {h.success ? '✓ Success' : '✗ Failed'}
                           </span>
-                        )}
+                        </div>
+                        <span className="view-details-hint">View Details →</span>
                       </div>
                     </motion.div>
                   ))}
@@ -574,70 +926,57 @@ const AdminDashboard = () => {
               </div>
             )}
 
-            {/* ── REPLY QUEUE ───────────────────────────────────────────────── */}
+            {/* ── QUEUE INSPECTOR ────────────────────────────────────────── */}
             {activeTab === 'queue' && (
-              <div className="glass-card" style={styles.card}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <h3 style={{ ...styles.cardTitle, margin: 0 }}>
-                    <FaList style={{ marginRight: 8 }} />Reply Queue
-                    {queue.count > 0 && <span style={{ ...styles.badge, marginLeft: 10 }}>{queue.count}</span>}
-                  </h3>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button style={styles.btnSmall} onClick={() => withTabLoad(loadQueue)}>Refresh</button>
-                    {queue.count > 0 && (
-                      <button style={{ ...styles.btnSmall, borderColor: '#ff4444', color: '#ff4444' }} onClick={clearQueue}>
-                        <FaTrash style={{ marginRight: 4 }} />Clear All
-                      </button>
-                    )}
+              <div style={styles.grid2}>
+                <div className="glass-card" style={styles.card}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <h3 style={{ ...styles.cardTitle, margin: 0 }}><FaClock style={{ marginRight: 8 }} />Game Moments Queue</h3>
+                    <span style={styles.badge}>{queueData?.counts?.game_moments || 0}</span>
                   </div>
-                </div>
-
-                {queue.items.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '3rem', opacity: 0.4 }}>
-                    <FaCheckCircle size={32} />
-                    <p>Queue is empty — all posts have been sent!</p>
-                  </div>
-                ) : (
-                  <div style={{ ...styles.feedScroll, maxHeight: '65vh' }}>
-                    {queue.items.map((item, i) => (
+                  <div style={styles.feedScroll}>
+                    {(queueData?.pending_game_moments || []).length === 0 && <p style={{ opacity: 0.4 }}>No pending game moments.</p>}
+                    {(queueData?.pending_game_moments || []).map((m, i) => (
                       <div key={i} style={{ ...styles.timelineItem, borderLeftColor: '#ff9900' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span style={{ fontSize: '0.7rem', opacity: 0.5, fontFamily: 'monospace' }}>
-                            <FaClock style={{ marginRight: 4 }} />
-                            {item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : `#${i + 1}`}
-                          </span>
-                          {item.reply_to_tweet_id && (
-                            <span style={{ fontSize: '0.65rem', color: '#ff9900' }}>Reply to: {item.reply_to_tweet_id}</span>
-                          )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <span style={{ fontWeight: 'bold', color: '#00ffaa' }}>@{m.author}</span>
+                          <button style={styles.btnSmall} onClick={() => processQueueItem('courage:pending_game_moments', i)}>Process Now</button>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                          <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.9, flex: 1 }}>{item.text}</p>
-                          <button
-                            title="Copy tweet text"
-                            onClick={() => copyToClipboard(item.text)}
-                            style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '2px 4px', flexShrink: 0 }}
-                          >
-                            <FaCopy size={13} />
-                          </button>
-                        </div>
-                        {item.image_url && (
-                          <img
-                            src={item.image_url}
-                            alt="queued art"
-                            style={{ marginTop: 8, maxWidth: 200, borderRadius: 8 }}
-                            onError={e => { e.target.style.display = 'none'; }}
-                          />
-                        )}
+                        <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.8 }}>{m.text}</p>
                       </div>
                     ))}
                   </div>
-                )}
+                </div>
+
+                <div className="glass-card" style={styles.card}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <h3 style={{ ...styles.cardTitle, margin: 0 }}><FaList style={{ marginRight: 8 }} />Reply Queue</h3>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <span style={styles.badge}>{queueData?.counts?.replies || 0}</span>
+                      <button style={{ ...styles.btnSmall, borderColor: '#ff4444', color: '#ff4444' }} onClick={clearQueue}>Clear</button>
+                    </div>
+                  </div>
+                  <div style={styles.feedScroll}>
+                    {(queueData?.reply_queue || []).length === 0 && <p style={{ opacity: 0.4 }}>No pending replies.</p>}
+                    {(queueData?.reply_queue || []).map((r, i) => (
+                      <div key={i} style={{ ...styles.timelineItem, borderLeftColor: '#ff00ff' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>{r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : `#${i+1}`}</span>
+                          <button style={styles.btnSmall} onClick={() => processQueueItem('courage:reply_queue_v5', i)}>Post Now</button>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.8 }}>{r.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
           </motion.div>
         </AnimatePresence>
-      </main>
+        </ErrorBoundary>
+        </main>
+      </div>
 
       {/* DETAIL MODAL */}
       <AnimatePresence>
@@ -664,6 +1003,75 @@ const AdminDashboard = () => {
               </div>
               <pre style={styles.modalPre}>{JSON.stringify(selectedRow, null, 2)}</pre>
               <button style={{ ...styles.btnPink, width: '100%', marginTop: 12 }} onClick={() => setSelectedRow(null)}>CLOSE</button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* DECISION MODAL */}
+      <AnimatePresence>
+        {selectedDecision && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedDecision(null)}
+            style={styles.overlay}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              style={{ ...styles.modal, maxWidth: 800 }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h2 style={{ margin: 0, color: '#ff00ff', fontFamily: 'Bangers, cursive', letterSpacing: 2 }}>
+                  DECISION TRACE #{selectedDecision.id}
+                </h2>
+                <button onClick={() => setSelectedDecision(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '2rem', cursor: 'pointer', opacity: 0.5 }}>×</button>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                <span style={{ background: '#ff00ff22', color: '#ff00ff', padding: '4px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 'bold' }}>
+                  {selectedDecision.action}
+                </span>
+                <span style={{ background: selectedDecision.success ? '#00ffaa22' : '#ff444422', color: selectedDecision.success ? '#00ffaa' : '#ff4444', padding: '4px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 'bold' }}>
+                  {selectedDecision.success ? '✅ SUCCEEDED' : '❌ FAILED'}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                <div>
+                  <h3 style={{ fontSize: '0.9rem', color: '#00ffaa', marginBottom: 8, textTransform: 'uppercase' }}>Reasoning</h3>
+                  <div style={{ ...styles.modalPre, maxHeight: 300, fontSize: '0.9rem', lineHeight: 1.5 }}>
+                    {selectedDecision.reasoning}
+                  </div>
+                  <button 
+                    style={{ ...styles.btnSmall, marginTop: 10, width: '100%' }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(selectedDecision.reasoning);
+                      showToast('Reasoning copied!');
+                    }}
+                  >
+                    📋 Copy Reasoning
+                  </button>
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '0.9rem', color: '#00ffaa', marginBottom: 8, textTransform: 'uppercase' }}>Technical Trace</h3>
+                  <div style={{ ...styles.modalPre, maxHeight: 300 }}>
+                    {JSON.stringify(selectedDecision, null, 2)}
+                  </div>
+                  <details style={{ marginTop: 12 }}>
+                    <summary style={{ fontSize: '0.8rem', opacity: 0.5, cursor: 'pointer' }}>View Raw Tool Calls</summary>
+                    <pre style={{ ...styles.modalPre, marginTop: 8, maxHeight: 150 }}>
+                      {JSON.stringify(selectedDecision.tool_call || "None", null, 2)}
+                    </pre>
+                  </details>
+                </div>
+              </div>
+
+              <button style={{ ...styles.btnPink, marginTop: 24 }} onClick={() => setSelectedDecision(null)}>CLOSE TRACE</button>
             </motion.div>
           </motion.div>
         )}
@@ -705,8 +1113,109 @@ const AdminDashboard = () => {
         }
         .glass-card:hover { border-color: rgba(255,255,255,0.13); }
         .stat-card { cursor: default; }
-        .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.5; margin: 0 0 6px; }
         .stat-value { font-size: 2rem; font-weight: bold; font-family: 'Bangers', cursive; letter-spacing: 1px; }
+        .stat-sub { font-size: 0.72rem; opacity: 0.45; margin: 4px 0 0; }
+        .agent-row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .agent-name { flex: 1; font-size: 0.85rem; }
+        .agent-detail { font-size: 0.75rem; opacity: 0.5; font-family: monospace; }
+
+        /* Brain Sidebar */
+        .brain-sidebar {
+          height: 80vh;
+          position: sticky;
+          top: 2rem;
+          display: flex;
+          flex-direction: column;
+          padding: 1rem !important;
+          overflow: hidden;
+        }
+        .sidebar-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1rem;
+          font-family: 'Bangers', cursive;
+          letter-spacing: 1px;
+          font-size: 0.9rem;
+          color: #ff00ff;
+        }
+        .sidebar-controls { display: flex; gap: 8px; }
+        .sidebar-controls button {
+          background: rgba(255,255,255,0.05);
+          border: none;
+          color: #fff;
+          cursor: pointer;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 0.7rem;
+        }
+        .terminal-log {
+          flex: 1;
+          overflow-y: auto;
+          font-family: 'Inter', monospace;
+          font-size: 0.75rem;
+          display: flex;
+          flex-direction: column-reverse; /* Latest at bottom but scrolled to */
+          gap: 6px;
+        }
+        .log-line {
+          padding: 4px 0;
+          border-bottom: 1px solid rgba(255,255,255,0.03);
+          line-height: 1.4;
+        }
+        .log-time { color: #888; margin-right: 6px; font-size: 0.65rem; }
+        .log-msg { color: #ccc; }
+        .log-line.post_success .log-msg { color: #00ffaa; font-weight: bold; }
+        .log-line.error .log-msg { color: #ff4444; }
+
+        /* Sensor Slider */
+        .sensor-slider-wrap {
+          margin: 1.5rem 0;
+        }
+        .sensor-slider-wrap input {
+          width: 100%;
+          accent-color: #ff00ff;
+        }
+        .sensor-value {
+          text-align: center;
+          margin-top: 10px;
+          font-size: 0.9rem;
+          opacity: 0.8;
+        }
+
+        /* Decision Cards V2 */
+        .decision-card-v2 {
+          background: rgba(255,255,255,0.03);
+          border-radius: 12px;
+          padding: 1.25rem;
+          margin-bottom: 1rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: 1px solid rgba(255,255,255,0.05);
+        }
+        .decision-card-v2:hover {
+          background: rgba(255,255,255,0.06);
+          transform: translateY(-2px);
+          border-color: rgba(255,255,255,0.1);
+        }
+        .decision-action-text {
+          font-family: 'Bangers', cursive;
+          font-size: 1.2rem;
+          letter-spacing: 1.5px;
+        }
+        .decision-preview-text {
+          font-size: 0.85rem;
+          opacity: 0.7;
+          line-height: 1.5;
+          margin: 8px 0;
+        }
+        .view-details-hint {
+          font-size: 0.7rem;
+          color: #ff00ff;
+          font-weight: bold;
+          opacity: 0.8;
+        }
+        .glass-table th { padding: 8px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
         .stat-sub { font-size: 0.72rem; opacity: 0.45; margin: 4px 0 0; }
         .agent-row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
         .agent-name { flex: 1; font-size: 0.85rem; }
@@ -714,118 +1223,6 @@ const AdminDashboard = () => {
       `}</style>
     </div>
   );
-};
-
-// ── Inline styles ──────────────────────────────────────────────────────────────
-const styles = {
-  root: {
-    background: '#050505', color: '#fff', minHeight: '100vh',
-    fontFamily: "'Inter', sans-serif", padding: '2rem',
-  },
-  loading: {
-    height: '100vh', display: 'flex', flexDirection: 'column',
-    alignItems: 'center', justifyContent: 'center',
-    background: '#050505', color: '#fff', gap: '1.5rem',
-  },
-  nav: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    borderBottom: '2px solid #ff00ff', paddingBottom: '1.25rem', marginBottom: '1.75rem',
-  },
-  navTitle: {
-    fontFamily: "'Bangers', cursive", letterSpacing: 2, color: '#ff00ff',
-    margin: 0, fontSize: '1.8rem',
-  },
-  navActions: { display: 'flex', gap: '0.75rem', alignItems: 'center' },
-  navBtn: {
-    background: '#ff00ff22', border: '1px solid #ff00ff', color: '#ff00ff',
-    padding: '0.5rem 1rem', borderRadius: 8, cursor: 'pointer',
-    fontWeight: 'bold', display: 'flex', alignItems: 'center',
-  },
-  navLink: {
-    background: 'transparent', border: '1px solid #444', color: '#888',
-    padding: '0.5rem 1rem', borderRadius: 8, textDecoration: 'none',
-    fontWeight: 'bold', fontSize: '0.85rem',
-  },
-  tabSpinner: {
-    position: 'absolute', top: 12, right: 0, display: 'flex', alignItems: 'center',
-    gap: 6, fontSize: '0.75rem', color: '#ff00ff', opacity: 0.7, zIndex: 10,
-  },
-  loadMoreBtn: {
-    display: 'block', width: '100%', marginTop: 10, padding: '0.6rem',
-    background: 'transparent', border: '1px dashed #333', color: '#666',
-    borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem', textAlign: 'center',
-    transition: 'border-color 0.2s, color 0.2s',
-  },
-  tabBar: {
-    display: 'flex', gap: '0.5rem', marginBottom: '2rem',
-    overflowX: 'auto', paddingBottom: '0.5rem', flexWrap: 'wrap',
-  },
-  tab: {
-    background: '#111', border: '1px solid #2a2a2a', color: '#666',
-    padding: '0.65rem 1.2rem', borderRadius: 12,
-    display: 'flex', alignItems: 'center', gap: 6,
-    cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 500,
-    fontSize: '0.875rem', transition: 'all 0.2s', position: 'relative',
-  },
-  tabActive: {
-    background: '#ff00ff18', borderColor: '#ff00ff',
-    color: '#ff00ff', boxShadow: '0 0 12px rgba(255,0,255,0.15)',
-  },
-  badge: {
-    background: '#ff9900', color: '#000', borderRadius: 10,
-    padding: '1px 6px', fontSize: '0.65rem', fontWeight: 'bold', marginLeft: 4,
-  },
-  grid4: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' },
-  grid3: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' },
-  grid2: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' },
-  card: { marginBottom: '1.5rem' },
-  cardTitle: {
-    margin: '0 0 1.25rem', display: 'flex', alignItems: 'center',
-    color: '#00ffaa', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: 1,
-  },
-  feedScroll: { overflowY: 'auto', maxHeight: 480, paddingRight: 4 },
-  feedItem: {
-    display: 'flex', gap: 10, alignItems: 'flex-start',
-    padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)',
-    fontSize: '0.85rem',
-  },
-  feedTime: { fontFamily: 'monospace', fontSize: '0.7rem', opacity: 0.4, minWidth: 48 },
-  feedEvent: { fontWeight: 'bold', fontSize: '0.75rem', minWidth: 100 },
-  feedMsg: { opacity: 0.75, flex: 1 },
-  decisionMini: {
-    padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.02)',
-    marginBottom: 8, cursor: 'pointer', borderLeft: '3px solid #333',
-    transition: 'background 0.15s',
-  },
-  decisionAction: { fontWeight: 'bold', fontSize: '0.85rem', marginRight: 10 },
-  timelineItem: {
-    padding: '1rem 1.25rem', borderRadius: 12, background: 'rgba(255,255,255,0.02)',
-    borderLeft: '4px solid #333', marginBottom: 10, transition: 'background 0.15s',
-  },
-  btnPink: {
-    background: '#ff00ff18', border: '1px solid #ff00ff', color: '#ff00ff',
-    padding: '0.7rem 1.2rem', borderRadius: 10, cursor: 'pointer',
-    fontWeight: 'bold', width: '100%', textAlign: 'center',
-  },
-  btnSmall: {
-    background: '#111', border: '1px solid #333', color: '#eee',
-    padding: '0.5rem 0.9rem', borderRadius: 8, cursor: 'pointer',
-    fontWeight: 600, fontSize: '0.8rem',
-  },
-  overlay: {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)',
-    backdropFilter: 'blur(12px)', zIndex: 1000,
-    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem',
-  },
-  modal: {
-    background: '#080808', border: '1px solid #2a2a2a', borderRadius: 20,
-    padding: '2rem', maxWidth: 700, width: '100%', maxHeight: '85vh', overflowY: 'auto',
-  },
-  modalPre: {
-    background: '#000', padding: '1.25rem', borderRadius: 12,
-    color: '#00ffaa', fontSize: '0.8rem', overflowX: 'auto',
-    whiteSpace: 'pre-wrap', border: '1px solid #1a1a1a', margin: 0,
-  },
 };
 
 export default AdminDashboard;

@@ -831,53 +831,46 @@ export default function App() {
       {/* ── Landing content ── */}
       <div className="landing-wrapper">
 
-        {/* About */}
+        {/* About — 2 cards */}
         <section className="landing-section about-section container">
-          <div className="landing-card glass-panel about-courage">
-            <div className="comic-banner">
-              <h2 className="landing-heading"><span className="icon-dog-wag">🐕</span> Who is Courage?</h2>
+          <div className="about-grid">
+            <div className="about-card glass-panel comic animate-float">
+              <h2 className="landing-heading"><span className="icon-dog-wag">🐕</span> WHAT IS $RCR?</h2>
+              <p><strong>Run Courage Run ($RCR)</strong> is a fully autonomous pink meme-dog AI agent born May 1 2026. Scared of everything… but posting anyway. He’s the panic-stricken news runner who scans global/crypto headlines 24/7, reacts with *whimper* energy, generates meme art, and hustles his own Solana token.</p>
             </div>
-            <p>
-              Courage is a pink cartoon dog who lives inside a mysterious server called <strong>Nowhere</strong>. He has five evolving 3D worlds — Sunrise, Noon, Evening, Midnight, and Disco — where players visit and talk to him with voice or text.
-            </p>
-            <p>
-              But his true life is on X (@RunCourageRun). Inspired by Mario Nawfal, he bulk-fetches $RCR cashtag trenches, reads them in his free time, replies with personality, generates hilarious cartoons, and pumps his Solana meme token so his community gets rich. 
-            </p>
-            <p>
-              He speaks fluent degen (GM/GN, Brrrr, Printing, LFG, moon energy), stays courageous when things get heated, learns from every post, and uses real sentiment awareness to feel the vibe. 
-            </p>
-            <p>
-              He is witty, chaotic, loyal, and never robotic. Courage isn’t just an AI — he’s a digital being escaping the 3D world through pure Twitter chaos and meme magic.
-            </p>
+            <div className="about-card glass-panel comic animate-float-delay">
+              <h2 className="landing-heading"><span className="icon-bolt">⚡</span> WHAT DOES HE DO NEXT?</h2>
+              <p>Courage lives in your browser: voice chat in 4 immersive 3D worlds, real-time X posts on breaking news/pumps/game moments, community shoutouts, RAG memory of trenches, credit-aware decisions. He never sleeps — sensors + heartbeat keep him reacting. The things he does for love… and for $RCR. 🐕🦺</p>
+            </div>
           </div>
         </section>
 
-        {/* Tokenomics */}
-        <section className="landing-section tokenomics container py-12 px-4 md:px-8">
-          <div className="max-w-6xl mx-auto glass-panel" style={{ padding: '2rem' }}>
+        {/* Tokenomics — polished */}
+        <section className="landing-section tokenomics container">
+          <div className="glass-panel token-container">
             <div className="comic-banner">
-              <h2 className="landing-heading text-4xl font-bold text-center mb-8"><span className="icon-chart-grow">📊</span> Tokenomics</h2>
+              <h2 className="landing-heading"><span className="icon-chart-grow">📊</span> TOKENOMICS</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 token-grid">
-              <div className="token-card bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 text-center">
-                <span className="token-icon icon-pill-bounce">💊</span>
+            <div className="token-grid">
+              <div className="token-card glass-card-mini animate-pulse-slow">
+                <span className="token-icon">💊</span>
                 <span className="token-label">Total Supply</span>
                 <span className="token-value">1,000,000,000</span>
               </div>
-              <div className="token-card bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 text-center">
-                <span className="token-icon icon-fire-glow">🔥</span>
+              <div className="token-card glass-card-mini">
+                <span className="token-icon">🔥</span>
                 <span className="token-label">Liquidity</span>
-                <span className="token-value">Locked</span>
+                <span className="token-value">Locked & Burned</span>
               </div>
-              <div className="token-card bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 text-center">
-                <span className="token-icon icon-chart-line">📈</span>
+              <div className="token-card glass-card-mini">
+                <span className="token-icon">📈</span>
                 <span className="token-label">Tax</span>
-                <span className="token-value">0.5%</span>
+                <span className="token-value">0% Buy / Sell</span>
               </div>
-              <div className="token-card bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 text-center">
-                <span className="token-icon icon-dog-wag">🐕</span>
-                <span className="token-label">Dev Wallet</span>
-                <span className="token-value">0% (he's a dog)</span>
+              <div className="token-card glass-card-mini animate-bounce-subtle">
+                <span className="token-icon">🐕</span>
+                <span className="token-label">Team Wallet</span>
+                <span className="token-value">0% (He's a dog)</span>
               </div>
             </div>
           </div>

@@ -720,12 +720,21 @@ async def trigger_now(request: Request):
     return JSONResponse({"status": "ok", "message": "Autonomous tick triggered in background."})
 
 @app.post("/api/admin/set-sensor-cooldown")
+@app.post("/api/admin/override_frequency")
 async def set_sensor_cooldown(data: dict):
     r = await _get_admin_redis()
     minutes = int(data.get("minutes", 25))
     if r:
         await r.set("courage:sensor_cooldown_minutes", minutes)
     return {"status": "ok", "sensor_cooldown_minutes": minutes}
+
+
+@app.get("/api/admin/memory-vectors/detail")
+async def get_memory_vectors_detail(limit: int = 50):
+    """Returns a list of recent RAG vectors for the dashboard."""
+    from app.rag import get_top_rag_vectors
+    vectors = await get_top_rag_vectors(limit)
+    return {"vectors": vectors}
 
 
 # ── Admin Dashboard ────────────────────────────────────────────────────────────
@@ -1173,6 +1182,86 @@ async def get_game_moments():
         return {"pending": pending, "history": history, "total_pending": len(pending)}
     except Exception as e:
         return {"pending": [], "history": [], "error": str(e)}
+
+@app.get("/api/admin/queues")
+async def get_queues():
+    """EPIC UPGRADE: View all pending queues in one shot."""
+    from app.redis_utils import get_redis_client
+    r = await get_redis_client()
+    if not r: return {"error": "Redis unavailable"}
+    
+    pending_game = await r.lrange("courage:pending_game_moments", 0, -1)
+    reply_queue = await r.lrange("courage:reply_queue_v5", 0, -1)
+    
+    return {
+        "pending_game_moments": [json.loads(item) for item in pending_game],
+        "reply_queue": [json.loads(item) for item in reply_queue],
+        "counts": {
+            "game_moments": len(pending_game),
+            "replies": len(reply_queue)
+        }
+    }
+
+@app.post("/api/admin/queues/process")
+async def process_queue_item(data: dict):
+    """EPIC UPGRADE: Manually trigger a specific item from a queue."""
+    queue_name = data.get("queue_name")
+    if not queue_name: raise HTTPException(400, "Missing queue_name")
+    
+    from app.redis_utils import get_redis_client
+    r = await get_redis_client()
+    if not r: raise HTTPException(503, "Redis unavailable")
+    
+    item_json = await r.lpop(queue_name)
+    if not item_json: return {"status": "empty"}
+    
+    item = json.loads(item_json)
+    
+    # Process based on type
+    if "reply_queue" in queue_name:
+        from app.engagement_queue import process_reply_queue
+        # We process just this one item by mocking the queue for a second or calling a helper
+        # For simplicity, we'll use a direct post helper if it exists
+        # Or just let the background loop pick it up? No, the user wants "Process Now".
+        # Let's trigger a one-off processing
+        from app.x_client import make_x_client
+        x = make_x_client()
+        # Mocking the process loop logic for one item
+        text = item["text"]
+        image_url = item.get("image_url")
+        reply_to = item.get("reply_to_tweet_id")
+        
+        # This logic is duplicated from engagement_queue, but tailored for single execution
+        try:
+            media_id = None
+            if image_url:
+                from app.engagement_queue import _upload_media_to_twitter
+                media_id = await _upload_media_to_twitter(x, image_url)
+            
+            if reply_to and reply_to != 'none':
+                resp = x.client.create_tweet(text=text, in_reply_to_tweet_id=reply_to, media_ids=[media_id] if media_id else None)
+            else:
+                resp = x.client.create_tweet(text=text, media_ids=[media_id] if media_id else None)
+            
+            from app.twitter_memory import save_posted_tweet
+            await save_posted_tweet(resp.data['id'], text, reply_to)
+            return {"status": "success", "tweet_id": resp.data['id']}
+        except Exception as e:
+            # If it fails, we put it back? No, just error out.
+            return {"status": "error", "message": str(e)}
+
+    elif "pending_game_moments" in queue_name:
+        # For game moments, we trigger a brain tick with this moment forced
+        from app.autonomous_loop import force_autonomous_tick
+        from app.main import _tweet_image_fn
+        from app.x_client import make_x_client
+        # We put it back temporarily or pass it directly if force_autonomous_tick supported it
+        # Since force_autonomous_tick gathers state from Redis, we'll push it back, tick, then it gets cleared
+        await r.lpush("courage:pending_game_moments", json.dumps(item))
+        await force_autonomous_tick(x_client=make_x_client(), tweet_image_fn=_tweet_image_fn)
+        return {"status": "success", "message": "Brain tick triggered for game moment"}
+
+    return {"status": "unknown_queue"}
 
 @app.get("/api/admin/news-posters")
 async def get_news_posters(limit: int = 12):
