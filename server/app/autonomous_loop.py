@@ -348,21 +348,30 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
                     await log_live_activity(f"Brain decided: {name} → {str(args)[:80]}...")
                 except Exception as e:
                     print(f"[AUTONOMOUS TOOL ERROR] {e}")
-                finally:
-                    # Persist every decision to autonomous_ticks
-                    try:
-                        import aiosqlite as _aiosqlite
-                        from app.config import DB_PATH as _DB_PATH
-                        reasoning = (message.content or "")[:400] if message.content else ""
-                        async with _aiosqlite.connect(_DB_PATH) as _db:
-                            await _db.execute(
-                                "INSERT INTO autonomous_ticks (timestamp, action, reasoning, tool_used, success)"
-                                " VALUES (?,?,?,?,?)",
-                                (datetime.now().isoformat(), name, reasoning, name, 1 if success else 0)
-                            )
-                            await _db.commit()
-                    except Exception as tick_err:
-                        print(f"[TICK LOG] Failed: {tick_err}")
+                    finally:
+                        # Persist every decision to autonomous_ticks
+                        try:
+                            import aiosqlite as _aiosqlite
+                            from app.config import DB_PATH as _DB_PATH
+                            
+                            # PRIORITIZE RICH DATA: Save tool arguments as reasoning
+                            # This ensures history cards show actual news URLs, tweet text, etc.
+                            db_reasoning = ""
+                            if message.tool_calls:
+                                # Save the first tool's arguments as the reasoning
+                                db_reasoning = message.tool_calls[0].function.arguments
+                            else:
+                                db_reasoning = (message.content or "")[:400]
+                                
+                            async with _aiosqlite.connect(_DB_PATH) as _db:
+                                await _db.execute(
+                                    "INSERT INTO autonomous_ticks (timestamp, action, reasoning, tool_used, success)"
+                                    " VALUES (?,?,?,?,?)",
+                                    (datetime.now().isoformat(), name, db_reasoning, name, 1 if success else 0)
+                                )
+                                await _db.commit()
+                        except Exception as tick_err:
+                            print(f"[TICK LOG] Failed: {tick_err}")
         else:
             print("[AUTONOMOUS] Courage decided to stay quiet and keep watching.")
             await log_live_activity("Courage decided to stay quiet and keep watching.")
