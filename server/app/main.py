@@ -854,33 +854,58 @@ async def _get_brain_decisions(limit: int = 30):
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
             async with db.execute("""
-                SELECT timestamp, action, reasoning, tool_used, success
+                SELECT timestamp, action, reasoning, data_preview, tool_used, success
                 FROM autonomous_ticks
                 ORDER BY timestamp DESC LIMIT ?
             """, (limit,)) as cur:
                 rows = await cur.fetchall()
         
+        from app.redis_utils import get_redis_client
+        r = await get_redis_client()
+        
+        # 1. Fetch live queue items (to show as QUEUED on dashboard)
+        queued_items = []
+        if r:
+            raw_q = await r.lrange("courage:reply_queue_v5", 0, -1)
+            for item_json in (raw_q or []):
+                try:
+                    q = json.loads(item_json)
+                    queued_items.append({
+                        "time": q.get("timestamp", "").split("T")[1][:8] if "T" in q.get("timestamp","") else "Pending",
+                        "action": "QUEUED_POST",
+                        "reasoning": q.get("text", ""),
+                        "data_preview": q.get("image_url"),
+                        "status": "queued",
+                        "tool_used": "post_tweet",
+                        "success": False,
+                        "timestamp": q.get("timestamp")
+                    })
+                except: continue
+
+        # 2. Fetch SQLite history (executed items)
         decisions = []
         for row in rows:
             raw = row["reasoning"] or ""
-            data_preview = None
-            if raw.strip().startswith('{'):
+            data_preview = row.get("data_preview") # Use existing or extract if missing
+            if not data_preview and raw.strip().startswith('{'):
                 try:
                     args = json.loads(raw)
                     data_preview = args.get('article_url') or args.get('url')
-                except:
-                    pass
+                except: pass
 
             decisions.append({
                 "time": row["timestamp"].split("T")[1][:8] if row["timestamp"] and "T" in row["timestamp"] else (row["timestamp"] or ""),
                 "action": row["action"],
                 "reasoning": raw or "No reasoning provided.",
                 "data_preview": data_preview,
+                "status": "success" if bool(row["success"]) else "failed",
                 "tool_used": row["tool_used"],
                 "success": bool(row["success"]),
                 "timestamp": row["timestamp"]
             })
-        return decisions
+            
+        # Merge: Queue items at the top
+        return queued_items + decisions
     except Exception as e:
         print(f"[ADMIN] Brain decisions error: {e}")
         return []
