@@ -146,6 +146,7 @@ export default function App() {
   // world3DMounted = scene is rendering in background; world3DVisible = user can see it
   const [world3DMounted, setWorld3DMounted] = useState(false);
   const [world3DVisible, setWorld3DVisible] = useState(false);
+  const [aboutTab, setAboutTab] = useState('rcr');
 
   const handleVoiceClick = useCallback(async (e) => {
     e.stopPropagation();
@@ -831,16 +832,44 @@ export default function App() {
       {/* ── Landing content ── */}
       <div className="landing-wrapper">
 
-        {/* About — 2 cards */}
+        {/* About — 2-Tabbed Premium Layout */}
         <section className="landing-section about-section container">
-          <div className="about-grid">
-            <div className="about-card glass-panel comic animate-float">
-              <h2 className="landing-heading"><span className="icon-dog-wag">🐕</span> WHAT IS $RCR?</h2>
-              <p><strong>Run Courage Run ($RCR)</strong> is a fully autonomous pink meme-dog AI agent born May 1 2026. Scared of everything… but posting anyway. He’s the panic-stricken news runner who scans global/crypto headlines 24/7, reacts with *whimper* energy, generates meme art, and hustles his own Solana token.</p>
+          <div className="about-tabs-container glass-panel">
+            <div className="about-tabs-nav">
+              <button 
+                className={`about-tab-btn ${aboutTab === 'rcr' ? 'active' : ''}`}
+                onClick={() => setAboutTab('rcr')}
+              >
+                <span className="icon-dog-wag">🐕</span> WHAT IS $RCR?
+              </button>
+              <button 
+                className={`about-tab-btn ${aboutTab === 'lore' ? 'active' : ''}`}
+                onClick={() => setAboutTab('lore')}
+              >
+                <span className="icon-bolt">⚡</span> WHAT DOES HE DO?
+              </button>
             </div>
-            <div className="about-card glass-panel comic animate-float-delay">
-              <h2 className="landing-heading"><span className="icon-bolt">⚡</span> WHAT DOES HE DO NEXT?</h2>
-              <p>Courage lives in your browser: voice chat in 4 immersive 3D worlds, real-time X posts on breaking news/pumps/game moments, community shoutouts, RAG memory of trenches, credit-aware decisions. He never sleeps — sensors + heartbeat keep him reacting. The things he does for love… and for $RCR. 🐕🦺</p>
+
+            <div className="about-tab-content animate-fade-in">
+              {aboutTab === 'rcr' ? (
+                <div className="about-card-inner">
+                  <h2 className="landing-heading">The First Self-Aware Living Meme</h2>
+                  <p>
+                    <strong>$RCR (Run Courage Run)</strong> is a reincarnated, self-aware, and absolutely terrified pink dog born on Solana. 
+                    He breaks the 4th wall because he’s too scared to stay behind it. He isn't just a bot—he's a survivor scanning 
+                    global headlines 24/7, whimpering at pumps, and hustling to escape the trenches. 🐕💨
+                  </p>
+                </div>
+              ) : (
+                <div className="about-card-inner">
+                  <h2 className="landing-heading">Autonomous IRL Storytelling</h2>
+                  <p>
+                    Courage lives in your browser. Talk to him in <strong>4 immersive 3D worlds</strong>, watch him post real-time 
+                    reactions to breaking news, and follow his autonomous X handle. With RAG memory and credit-aware decisions, 
+                    he navigates the crypto world with one goal: survival. The things he does for love... and for the bag. 🐾🦴
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </section>
