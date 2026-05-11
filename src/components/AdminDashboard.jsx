@@ -357,7 +357,12 @@ const AdminDashboard = () => {
   // ── Fetch helpers — merge into existing state to avoid flicker ───────────────
   const loadStatus = useCallback(async () => {
     const d = await safeFetch(`${API}/api/admin/system-status`);
-    if (d) setStatus(prev => ({ ...prev, ...d }));
+    if (d) {
+      setStatus(prev => ({ ...prev, ...d }));
+      if (d.sensor_cooldown_minutes != null) {
+        setSensorValue(d.sensor_cooldown_minutes);
+      }
+    }
   }, []);
 
   const loadAgents = useCallback(async () => {
@@ -1331,6 +1336,10 @@ const AdminDashboard = () => {
         .agent-row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
         .agent-name { flex: 1; font-size: 0.85rem; }
         .agent-detail { font-size: 0.75rem; opacity: 0.5; font-family: monospace; }
+        .guard-status { padding: 1.5rem; border-radius: 16px; font-weight: bold; font-family: 'Bangers', cursive; letter-spacing: 1px; text-align: center; }
+        .guard-status.active { background: rgba(0,255,170,0.1); color: #00ffaa; border: 1px solid rgba(0,255,170,0.2); }
+        .guard-status.idle { background: rgba(255,255,255,0.05); color: #666; border: 1px solid rgba(255,255,255,0.1); }
+        .v4-dot { box-shadow: 0 0 5px currentColor; }
       `}</style>
     </div>
   );
