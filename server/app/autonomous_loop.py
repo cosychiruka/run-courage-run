@@ -6,7 +6,6 @@ Optimized for Phase 5.6 SHARP MINIMAL Strategy.
 import json
 import asyncio
 import time
-import datetime
 from datetime import datetime
 from groq import AsyncGroq
 
@@ -346,13 +345,11 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
                 try:
                     result = await dispatch_tool(tool_call, state, x_client=x_client, tweet_image_fn=tweet_image_fn)
                     success = True
-                    await log_brain_decision(name.upper(), str(args), executed=True)
                     await log_live_activity(f"Brain decided: {name} → {str(args)[:80]}...")
                 except Exception as e:
                     print(f"[AUTONOMOUS TOOL ERROR] {e}")
-                    await log_brain_decision(name.upper(), str(args), executed=False, error=str(e))
                 finally:
-                    # Persist every decision to autonomous_ticks (the dead SQLite table)
+                    # Persist every decision to autonomous_ticks
                     try:
                         import aiosqlite as _aiosqlite
                         from app.config import DB_PATH as _DB_PATH
@@ -368,7 +365,6 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
                         print(f"[TICK LOG] Failed: {tick_err}")
         else:
             print("[AUTONOMOUS] Courage decided to stay quiet and keep watching.")
-            await log_brain_decision("NO_ACTION", "Decided to keep watching", executed=True)
             await log_live_activity("Courage decided to stay quiet and keep watching.")
 
         # Clear processed game moments so they don't re-fire next tick
@@ -506,12 +502,10 @@ async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=Non
             global _redis
             if _redis:
                 await _redis.set("courage:x_credit_status", "capped", ex=3600)  # remember for 1 hour
-                await log_brain_decision("CREDIT_ALERT", "X credits depleted - switching to safe mode", executed=True)
                 # Force a fun non-X action
                 from app.tools import execute_tool
                 return await execute_tool("idle_hype_post", {"reason": "credits depleted"})
         
-        await log_brain_decision(name.upper(), str(args), executed=False, error=err_str)
         return {"status": "failed", "error": err_str}
 
 async def dispatch_tool_call_by_name(name: str, args: dict, state=None):
@@ -529,19 +523,8 @@ async def dispatch_tool_call_by_name(name: str, args: dict, state=None):
     return await execute_tool(name, args)
 
 async def log_brain_decision(action: str, text: str, executed: bool = False, error: str = None):
-    """Logs a decision to Redis for the admin dashboard (Phase 1.5)"""
-    global _redis
-    if not _redis: return
-    
-    await _redis.lpush("courage:brain_decisions", json.dumps({
-        "id": str(int(time.time())),
-        "timestamp": datetime.now().isoformat(),
-        "type": action,
-        "short_text": text[:120] + "..." if len(text) > 120 else text,
-        "executed": executed,
-        "error": error
-    }))
-    await _redis.ltrim("courage:brain_decisions", 0, 49)  # keep latest 50
+    """OBSOLETE: Now logged to SQLite in decide_and_act."""
+    pass
 
 # ── Heartbeat ──────────────────────────────────────────────────────────────────
 

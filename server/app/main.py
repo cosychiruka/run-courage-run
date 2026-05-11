@@ -741,14 +741,8 @@ async def get_memory_vectors_detail(limit: int = 50):
 
 @app.get("/api/admin/history")
 async def admin_history(limit: int = 50):
-    """Returns the full autonomous decision history for the dashboard."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute(
-            "SELECT * FROM autonomous_ticks ORDER BY timestamp DESC LIMIT ?", (limit,)
-        ) as cur:
-            rows = [dict(r) for r in await cur.fetchall()]
-    return JSONResponse(rows)
+    """Returns the full history of autonomous decisions with cleaned reasoning."""
+    return await _get_brain_decisions(limit)
 
 
 @app.get("/api/admin/vibe-check")
@@ -814,28 +808,34 @@ async def _get_replies_today_count():
 # === NEW HELPERS FOR MISSION CONTROL (Elite Tier 4.0) ===
 
 async def _get_live_activity_feed(limit: int = 20):
-    """Pulls recent events from Redis stream activity log."""
+    """Pulls recent events from Redis list activity log."""
     from app.redis_utils import get_redis_client
     r = await get_redis_client()
     if not r: return []
     try:
-        # We use xrevrange to get the most recent events first
-        # decode_responses=True means entries are strings, not bytes
-        events = await r.xrevrange("courage:activity_log", "+", "-", count=limit)
-        return [
-            {
-                "time": str(e[0]).split("-")[0][-5:],
-                "event": e[1].get("type", "unknown") if isinstance(e[1], dict) else "unknown",
-                "message": e[1].get("msg", "") if isinstance(e[1], dict) else "",
-            }
-            for e in events
-        ]
+        # We use lrange to get the most recent events from the list
+        raw = await r.lrange("courage:live_activity", 0, limit - 1)
+        feed = []
+        for item in raw:
+            try:
+                data = json.loads(item)
+                # Format time for small UI display (HH:MM:SS)
+                ts = data.get("timestamp", "")
+                time_str = ts.split("T")[1][:8] if "T" in ts else ts[:8]
+                feed.append({
+                    "time": time_str,
+                    "event": data.get("event", "brain"),
+                    "message": data.get("message", ""),
+                })
+            except:
+                continue
+        return feed
     except Exception as e:
         print(f"[ADMIN] Activity feed error: {e}")
         return []
 
-async def _get_brain_decisions(limit: int = 15):
-    """Returns the last autonomous decisions from SQLite."""
+async def _get_brain_decisions(limit: int = 30):
+    """Returns rich brain decisions with cleaned reasoning for nice display."""
     try:
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
@@ -845,14 +845,29 @@ async def _get_brain_decisions(limit: int = 15):
                 ORDER BY timestamp DESC LIMIT ?
             """, (limit,)) as cur:
                 rows = await cur.fetchall()
-        return [
-            {
+        
+        decisions = []
+        for row in rows:
+            raw_reasoning = row["reasoning"] or "No reasoning provided."
+            
+            # Clean raw JSON tool args into readable text
+            if raw_reasoning.strip().startswith('{') and 'article_url' in raw_reasoning:
+                cleaned = "Reacted to news article (tool call)"
+            elif raw_reasoning.strip().startswith('{') and 'vibe' in raw_reasoning:
+                cleaned = "Proactive personality / vibe post"
+            else:
+                cleaned = raw_reasoning
+            
+            decisions.append({
                 "time": row["timestamp"].split("T")[1][:8] if row["timestamp"] and "T" in row["timestamp"] else (row["timestamp"] or ""),
                 "action": row["action"],
-                "reasoning": row["reasoning"] or "No reasoning provided."
-            }
-            for row in rows
-        ]
+                "reasoning": cleaned[:280] + "..." if len(cleaned) > 280 else cleaned,   # nice preview length
+                "full_reasoning": raw_reasoning,   # for modal
+                "tool_used": row["tool_used"],
+                "success": bool(row["success"]),
+                "timestamp": row["timestamp"]
+            })
+        return decisions
     except Exception as e:
         print(f"[ADMIN] Brain decisions error: {e}")
         return []
@@ -1309,22 +1324,22 @@ async def get_voice_sessions():
     if not _redis:
         return {"active": False, "sessions": [], "count": 0}
     try:
-        # Global flag
-        voice_active = await _redis.exists("courage:voice_active") > 0
+        # Global flag - check the same set voice_priority checks
+        voice_active = await _redis.scard("active_voice_sessions") > 0
         
-        # All session keys
-        session_keys = await _redis.keys("courage:session:*")
+        # All session keys - voice_ws uses "session:{session}:history"
+        session_keys = await _redis.keys("session:*:history")
         sessions = []
         for key in session_keys:
-            data = await _redis.hgetall(key)
-            if data:
-                sessions.append({
-                    "session_id": key.decode().split(":")[-1],
-                    "started": data.get(b"started", b"").decode(),
-                    "last_ping": data.get(b"last_ping", b"").decode(),
-                    "user_id": data.get(b"user_id", b"anon").decode(),
-                    "messages": int(data.get(b"msg_count", b"0"))
-                })
+            # We want to show session status, maybe from a hash if it exists
+            # For now, we extract the ID from the key
+            session_id = key.split(":")[1]
+            sessions.append({
+                "session_id": session_id,
+                "started": "active",
+                "user_id": "user",
+                "status": "connected"
+            })
         
         return {
             "active": voice_active,

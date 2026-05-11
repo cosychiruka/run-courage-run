@@ -87,6 +87,8 @@ CREATE TABLE IF NOT EXISTS rag_vectors (
     content     TEXT,
     embedding   BLOB,  -- we can expand to real embeddings later
     source      TEXT,  -- 'trench' or 'token'
+    metadata    TEXT,  -- JSON metadata
+    last_accessed REAL,
     created_at  REAL
 );
 
