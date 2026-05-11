@@ -586,9 +586,21 @@ TOOL_NAMES = {t["function"]["name"] for t in TOOL_SCHEMAS}
 
 # ── Tool dispatch ─────────────────────────────────────────────────────────────
 
-async def dispatch_tool(name: str, args: dict, x_client=None, tweet_image_fn=None) -> str:
+async def dispatch_tool(name: str, args: any, x_client=None, tweet_image_fn=None) -> str:
     """Execute a tool call and return a string result for the LLM."""
     try:
+        # ── Robustness Layer (Phase 1.8): Ensure args is a dict ────────────────
+        import json
+        if isinstance(args, str):
+            try:
+                args = json.loads(args)
+            except:
+                print(f"[DISPATCH ERROR] Failed to parse string args for {name}: {args}")
+                args = {}
+        elif not isinstance(args, dict):
+            print(f"[DISPATCH WARNING] Args for {name} is {type(args)}, forcing to dict.")
+            args = {}
+
         match name:
             case "get_news":              return await _get_news(args)
             case "fetch_article":         return await _fetch_article(args)
@@ -1282,7 +1294,7 @@ async def _reflect_and_adapt(action_taken: str, outcome: str = "success"):
         "learned": f"Reflected on {action_taken} → {outcome}",
         "suggested_frequency_minutes": int(val or 25)
     }
-async def _auto_news_react(args: dict, x_client, tweet_image_fn) -> str:
+async def _auto_news_react(args: any, x_client, tweet_image_fn) -> str:
     """
     Post a news reaction using 'The Courageous Chronicle' newspaper design.
     Falls back to Fal.ai meme art if newspaper generation fails.
@@ -1404,8 +1416,9 @@ def _build_news_tweet(title: str, summary: str) -> str:
     return "\n\n".join(parts)
 
 
-async def _auto_hustle_post(args: dict, x_client, tweet_image_fn) -> str:
+async def _auto_hustle_post(args: any, x_client, tweet_image_fn) -> str:
     """Actually post a token hustle/market update with optional generated art."""
+    if not isinstance(args, dict): args = {}
     post_text = (args.get("post_text") or "Spreading Courage 🐕‍🦺 $RCR to the moon!")
     if len(post_text) > 280:
         post_text = post_text[:277] + "..."

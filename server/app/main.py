@@ -866,9 +866,14 @@ async def _get_brain_decisions(limit: int = 30):
     try:
         import json
         async with aiosqlite.connect(DB_PATH) as db:
-            db.row_factory = aiosqlite.Row
-            async with db.execute("""
-                SELECT timestamp, action, reasoning, data_preview, tool_used, success
+            # 0. Robust column check (Phase 1.8)
+            cursor = await db.execute("PRAGMA table_info(autonomous_ticks)")
+            cols = await cursor.fetchall()
+            has_preview = any(c[1] == "data_preview" for c in cols)
+            
+            p_col = ", data_preview" if has_preview else ""
+            async with db.execute(f"""
+                SELECT timestamp, action, reasoning{p_col}, tool_used, success
                 FROM autonomous_ticks
                 ORDER BY timestamp DESC LIMIT ?
             """, (limit,)) as cur:
