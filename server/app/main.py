@@ -739,7 +739,11 @@ async def system_status():
         "status": "COURAGE COMMAND CENTER — ONLINE",
         "timestamp": time.time(),
         "voice_active": await is_voice_active(),
-        "reply_queue_size": await r.llen("courage:reply_queue_v5") if r else 0,
+        "reply_queue_size": (
+            (await r.llen("courage:reply_queue_v5") if r else 0)
+            + (await r.llen("courage:reply_queue_processing") if r else 0)
+            + (await r.llen("courage:reply_queue_dead") if r else 0)
+        ),
         "unread_trenches": trench_count,
         "rcr_price": rcr.get("price", 0.0),
         "rcr_stats": rcr,
@@ -777,9 +781,11 @@ async def trigger_now(request: Request):
 @app.post("/api/autonomous/trench-scan")
 async def manual_trench_scan():
     """Manually trigger a scan for community trench tweets."""
-    from app.twitter_memory import fetch_trench_tweets
-    count = await fetch_trench_tweets(x_client)
-    return JSONResponse({"status": "ok", "message": f"Trench scan complete. Captured {count} new tweets."})
+    from app.trench_service import fetch_trench_tweets
+    result = await fetch_trench_tweets()
+    if isinstance(result, int):
+        return JSONResponse({"status": "ok", "message": f"Trench scan complete. Captured {result} new tweets."})
+    return JSONResponse({"status": "ok", "message": str(result)})
 
 @app.post("/api/autonomous/market-pulse")
 async def manual_market_pulse():
@@ -801,16 +807,29 @@ async def set_sensor_cooldown(data: dict):
 @app.get("/api/admin/memory-vectors")
 async def get_memory_vectors_count():
     """Returns the total count of RAG vectors for the dashboard."""
-    from app.rag import get_rag_vector_count
-    count = await get_rag_vector_count()
-    return {"count": count}
+    from app import rag as _rag
+    count = await _rag.get_rag_vector_count()
+    if not _rag.HAS_RAG_DEPS:
+        status = "deps_missing_readonly" if count > 0 else "deps_missing"
+        return {
+            "count": count,
+            "status": status,
+            "detail": "sentence-transformers dependencies unavailable for new embeddings",
+        }
+    return {"count": count, "status": "healthy" if count > 0 else "empty"}
 
 @app.get("/api/admin/memory-vectors/detail")
 async def get_memory_vectors_detail(limit: int = 50):
     """Returns a list of recent RAG vectors for the dashboard."""
+    from app import rag as _rag
     from app.rag import get_top_rag_vectors
     vectors = await get_top_rag_vectors(limit)
-    return {"vectors": vectors}
+    status = "healthy"
+    if not vectors:
+        status = "empty"
+    if not _rag.HAS_RAG_DEPS:
+        status = "deps_missing_readonly" if vectors else "deps_missing"
+    return {"vectors": vectors, "status": status}
 
 @app.get("/api/admin/recent-decisions")
 @app.get("/api/admin/history")
@@ -882,31 +901,56 @@ async def _get_replies_today_count():
 # === NEW HELPERS FOR MISSION CONTROL (Elite Tier 4.0) ===
 
 async def _get_live_activity_feed(limit: int = 20):
-    """Pulls recent events from Redis list activity log."""
+    """
+    Pull recent activity with Redis-first freshness and SQLite durability fallback.
+    """
     from app.redis_utils import get_redis_client
+    from app.twitter_memory import get_recent_activity_events
+
+    feed = []
     r = await get_redis_client()
-    if not r: return []
-    try:
-        # We use lrange to get the most recent events from the list
-        raw = await r.lrange("courage:live_activity", 0, limit - 1)
-        feed = []
-        for item in raw:
-            try:
-                data = json.loads(item)
-                # Format time for small UI display (HH:MM:SS)
-                ts = data.get("timestamp", "")
+    if r:
+        try:
+            raw = await r.lrange("courage:live_activity", 0, limit - 1)
+            for item in raw:
+                try:
+                    data = json.loads(item)
+                    ts = data.get("timestamp", "")
+                    time_str = ts.split("T")[1][:8] if "T" in ts else ts[:8]
+                    feed.append({
+                        "time": time_str,
+                        "event": str(data.get("event", "BRAIN")).upper(),
+                        "message": data.get("message", ""),
+                        "timestamp": ts,
+                    })
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"[ADMIN] Activity feed Redis error: {e}")
+
+    if len(feed) < limit:
+        try:
+            durable = await get_recent_activity_events(limit=limit * 4)
+            seen = {(f.get("event"), f.get("message"), f.get("timestamp")) for f in feed}
+            for row in durable:
+                key = (str(row.get("event", "")).upper(), row.get("message", ""), row.get("timestamp", ""))
+                if key in seen:
+                    continue
+                ts = row.get("timestamp", "")
                 time_str = ts.split("T")[1][:8] if "T" in ts else ts[:8]
                 feed.append({
                     "time": time_str,
-                    "event": data.get("event", "brain"),
-                    "message": data.get("message", ""),
+                    "event": str(row.get("event", "BRAIN")).upper(),
+                    "message": row.get("message", ""),
+                    "timestamp": ts,
                 })
-            except:
-                continue
-        return feed
-    except Exception as e:
-        print(f"[ADMIN] Activity feed error: {e}")
-        return []
+                seen.add(key)
+                if len(feed) >= limit:
+                    break
+        except Exception as e:
+            print(f"[ADMIN] Activity feed DB fallback error: {e}")
+
+    return feed[:limit]
 
 async def _get_brain_decisions(limit: int = 30):
     """Returns rich brain decisions with cleaned reasoning for nice display."""
@@ -918,10 +962,12 @@ async def _get_brain_decisions(limit: int = 30):
             cursor = await db.execute("PRAGMA table_info(autonomous_ticks)")
             cols = await cursor.fetchall()
             has_preview = any(c[1] == "data_preview" for c in cols)
+            has_exec_status = any(c[1] == "execution_status" for c in cols)
 
             p_col = ", data_preview" if has_preview else ""
+            s_col = ", execution_status" if has_exec_status else ""
             async with db.execute(f"""
-                SELECT id, timestamp, action, reasoning{p_col}, tool_used, success
+                SELECT id, timestamp, action, reasoning{p_col}, tool_used, success{s_col}
                 FROM autonomous_ticks
                 ORDER BY timestamp DESC LIMIT ?
             """, (limit,)) as cur:
@@ -948,6 +994,23 @@ async def _get_brain_decisions(limit: int = 30):
                         "timestamp": q.get("timestamp")
                     })
                 except: continue
+            # Include dead-lettered queue items as explicit failures.
+            raw_dead = await r.lrange("courage:reply_queue_dead", 0, -1)
+            for dead_json in (raw_dead or []):
+                try:
+                    d = json.loads(dead_json)
+                    queued_items.append({
+                        "time": d.get("timestamp", "").split("T")[1][:8] if "T" in d.get("timestamp", "") else "Pending",
+                        "action": "DEAD_LETTER_POST",
+                        "reasoning": d.get("last_error") or d.get("text", ""),
+                        "data_preview": d.get("image_url"),
+                        "status": "failed",
+                        "tool_used": "post_tweet",
+                        "success": False,
+                        "timestamp": d.get("timestamp"),
+                    })
+                except Exception:
+                    continue
 
         # 2. Fetch SQLite history (executed items)
         decisions = []
@@ -961,15 +1024,24 @@ async def _get_brain_decisions(limit: int = 30):
                     data_preview = args.get('article_url') or args.get('url')
                 except: pass
 
+            raw_success = int(row["success"] or 0)
+            status = (row["execution_status"] or "").lower() if has_exec_status else ""
+            if status not in {"success", "queued", "failed"}:
+                status = "failed"
+                if raw_success == 1:
+                    status = "success"
+                elif raw_success == 2:
+                    status = "queued"
+
             decisions.append({
                 "id": row["id"],  # Bug fix 10: include SQLite row id
                 "time": row["timestamp"].split("T")[1][:8] if row["timestamp"] and "T" in row["timestamp"] else (row["timestamp"] or ""),
                 "action": row["action"],
                 "reasoning": raw or "No reasoning provided.",
                 "data_preview": data_preview,
-                "status": "success" if bool(row["success"]) else "failed",
+                "status": status,
                 "tool_used": row["tool_used"],
-                "success": bool(row["success"]),
+                "success": raw_success == 1,
                 "timestamp": row["timestamp"]
             })
             
@@ -1212,7 +1284,11 @@ async def sub_agents_status():
             return {"status": "unknown", "last_seen": None, "minutes_ago": None}
 
     last_refl = await r.get("courage:last_reflection") if r else None
-    queue_size = await r.llen("courage:reply_queue_v5") if r else 0
+    queue_size = (
+        (await r.llen("courage:reply_queue_v5") if r else 0)
+        + (await r.llen("courage:reply_queue_processing") if r else 0)
+        + (await r.llen("courage:reply_queue_dead") if r else 0)
+    )
 
     return {
         "brain": await _agent_status("courage:last_startup_tick", 120),
@@ -1222,30 +1298,6 @@ async def sub_agents_status():
         "queue_size": queue_size,
         "last_reflection": last_refl if last_refl else "none",
     }
-
-@app.post("/api/admin/override_frequency")
-async def override_frequency(data: dict):
-    """One-click override for sensor/autonomous frequency."""
-    global _redis
-    if not _redis: return {"status": "error", "message": "Redis unavailable"}
-    
-    minutes = int(data.get("minutes", 25))
-    await _redis.set("courage:sensor_cooldown_minutes", minutes)
-    return {"status": "ok", "new_frequency": minutes}
-
-@app.get("/api/admin/memory-vectors")
-async def get_memory_vectors():
-    try:
-        from app.rag import get_rag_vector_count
-        count = await get_rag_vector_count()
-        return {"count": count, "status": "healthy" if count > 0 else "empty"}
-    except Exception as e:
-        return {"count": 0, "status": "error", "detail": str(e)}
-
-@app.get("/api/admin/recent-decisions")
-async def get_recent_decisions():
-    """Fetch the latest 30 brain decisions from SQLite autonomous_ticks."""
-    return await _get_brain_decisions(30)
 
 @app.get("/api/admin/live-activity")
 async def get_live_activity():
@@ -1281,6 +1333,8 @@ async def clear_reply_queue():
         raise HTTPException(503, "Redis unavailable")
     try:
         await r.delete("courage:reply_queue_v5")
+        await r.delete("courage:reply_queue_processing")
+        await r.delete("courage:reply_queue_dead")
         return {"status": "ok", "message": "Reply queue cleared."}
     except Exception as e:
         raise HTTPException(500, str(e))
@@ -1323,7 +1377,21 @@ async def get_queues():
                 })
             except: continue
 
-        # 2. Game moments queue (Redis)
+        # 2. In-flight processing queue
+        processing_queue = await _redis.lrange("courage:reply_queue_processing", 0, -1) or []
+        for raw in processing_queue:
+            try:
+                item = json.loads(raw)
+                unified.append({
+                    **item,
+                    "source": "PROCESSING",
+                    "source_label": "⚙️ Processing",
+                    "source_color": "#00ffaa",
+                })
+            except Exception:
+                continue
+
+        # 3. Game moments queue (Redis)
         pending_game = await _redis.lrange("courage:pending_game_moments", 0, -1)
         for raw in pending_game:
             try:
@@ -1337,7 +1405,7 @@ async def get_queues():
                 })
             except: continue
 
-        # 3. Unprocessed trench tweets (SQLite) — the Orange/Yellow stream
+        # 4. Unprocessed trench tweets (SQLite) — the Orange/Yellow stream
         try:
             async with aiosqlite.connect(DB_PATH) as db:
                 db.row_factory = aiosqlite.Row
@@ -1363,18 +1431,35 @@ async def get_queues():
         except Exception as trench_e:
             print(f"[ADMIN] Trench queue fetch error: {trench_e}")
 
+        # 5. Dead-letter queue (items that failed retries)
+        dead_queue = await _redis.lrange("courage:reply_queue_dead", 0, -1) or []
+        for raw in dead_queue:
+            try:
+                item = json.loads(raw)
+                unified.append({
+                    **item,
+                    "source": "DEAD_LETTER",
+                    "source_label": "☠ Dead Letter",
+                    "source_color": "#ff4444",
+                })
+            except Exception:
+                continue
+
         # Spend-cap status
         spend_cap_hit = bool(await _redis.get("courage:x_spend_cap_hit"))
 
         return {
             "unified": unified,
             "reply_queue": [i for i in unified if i["source"] == "REPLY_QUEUE"],  # backward compat
+            "processing_queue": [i for i in unified if i["source"] == "PROCESSING"],
             "pending_game_moments": [i for i in unified if i["source"] == "GAME_MOMENT"],
             "counts": {
                 "total": len(unified),
                 "replies": sum(1 for i in unified if i["source"] == "REPLY_QUEUE"),
+                "processing": sum(1 for i in unified if i["source"] == "PROCESSING"),
                 "game_moments": sum(1 for i in unified if i["source"] == "GAME_MOMENT"),
                 "trenches": sum(1 for i in unified if i["source"] == "TRENCH"),
+                "dead_letters": sum(1 for i in unified if i["source"] == "DEAD_LETTER"),
             },
             "spend_cap_active": spend_cap_hit,
         }
@@ -1532,9 +1617,16 @@ async def end_voice_session(payload: dict):
 async def get_rag_graph(limit: int = 30):
     """Return top memory vectors for graph + table view."""
     try:
+        from app import rag as _rag
         from app.rag import get_top_vectors_for_graph
         vectors = await get_top_vectors_for_graph(limit)
-        return {"vectors": vectors}
+        if not _rag.HAS_RAG_DEPS:
+            return {
+                "vectors": vectors,
+                "status": "deps_missing_readonly",
+                "detail": "Embedding dependencies unavailable. Existing memory is readable but new embeddings are disabled.",
+            }
+        return {"vectors": vectors, "status": "ok"}
     except Exception as e:
         # Fallback if helper doesn't exist yet
         async with aiosqlite.connect(DB_PATH) as db:

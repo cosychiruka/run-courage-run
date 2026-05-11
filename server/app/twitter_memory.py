@@ -101,6 +101,16 @@ CREATE TABLE IF NOT EXISTS autonomous_ticks (
     success INTEGER DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS activity_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT NOT NULL,
+    event TEXT NOT NULL,
+    message TEXT NOT NULL,
+    source TEXT,
+    status TEXT,
+    metadata TEXT
+);
+
 CREATE TABLE IF NOT EXISTS tw_reflections (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     action_taken TEXT NOT NULL,
@@ -126,7 +136,76 @@ async def init_twitter_db():
         for stmt in _SCHEMA.strip().split(";"):
             if stmt.strip():
                 await db.execute(stmt)
+        try:
+            await db.execute(
+                "ALTER TABLE autonomous_ticks ADD COLUMN execution_status TEXT"
+            )
+        except Exception:
+            # Column already exists in most upgraded deployments.
+            pass
         await db.commit()
+
+
+async def save_autonomous_decision(
+    action: str,
+    reasoning: str,
+    tool_used: str,
+    success_code: int,
+    execution_status: str | None = None,
+):
+    """Persist an autonomous decision with backward-compatible schema writes."""
+    status = (execution_status or "").strip().lower()
+    if not status:
+        status = "success" if int(success_code) == 1 else "queued" if int(success_code) == 2 else "failed"
+    ts = time.time()
+    iso_ts = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(ts))
+    async with aiosqlite.connect(DB_PATH) as db:
+        try:
+            await db.execute(
+                "INSERT INTO autonomous_ticks (timestamp, action, reasoning, tool_used, success, execution_status)"
+                " VALUES (?,?,?,?,?,?)",
+                (iso_ts, action, reasoning or "", tool_used or action, int(success_code), status),
+            )
+        except Exception:
+            await db.execute(
+                "INSERT INTO autonomous_ticks (timestamp, action, reasoning, tool_used, success)"
+                " VALUES (?,?,?,?,?)",
+                (iso_ts, action, reasoning or "", tool_used or action, int(success_code)),
+            )
+        await db.commit()
+
+
+async def log_activity_event(
+    event: str,
+    message: str,
+    source: str = "system",
+    status: str | None = None,
+    metadata: dict | None = None,
+):
+    """Durable activity stream for dashboard history and postmortems."""
+    ts = time.time()
+    iso_ts = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(ts))
+    payload = json.dumps(metadata or {}, ensure_ascii=True)
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO activity_events (timestamp, event, message, source, status, metadata)"
+            " VALUES (?,?,?,?,?,?)",
+            (iso_ts, str(event or "BRAIN").upper(), message or "", source, status, payload),
+        )
+        await db.commit()
+
+
+async def get_recent_activity_events(limit: int = 200) -> list[dict]:
+    """Read recent durable activity rows for admin monitoring."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT id, timestamp, event, message, source, status, metadata "
+            "FROM activity_events ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ) as cur:
+            rows = await cur.fetchall()
+    return [dict(r) for r in rows]
 
 
 # ── Write helpers ──────────────────────────────────────────────────────────────

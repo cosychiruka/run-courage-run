@@ -83,7 +83,6 @@ async def retrieve_top_k(query: str, k: int = 5, source_filter: str = None) -> l
 
 async def get_rag_vector_count() -> int:
     """Return the total number of embedded vectors in the DB."""
-    if not HAS_RAG_DEPS: return 0
     try:
         async with aiosqlite.connect(DB_PATH) as db:
             async with db.execute("SELECT COUNT(*) FROM rag_vectors") as cur:
@@ -94,7 +93,6 @@ async def get_rag_vector_count() -> int:
 
 async def get_top_rag_vectors(limit: int = 50) -> list[dict]:
     """Return the most recent embedded vectors for visualization."""
-    if not HAS_RAG_DEPS: return []
     try:
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
@@ -109,7 +107,6 @@ async def get_top_rag_vectors(limit: int = 50) -> list[dict]:
         return []
 async def get_top_vectors_for_graph(limit: int = 50) -> list[dict]:
     """Return the most recent embedded vectors for visualization."""
-    if not HAS_RAG_DEPS: return []
     try:
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row

@@ -83,6 +83,61 @@ async def _count_unreplied_trenches():
 async def _count_auto_tweets_today():
     return await twitter_memory.count_auto_tweets_today()
 
+
+async def _persist_decision(action: str, reasoning: str, tool_used: str, success_code: int):
+    """
+    Persist one autonomous decision.
+    success_code semantics:
+      1 = executed successfully
+      2 = accepted/queued (not executed yet)
+      0 = failed
+    """
+    try:
+        execution_status = "success" if int(success_code) == 1 else "queued" if int(success_code) == 2 else "failed"
+        await twitter_memory.save_autonomous_decision(
+            action=action,
+            reasoning=reasoning or "",
+            tool_used=tool_used or action,
+            success_code=int(success_code),
+            execution_status=execution_status,
+        )
+    except Exception as db_e:
+        print(f"[DB LOG ERROR] {db_e}")
+
+    # Keep RAG memory alive even when X/FAL are down: persist high-level decisions.
+    try:
+        from app.rag import embed_and_store
+        await embed_and_store(
+            content=f"{action}: {(reasoning or '')[:500]}",
+            source="decision",
+            metadata={"tool_used": tool_used, "success_code": int(success_code)},
+        )
+    except Exception as rag_e:
+        print(f"[RAG DECISION LOG] Non-fatal: {rag_e}")
+
+
+def _classify_tool_outcome(result) -> tuple[int, str]:
+    """Return (success_code, status_label) for tool output."""
+    if isinstance(result, dict):
+        status = str(result.get("status", "")).lower()
+        if status in {"failed", "error"}:
+            return 0, "failed"
+        if status in {"queued", "accepted", "pending"}:
+            return 2, "queued"
+        if status in {"success", "ok", "posted"}:
+            return 1, "success"
+
+    text = str(result or "").lower()
+    if "enqueued" in text or "queued" in text or "will be posted" in text:
+        return 2, "queued"
+    if "error" in text or "failed" in text:
+        return 0, "failed"
+    if "tweet id" in text or "posted" in text or "success" in text:
+        return 1, "success"
+
+    # Default optimistic outcome for non-error tool responses.
+    return 1, "success"
+
 async def _get_community_vibe_summary():
     """Cheap one-line vibe from RAG — keeps him emotionally sharp"""
     results = await rag.retrieve_top_k("overall community mood right now", k=3)
@@ -90,16 +145,31 @@ async def _get_community_vibe_summary():
         return "Community is quiet"
     return results[0]["text"][:180]
 
-async def log_live_activity(message: str):
+async def log_live_activity(message: str, event: str = "BRAIN"):
     """Logs a short message to Redis for the 'Live Activity' dashboard feed."""
     global _redis
-    if not _redis: return
+    event_name = str(event or "BRAIN").upper()
     try:
-        await _redis.lpush("courage:live_activity", json.dumps({
-            "timestamp": datetime.now().isoformat(),
-            "message": message
-        }))
-        await _redis.ltrim("courage:live_activity", 0, 29) # Keep latest 30
+        if _redis:
+            await _redis.lpush("courage:live_activity", json.dumps({
+                "timestamp": datetime.now().isoformat(),
+                "event": event_name,
+                "message": message,
+            }))
+            await _redis.ltrim("courage:live_activity", 0, 499) # Keep latest 500
+        status = None
+        if event_name in {"SUCCESS", "POST_SUCCESS"}:
+            status = "success"
+        elif event_name in {"ERROR", "FAILED", "POST_DEAD_LETTER"}:
+            status = "failed"
+        elif event_name in {"QUEUED", "POST_REQUEUED"}:
+            status = "queued"
+        await twitter_memory.log_activity_event(
+            event=event_name,
+            message=message,
+            source="autonomous_loop",
+            status=status,
+        )
     except Exception as e:
         print(f"[LIVE LOG ERROR] {e}")
 
@@ -296,6 +366,7 @@ async def decide_and_act(state, x_client=None, tweet_image_fn=None):
 
     if state["voice_active"]:
         print("[VOICE PRIORITY] Skipping autonomous actions — voice session active")
+        await log_live_activity("Voice session active — autonomous tick paused", event="PAUSED")
         return
 
     # LLM circuit breaker — mirrors the voice agent's protection
@@ -304,7 +375,13 @@ async def decide_and_act(state, x_client=None, tweet_image_fn=None):
         if backoff_until and time.time() < float(backoff_until):
             remaining = int(float(backoff_until) - time.time())
             print(f"[AUTONOMOUS] LLM circuit breaker active — {remaining // 60}m {remaining % 60}s remaining")
-            await log_live_activity(f"LLM rate-limit backoff active ({remaining // 60}m left) — staying quiet")
+            await log_live_activity(f"LLM rate-limit backoff active ({remaining // 60}m left) — staying quiet", event="BACKOFF")
+            await _persist_decision(
+                action="LLM_BACKOFF",
+                reasoning=f"LLM backoff active with {remaining}s remaining",
+                tool_used="llm",
+                success_code=0,
+            )
             return
 
     # Compact JSON context
@@ -367,34 +444,30 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
                 print(f"[AUTONOMOUS] Executing tool: {name}")
 
                 # Execute and log
-                success = False
+                success_code = 0
                 try:
                     result = await dispatch_tool(tool_call, state, x_client=x_client, tweet_image_fn=tweet_image_fn)
-                    success = True
-                    await log_live_activity(f"Brain decided: {name} → {str(args)[:80]}...")
+                    success_code, outcome = _classify_tool_outcome(result)
+                    if outcome == "queued":
+                        await log_live_activity(f"Brain decided: {name} queued for execution → {str(args)[:80]}...", event="QUEUED")
+                    elif outcome == "failed":
+                        await log_live_activity(f"Brain decision failed: {name} → {str(result)[:120]}", event="ERROR")
+                    else:
+                        await log_live_activity(f"Brain decided: {name} executed → {str(args)[:80]}...", event="SUCCESS")
                 except Exception as e:
                     print(f"[AUTONOMOUS TOOL ERROR] {e}")
+                    success_code = 0
+                    await log_live_activity(f"Brain tool exception: {name} → {str(e)[:120]}", event="ERROR")
                 finally:
-                    # Persist every decision to autonomous_ticks
-                    try:
-                        import aiosqlite as _aiosqlite
-                        from app.config import DB_PATH as _DB_PATH
-                        
-                        # Use the actual arguments from the current tool_call
-                        db_reasoning = tool_call.function.arguments
-                            
-                        async with _aiosqlite.connect(_DB_PATH) as _db:
-                            await _db.execute(
-                                "INSERT INTO autonomous_ticks (timestamp, action, reasoning, tool_used, success)"
-                                " VALUES (?,?,?,?,?)",
-                                (datetime.now().isoformat(), name, db_reasoning, name, 1 if success else 0)
-                            )
-                            await _db.commit()
-                    except Exception as db_e:
-                        print(f"[DB LOG ERROR] {db_e}")
+                    await _persist_decision(
+                        action=name,
+                        reasoning=tool_call.function.arguments,
+                        tool_used=name,
+                        success_code=success_code,
+                    )
         else:
             print("[AUTONOMOUS] Courage decided to stay quiet and keep watching.")
-            await log_live_activity("Courage decided to stay quiet and keep watching.")
+            await log_live_activity("Courage decided to stay quiet and keep watching.", event="IDLE")
 
         # Clear processed game moments so they don't re-fire next tick
         if _redis and state.get("game_moments"):
@@ -417,6 +490,13 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
 
     except Exception as e:
         print(f"[AUTONOMOUS ERROR] {e}")
+        await _persist_decision(
+            action="DECISION_ERROR",
+            reasoning=str(e),
+            tool_used="llm",
+            success_code=0,
+        )
+        await log_live_activity(f"Decision error: {str(e)[:140]}", event="ERROR")
         if is_retryable_llm_error(e):
             if _redis:
                 until = time.time() + 3600
@@ -424,7 +504,7 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
                 await _redis.set("courage:groq_backoff_until", until, ex=3600)
                 await _redis.incr("courage:llm_429_streak")
                 await _redis.incr("courage:groq_429_streak")
-                await log_live_activity("LLM rate limit hit — circuit breaker set for 1 hour")
+                await log_live_activity("LLM rate limit hit — circuit breaker set for 1 hour", event="BACKOFF")
 
 async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=None):
     """Routes LLM tool calls to actual function executions with rich logging (Phase 1.5)"""
@@ -516,11 +596,15 @@ async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=Non
             # THIS IS THE FIX: Pass dependencies so post_tweet actually works
             result = await execute_tool(name, args, x_client=x_client, tweet_image_fn=tweet_image_fn)
 
-        # Log real execution status
-        executed = result.get("status") == "success" or "posted" in str(result).lower() or (isinstance(result, str) and "tweet id" in result.lower())
+        # Log real execution status without assuming dict return shape.
+        if isinstance(result, dict):
+            executed = str(result.get("status", "")).lower() in {"success", "ok", "posted"}
+        else:
+            result_text = str(result).lower()
+            executed = ("posted" in result_text) or ("tweet id" in result_text)
         
         if name == "post_tweet" and executed:
-            await log_live_activity(f"Posted tweet: {args.get('text')[:80]}...")
+            await log_live_activity(f"Posted tweet: {args.get('text')[:80]}...", event="SUCCESS")
             print(f"[POST SUCCESS] Actual tweet sent!")
 
         return result
