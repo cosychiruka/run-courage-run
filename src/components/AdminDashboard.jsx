@@ -187,36 +187,99 @@ const StatCard = ({ label, value, sub, color = '#00ffaa', onClick }) => (
 // ── Sub-component: DecisionCard ──────────────────────────────────────────────
 const DecisionCard = ({ dec, onSelect }) => {
   const isQueued = dec.status === 'queued';
-  const isSuccess = dec.success || dec.status === 'success' || dec.status === 'succeeded';
+  const isSuccess = dec.success || dec.status === 'success' || dec.status === 'succeeded' || dec.status === 'posted';
   const isFailed = dec.error || dec.status === 'failed' || dec.status === 'error';
   
   let statusLabel = '🔄 PROCESSING';
   let statusColor = '#ff9900';
-  if (isQueued) { statusLabel = '🟡 QUEUED'; statusColor = '#ffee00'; }
-  else if (isSuccess) { statusLabel = '✅ SUCCEEDED'; statusColor = '#00ffaa'; }
+  if (isQueued) { statusLabel = '⏳ QUEUED'; statusColor = '#ff9900'; }
+  else if (isSuccess) { statusLabel = '✅ EXECUTED'; statusColor = '#00ffaa'; }
   else if (isFailed) { statusLabel = '❌ FAILED'; statusColor = '#ff4444'; }
+
+  // Smart Title Logic
+  let displayTitle = dec.action || 'Autonomous Move';
+  if (dec.action === 'PROACTIVE_PERSONALITY_POST' || dec.action === 'proactive_personality_post') {
+    try {
+      const p = JSON.parse(dec.reasoning);
+      displayTitle = `${p.vibe?.toUpperCase() || 'RANDOM'} Vibe Post`;
+    } catch { displayTitle = 'Personality Post'; }
+  } else if (dec.action === 'AUTO_NEWS_REACT' || dec.action === 'auto_news_react') {
+    displayTitle = 'News Reaction';
+  } else if (dec.action === 'QUEUED_POST') {
+    displayTitle = 'Pending Tweet';
+  }
+
+  const dataUrl = dec.data_preview || (dec.reasoning?.includes('http') ? dec.reasoning.match(/https?:\/\/[^\s"}]+/)?.[0] : null);
+  const isImage = dataUrl && (dataUrl.match(/\.(jpeg|jpg|gif|png|webp)/i) || dataUrl.includes('fal.ai') || dataUrl.includes('image'));
 
   return (
     <motion.div
       className="decision-card-v2 glass-card"
-      whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.05)' }}
+      whileHover={{ scale: 1.01, backgroundColor: 'rgba(255,255,255,0.04)' }}
       onClick={() => onSelect(dec)}
-      style={{ borderLeft: `4px solid ${statusColor}`, cursor: 'pointer' }}
+      style={{ 
+        borderLeft: `4px solid ${statusColor}`, 
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-        <strong style={{ fontSize: '1.1rem', color: '#fff', fontFamily: 'Bangers, cursive', letterSpacing: 1.5 }}>
-          {dec.action}
-        </strong>
-        <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: statusColor, background: `${statusColor}22`, padding: '2px 8px', borderRadius: 4 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <strong style={{ fontSize: '1.2rem', color: '#fff', fontFamily: 'Bangers, cursive', letterSpacing: 1.5 }}>
+            {displayTitle}
+          </strong>
+          <span style={{ fontSize: '0.6rem', opacity: 0.5, textTransform: 'uppercase', marginTop: 2 }}>
+            {dec.action}
+          </span>
+        </div>
+        <span style={{ 
+          fontSize: '0.65rem', 
+          fontWeight: 'bold', 
+          color: statusColor, 
+          background: `${statusColor}15`, 
+          padding: '4px 10px', 
+          borderRadius: 6,
+          border: `1px solid ${statusColor}33`
+        }}>
           {statusLabel}
         </span>
       </div>
-      <p style={{ fontSize: '0.85rem', opacity: 0.7, margin: '8px 0', lineHeight: 1.5, height: '3em', overflow: 'hidden' }}>
+
+      {isImage ? (
+        <div style={{ width: '100%', height: 160, borderRadius: 12, overflow: 'hidden', background: '#000', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <img src={dataUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => e.target.style.display='none'} />
+        </div>
+      ) : dataUrl ? (
+        <div style={{ 
+          background: 'rgba(0,255,170,0.05)', 
+          padding: '10px', 
+          borderRadius: 8, 
+          border: '1px dashed rgba(0,255,170,0.2)',
+          fontSize: '0.75rem',
+          color: '#00ffaa',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8
+        }}>
+          <span>🔗</span>
+          <a href={dataUrl} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ color: 'inherit', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {dataUrl}
+          </a>
+        </div>
+      ) : null}
+
+      <p style={{ fontSize: '0.9rem', opacity: 0.85, margin: 0, lineHeight: 1.5, color: '#eee' }}>
         {parseReasoning(dec.reasoning)}
       </p>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, fontSize: '0.75rem', opacity: 0.5 }}>
-        <span>{dec.time || "Just now"}</span>
-        {dec.tool_used && <span style={{ color: '#00ffaa' }}>🔧 {dec.tool_used}</span>}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: '0.7rem', opacity: 0.4 }}>
+        <span>{dec.time || "Pending..."}</span>
+        <div style={{ display: 'flex', gap: 12 }}>
+          {dec.tool_used && <span>🔧 {dec.tool_used}</span>}
+          <span>ID: {dec.id || '—'}</span>
+        </div>
       </div>
     </motion.div>
   );
@@ -1128,7 +1191,7 @@ const AdminDashboard = () => {
 
       {/* MODAL REDIRECTED TO DECISION TRACE */}
 
-      {/* DECISION MODAL */}
+      {/* DECISION MODAL — ELITE TRACE OVERHAUL */}
       <AnimatePresence>
         {selectedDecision && (
           <motion.div
@@ -1143,55 +1206,97 @@ const AdminDashboard = () => {
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
               onClick={e => e.stopPropagation()}
-              style={{ ...styles.modal, maxWidth: 800 }}
+              style={{ ...styles.modal, maxWidth: 600, padding: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <h2 style={{ margin: 0, color: '#ff00ff', fontFamily: 'Bangers, cursive', letterSpacing: 2 }}>
-                  DECISION TRACE #{selectedDecision.id}
+              {/* Header Image / Pattern */}
+              <div style={{ height: 120, background: 'linear-gradient(135deg, #ff00ff22 0%, #00ffaa22 100%)', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ position: 'absolute', inset: 0, opacity: 0.1, backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+                <h2 style={{ margin: 0, color: '#fff', fontFamily: 'Bangers, cursive', letterSpacing: 3, fontSize: '2.5rem', textShadow: '0 0 20px rgba(255,0,255,0.5)' }}>
+                  DECISION TRACE
                 </h2>
-                <button onClick={() => setSelectedDecision(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '2rem', cursor: 'pointer', opacity: 0.5 }}>×</button>
               </div>
 
-              <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-                <span style={{ background: '#ff00ff22', color: '#ff00ff', padding: '4px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 'bold' }}>
-                  {selectedDecision.action}
-                </span>
-                <span style={{ background: selectedDecision.success ? '#00ffaa22' : '#ff444422', color: selectedDecision.success ? '#00ffaa' : '#ff4444', padding: '4px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 'bold' }}>
-                  {selectedDecision.success ? '✅ SUCCEEDED' : '❌ FAILED'}
-                </span>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-                <div>
-                  <h3 style={{ fontSize: '0.9rem', color: '#00ffaa', marginBottom: 8, textTransform: 'uppercase' }}>Reasoning</h3>
-                  <div style={{ ...styles.modalPre, maxHeight: 300, fontSize: '0.9rem', lineHeight: 1.5 }}>
-                    {parseReasoning(selectedDecision.reasoning)}
+              <div style={{ padding: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+                  <div>
+                    <h3 style={{ margin: 0, color: '#00ffaa', fontFamily: 'Bangers, cursive', letterSpacing: 1.5, fontSize: '1.5rem' }}>
+                      {selectedDecision.action?.replace(/_/g, ' ')}
+                    </h3>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.5, fontFamily: 'monospace' }}>
+                      TIMESTAMP: {selectedDecision.timestamp}
+                    </div>
                   </div>
-                  <button 
-                    style={{ ...styles.btnSmall, marginTop: 10, width: '100%' }}
-                    onClick={() => {
-                      navigator.clipboard.writeText(selectedDecision.reasoning);
-                      showToast('Reasoning copied!');
-                    }}
-                  >
-                    📋 Copy Reasoning
-                  </button>
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '0.9rem', color: '#00ffaa', marginBottom: 8, textTransform: 'uppercase' }}>Technical Trace</h3>
-                  <div style={{ ...styles.modalPre, maxHeight: 300 }}>
-                    {JSON.stringify(selectedDecision, null, 2)}
+                  <div style={{ textAlign: 'right' }}>
+                     <span style={{ 
+                        background: selectedDecision.success ? '#00ffaa22' : '#ff990022', 
+                        color: selectedDecision.success ? '#00ffaa' : '#ff9900', 
+                        padding: '6px 14px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 'bold',
+                        border: `1px solid ${selectedDecision.success ? '#00ffaa33' : '#ff990033'}`
+                      }}>
+                        {selectedDecision.status?.toUpperCase() || (selectedDecision.success ? 'EXECUTED' : 'PENDING')}
+                      </span>
                   </div>
-                  <details style={{ marginTop: 12 }}>
-                    <summary style={{ fontSize: '0.8rem', opacity: 0.5, cursor: 'pointer' }}>View Raw Tool Calls</summary>
-                    <pre style={{ ...styles.modalPre, marginTop: 8, maxHeight: 150 }}>
-                      {JSON.stringify(selectedDecision.tool_call || "None", null, 2)}
-                    </pre>
-                  </details>
                 </div>
-              </div>
 
-              <button style={{ ...styles.btnPink, marginTop: 24 }} onClick={() => setSelectedDecision(null)}>CLOSE TRACE</button>
+                {/* Media Preview Section */}
+                {(selectedDecision.data_preview || selectedDecision.reasoning?.includes('http')) && (
+                  <div style={{ marginBottom: 24 }}>
+                    { (selectedDecision.data_preview?.match(/\.(jpeg|jpg|gif|png|webp)/i) || selectedDecision.data_preview?.includes('fal.ai')) ? (
+                      <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', background: '#000' }}>
+                        <img src={selectedDecision.data_preview} alt="result" style={{ width: '100%', display: 'block' }} />
+                      </div>
+                    ) : (
+                      <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontSize: '1.5rem' }}>🔗</span>
+                        <div style={{ flex: 1, overflow: 'hidden' }}>
+                          <div style={{ fontSize: '0.65rem', opacity: 0.4, textTransform: 'uppercase', marginBottom: 2 }}>Resource Link</div>
+                          <a 
+                            href={selectedDecision.data_preview || selectedDecision.reasoning?.match(/https?:\/\/[^\s"}]+/)?.[0]} 
+                            target="_blank" rel="noreferrer"
+                            style={{ color: '#00ffaa', textDecoration: 'none', fontSize: '0.9rem', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                          >
+                            {selectedDecision.data_preview || "View External Content"}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: 20, borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)', marginBottom: 24 }}>
+                   <div style={{ fontSize: '0.7rem', opacity: 0.4, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Cognitive Output</div>
+                   <p style={{ margin: 0, lineHeight: 1.6, fontSize: '1.1rem', color: '#fff', whiteSpace: 'pre-wrap' }}>
+                     {parseReasoning(selectedDecision.reasoning)}
+                   </p>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
+                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: 12, borderRadius: 12, border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div style={{ opacity: 0.4, fontSize: '0.65rem', textTransform: 'uppercase' }}>Sub-Agent Tool</div>
+                    <div style={{ color: '#00ffaa', fontWeight: 'bold' }}>{selectedDecision.tool_used}</div>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: 12, borderRadius: 12, border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div style={{ opacity: 0.4, fontSize: '0.65rem', textTransform: 'uppercase' }}>System Integrity</div>
+                    <div style={{ color: '#ff00ff', fontWeight: 'bold' }}>VERIFIED</div>
+                  </div>
+                </div>
+
+                <button 
+                  style={{ 
+                    ...styles.btnPink, 
+                    width: '100%', 
+                    padding: '1rem', 
+                    fontSize: '1.1rem', 
+                    boxShadow: '0 0 20px rgba(255,0,255,0.2)',
+                    transition: 'all 0.2s'
+                  }} 
+                  onMouseOver={e => e.currentTarget.style.transform = 'scale(1.02)'}
+                  onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                  onClick={() => setSelectedDecision(null)}
+                >
+                  CLOSE DOSSIER
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
