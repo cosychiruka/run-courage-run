@@ -989,7 +989,7 @@ async def _search_tweets(args: dict, x_client) -> str:
             likes = metrics.get("like_count", 0)
             rts   = metrics.get("retweet_count", 0)
             lines.append(
-                f"@{author}: {tweet.text[:200]}"
+                f"[{tweet.id}] @{author}: {tweet.text[:200]}"
                 + (f" [❤️{likes} 🔁{rts}]" if likes or rts else "")
             )
             # Populate tweet card buffer (top 3 for hologram display)
