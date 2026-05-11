@@ -37,10 +37,18 @@ export default defineConfig({
           'three': ['three', '@react-three/fiber', '@react-three/drei'],
           'react': ['react', 'react-dom'],
           'ui': ['react-icons'],
-          'utils': ['sweetalert2']
+          'utils': ['sweetalert2'],
+          // Per-world chunks — makes initial load smaller on mobile
+          'noon-world': ['./src/components/3d/NoonWorld3D'],
+          'sunrise-world': ['./src/components/3d/SunriseWorld3D'],
+          'evening-world': ['./src/components/3d/EveningWorld3D'],
+          'disco-world': ['./src/components/3d/DiscoWorld3D'],
         },
         chunkFileNames: (chunkInfo) => {
           if (chunkInfo.name === 'three') return 'assets/three-[hash].js';
+          if (['noon-world','sunrise-world','evening-world','disco-world'].includes(chunkInfo.name)) {
+            return `assets/${chunkInfo.name}-[hash].js`;
+          }
           return 'assets/[name]-[hash].js';
         }
       },

@@ -49,12 +49,26 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
     if (anim) { setNoonAnim(anim); setTimeout(() => setNoonAnim(null), 4_000); }
   }, [event]);
 
-  // Mobile GPU cleanup
+  // Mobile GPU optimization & cleanup
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
   useEffect(() => {
-    if (!visible && canvasRef.current) {
-      try { canvasRef.current.renderLists?.dispose?.(); canvasRef.current.info?.reset?.(); } catch { /**/ }
+    if (canvasRef.current) {
+      const { gl, scene } = canvasRef.current;
+      if (isMobile && visible && gl && scene) {
+        gl.setPixelRatio(Math.min(gl.getPixelRatio(), 1.5));
+        // Force materials to update for the new pixel ratio
+        scene.traverse((child) => {
+          if (child.isMesh && child.material) {
+            child.material.needsUpdate = true;
+          }
+        });
+      }
+      if (!visible && gl) {
+        try { gl.renderLists?.dispose?.(); gl.info?.reset?.(); } catch { /**/ }
+      }
     }
-  }, [visible]);
+  }, [visible, isMobile]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape' && visible) onClose(); };
@@ -155,7 +169,7 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
         dpr={[1, 1.5]}
         gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.5, powerPreference: 'high-performance' }}
         style={{ width: '100%', height: '100%' }}
-        onCreated={({ gl }) => { canvasRef.current = gl; }}
+        onCreated={({ gl, scene }) => { canvasRef.current = { gl, scene }; }}
       >
         {/* Midway between old z=50 and too-close z=20 */}
         <PerspectiveCamera makeDefault position={[0, 5, 35]} fov={38} />

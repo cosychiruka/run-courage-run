@@ -409,6 +409,27 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
     intervalMs: 25_000,
   });
 
+  // Mobile GPU optimization & cleanup
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  useEffect(() => {
+    if (canvasRef.current) {
+      const { gl, scene } = canvasRef.current;
+      if (isMobile && visible && gl && scene) {
+        gl.setPixelRatio(Math.min(gl.getPixelRatio(), 1.5));
+        // Force materials to update for the new pixel ratio
+        scene.traverse((child) => {
+          if (child.isMesh && child.material) {
+            child.material.needsUpdate = true;
+          }
+        });
+      }
+      if (!visible && gl) {
+        try { gl.renderLists?.dispose?.(); gl.info?.reset?.(); } catch { /**/ }
+      }
+    }
+  }, [visible, isMobile]);
+
   // Presence heartbeat when selfie is active
   useEffect(() => {
     if (!selfie.isActive) return;
@@ -546,7 +567,7 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
         dpr={[1, 1.5]}
         gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
         style={{ width: '100%', height: '100%' }}
-        onCreated={({ gl }) => { canvasRef.current = gl; }}
+        onCreated={({ gl, scene }) => { canvasRef.current = { gl, scene }; }}
       >
 
         <PerspectiveCamera makeDefault position={[0, 5, 25]} fov={50} />

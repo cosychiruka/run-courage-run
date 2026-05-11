@@ -38,12 +38,26 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
     intervalMs: 17_000,
   });
 
-  // Mobile GPU cleanup
+  // Mobile GPU optimization & cleanup
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
   useEffect(() => {
-    if (!visible && canvasRef.current) {
-      try { canvasRef.current.renderLists?.dispose?.(); canvasRef.current.info?.reset?.(); } catch { /**/ }
+    if (canvasRef.current) {
+      const { gl, scene } = canvasRef.current;
+      if (isMobile && visible && gl && scene) {
+        gl.setPixelRatio(Math.min(gl.getPixelRatio(), 1.5));
+        // Force materials to update for the new pixel ratio
+        scene.traverse((child) => {
+          if (child.isMesh && child.material) {
+            child.material.needsUpdate = true;
+          }
+        });
+      }
+      if (!visible && gl) {
+        try { gl.renderLists?.dispose?.(); gl.info?.reset?.(); } catch { /**/ }
+      }
     }
-  }, [visible]);
+  }, [visible, isMobile]);
 
   // Register selfie presence + heartbeat
   useEffect(() => {
@@ -151,7 +165,7 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
         dpr={[1, 1.5]}
         gl={{ antialias: false, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.2, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
         style={{ width: '100%', height: '100%' }}
-        onCreated={({ gl }) => { canvasRef.current = gl; }}
+        onCreated={({ gl, scene }) => { canvasRef.current = { gl, scene }; }}
       >
         <PerspectiveCamera makeDefault position={[0, 4, 22]} fov={45} />
         <OrbitControls target={[0, 1.5, 0]} minDistance={10} maxDistance={100} minPolarAngle={Math.PI / 8} maxPolarAngle={Math.PI / 2} enablePan={true} />

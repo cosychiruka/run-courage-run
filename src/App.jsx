@@ -128,7 +128,7 @@ export default function App() {
 
   // Refresh quota display every 5 seconds
   useEffect(() => {
-    const t = setInterval(() => setVoiceQuota(quotaStatus()), 5000);
+    const t = setInterval(() => setVoiceQuota(quotaStatus()), 15000);
     return () => clearInterval(t);
   }, []);
 
