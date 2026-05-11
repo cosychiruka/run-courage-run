@@ -344,6 +344,47 @@ const BrainPulseSidebar = ({ logs, paused, onTogglePause, collapsed, onToggleCol
   </motion.div>
 );
 
+const MemoryPreview = ({ content }) => {
+  if (!content) return null;
+  const urlMatch = content.match(/https?:\/\/[^\s"}]+/);
+  const url = urlMatch ? urlMatch[0] : null;
+  const isImage = url && (url.match(/\.(jpeg|jpg|gif|png|webp)/i) || url.includes('fal.ai') || url.includes('image'));
+
+  if (!url) return <div style={{ opacity: 0.85, lineHeight: 1.4 }}>{content}</div>;
+
+  const textBefore = content.split(url)[0];
+  const textAfter = content.split(url)[1];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '4px 0' }}>
+      <div style={{ opacity: 0.9, fontSize: '0.8rem' }}>
+        {textBefore}
+        {url && (
+          <a href={url} target="_blank" rel="noopener noreferrer" 
+             style={{ color: '#ff00ff', textDecoration: 'none', borderBottom: '1px dashed #ff00ff44', margin: '0 4px' }}>
+             {url.length > 40 ? url.substring(0, 37) + '...' : url}
+          </a>
+        )}
+        {textAfter}
+      </div>
+      {isImage && (
+        <div style={{ 
+          width: 120, height: 80, borderRadius: 8, overflow: 'hidden', 
+          border: '1px solid rgba(255,0,255,0.2)', background: '#000',
+          marginTop: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+        }}>
+          <img 
+            crossOrigin="anonymous" 
+            src={url} 
+            alt="memory-preview" 
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Sub-component: SensorControl ─────────────────────────────────────────────
 const SensorControl = ({ currentFreq, onUpdate, API, showToast }) => {
   const [freq, setFreq] = useState(currentFreq || 25);
@@ -376,6 +417,35 @@ const SensorControl = ({ currentFreq, onUpdate, API, showToast }) => {
         <div className="sensor-value">Search every <strong>{freq}m</strong></div>
       </div>
       <button className="btn-pink" onClick={apply}>Apply Override</button>
+    </div>
+  );
+};
+
+const MemorySprucePreview = ({ content }) => {
+  if (!content) return null;
+  const urlMatch = content.match(/https?:\/\/[^\s"}]+/);
+  const url = urlMatch ? urlMatch[0] : null;
+  const isImage = url && (url.match(/\.(jpeg|jpg|gif|png|webp)/i) || url.includes('fal.ai') || url.includes('image'));
+
+  if (!url) return null;
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      {isImage ? (
+        <div style={{ width: '100%', maxHeight: 300, borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,0,255,0.2)', background: '#000' }}>
+          <img crossOrigin="anonymous" src={url} alt="memory-big-preview" style={{ width: '100%', display: 'block' }} />
+        </div>
+      ) : (
+        <div style={{ background: 'rgba(255,0,255,0.05)', padding: 20, borderRadius: 16, border: '1px solid rgba(255,0,255,0.1)', display: 'flex', alignItems: 'center', gap: 15 }}>
+          <FaExternalLinkAlt color="#ff00ff" size={24} />
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <div style={{ fontSize: '0.65rem', opacity: 0.5, textTransform: 'uppercase', marginBottom: 4 }}>External Resource</div>
+            <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: '#ff00ff', textDecoration: 'none', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+              {url}
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -417,6 +487,7 @@ const AdminDashboard = () => {
   const [viewMode, setViewMode] = useState('card'); // 'card' or 'timeline'
   const [voiceData, setVoiceData] = useState({ active: false, sessions: [], count: 0 });
   const [ragData, setRagData] = useState({ vectors: [] });
+  const [selectedMemory, setSelectedMemory] = useState(null);
 
   // ── Fetch helpers — merge into existing state to avoid flicker ───────────────
   const loadStatus = useCallback(async () => {
@@ -811,9 +882,9 @@ const AdminDashboard = () => {
                         </thead>
                         <tbody>
                           {memoryDetail.map((m, i) => (
-                            <tr key={m.id || i} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                            <tr key={m.id || i} style={{ borderTop: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }} onClick={() => setSelectedMemory(m)}>
                               <td style={{ padding: '8px', color: '#00ffaa' }}>{m.source}</td>
-                              <td style={{ padding: '8px', opacity: 0.8 }}>{m.content?.substring(0, 80)}...</td>
+                              <td style={{ padding: '8px', opacity: 0.8 }}><MemoryPreview content={m.content} /></td>
                             </tr>
                           ))}
                         </tbody>
@@ -1179,8 +1250,8 @@ const AdminDashboard = () => {
                         const timestamp = v.metadata ? JSON.parse(v.metadata).timestamp : null;
                         const ageDays = timestamp ? Math.floor((Date.now() - new Date(timestamp).getTime()) / 86400000) : '?';
                         return (
-                          <tr key={v.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                            <td style={{ padding: '12px 8px', fontSize: '0.85rem', opacity: 0.85 }}>{v.preview || v.key}</td>
+                          <tr key={v.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', cursor: 'pointer' }} onClick={() => setSelectedMemory(v)}>
+                            <td style={{ padding: '12px 8px', fontSize: '0.85rem', opacity: 0.85 }}><MemoryPreview content={v.content || v.text_preview} /></td>
                             <td style={{ padding: '12px 8px', textAlign: 'center', color: '#ff9900' }}>{ageDays}d</td>
                             <td style={{ padding: '12px 8px', textAlign: 'right', fontSize: '0.75rem', opacity: 0.5 }}>
                               {v.key?.substring(0, 8)}...
@@ -1205,6 +1276,60 @@ const AdminDashboard = () => {
 
           </motion.div>
         </AnimatePresence>
+ 
+       {/* MEMORY MODAL - SPRUCE DOSSIER */}
+       <AnimatePresence>
+         {selectedMemory && (
+           <div style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+             <motion.div 
+               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+               style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)' }}
+               onClick={() => setSelectedMemory(null)}
+             />
+             <motion.div
+               initial={{ opacity: 0, scale: 0.95, y: 20 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               exit={{ opacity: 0, scale: 0.95, y: 20 }}
+               className="glass-card"
+               style={{ width: '100%', maxWidth: 700, position: 'relative', zIndex: 1, padding: 0, border: '1px solid rgba(255,0,255,0.2)', overflow: 'hidden' }}
+             >
+               <div style={{ background: 'linear-gradient(90deg, #ff00ff22, transparent)', padding: '24px 30px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <h2 style={{ margin: 0, fontFamily: 'Bangers, cursive', letterSpacing: 2, color: '#ff00ff', fontSize: '1.8rem' }}>
+                     🧬 MEMORY DOSSIER
+                   </h2>
+                   <button onClick={() => setSelectedMemory(null)} style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', fontSize: '1.5rem' }}>×</button>
+                 </div>
+                 <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                   <span style={{ background: '#00ffaa15', color: '#00ffaa', padding: '4px 10px', borderRadius: 6, fontSize: '0.7rem', fontWeight: 'bold', border: '1px solid #00ffaa33' }}>
+                     SOURCE: {selectedMemory.source?.toUpperCase() || 'UNKNOWN'}
+                   </span>
+                 </div>
+               </div>
+ 
+               <div style={{ padding: 30, maxHeight: '60vh', overflowY: 'auto' }}>
+                 <div style={{ background: 'rgba(255,255,255,0.03)', padding: 24, borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)', marginBottom: 24 }}>
+                   <h4 style={{ margin: '0 0 12px', fontSize: '0.7rem', opacity: 0.5, letterSpacing: 1, textTransform: 'uppercase' }}>Stored Content</h4>
+                   <p style={{ margin: 0, fontSize: '1.05rem', lineHeight: 1.6, color: '#eee', whiteSpace: 'pre-wrap' }}>
+                     {selectedMemory.content || selectedMemory.text_preview || selectedMemory.key}
+                   </p>
+                 </div>
+ 
+                 <MemorySprucePreview content={selectedMemory.content || selectedMemory.text_preview || selectedMemory.key} />
+               </div>
+ 
+               <div style={{ padding: '20px 30px', background: 'rgba(0,0,0,0.3)', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'flex-end' }}>
+                 <button 
+                   style={{ background: 'transparent', border: '1px solid #444', color: '#fff', padding: '8px 20px', borderRadius: 8, cursor: 'pointer', fontWeight: 'bold' }}
+                   onClick={() => setSelectedMemory(null)}
+                 >
+                   Close Dossier
+                 </button>
+               </div>
+             </motion.div>
+           </div>
+         )}
+       </AnimatePresence>
         </ErrorBoundary>
         </main>
       </div>
