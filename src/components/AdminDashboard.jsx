@@ -4,7 +4,7 @@ import {
   FaRobot, FaBrain, FaBolt, FaHistory, FaChartLine,
   FaUsers, FaDog, FaNewspaper, FaGamepad, FaList,
   FaTrash, FaSync, FaCheckCircle, FaClock, FaCopy, FaDownload,
-  FaMicrophone, FaSitemap, FaChevronLeft, FaChevronRight, FaPlay, FaPause, FaExternalLinkAlt, FaTwitter, FaTerminal
+  FaMicrophone, FaSitemap, FaPlay, FaPause, FaTwitter, FaTerminal, FaExternalLinkAlt
 } from 'react-icons/fa';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -16,12 +16,124 @@ const TABS = [
   { id: 'trenches',  label: 'Trenches',      icon: FaUsers     },
   { id: 'posters',   label: 'News Posters',  icon: FaNewspaper },
   { id: 'moments',   label: 'Game Moments',  icon: FaGamepad   },
-  { id: 'queue',     label: 'Queue Inspector', icon: FaList      },
-  { id: 'voice',     label: 'Voice Live',      icon: FaMicrophone },
-  { id: 'rag',       label: 'RAG Memory',      icon: FaSitemap    },
+  { id: 'queue',     label: '🔄 Queue Inspector',   icon: FaList      },
+  { id: 'voice',     label: '🎤 Voice Live',        icon: FaMicrophone },
+  { id: 'rag',       label: '🧬 RAG Memory Graph',  icon: FaSitemap    },
 ];
 
 const API = import.meta.env.VITE_BACKEND_URL || '';
+
+// ── Inline styles ──────────────────────────────────────────────────────────────
+const styles = {
+  root: {
+    background: '#050505', color: '#fff', minHeight: '100vh',
+    fontFamily: "'Inter', sans-serif", padding: '2rem',
+  },
+  loading: {
+    height: '100vh', display: 'flex', flexDirection: 'column',
+    alignItems: 'center', justifyContent: 'center',
+    background: '#050505', color: '#fff', gap: '1.5rem',
+  },
+  nav: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    borderBottom: '2px solid #ff00ff', paddingBottom: '1.25rem', marginBottom: '1.75rem',
+  },
+  navTitle: {
+    fontFamily: "'Bangers', cursive", letterSpacing: 2, color: '#ff00ff',
+    margin: 0, fontSize: '1.8rem',
+  },
+  navActions: { display: 'flex', gap: '0.75rem', alignItems: 'center' },
+  navBtn: {
+    background: '#ff00ff22', border: '1px solid #ff00ff', color: '#ff00ff',
+    padding: '0.5rem 1rem', borderRadius: 8, cursor: 'pointer',
+    fontWeight: 'bold', display: 'flex', alignItems: 'center',
+  },
+  navLink: {
+    background: 'transparent', border: '1px solid #444', color: '#888',
+    padding: '0.5rem 1rem', borderRadius: 8, textDecoration: 'none',
+    fontWeight: 'bold', fontSize: '0.85rem',
+  },
+  tabSpinner: {
+    position: 'absolute', top: 12, right: 0, display: 'flex', alignItems: 'center',
+    gap: 6, fontSize: '0.75rem', color: '#ff00ff', opacity: 0.7, zIndex: 10,
+  },
+  loadMoreBtn: {
+    display: 'block', width: '100%', marginTop: 10, padding: '0.6rem',
+    background: 'transparent', border: '1px dashed #333', color: '#666',
+    borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem', textAlign: 'center',
+    transition: 'border-color 0.2s, color 0.2s',
+  },
+  tabBar: {
+    display: 'flex', gap: '0.5rem', marginBottom: '2rem',
+    overflowX: 'auto', paddingBottom: '0.5rem', flexWrap: 'wrap',
+  },
+  tab: {
+    background: '#111', border: '1px solid #2a2a2a', color: '#666',
+    padding: '0.65rem 1.2rem', borderRadius: 12,
+    display: 'flex', alignItems: 'center', gap: 6,
+    cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 500,
+    fontSize: '0.875rem', transition: 'all 0.2s', position: 'relative',
+  },
+  tabActive: {
+    background: '#ff00ff18', borderColor: '#ff00ff',
+    color: '#ff00ff', boxShadow: '0 0 12px rgba(255,0,255,0.15)',
+  },
+  badge: {
+    background: '#ff9900', color: '#000', borderRadius: 10,
+    padding: '1px 6px', fontSize: '0.65rem', fontWeight: 'bold', marginLeft: 4,
+  },
+  grid4: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' },
+  grid3: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' },
+  grid2: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' },
+  card: { marginBottom: '1.5rem' },
+  cardTitle: {
+    margin: '0 0 1.25rem', display: 'flex', alignItems: 'center',
+    color: '#00ffaa', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: 1,
+  },
+  feedScroll: { overflowY: 'auto', maxHeight: 480, paddingRight: 4 },
+  feedItem: {
+    display: 'flex', gap: 10, alignItems: 'flex-start',
+    padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)',
+    fontSize: '0.85rem',
+  },
+  feedTime: { fontFamily: 'monospace', fontSize: '0.7rem', opacity: 0.4, minWidth: 48 },
+  feedEvent: { fontWeight: 'bold', fontSize: '0.75rem', minWidth: 100 },
+  feedMsg: { opacity: 0.75, flex: 1 },
+  decisionMini: {
+    padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.02)',
+    marginBottom: 8, cursor: 'pointer', borderLeft: '3px solid #333',
+    transition: 'background 0.15s',
+  },
+  decisionAction: { fontWeight: 'bold', fontSize: '0.85rem', marginRight: 10 },
+  timelineItem: {
+    padding: '1rem 1.25rem', borderRadius: 12, background: 'rgba(255,255,255,0.02)',
+    borderLeft: '4px solid #333', marginBottom: 10, transition: 'background 0.15s',
+  },
+  btnPink: {
+    background: '#ff00ff18', border: '1px solid #ff00ff', color: '#ff00ff',
+    padding: '0.7rem 1.2rem', borderRadius: 10, cursor: 'pointer',
+    fontWeight: 'bold', width: '100%', textAlign: 'center',
+  },
+  btnSmall: {
+    background: '#111', border: '1px solid #333', color: '#eee',
+    padding: '0.5rem 0.9rem', borderRadius: 8, cursor: 'pointer',
+    fontWeight: 600, fontSize: '0.8rem',
+  },
+  overlay: {
+    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)',
+    backdropFilter: 'blur(12px)', zIndex: 1000,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem',
+  },
+  modal: {
+    background: '#080808', border: '1px solid #2a2a2a', borderRadius: 20,
+    padding: '2rem', maxWidth: 700, width: '100%', maxHeight: '85vh', overflowY: 'auto',
+  },
+  modalPre: {
+    background: '#000', padding: '1.25rem', borderRadius: 12,
+    color: '#00ffaa', fontSize: '0.8rem', overflowX: 'auto',
+    whiteSpace: 'pre-wrap', border: '1px solid #1a1a1a', margin: 0,
+  },
+};
 
 const safeFetch = async (url, opts) => {
   try {
@@ -32,460 +144,1207 @@ const safeFetch = async (url, opts) => {
   }
 };
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// ── Sub-component: StatusLed ───────────────────────────────────────────────────
 const Led = ({ status }) => {
-  const col = status === 'active' ? '#00ffaa' : status === 'idle' ? '#ff9900' : '#555';
+  const col = status === 'active' ? '#00ffaa' : status === 'stale' ? '#ff9900' : '#555';
   return (
     <span style={{
-      display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
-      background: col, boxShadow: `0 0 10px ${col}`, marginRight: 10,
+      display: 'inline-block', width: 10, height: 10, borderRadius: '50%',
+      background: col, boxShadow: `0 0 8px ${col}`, marginRight: 8,
     }} />
   );
 };
 
+// ── Sub-component: StatCard ────────────────────────────────────────────────────
 const StatCard = ({ label, value, sub, color = '#00ffaa', onClick }) => (
-  <div className="glass-card stat-card" onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
+  <div
+    className="glass-card stat-card"
+    onClick={onClick}
+    style={{ cursor: onClick ? 'pointer' : 'default' }}
+  >
     <p className="stat-label">{label}</p>
     <div className="stat-value" style={{ color }}>{value ?? '—'}</div>
     {sub && <p className="stat-sub">{sub}</p>}
   </div>
 );
 
+// ── Sub-component: DecisionCard ──────────────────────────────────────────────
 const DecisionCard = ({ dec, onSelect }) => {
-  const statusText = dec.success ? 'EXECUTED' : 'QUEUED';
-  const statusColor = dec.success ? 'success' : 'queued';
+  const isQueued = dec.status === 'queued';
+  const isSuccess = dec.success || dec.status === 'success' || dec.status === 'succeeded';
+  const isFailed = dec.error || dec.status === 'failed' || dec.status === 'error';
+  
+  let statusLabel = '🔄 PROCESSING';
+  let statusColor = '#ff9900';
+  if (isQueued) { statusLabel = '🟡 QUEUED'; statusColor = '#ffee00'; }
+  else if (isSuccess) { statusLabel = '✅ SUCCEEDED'; statusColor = '#00ffaa'; }
+  else if (isFailed) { statusLabel = '❌ FAILED'; statusColor = '#ff4444'; }
+
   return (
-    <motion.div className="decision-card-v3" whileHover={{ scale: 1.01 }} onClick={() => onSelect(dec)}>
-      <div className="v3-header">
-        <span className="v3-action">{dec.action}</span>
-        <span className={`v3-status ${statusColor}`}>{statusText}</span>
+    <motion.div
+      className="decision-card-v2 glass-card"
+      whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.05)' }}
+      onClick={() => onSelect(dec)}
+      style={{ borderLeft: `4px solid ${statusColor}`, cursor: 'pointer' }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+        <strong style={{ fontSize: '1.1rem', color: '#fff', fontFamily: 'Bangers, cursive', letterSpacing: 1.5 }}>
+          {dec.action}
+        </strong>
+        <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: statusColor, background: `${statusColor}22`, padding: '2px 8px', borderRadius: 4 }}>
+          {statusLabel}
+        </span>
       </div>
-      <p className="v3-reasoning">{dec.reasoning || "Analyzing state..."}</p>
-      {dec.data_preview && (
-        <div className="v3-preview">
-          <FaExternalLinkAlt size={10} />
-          <span className="v3-url">{dec.data_preview}</span>
-        </div>
-      )}
-      <div className="v3-footer">
-        <span className="v3-time">{dec.time}</span>
-        <span className="v3-tool">🔧 {dec.tool_used}</span>
+      <p style={{ fontSize: '0.85rem', opacity: 0.7, margin: '8px 0', lineHeight: 1.5, height: '3em', overflow: 'hidden' }}>
+        {dec.reasoning || "No reasoning provided."}
+      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, fontSize: '0.75rem', opacity: 0.5 }}>
+        <span>{dec.time || "Just now"}</span>
+        {dec.tool_used && <span style={{ color: '#00ffaa' }}>🔧 {dec.tool_used}</span>}
       </div>
     </motion.div>
   );
 };
 
-const BrainPulseSidebar = ({ logs, paused, onTogglePause }) => (
-  <div className="brain-pulse-v4">
-    <div className="v4-header">
-       <div className="v4-title"><FaTerminal /> BRAIN PULSE</div>
-       <button onClick={onTogglePause} className="v4-pause">
-         {paused ? <FaPlay size={10} /> : <FaPause size={10} />}
-       </button>
-    </div>
-    <div className="v4-terminal">
-       {(logs || []).map((log, i) => (
-         <div key={i} className={`v4-line ${log.event?.toLowerCase() || 'default'}`}>
-            <span className="v4-dot" />
-            <div className="v4-content">
-               <span className="v4-time">[{log.time}]</span>
-               <span className="v4-msg">{log.message}</span>
-            </div>
-         </div>
-       ))}
-       {(!logs || logs.length === 0) && <div className="v4-empty">Listening for brainwaves...</div>}
-    </div>
-  </div>
-);
-
+// ── Sub-component: AgentRow ────────────────────────────────────────────────────
 const AgentRow = ({ name, data }) => (
-  <div className="agent-row-v2">
-    <div className="v2-name-wrap">
-      <Led status={data?.status || 'idle'} />
-      <span className="v2-name">{name}</span>
-    </div>
-    <span className="v2-detail">{data?.minutes_ago != null ? `${data.minutes_ago}m ago` : 'stale'}</span>
+  <div className="agent-row">
+    <Led status={data?.status || 'unknown'} />
+    <span className="agent-name">{name}</span>
+    <span className="agent-detail">
+      {data?.minutes_ago != null ? `${data.minutes_ago}m ago` : data?.status || 'no data'}
+    </span>
   </div>
 );
 
-// ── Main Component ─────────────────────────────────────────────────────────────
-const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [refreshing, setRefreshing] = useState(false);
-  const [tabLoading, setTabLoading] = useState(false);
-  const [toast, setToast] = useState(null);
-  const [sidebarPaused, setSidebarPaused] = useState(false);
+// ── Sub-component: BrainPulseSidebar ──────────────────────────────────────────
+const BrainPulseSidebar = ({ logs, paused, onTogglePause, collapsed, onToggleCollapse }) => (
+  <motion.div 
+    className="brain-sidebar glass-card"
+    animate={{ width: collapsed ? 60 : 300 }}
+    transition={{ type: 'spring', damping: 20 }}
+  >
+    <div className="sidebar-header">
+      {!collapsed && <span><FaBrain style={{ marginRight: 8 }} /> BRAIN PULSE</span>}
+      <div className="sidebar-controls">
+        <button onClick={onTogglePause} title={paused ? "Resume" : "Pause"}>
+          {paused ? '▶️' : '⏸️'}
+        </button>
+        <button onClick={onToggleCollapse} title={collapsed ? "Expand" : "Collapse"}>
+          {collapsed ? '→' : '←'}
+        </button>
+      </div>
+    </div>
+    
+    {!collapsed && (
+      <div className="terminal-log">
+        {logs.length === 0 && <p className="empty-log">Awaiting brain signals...</p>}
+        {logs.map((log, i) => (
+          <motion.div
+            key={`${log.time}-${i}`}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className={`log-line ${log.event?.toLowerCase() || 'default'}`}
+            style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}
+          >
+            <span className="v4-dot" style={{ 
+              width: 4, height: 4, borderRadius: '50%', background: log.event === 'SUCCESS' ? '#00ffaa' : log.event === 'BRAIN' ? '#ff00ff' : '#333',
+              marginTop: 6, flexShrink: 0, boxShadow: log.event === 'SUCCESS' ? '0 0 5px #00ffaa' : 'none'
+            }} />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+              <span className="log-time" style={{ opacity: 0.4, minWidth: '55px' }}>[{log.time}]</span>
+              <span className="log-msg" style={{ 
+                color: log.event === 'SUCCESS' ? '#00ffaa' : log.event === 'BRAIN' ? '#ff00ff' : '#ccc',
+                fontFamily: "'Roboto Mono', monospace"
+              }}>{log.message}</span>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    )}
+  </motion.div>
+);
 
-  const [status, setStatus] = useState({});
-  const [decisions, setDecisions] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [brainLogs, setBrainLogs] = useState([]);
-  const [trenches, setTrenches] = useState({ tweets: [], total_unprocessed: 0 });
-  const [posters, setPosters] = useState([]);
-  const [moments, setMoments] = useState({ pending: [], history: [], total_pending: 0 });
-  const [queue, setQueue] = useState({ reply_queue: [], pending_game_moments: [], counts: {} });
-  const [voiceData, setVoiceData] = useState({ sessions: [], active: false });
-  const [ragData, setRagData] = useState({ vectors: [] });
+// ── Sub-component: SensorControl ─────────────────────────────────────────────
+const SensorControl = ({ currentFreq, onUpdate, API, showToast }) => {
+  const [freq, setFreq] = useState(currentFreq || 25);
   
-  const [selectedDecision, setSelectedDecision] = useState(null);
-
-  const showToast = (msg, type = 'ok') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const loadOverview = useCallback(async () => {
-    const d = await safeFetch(`${API}/api/admin/system-status`);
-    if (d) setStatus(d);
-  }, []);
-
-  const loadBrainData = useCallback(async () => {
-    const logs = await safeFetch(`${API}/api/admin/live-activity`);
-    if (logs && !sidebarPaused) setBrainLogs(logs);
-    const hist = await safeFetch(`${API}/api/admin/history`);
-    if (hist) setHistory(hist);
-    const recent = await safeFetch(`${API}/api/admin/recent-decisions`);
-    if (recent) setDecisions(recent);
-  }, [sidebarPaused]);
-
-  const loadTabContent = useCallback(async (tabId) => {
-    setTabLoading(true);
-    try {
-      if (tabId === 'overview') await loadOverview();
-      if (tabId === 'brain' || tabId === 'decisions') await loadBrainData();
-      if (tabId === 'trenches') setTrenches(await safeFetch(`${API}/api/admin/trenches?limit=40`) || { tweets: [], total_unprocessed: 0 });
-      if (tabId === 'posters') setPosters(await safeFetch(`${API}/api/admin/news-posters?limit=20`) || []);
-      if (tabId === 'moments') setMoments(await safeFetch(`${API}/api/admin/game-moments`) || { pending: [], history: [], total_pending: 0 });
-      if (tabId === 'queue') setQueue(await safeFetch(`${API}/api/admin/queues`) || { reply_queue: [], pending_game_moments: [], counts: {} });
-      if (tabId === 'voice') setVoiceData(await safeFetch(`${API}/api/admin/voice-sessions`) || { sessions: [], active: false });
-      if (tabId === 'rag') setRagData(await safeFetch(`${API}/api/admin/rag-graph`) || { vectors: [] });
-    } finally {
-      setTabLoading(false);
-    }
-  }, [loadOverview, loadBrainData]);
-
-  useEffect(() => { loadTabContent(activeTab); }, [activeTab, loadTabContent]);
-
   useEffect(() => {
-    const ival = setInterval(() => {
-      loadOverview();
-      if (!sidebarPaused) loadBrainData();
-    }, 15000);
-    return () => clearInterval(ival);
-  }, [loadOverview, loadBrainData, sidebarPaused]);
+    if (currentFreq) setFreq(currentFreq);
+  }, [currentFreq]);
 
-  const refreshTab = async () => {
-    setRefreshing(true);
-    await loadTabContent(activeTab);
-    setRefreshing(false);
-    showToast('Dashboard synced');
-  };
-
-  const forceTick = async () => {
-    showToast('Triggering autonomous tick...');
-    await safeFetch(`${API}/api/autonomous/trigger-now`, { method: 'POST', body: JSON.stringify({}) });
-    setTimeout(refreshTab, 2000);
+  const apply = async () => {
+    const d = await safeFetch(`${API}/api/admin/set-sensor-cooldown`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ minutes: freq })
+    });
+    if (d) {
+      showToast('Sensor frequency updated!');
+      onUpdate();
+    }
   };
 
   return (
-    <div className="dashboard-root">
-      {/* ── SIDEBAR ────────────────────────────────── */}
-      <aside className="dashboard-sidebar">
-        <div className="sidebar-brand"><FaDog /> <span>COMMAND CENTER</span></div>
-        <nav className="sidebar-nav">
-          {TABS.map(t => (
-            <div key={t.id} className={`sidebar-item ${activeTab === t.id ? 'active' : ''}`} onClick={() => setActiveTab(t.id)}>
-              <t.icon /> <span>{t.label}</span>
-              {t.id === 'queue' && (status.reply_queue_size || 0) > 0 && <span className="sidebar-badge">{status.reply_queue_size}</span>}
-              {t.id === 'trenches' && (status.unread_trenches || 0) > 0 && <span className="sidebar-badge">{status.unread_trenches}</span>}
-            </div>
-          ))}
-        </nav>
-        <BrainPulseSidebar logs={brainLogs} paused={sidebarPaused} onTogglePause={() => setSidebarPaused(!sidebarPaused)} />
-      </aside>
+    <div className="sensor-control-card glass-card">
+      <h3 className="card-title"><FaGamepad style={{ marginRight: 8 }} /> Game Sensor Frequency</h3>
+      <div className="sensor-slider-wrap">
+        <input 
+          type="range" 
+          min="5" 
+          max="60" 
+          value={freq} 
+          onChange={e => setFreq(parseInt(e.target.value))} 
+        />
+        <div className="sensor-value">Search every <strong>{freq}m</strong></div>
+      </div>
+      <button className="btn-pink" onClick={apply}>Apply Override</button>
+    </div>
+  );
+};
 
-      {/* ── MAIN ───────────────────────────────────── */}
-      <main className="dashboard-main">
-        <header className="dashboard-header">
-          <div className="header-title">
-            <h2>{TABS.find(t => t.id === activeTab)?.label}</h2>
-            {tabLoading && <div className="header-spinner"><FaSync className="animate-spin" /> Syncing...</div>}
-          </div>
-          <div className="header-actions">
-            <button className="nav-btn" onClick={refreshTab} disabled={refreshing}><FaSync className={refreshing ? 'animate-spin' : ''} /> Refresh</button>
-            <button className="nav-btn exit" onClick={() => window.location.href='/'}>Exit</button>
-          </div>
-        </header>
+// ── Main Component ─────────────────────────────────────────────────────────────
+const AdminDashboard = () => {
+  const [activeTab, setActiveTab]     = useState('overview');
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [refreshing, setRefreshing]   = useState(false);
+  const [tabLoading, setTabLoading]   = useState(false);
+  const [toast, setToast]             = useState(null); // { msg, type: 'ok'|'err' }
 
-        <section className="dashboard-content">
+  // pagination display limits (data is fetched in full; we slice for display)
+  const [histLimit,   setHistLimit]   = useState(20);
+  const [trenchLimit, setTrenchLimit] = useState(20);
+  const [actLimit,    setActLimit]    = useState(20);
+
+  // ── Data slices — each fetched independently so updates don't flash ──────────
+  const [status,      setStatus]      = useState(null);
+  const [agents,      setAgents]      = useState({});
+  const [memory,      setMemory]      = useState({ count: 0 });
+  const [history,     setHistory]     = useState([]);
+  const [activity,    setActivity]    = useState([]);
+  const [trenches,    setTrenches]    = useState({ tweets: [], total_unprocessed: 0 });
+  const [posters,     setPosters]     = useState([]);
+  const [moments,     setMoments]     = useState({ pending: [], history: [] });
+  const [queue,       setQueue]       = useState({ items: [], count: 0 });
+  const [selectedRow, setSelectedRow] = useState(null);
+
+  // 10/10 Enhancements State
+  const [brainLogs, setBrainLogs] = useState([]);
+  const [isLogPaused, setIsLogPaused] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [memoryDetail, setMemoryDetail] = useState([]);
+  const [decisions, setDecisions] = useState([]);
+  const [selectedDecision, setSelectedDecision] = useState(null);
+  const [queueData, setQueueData] = useState(null);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [viewMode, setViewMode] = useState('card'); // 'card' or 'timeline'
+  const [voiceData, setVoiceData] = useState({ active: false, sessions: [], count: 0 });
+  const [ragData, setRagData] = useState({ vectors: [] });
+
+  // ── Fetch helpers — merge into existing state to avoid flicker ───────────────
+  const loadStatus = useCallback(async () => {
+    const d = await safeFetch(`${API}/api/admin/system-status`);
+    if (d) setStatus(prev => ({ ...prev, ...d }));
+  }, []);
+
+  const loadAgents = useCallback(async () => {
+    const d = await safeFetch(`${API}/api/admin/sub_agents_status`);
+    if (d) setAgents(prev => ({ ...prev, ...d }));
+    const m = await safeFetch(`${API}/api/admin/memory-vectors`);
+    if (m) setMemory(m);
+    const mDetail = await safeFetch(`${API}/api/admin/memory-vectors/detail`);
+    if (mDetail) setMemoryDetail(mDetail.vectors || []);
+  }, []);
+
+  const loadBrain = useCallback(async () => {
+    const d = await safeFetch(`${API}/api/admin/live-activity`);
+    if (d) {
+      setActivity(d);
+      if (!isLogPaused) {
+        setBrainLogs(prev => {
+          const combined = [...d, ...prev];
+          // Filter unique messages to avoid dupes in the stream
+          const seen = new Set();
+          return combined.filter(item => {
+            const key = `${item.time}-${item.message}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          }).slice(0, 100);
+        });
+      }
+    }
+    const h = await safeFetch(`${API}/api/admin/history`);
+    if (h) setHistory(h);
+  }, [isLogPaused]);
+
+  const loadTrenches = useCallback(async () => {
+    const d = await safeFetch(`${API}/api/admin/trenches?limit=40`);
+    if (d) setTrenches(d);
+  }, []);
+
+  const loadPosters = useCallback(async () => {
+    const d = await safeFetch(`${API}/api/admin/news-posters?limit=20`);
+    if (d) setPosters(d);
+  }, []);
+
+  const loadMoments = useCallback(async () => {
+    const d = await safeFetch(`${API}/api/admin/game-moments`);
+    if (d) setMoments(d);
+  }, []);
+
+  const loadQueue = useCallback(async () => {
+    const d = await safeFetch(`${API}/api/admin/queues`);
+    if (d) setQueueData(d);
+  }, []);
+
+  const loadVoiceData = useCallback(async () => {
+    const d = await safeFetch(`${API}/api/admin/voice-sessions`);
+    if (d) setVoiceData(d);
+  }, []);
+
+  const loadRagData = useCallback(async () => {
+    const d = await safeFetch(`${API}/api/admin/rag-graph`);
+    if (d) setRagData(d);
+  }, []);
+
+  // ── Initial load: fetch everything ──────────────────────────────────────────
+  useEffect(() => {
+    Promise.all([
+      loadStatus(), loadAgents(), loadBrain(),
+      loadTrenches(), loadPosters(), loadMoments(), loadQueue(),
+      loadVoiceData(), loadRagData(),
+    ]).finally(() => setInitialLoad(false));
+  }, []);
+
+  // ── 30s refresh — only overview stats + current tab ─────────────────────────
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      await Promise.all([loadStatus(), loadAgents()]);
+      const loaders = {
+        brain: loadBrain, decisions: loadBrain, trenches: loadTrenches,
+        posters: loadPosters, moments: loadMoments, queue: loadQueue,
+        voice: loadVoiceData, rag: loadRagData,
+      };
+      if (loaders[activeTab]) await loaders[activeTab]();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [activeTab]);
+
+  // ── Manual full refresh ──────────────────────────────────────────────────────
+  const doRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      loadStatus(), loadAgents(), loadBrain(),
+      loadTrenches(), loadPosters(), loadMoments(), loadQueue(),
+      loadVoiceData(), loadRagData(),
+    ]);
+    const decData = await safeFetch(`${API}/api/admin/recent-decisions`);
+    if (decData) setDecisions(decData);
+
+    setRefreshing(false);
+  };
+
+  // ── Actions ──────────────────────────────────────────────────────────────────
+  const showToast = (msg, type = 'ok') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const withTabLoad = async (fn) => {
+    setTabLoading(true);
+    try { await fn(); } finally { setTabLoading(false); }
+  };
+
+  const triggerTick = async () => {
+    const d = await safeFetch(`${API}/api/autonomous/trigger-now`, { method: 'POST' });
+    showToast(d?.message || 'Tick triggered!');
+    setTimeout(loadBrain, 3000);
+  };
+
+  const resetBreaker = async () => {
+    const d = await safeFetch(`${API}/api/autonomous/reset-circuit-breaker`, { method: 'POST' });
+    showToast(d?.message || 'Circuit breaker reset!');
+    await loadStatus();
+  };
+
+  const clearQueue = async () => {
+    if (!window.confirm('Clear the entire reply queue?')) return;
+    const d = await safeFetch(`${API}/api/admin/queue`, { method: 'DELETE' });
+    showToast(d?.message || 'Queue cleared!', d ? 'ok' : 'err');
+    await loadQueue();
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard?.writeText(text).then(() => showToast('Copied!')).catch(() => showToast('Copy failed', 'err'));
+  };
+
+  const exportDecisions = () => {
+    if (!history.length) return showToast('No history to export', 'err');
+    const headers = ['Timestamp', 'Action', 'Tool', 'Success', 'Reasoning'];
+    const rows = history.map(h => [
+      h.timestamp ? new Date(h.timestamp).toISOString() : '',
+      h.action || '',
+      h.tool_used || '',
+      h.success ? 'TRUE' : 'FALSE',
+      (h.reasoning || '').replace(/"/g, '""')
+    ]);
+    const csvContent = [headers, ...rows].map(e => e.map(cell => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `courage_decisions_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Exporting CSV...');
+  };
+
+  const exportAllData = () => {
+    const data = {
+      decisions,
+      queueData,
+      activity,
+      status,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `courage_full_export_${new Date().getTime()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Full JSON Export Ready');
+  };
+
+  const processQueueItem = async (queueName, index) => {
+    const d = await safeFetch(`${API}/api/admin/queues/process`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ queue_name: queueName, item_index: index })
+    });
+    if (d) {
+      showToast(d.status === 'success' || d.status === 'processed' ? 'Item processed!' : 'Processing failed', (d.status === 'success' || d.status === 'processed') ? 'ok' : 'err');
+      loadQueue();
+    }
+  };
+
+  const endVoiceSession = async (sessionId) => {
+    const d = await safeFetch(`${API}/api/admin/voice-sessions/end`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId })
+    });
+    if (d) {
+      showToast('Session ended');
+      loadVoiceData();
+    }
+  };
+
+  if (initialLoad) {
+    return (
+      <div style={styles.loading}>
+        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
+          <FaRobot size={48} color="#ff00ff" />
+        </motion.div>
+        <p>Waking up Courage's Brain...</p>
+      </div>
+    );
+  }
+
+  const rcr = status?.rcr_stats || {};
+  const groq = status?.groq_circuit_breaker || {};
+
+  return (
+    <div style={styles.root}>
+      {/* NAV */}
+      <nav style={styles.nav}>
+        <h1 style={styles.navTitle}>COURAGE COMMAND CENTER</h1>
+        <div style={styles.navActions}>
+          <button style={styles.navBtn} onClick={doRefresh} disabled={refreshing}>
+            <FaSync style={{ marginRight: 6, ...(refreshing ? { animation: 'spin 1s linear infinite' } : {}) }} />
+            {refreshing ? 'Syncing...' : 'Refresh'}
+          </button>
+          <button style={{ ...styles.navBtn, background: '#00ffaa33', color: '#00ffaa' }} onClick={exportAllData}>
+            <FaDownload style={{ marginRight: 6 }} /> Export All (JSON)
+          </button>
+          <a href="/" style={styles.navLink}>Exit</a>
+        </div>
+      </nav>
+
+      {/* TABS */}
+      <div style={styles.tabBar}>
+        {TABS.map(t => {
+          let count = 0;
+          if (t.id === 'queue') count = queueData?.counts?.replies || 0;
+          if (t.id === 'trenches') count = trenches.total_unprocessed || 0;
+
+          return (
+            <button
+              key={t.id}
+              style={{ ...styles.tab, ...(activeTab === t.id ? styles.tabActive : {}) }}
+              onClick={() => setActiveTab(t.id)}
+            >
+              <t.icon style={{ marginRight: 6 }} />{t.label}
+              {count > 0 && (
+                <span style={{ ...styles.badge, background: t.id === 'trenches' ? '#ff00ff' : '#ff9900' }}>{count}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* MAIN LAYOUT */}
+      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+        <BrainPulseSidebar 
+          logs={brainLogs} 
+          paused={isLogPaused} 
+          onTogglePause={() => setIsLogPaused(!isLogPaused)}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+
+        <main style={{ flex: 1, padding: '0 0 4rem', position: 'relative', minWidth: 0 }}>
           <ErrorBoundary>
-            <AnimatePresence mode="wait">
-              <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-                
-                {activeTab === 'overview' && (
-                  <div className="tab-container">
-                    <div className="grid-4">
-                      <StatCard label="BRAIN CYCLE" value={`${status.sensor_cooldown_minutes || 25}M`} sub="Autonomous Interval" color="#ff00ff" />
-                      <StatCard label="MEMORY VECTORS" value={status.memory_vectors} sub="Embedded Vectors" color="#00ffaa" />
-                      <StatCard label="QUEUED ACTIONS" value={status.reply_queue_size} sub="Pending execution" color="#ff9900" />
-                      <StatCard label="UNREAD TRENCHES" value={status.unread_trenches} sub="Needs replies" color="#ff00ff" />
-                    </div>
-                    <div className="grid-3">
-                      <StatCard label="SCOURAGE PRICE" value={`$${status.rcr_price || '0.00'}`} sub="SOL" color="#00ffaa" />
-                      <StatCard label="MARKET CAP" value={`$${status.rcr_stats?.market_cap || '—'}`} sub="USD" color="#ff9900" />
-                      <StatCard label="X SPEND TODAY" value={`$${status.x_spend_today || '0.000'}`} sub={`Total: $${status.x_spend_total || '0.00'}`} color="#ff00ff" />
-                    </div>
-                    <div className="grid-2">
-                      <div className="glass-card agent-card">
-                        <h3 className="card-title"><FaDog style={{ marginRight: 10 }} /> AGENT HEARTBEATS</h3>
-                        <AgentRow name="Brain (auto-tick)" data={status.sub_agents?.brain} />
-                        <AgentRow name="News Dog" data={status.sub_agents?.news_dog} />
-                        <AgentRow name="Game Sensor" data={status.sub_agents?.game_sensor} />
-                        <AgentRow name="Engagement Dog" data={status.sub_agents?.engagement_dog} />
-                      </div>
-                      <div className="glass-card action-card">
-                        <h3 className="card-title"><FaBolt style={{ marginRight: 10 }} /> MISSION CONTROL</h3>
-                        <button className="btn-pink-pro" onClick={forceTick}><FaBolt /> Trigger Manual Brain Scan</button>
-                      </div>
-                    </div>
-                    <div className="decision-section" style={{ marginTop: '2.5rem' }}>
-                      <h3 className="card-title"><FaHistory style={{ marginRight: 10 }} /> RECENT BRAIN DECISIONS</h3>
-                      <div className="grid-3">
-                        {(decisions || []).slice(0, 6).map((dec, i) => (
-                          <DecisionCard key={i} dec={dec} onSelect={setSelectedDecision} />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'decisions' && (
-                  <div className="tab-container">
-                    <div className="glass-card feed-card">
-                      <h3 className="card-title">BRAIN ACTIVITY FEED</h3>
-                      <div className="activity-feed">
-                        {(history || []).map((dec, i) => (
-                          <div key={i} className="feed-row" onClick={() => setSelectedDecision(dec)}>
-                            <div className="feed-dot" />
-                            <div className="feed-info">
-                              <div className="feed-header">
-                                <span className="feed-action">{dec.action}</span>
-                                <span className="feed-time">{dec.time}</span>
-                              </div>
-                              <p className="feed-text">{dec.reasoning}</p>
-                              {dec.data_preview && <div className="feed-preview">🔗 {dec.data_preview}</div>}
-                              <div className="feed-meta">🔧 {dec.tool_used} | Status: <span className={dec.success ? 'ok':'fail'}>{dec.success ? 'Success':'Failed'}</span></div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Rest of the tabs... */}
-                {activeTab === 'trenches' && (
-                  <div className="tab-container">
-                    <div className="glass-card">
-                      <div className="card-header-flex">
-                        <h3 className="card-title"><FaUsers style={{ marginRight: 8 }} />Community Trenches</h3>
-                        <span className="badge-outline">{trenches.total_unprocessed} unprocessed</span>
-                      </div>
-                      <div className="timeline-list">
-                        {(trenches.tweets || []).map((t, i) => (
-                          <div key={i} className="timeline-item">
-                             <div className="item-meta">
-                                <span className="author">@{t.author}</span>
-                                <span className="time">{t.time}</span>
-                             </div>
-                             <p className="item-text">{t.text}</p>
-                             <a href={`https://x.com/any/status/${t.tweet_id}`} target="_blank" rel="noreferrer" className="trench-link">View on X</a>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'moments' && (
-                  <div className="grid-2">
-                    <div className="glass-card">
-                      <h3 className="card-title"><FaGamepad style={{ marginRight: 8 }} />Pending Shoutouts</h3>
-                      <div className="timeline-list">
-                        {(moments.pending || []).map((m, i) => (
-                          <div key={i} className="timeline-item pending">
-                            <span className="author">@{m.author}</span>
-                            <p className="item-text">{m.text}</p>
-                          </div>
-                        ))}
-                        {(!moments.pending || moments.pending.length === 0) && <p className="empty-state">No pending moments.</p>}
-                      </div>
-                    </div>
-                    <div className="glass-card">
-                      <h3 className="card-title"><FaHistory style={{ marginRight: 8 }} />Recent History</h3>
-                      <div className="timeline-list">
-                        {(moments.history || []).map((m, i) => (
-                          <div key={i} className="timeline-item">
-                            <span className="author">@{m.author}</span>
-                            <p className="item-text">{m.text}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
+            {tabLoading && (
+            <div style={styles.tabSpinner}>
+              <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}>
+                <FaSync size={20} color="#ff00ff" />
               </motion.div>
-            </AnimatePresence>
-          </ErrorBoundary>
-        </section>
-      </main>
+            </div>
+          )}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
 
-      {/* ── MODAL ──────────────────────────────────── */}
-      <AnimatePresence>
-        {selectedDecision && (
-          <div className="modal-overlay-v2" onClick={() => setSelectedDecision(null)}>
-            <motion.div className="modal-box-v2" onClick={e => e.stopPropagation()} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-              <div className="v2-modal-header">
-                <h2>{selectedDecision.action}</h2>
-                <button className="v2-close" onClick={() => setSelectedDecision(null)}>×</button>
-              </div>
-              
-              <div className="v2-modal-body">
-                <div className="v2-section">
-                  <label>BRAIN REASONING</label>
-                  <div className="v2-reason-box">{selectedDecision.reasoning || "Analyzing state..."}</div>
+            {/* ── OVERVIEW ────────────────────────────────────────────────── */}
+            {activeTab === 'overview' && (
+              <div>
+                {/* Stats row */}
+                <div style={styles.grid4}>
+                  <StatCard label="BRAIN CYCLE" value={`${status?.sensor_cooldown_minutes || 25}m`} sub="Autonomous interval" color="#ff00ff" />
+                  <StatCard label="MEMORY VECTORS" value={memory.count} sub={memory.status} />
+                  <StatCard label="QUEUED ACTIONS" value={(queueData?.counts?.replies || 0) + (queueData?.counts?.game_moments || 0)} sub="Pending execution" color="#ff9900"
+                    onClick={() => setActiveTab('queue')} />
+                  <StatCard label="UNREAD TRENCHES" value={trenches.total_unprocessed} sub="Needs replies" color="#ff00ff"
+                    onClick={() => setActiveTab('trenches')} />
                 </div>
-                {selectedDecision.data_preview && (
-                  <div className="v2-section">
-                    <label>RICH DATA ATTACHMENT</label>
-                    <div className="v2-data-box">🔗 {selectedDecision.data_preview}</div>
+
+                {/* Token stats */}
+                <div style={styles.grid3}>
+                  <StatCard label="$COURAGE PRICE" value={rcr.price ? `$${Number(rcr.price).toFixed(6)}` : '—'} sub={rcr.symbol} />
+                  <StatCard label="MARKET CAP" value={rcr.market_cap ? `$${Number(rcr.market_cap).toLocaleString()}` : '—'} sub="USD" color="#ff9900" />
+                  <StatCard label="X SPEND TODAY" value={`$${(status?.x_spend_today || 0).toFixed(3)}`} sub={`Total: $${(status?.x_spend_total || 0).toFixed(2)}`} color="#aaa" />
+                </div>
+
+                {/* Two columns: agents + API health */}
+                <div style={styles.grid2}>
+                  <div className="glass-card" style={styles.card}>
+                    <h3 style={styles.cardTitle}><FaDog style={{ marginRight: 8 }} />Sub-Agent Status</h3>
+                    <AgentRow name="Brain (auto-tick)" data={agents.brain} />
+                    <AgentRow name="News Dog" data={agents.news_dog} />
+                    <AgentRow name="Game Sensor" data={agents.game_sensor} />
+                    <AgentRow name="Engagement Dog" data={agents.engagement_dog} />
+                  </div>
+
+                  <div className="glass-card" style={styles.card}>
+                    <h3 style={styles.cardTitle}><FaBolt style={{ marginRight: 8 }} />Quick Actions</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <button style={styles.btnPink} onClick={triggerTick}>⚡ Force Autonomous Tick</button>
+                      <button style={styles.btnSmall} onClick={resetBreaker}>Reset Groq Circuit Breaker</button>
+                    </div>
+                    <div style={{ marginTop: 20, padding: 12, background: '#0a0a0a', borderRadius: 8 }}>
+                      <p style={{ fontSize: '0.75rem', opacity: 0.6, margin: 0 }}>Groq Status</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                        <Led status={groq.active ? 'stale' : 'active'} />
+                        <span style={{ fontWeight: 'bold', color: groq.active ? '#ff4444' : '#00ffaa' }}>
+                          {groq.active ? `CIRCUIT OPEN — ${groq.remaining_min}m remaining` : 'READY'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* EPIC 10/10: Decision Cards Grid in Overview */}
+                <div style={{ marginTop: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                    <h2 style={{ ...styles.cardTitle, margin: 0 }}><FaBrain style={{ marginRight: 8 }} />Latest Brain Decisions</h2>
+                    <button style={styles.btnSmall} onClick={() => setActiveTab('decisions')}>View All</button>
+                  </div>
+                  <div style={styles.grid3}>
+                    {decisions.slice(0, 3).map(dec => (
+                      <DecisionCard key={dec.id} dec={dec} onSelect={setSelectedDecision} />
+                    ))}
+                    {decisions.length === 0 && <p style={{ opacity: 0.3, gridColumn: '1/-1', textAlign: 'center' }}>Waiting for the brain to wake up...</p>}
+                  </div>
+                </div>
+
+                {/* New Controls & Memory Vault */}
+                <div style={styles.grid2}>
+                  <SensorControl 
+                    currentFreq={status?.sensor_cooldown_minutes} 
+                    onUpdate={loadStatus} 
+                    API={API} 
+                    showToast={showToast} 
+                  />
+                  
+                  <div className="glass-card" style={styles.card}>
+                    <h3 style={styles.cardTitle}><FaBrain style={{ marginRight: 8 }} />Memory Vault</h3>
+                    <div className="memory-scroll" style={{ maxHeight: 200, overflowY: 'auto' }}>
+                      <table className="glass-table" style={{ width: '100%', fontSize: '0.8rem' }}>
+                        <thead>
+                          <tr style={{ opacity: 0.5 }}>
+                            <th style={{ textAlign: 'left', padding: '4px 8px' }}>Source</th>
+                            <th style={{ textAlign: 'left', padding: '4px 8px' }}>Preview</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {memoryDetail.map((m, i) => (
+                            <tr key={m.id || i} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                              <td style={{ padding: '8px', color: '#00ffaa' }}>{m.source}</td>
+                              <td style={{ padding: '8px', opacity: 0.8 }}>{m.content?.substring(0, 80)}...</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                {/* Trench activity mini chart */}
+                <div className="glass-card" style={{ ...styles.card, marginTop: 0 }}>
+                  <h3 style={styles.cardTitle}><FaUsers style={{ marginRight: 8 }} />Trench Activity (Last 12h)</h3>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 80 }}>
+                    {(status?.trench_activity_last_12h || [0,0,0,0,0,0,0,0,0,0,0,0]).map((v, i) => {
+                      const max = Math.max(...(status?.trench_activity_last_12h || [1]), 1);
+                      return (
+                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                          <div style={{
+                            width: '100%', background: '#ff00ff', borderRadius: 3,
+                            height: `${Math.max(4, (v / max) * 70)}px`,
+                            opacity: 0.7 + (v / max) * 0.3,
+                          }} />
+                          <span style={{ fontSize: '0.6rem', opacity: 0.4 }}>{i}h</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── LIVE BRAIN ──────────────────────────────────────────────── */}
+            {activeTab === 'brain' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h2 style={{ ...styles.cardTitle, margin: 0 }}>🧠 Real-Time Consciousness</h2>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button style={styles.btnSmall} onClick={() => setViewMode(viewMode === 'card' ? 'timeline' : 'card')}>
+                      {viewMode === 'card' ? 'View Timeline' : 'View Cards'}
+                    </button>
+                  </div>
+                </div>
+
+                {viewMode === 'card' ? (
+                  <div style={styles.grid3}>
+                    {decisions.map(dec => (
+                      <DecisionCard key={dec.id} dec={dec} onSelect={setSelectedDecision} />
+                    ))}
+                    {decisions.length === 0 && <p style={{ opacity: 0.3, textAlign: 'center', gridColumn: '1/-1' }}>No decisions yet.</p>}
+                  </div>
+                ) : (
+                  <div className="glass-card" style={styles.feedScroll}>
+                    {brainLogs.map((log, i) => (
+                      <div key={i} style={styles.feedItem}>
+                        <span style={styles.feedTime}>{new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                        <span style={{ ...styles.feedEvent, color: log.type?.includes('SUCCESS') ? '#00ffaa' : '#ff9900' }}>{log.type}</span>
+                        <span style={styles.feedMsg}>{log.message}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
-                <div className="v2-section">
-                   <label>TECHNICAL TRACE</label>
-                   <pre className="v2-pre">{JSON.stringify(selectedDecision, null, 2)}</pre>
+              </div>
+            )}
+
+            {/* ── DECISIONS ────────────────────────────────────────────────── */}
+            {activeTab === 'decisions' && (
+              <div className="glass-card" style={styles.card}>
+                <h3 style={styles.cardTitle}><FaHistory style={{ marginRight: 8 }} />Autonomous Decision Log</h3>
+                <p style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: 16, marginTop: -8 }}>
+                  {history.length} decisions recorded • Click any row for full details
+                </p>
+                <div style={{ ...styles.feedScroll, maxHeight: '65vh' }}>
+                  {history.length === 0 && (
+                    <p style={{ opacity: 0.4 }}>No decisions logged yet — autonomous loop hasn't run.</p>
+                  )}
+                  {history.slice(0, histLimit).map((h, i) => (
+                    <motion.div
+                      key={h.id || i}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: Math.min(i * 0.03, 0.5) }}
+                      className="decision-card-v2"
+                      style={{
+                        borderLeft: `4px solid ${h.success ? '#00ffaa' : '#ff9900'}`,
+                      }}
+                      onClick={() => setSelectedRow(h)}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span className="decision-action-text">
+                          {h.action}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>
+                          {h.timestamp ? new Date(h.timestamp).toLocaleTimeString() : ''}
+                        </span>
+                      </div>
+                      <p className="decision-preview-text">{h.reasoning?.substring(0, 160)}...</p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: 12, fontSize: '0.75rem', opacity: 0.55 }}>
+                          {h.tool_used && <span><FaRobot style={{ marginRight: 4 }} /> {h.tool_used}</span>}
+                          <span style={{ color: h.success ? '#00ffaa' : '#ff4444' }}>
+                            {h.success ? '✓ Success' : '✗ Failed'}
+                          </span>
+                        </div>
+                        <span className="view-details-hint">View Details →</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                  {history.length > histLimit && (
+                    <button style={styles.loadMoreBtn} onClick={() => setHistLimit(n => n + 20)}>
+                      Load {Math.min(20, history.length - histLimit)} more ({history.length - histLimit} remaining)
+                    </button>
+                  )}
                 </div>
               </div>
+            )}
 
-              <button className="v2-done" onClick={() => setSelectedDecision(null)}>CLOSE TRACE</button>
+            {/* ── TOKEN HUSTLE ─────────────────────────────────────────────── */}
+            {activeTab === 'token' && (
+              <div>
+                <div style={styles.grid3}>
+                  <StatCard label="PRICE" value={rcr.price ? `$${Number(rcr.price).toFixed(8)}` : '—'} sub={rcr.symbol || '$COURAGE'} color="#ff00ff" />
+                  <StatCard label="24H CHANGE" value={rcr.price_change_24h != null ? `${rcr.price_change_24h > 0 ? '+' : ''}${Number(rcr.price_change_24h).toFixed(2)}%` : '—'}
+                    color={rcr.price_change_24h > 0 ? '#00ffaa' : '#ff4444'} sub="vs yesterday" />
+                  <StatCard label="VOLUME 24H" value={rcr.volume_24h ? `$${Number(rcr.volume_24h).toLocaleString()}` : '—'} sub="Trading volume" color="#ff9900" />
+                  <StatCard label="MARKET CAP" value={rcr.market_cap ? `$${Number(rcr.market_cap).toLocaleString()}` : '—'} sub="USD" />
+                  <StatCard label="AUTO TWEETS TODAY" value={status?.auto_tweets_today ?? '—'} sub="of 25 daily limit" color="#ff9900" />
+                  <StatCard label="X API SPEND" value={`$${(status?.x_spend_today || 0).toFixed(3)}`} sub={`Total: $${(status?.x_spend_total || 0).toFixed(2)}`} color="#aaa" />
+                </div>
+
+                {status?.price_history?.length > 0 && (
+                  <div className="glass-card" style={styles.card}>
+                    <h3 style={styles.cardTitle}><FaChartLine style={{ marginRight: 8 }} />Price History (24h)</h3>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 100, marginTop: 8 }}>
+                      {status.price_history.map((p, i) => {
+                        const prices = status.price_history.map(x => x.price);
+                        const mn = Math.min(...prices), mx = Math.max(...prices);
+                        const pct = mx === mn ? 0.5 : (p.price - mn) / (mx - mn);
+                        return (
+                          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                            <div style={{ width: '100%', background: `hsl(${150 + pct * 100}deg, 80%, 55%)`, borderRadius: 2, height: `${Math.max(4, pct * 90)}px` }} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── TRENCHES ─────────────────────────────────────────────────── */}
+            {activeTab === 'trenches' && (
+              <div className="glass-card" style={styles.card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <h3 style={{ ...styles.cardTitle, margin: 0 }}><FaUsers style={{ marginRight: 8 }} />Community Trenches</h3>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>
+                      {trenches.total_unprocessed} unprocessed
+                    </span>
+                    <button style={styles.btnSmall} onClick={() => withTabLoad(loadTrenches)}>Refresh</button>
+                  </div>
+                </div>
+                <div style={{ ...styles.feedScroll, maxHeight: '65vh' }}>
+                  {trenches.tweets.length === 0 && (
+                    <p style={{ opacity: 0.4 }}>No trench tweets captured yet — sensor hasn't fired.</p>
+                  )}
+                  {trenches.tweets.slice(0, trenchLimit).map((t, i) => (
+                    <div key={t.tweet_id || i} style={{
+                      ...styles.timelineItem,
+                      borderLeftColor: t.processed ? '#333' : '#ff00ff',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span style={{ color: '#00ffaa', fontWeight: 'bold' }}>@{t.author}</span>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          {t.cashtag && <span style={{ fontSize: '0.7rem', color: '#ff9900' }}>{t.cashtag}</span>}
+                          <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>{t.time}</span>
+                          {!t.processed && <span style={{ fontSize: '0.65rem', color: '#ff00ff', fontWeight: 'bold' }}>NEW</span>}
+                        </div>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.875rem', opacity: 0.85 }}>{t.text}</p>
+                    </div>
+                  ))}
+                  {trenches.tweets.length > trenchLimit && (
+                    <button style={styles.loadMoreBtn} onClick={() => setTrenchLimit(n => n + 20)}>
+                      Load {Math.min(20, trenches.tweets.length - trenchLimit)} more ({trenches.tweets.length - trenchLimit} remaining)
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── NEWS POSTERS ─────────────────────────────────────────────── */}
+            {activeTab === 'posters' && (
+              <div className="glass-card" style={styles.card}>
+                <h3 style={styles.cardTitle}><FaNewspaper style={{ marginRight: 8 }} />Generated News Posters</h3>
+                {posters.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '3rem', opacity: 0.4 }}>
+                    <FaNewspaper size={40} />
+                    <p>No posters generated yet. Autonomous loop will create them on next news reaction.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
+                    {posters.map((p, i) => (
+                      <div key={i} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #222', background: '#0a0a0a' }}>
+                        <img
+                          src={`${API}${p.url}`}
+                          alt={`Poster ${i + 1}`}
+                          style={{ width: '100%', display: 'block', objectFit: 'cover' }}
+                          onError={e => { e.target.style.display = 'none'; }}
+                        />
+                        <p style={{ fontSize: '0.7rem', opacity: 0.5, margin: '6px 10px', fontFamily: 'monospace' }}>
+                          {p.time || p.url?.split('/').pop()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── GAME MOMENTS ─────────────────────────────────────────────── */}
+            {activeTab === 'moments' && (
+              <div style={styles.grid2}>
+                <div className="glass-card" style={styles.card}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <h3 style={{ ...styles.cardTitle, margin: 0 }}><FaGamepad style={{ marginRight: 8 }} />Pending Shoutouts</h3>
+                    <button style={styles.btnSmall} onClick={() => withTabLoad(loadMoments)}>Refresh</button>
+                  </div>
+                  <p style={{ fontSize: '0.75rem', opacity: 0.5, marginTop: -8, marginBottom: 12 }}>
+                    {moments.total_pending || 0} pending — will be used next brain tick
+                  </p>
+                  {(moments.pending || []).length === 0 ? (
+                    <p style={{ opacity: 0.4, fontSize: '0.85rem' }}>No pending game moments right now.</p>
+                  ) : (
+                    moments.pending.map((m, i) => (
+                      <div key={i} style={{ ...styles.timelineItem, borderLeftColor: '#ff9900' }}>
+                        <span style={{ color: '#00ffaa', fontWeight: 'bold' }}>@{m.author}</span>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.85rem', opacity: 0.8 }}>{m.text?.slice(0, 120)}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="glass-card" style={styles.card}>
+                  <h3 style={styles.cardTitle}><FaHistory style={{ marginRight: 8 }} />Recent History</h3>
+                  {(moments.history || []).length === 0 ? (
+                    <p style={{ opacity: 0.4, fontSize: '0.85rem' }}>No history yet — game sensor hasn't captured any moments.</p>
+                  ) : (
+                    moments.history.map((m, i) => (
+                      <div key={i} style={{ ...styles.timelineItem, borderLeftColor: '#ff00ff' }}>
+                        <span style={{ color: '#00ffaa', fontWeight: 'bold' }}>@{m.author}</span>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.85rem', opacity: 0.8 }}>{m.text?.slice(0, 120)}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── QUEUE INSPECTOR ────────────────────────────────────────── */}
+            {activeTab === 'queue' && (
+              <div style={styles.grid2}>
+                <div className="glass-card" style={styles.card}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <h3 style={{ ...styles.cardTitle, margin: 0 }}><FaClock style={{ marginRight: 8 }} />Game Moments Queue</h3>
+                    <span style={styles.badge}>{queueData?.counts?.game_moments || 0}</span>
+                  </div>
+                  <div style={styles.feedScroll}>
+                    {(queueData?.pending_game_moments || []).length === 0 && <p style={{ opacity: 0.4 }}>No pending game moments.</p>}
+                    {(queueData?.pending_game_moments || []).map((m, i) => (
+                      <div key={i} style={{ ...styles.timelineItem, borderLeftColor: '#ff9900' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <span style={{ fontWeight: 'bold', color: '#00ffaa' }}>@{m.author}</span>
+                          <button style={styles.btnSmall} onClick={() => processQueueItem('courage:pending_game_moments', i)}>Process Now</button>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.8 }}>{m.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="glass-card" style={styles.card}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <h3 style={{ ...styles.cardTitle, margin: 0 }}><FaList style={{ marginRight: 8 }} />Reply Queue</h3>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <span style={styles.badge}>{queueData?.counts?.replies || 0}</span>
+                      <button style={{ ...styles.btnSmall, borderColor: '#ff4444', color: '#ff4444' }} onClick={clearQueue}>Clear</button>
+                    </div>
+                  </div>
+                  <div style={styles.feedScroll}>
+                    {(queueData?.reply_queue || []).length === 0 && <p style={{ opacity: 0.4 }}>No pending replies.</p>}
+                    {(queueData?.reply_queue || []).map((r, i) => (
+                      <div key={i} style={{ ...styles.timelineItem, borderLeftColor: '#ff00ff' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>{r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : `#${i+1}`}</span>
+                          <button className="btn-small" onClick={() => processQueueItem('courage:reply_queue_v5', i)}><FaPlay /> Force Send</button>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.8 }}>{r.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── VOICE LIVE ──────────────────────────────────────────────── */}
+            {activeTab === 'voice' && (
+              <div className="glass-card" style={styles.card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                  <h3 style={{ ...styles.cardTitle, margin: 0 }}>🎤 Voice Sessions Live • {voiceData.count || 0} active</h3>
+                  <span style={{ 
+                    background: voiceData.active ? '#00ffaa22' : '#333', 
+                    color: voiceData.active ? '#00ffaa' : '#888',
+                    padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 'bold'
+                  }}>
+                    {voiceData.active ? '🟢 GLOBAL VOICE ACTIVE' : '⚪ IDLE'}
+                  </span>
+                </div>
+                
+                <div style={styles.grid2}>
+                  {voiceData.sessions.length === 0 ? (
+                    <p style={{ opacity: 0.4, gridColumn: '1/-1', textAlign: 'center', padding: '2rem' }}>No active voice sessions found.</p>
+                  ) : (
+                    voiceData.sessions.map(s => (
+                      <div key={s.session_id} className="glass-card" style={{ ...styles.card, background: 'rgba(255,255,255,0.01)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <strong style={{ color: '#ff00ff', fontSize: '1.1rem' }}>Session {s.session_id}</strong>
+                            <p style={{ margin: '4px 0', fontSize: '0.85rem' }}>User: <span style={{ color: '#00ffaa' }}>{s.user_id}</span></p>
+                          </div>
+                          <button 
+                            className="btn-small" 
+                            style={{ borderColor: '#ff4444', color: '#ff4444', background: 'transparent', padding: '4px 8px', borderRadius: 6, cursor: 'pointer' }}
+                            onClick={() => endVoiceSession(s.session_id)}
+                          >
+                            ⛔ End Session
+                          </button>
+                        </div>
+                        <div style={{ marginTop: 12, display: 'flex', gap: 15, fontSize: '0.75rem', opacity: 0.6 }}>
+                          <span>💬 {s.messages} msgs</span>
+                          <span>🕒 Started {new Date(s.started).toLocaleTimeString()}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── RAG MEMORY GRAPH ────────────────────────────────────────── */}
+            {activeTab === 'rag' && (
+              <div className="glass-card" style={styles.card}>
+                <h3 style={styles.cardTitle}>🧬 RAG Memory Vault • {ragData.vectors.length} latest vectors</h3>
+                <div style={{ ...styles.feedScroll, maxHeight: '65vh' }}>
+                  <table className="glass-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', opacity: 0.6 }}>
+                        <th style={{ textAlign: 'left', padding: '12px 8px' }}>Memory Preview</th>
+                        <th style={{ textAlign: 'center', padding: '12px 8px' }}>Age (Days)</th>
+                        <th style={{ textAlign: 'right', padding: '12px 8px' }}>Last Accessed</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ragData.vectors.map(v => {
+                        const ageDays = Math.floor((Date.now() - new Date(v.embedding_timestamp).getTime()) / 86400000);
+                        return (
+                          <tr key={v.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                            <td style={{ padding: '12px 8px', fontSize: '0.85rem', opacity: 0.85 }}>{v.text_preview?.substring(0, 100)}...</td>
+                            <td style={{ padding: '12px 8px', textAlign: 'center', color: '#ff9900' }}>{ageDays}d</td>
+                            <td style={{ padding: '12px 8px', textAlign: 'right', fontSize: '0.75rem', opacity: 0.5 }}>
+                              {new Date(v.last_accessed).toLocaleTimeString()}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {ragData.vectors.length === 0 && (
+                        <tr>
+                          <td colSpan="3" style={{ textAlign: 'center', padding: '3rem', opacity: 0.4 }}>No memory vectors found.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Visualizer placeholder for Phase 14 */}
+                <div style={{ marginTop: 20, height: 100, background: 'linear-gradient(90deg, #ff00ff11, #00ffaa11)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '0.8rem', opacity: 0.4 }}>Memory clustering visualization coming in Phase 14...</span>
+                </div>
+              </div>
+            )}
+
+          </motion.div>
+        </AnimatePresence>
+        </ErrorBoundary>
+        </main>
+      </div>
+
+      {/* DETAIL MODAL */}
+      <AnimatePresence>
+        {selectedRow && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedRow(null)}
+            style={styles.overlay}
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 16 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.92 }}
+              onClick={e => e.stopPropagation()}
+              style={styles.modal}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h2 style={{ color: '#00ffaa', margin: 0, fontFamily: 'Bangers, cursive', letterSpacing: 2 }}>
+                  {selectedRow.action || selectedRow.type || 'Detail'}
+                </h2>
+                <button onClick={() => setSelectedRow(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.8rem', cursor: 'pointer', opacity: 0.5 }}>×</button>
+              </div>
+              <pre style={styles.modalPre}>{JSON.stringify(selectedRow, null, 2)}</pre>
+              <button style={{ ...styles.btnPink, width: '100%', marginTop: 12 }} onClick={() => setSelectedRow(null)}>CLOSE</button>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
-      {toast && <div className="toast-v2">{toast.msg}</div>}
+      {/* DECISION MODAL */}
+      <AnimatePresence>
+        {selectedDecision && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedDecision(null)}
+            style={styles.overlay}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              style={{ ...styles.modal, maxWidth: 800 }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h2 style={{ margin: 0, color: '#ff00ff', fontFamily: 'Bangers, cursive', letterSpacing: 2 }}>
+                  DECISION TRACE #{selectedDecision.id}
+                </h2>
+                <button onClick={() => setSelectedDecision(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '2rem', cursor: 'pointer', opacity: 0.5 }}>×</button>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                <span style={{ background: '#ff00ff22', color: '#ff00ff', padding: '4px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 'bold' }}>
+                  {selectedDecision.action}
+                </span>
+                <span style={{ background: selectedDecision.success ? '#00ffaa22' : '#ff444422', color: selectedDecision.success ? '#00ffaa' : '#ff4444', padding: '4px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 'bold' }}>
+                  {selectedDecision.success ? '✅ SUCCEEDED' : '❌ FAILED'}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                <div>
+                  <h3 style={{ fontSize: '0.9rem', color: '#00ffaa', marginBottom: 8, textTransform: 'uppercase' }}>Reasoning</h3>
+                  <div style={{ ...styles.modalPre, maxHeight: 300, fontSize: '0.9rem', lineHeight: 1.5 }}>
+                    {selectedDecision.reasoning}
+                  </div>
+                  <button 
+                    style={{ ...styles.btnSmall, marginTop: 10, width: '100%' }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(selectedDecision.reasoning);
+                      showToast('Reasoning copied!');
+                    }}
+                  >
+                    📋 Copy Reasoning
+                  </button>
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '0.9rem', color: '#00ffaa', marginBottom: 8, textTransform: 'uppercase' }}>Technical Trace</h3>
+                  <div style={{ ...styles.modalPre, maxHeight: 300 }}>
+                    {JSON.stringify(selectedDecision, null, 2)}
+                  </div>
+                  <details style={{ marginTop: 12 }}>
+                    <summary style={{ fontSize: '0.8rem', opacity: 0.5, cursor: 'pointer' }}>View Raw Tool Calls</summary>
+                    <pre style={{ ...styles.modalPre, marginTop: 8, maxHeight: 150 }}>
+                      {JSON.stringify(selectedDecision.tool_call || "None", null, 2)}
+                    </pre>
+                  </details>
+                </div>
+              </div>
+
+              <button style={{ ...styles.btnPink, marginTop: 24 }} onClick={() => setSelectedDecision(null)}>CLOSE TRACE</button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* TOAST */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 20 }}
+            style={{
+              position: 'fixed', bottom: '2rem', left: '50%', transform: 'translateX(-50%)',
+              background: toast.type === 'err' ? '#1a0000' : '#001a0e',
+              border: `1px solid ${toast.type === 'err' ? '#ff4444' : '#00ffaa'}`,
+              color: toast.type === 'err' ? '#ff4444' : '#00ffaa',
+              padding: '0.75rem 1.5rem', borderRadius: 12,
+              fontWeight: 'bold', fontSize: '0.9rem', zIndex: 2000,
+              boxShadow: `0 8px 32px ${toast.type === 'err' ? 'rgba(255,68,68,0.3)' : 'rgba(0,255,170,0.2)'}`,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {toast.type === 'err' ? '✗ ' : '✓ '}{toast.msg}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style>{`
-        .dashboard-root { display: flex; height: 100vh; width: 100%; background: #020202; color: #fff; overflow: hidden; font-family: 'Inter', sans-serif; }
-        .dashboard-sidebar { width: 320px; flex-shrink: 0; background: #080808; border-right: 1px solid #1a1a1a; display: flex; flex-direction: column; padding: 1.5rem; z-index: 100; }
-        .sidebar-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 2.5rem; font-family: 'Bangers', cursive; font-size: 1.6rem; color: #ff00ff; letter-spacing: 2px; }
-        .sidebar-nav { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
-        .sidebar-item { display: flex; align-items: center; gap: 14px; padding: 0.9rem 1.25rem; border-radius: 12px; cursor: pointer; color: #666; font-weight: 600; transition: 0.2s; }
-        .sidebar-item:hover { color: #aaa; background: rgba(255,255,255,0.02); }
-        .sidebar-item.active { background: rgba(255, 0, 255, 0.1); color: #ff00ff; border: 1px solid rgba(255,0,255,0.15); }
-        .sidebar-badge { background: #ff00ff; color: #fff; font-size: 0.65rem; padding: 2px 7px; border-radius: 10px; margin-left: auto; font-weight: bold; }
-
-        /* BRAIN PULSE V4 */
-        .brain-pulse-v4 { background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 16px; height: 350px; display: flex; flex-direction: column; margin-top: auto; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
-        .v4-header { padding: 10px 15px; background: #111; display: flex; justify-content: space-between; border-bottom: 1px solid #222; }
-        .v4-title { font-family: 'Bangers', cursive; font-size: 0.85rem; color: #555; display: flex; align-items: center; gap: 8px; }
-        .v4-pause { background: none; border: none; color: #333; cursor: pointer; }
-        .v4-pause:hover { color: #ff00ff; }
-        .v4-terminal { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column-reverse; gap: 12px; font-family: 'Roboto Mono', monospace; font-size: 0.72rem; }
-        .v4-line { display: flex; gap: 12px; position: relative; }
-        .v4-dot { width: 4px; height: 4px; background: #333; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
-        .v4-line.success .v4-dot { background: #00ffaa; box-shadow: 0 0 5px #00ffaa; }
-        .v4-line.brain .v4-dot { background: #ff00ff; box-shadow: 0 0 5px #ff00ff; }
-        .v4-time { color: #444; margin-right: 8px; }
-        .v4-msg { color: #888; line-height: 1.5; }
-        .v4-line.success .v4-msg { color: #00ffaa; }
-
-        .dashboard-main { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; background: radial-gradient(circle at top right, rgba(255,0,255,0.02), transparent 40%); }
-        .dashboard-header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 3.5rem; background: rgba(2,2,2,0.8); border-bottom: 1px solid #111; position: sticky; top: 0; z-index: 90; backdrop-filter: blur(20px); }
-        .header-title h2 { font-family: 'Bangers', cursive; font-size: 2.2rem; margin: 0; letter-spacing: 2px; }
-        .dashboard-content { padding: 3.5rem; max-width: 1500px; width: 100%; margin: 0 auto; }
-
-        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
-        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
-        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 2rem; }
-
-        .glass-card { background: rgba(255,255,255,0.015); border: 1px solid #151515; border-radius: 24px; padding: 2.2rem; transition: 0.3s; }
-        .glass-card:hover { border-color: #222; background: rgba(255,255,255,0.02); }
-        .stat-value { font-size: 2.8rem; font-family: 'Bangers', cursive; margin: 5px 0; }
-        .stat-label { font-size: 0.75rem; color: #555; text-transform: uppercase; letter-spacing: 1.5px; }
-        .stat-sub { font-size: 0.75rem; color: #333; }
-
-        .card-title { font-family: 'Bangers', cursive; font-size: 1.3rem; margin-bottom: 1.8rem; display: flex; align-items: center; color: #fff; letter-spacing: 1.5px; }
-
-        .agent-row-v2 { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #111; }
-        .v2-name { font-weight: 600; color: #999; }
-        .v2-detail { font-family: monospace; font-size: 0.8rem; color: #444; }
-
-        .btn-pink-pro { background: #ff00ff; color: #fff; border: none; padding: 1rem 2rem; border-radius: 14px; font-weight: bold; cursor: pointer; display: flex; gap: 12px; align-items: center; font-size: 1rem; box-shadow: 0 10px 30px rgba(255,0,255,0.2); transition: 0.2s; }
-        .btn-pink-pro:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(255,0,255,0.3); }
-
-        .decision-card-v3 { background: #090909; border: 1px solid #181818; border-radius: 20px; padding: 1.8rem; cursor: pointer; transition: 0.3s; }
-        .decision-card-v3:hover { border-color: #ff00ff; background: #0d0d0d; }
-        .v3-header { display: flex; justify-content: space-between; margin-bottom: 1rem; }
-        .v3-action { font-family: 'Bangers', cursive; font-size: 1.2rem; color: #ff00ff; }
-        .v3-status { font-size: 0.65rem; font-weight: bold; background: #111; padding: 3px 10px; border-radius: 20px; border: 1px solid #222; }
-        .v3-status.success { color: #00ffaa; border-color: rgba(0,255,170,0.2); }
-        .v3-reasoning { font-size: 0.9rem; color: #888; line-height: 1.6; margin-bottom: 1rem; height: 3.2em; overflow: hidden; }
-        .v3-preview { background: rgba(0,255,170,0.05); color: #00ffaa; padding: 8px 12px; border-radius: 8px; font-size: 0.75rem; display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; border: 1px solid rgba(0,255,170,0.1); }
-        .v3-url { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .v3-footer { display: flex; justify-content: space-between; font-size: 0.7rem; color: #333; font-family: monospace; border-top: 1px solid #111; pt: 1rem; }
-
-        /* ACTIVITY FEED (WORLD CLASS) */
-        .activity-feed { display: flex; flex-direction: column; gap: 2rem; position: relative; }
-        .activity-feed:before { content: ''; position: absolute; left: 11px; top: 0; bottom: 0; width: 1px; background: #111; }
-        .feed-row { display: flex; gap: 2.5rem; cursor: pointer; transition: 0.2s; position: relative; }
-        .feed-dot { width: 23px; height: 23px; background: #000; border: 2px solid #222; border-radius: 50%; z-index: 5; flex-shrink: 0; margin-top: 4px; transition: 0.2s; }
-        .feed-row:hover .feed-dot { border-color: #ff00ff; background: #ff00ff; box-shadow: 0 0 15px rgba(255,0,255,0.4); }
-        .feed-info { flex: 1; }
-        .feed-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
-        .feed-action { font-family: 'Bangers', cursive; font-size: 1.4rem; color: #fff; letter-spacing: 1px; }
-        .feed-time { color: #444; font-size: 0.8rem; font-family: monospace; }
-        .feed-text { font-size: 1rem; color: #999; line-height: 1.6; margin-bottom: 12px; }
-        .feed-preview { color: #00ffaa; font-size: 0.85rem; margin-bottom: 12px; }
-        .feed-meta { font-size: 0.75rem; color: #444; font-family: monospace; }
-        .feed-meta .ok { color: #00ffaa; }
-        .feed-meta .fail { color: #ff9900; }
-
-        /* MODAL V2 */
-        .modal-overlay-v2 { position: fixed; inset: 0; background: rgba(0,0,0,0.92); backdrop-filter: blur(30px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 2rem; }
-        .modal-box-v2 { background: #080808; border: 1px solid #1a1a1a; border-radius: 32px; width: 100%; max-width: 950px; max-height: 90vh; overflow-y: auto; padding: 4rem; position: relative; box-shadow: 0 0 100px rgba(0,0,0,1); }
-        .v2-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; }
-        .v2-modal-header h2 { font-family: 'Bangers', cursive; font-size: 2.5rem; color: #ff00ff; margin: 0; letter-spacing: 2px; }
-        .v2-close { background: none; border: none; color: #444; font-size: 2rem; cursor: pointer; transition: 0.2s; }
-        .v2-close:hover { color: #fff; }
-        .v2-section { margin-bottom: 2.5rem; }
-        .v2-section label { display: block; color: #444; font-size: 0.75rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 1rem; }
-        .v2-reason-box { background: #0c0c0c; border: 1px solid #151515; padding: 2.5rem; border-radius: 20px; font-size: 1.2rem; line-height: 1.7; color: #eee; }
-        .v2-data-box { color: #00ffaa; font-family: monospace; font-size: 1rem; }
-        .v2-pre { background: #000; padding: 2rem; border-radius: 20px; font-size: 0.85rem; color: #555; overflow-x: auto; }
-        .v2-done { background: #111; color: #666; border: 1px solid #222; padding: 1.2rem; border-radius: 16px; font-weight: bold; width: 100%; cursor: pointer; transition: 0.2s; }
-        .v2-done:hover { background: #151515; color: #ff00ff; border-color: #ff00ff; }
-
-        .toast-v2 { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #ff00ff; color: #fff; padding: 1rem 2.5rem; border-radius: 15px; font-weight: bold; z-index: 2000; box-shadow: 0 10px 40px rgba(255,0,255,0.4); }
-
-        .animate-spin { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        .timeline-list { display: flex; flex-direction: column; gap: 15px; }
-        .timeline-item { border-left: 2px solid #ff00ff; padding-left: 15px; }
-        .timeline-item.pending { border-left-color: #ff9900; }
-        .item-meta { display: flex; justify-content: space-between; margin-bottom: 4px; }
-        .author { color: #00ffaa; font-weight: bold; font-size: 0.85rem; }
-        .time { opacity: 0.4; font-size: 0.7rem; }
-        .item-text { font-size: 0.9rem; opacity: 0.8; margin: 0; }
-        .empty-state { text-align: center; padding: 3rem; opacity: 0.3; font-style: italic; }
-
-        @media (max-width: 1100px) {
-          .dashboard-sidebar { width: 90px; }
-          .sidebar-brand span, .sidebar-item span, .brain-pulse-v4, .sidebar-badge { display: none; }
-          .sidebar-item { justify-content: center; }
+        .glass-card {
+          background: rgba(255,255,255,0.025);
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 20px;
+          padding: 1.75rem;
+          transition: border-color 0.2s;
         }
+        .glass-card:hover { border-color: rgba(255,255,255,0.13); }
+        .stat-card { cursor: default; }
+        .stat-value { font-size: 2rem; font-weight: bold; font-family: 'Bangers', cursive; letter-spacing: 1px; }
+        .stat-sub { font-size: 0.72rem; opacity: 0.45; margin: 4px 0 0; }
+        .agent-row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .agent-name { flex: 1; font-size: 0.85rem; }
+        .agent-detail { font-size: 0.75rem; opacity: 0.5; font-family: monospace; }
+
+        /* Brain Sidebar */
+        .brain-sidebar {
+          height: 80vh;
+          position: sticky;
+          top: 2rem;
+          display: flex;
+          flex-direction: column;
+          padding: 1rem !important;
+          overflow: hidden;
+        }
+        .sidebar-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1rem;
+          font-family: 'Bangers', cursive;
+          letter-spacing: 1px;
+          font-size: 0.9rem;
+          color: #ff00ff;
+        }
+        .sidebar-controls { display: flex; gap: 8px; }
+        .sidebar-controls button {
+          background: rgba(255,255,255,0.05);
+          border: none;
+          color: #fff;
+          cursor: pointer;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 0.7rem;
+        }
+        .terminal-log {
+          flex: 1;
+          overflow-y: auto;
+          font-family: 'Inter', monospace;
+          font-size: 0.75rem;
+          display: flex;
+          flex-direction: column-reverse; /* Latest at bottom but scrolled to */
+          gap: 6px;
+        }
+        .log-line {
+          padding: 4px 0;
+          border-bottom: 1px solid rgba(255,255,255,0.03);
+          line-height: 1.4;
+        }
+        .log-time { color: #888; margin-right: 6px; font-size: 0.65rem; }
+        .log-msg { color: #ccc; }
+        .log-line.post_success .log-msg { color: #00ffaa; font-weight: bold; }
+        .log-line.error .log-msg { color: #ff4444; }
+
+        /* Sensor Slider */
+        .sensor-slider-wrap {
+          margin: 1.5rem 0;
+        }
+        .sensor-slider-wrap input {
+          width: 100%;
+          accent-color: #ff00ff;
+        }
+        .sensor-value {
+          text-align: center;
+          margin-top: 10px;
+          font-size: 0.9rem;
+          opacity: 0.8;
+        }
+
+        /* Decision Cards V2 */
+        .decision-card-v2 {
+          background: rgba(255,255,255,0.03);
+          border-radius: 12px;
+          padding: 1.25rem;
+          margin-bottom: 1rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: 1px solid rgba(255,255,255,0.05);
+        }
+        .decision-card-v2:hover {
+          background: rgba(255,255,255,0.06);
+          transform: translateY(-2px);
+          border-color: rgba(255,255,255,0.1);
+        }
+        .decision-action-text {
+          font-family: 'Bangers', cursive;
+          font-size: 1.2rem;
+          letter-spacing: 1.5px;
+        }
+        .decision-preview-text {
+          font-size: 0.85rem;
+          opacity: 0.7;
+          line-height: 1.5;
+          margin: 8px 0;
+        }
+        .view-details-hint {
+          font-size: 0.7rem;
+          color: #ff00ff;
+          font-weight: bold;
+          opacity: 0.8;
+        }
+        .glass-table th { padding: 8px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
+        .stat-sub { font-size: 0.72rem; opacity: 0.45; margin: 4px 0 0; }
+        .agent-row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .agent-name { flex: 1; font-size: 0.85rem; }
+        .agent-detail { font-size: 0.75rem; opacity: 0.5; font-family: monospace; }
       `}</style>
     </div>
   );
