@@ -26,7 +26,29 @@ Courage is not a simple chatbot. He is a highly reactive, state-aware autonomous
 
 ## ⚡ The Autonomous Brain (`autonomous_loop.py`)
 
-At the core of Courage is his **Heartbeat** — a credit-aware, signal-scored, event-driven decision engine.
+At the core of Courage is his **Wholistic Intelligence Engine** — a credit-aware, signal-scored, event-driven consciousness that "inhales" data from three primary streams to form a unified state.
+
+### 🧬 The Intelligence Triad
+
+| Input Stream | Role | Impact on Brain |
+|--------------|------|-----------------|
+| **🐦 X/Twitter** | Social Loop | Provides community vibe, $RCR sentiment, and direct engagement opportunities. |
+| **🗞️ Global News** | Knowledge Base | Informs his "Courageous Chronicle" art and provides intellectual context for reactions. |
+| **🎤 Voice / World Chat** | Personality Core | High-signal real-time interactions that override autonomous loops and feed his memory. |
+
+### 💓 The Layered Heartbeat (Cost-Aware Autonomy)
+
+Courage operates on a **Layered Frequency** model designed to protect your API budget:
+
+1.  **Dashboard Pulse (Manual)**: You set the master frequency (e.g., 25m) via the Admin Slider.
+2.  **AI Reflection (Autonomous)**: Courage suggests his own `suggested_frequency` based on his last action's success.
+3.  **The Master Guard**: The brain checks both and **picks the most restrictive (longest)** interval. If the slider is at 5m but Courage says 30m, he stays quiet for 30m.
+
+### 🔄 Smart Event Grouping
+
+To save on X API Write Quotas ($$$), Courage uses a **Grouped Reaction** strategy:
+- **Low Priority (Game Moments)**: Courage ignores "instant wake-up" calls for player visits. He lets them pile up in Redis and reacts to them all in **one single grouped post** during his next scheduled pulse.
+- **High Priority (Market Surges)**: Rare events like price pumps (≥4%) trigger an **immediate bypass**, waking him up instantly to capture momentum.
 
 ### State Gathering (`_gather_state`)
 
@@ -192,9 +214,8 @@ Courage has semantic long-term memory — no external API, no LangChain.
 Courage lives in four immersive **React Three Fiber** worlds (Sunrise, Noon, Evening, Disco).
 
 - **Local Voice Stack**: Browser audio → WebSocket → `faster-whisper` (CPU int8 Tiny.en) → Llama 3.1 (8b) → `kokoro-onnx` TTS (24kHz) → streamed back
-- **Session Isolation**: Each voice session stored in Redis with 4-hour TTL
-- **Priority**: Any active voice session halts all autonomous tool calls immediately
-- **3D Reactivity**: `trigger_3d_reaction` emits Redis stream event → frontend switches worlds dynamically
+- **Wholistic Integration**: Voice is the highest-priority state. Any active voice session **freezes the autonomous loop**, ensuring Courage is 100% focused on the human in the room.
+- **3D Reactivity**: `trigger_3d_reaction` emits Redis stream event → frontend switches worlds dynamically.
 
 ---
 
