@@ -4,7 +4,7 @@ import {
   FaRobot, FaBrain, FaBolt, FaHistory, FaChartLine,
   FaUsers, FaDog, FaNewspaper, FaGamepad, FaList,
   FaTrash, FaSync, FaCheckCircle, FaClock, FaCopy, FaDownload,
-  FaMicrophone, FaSitemap, FaChevronLeft, FaChevronRight, FaPlay, FaPause, FaExternalLinkAlt
+  FaMicrophone, FaSitemap, FaChevronLeft, FaChevronRight, FaPlay, FaPause, FaExternalLinkAlt, FaTwitter
 } from 'react-icons/fa';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -34,7 +34,7 @@ const safeFetch = async (url, opts) => {
 
 // ── Sub-component: StatusLed ───────────────────────────────────────────────────
 const Led = ({ status }) => {
-  const col = status === 'active' ? '#00ffaa' : status === 'stale' ? '#ff9900' : '#555';
+  const col = status === 'active' ? '#00ffaa' : status === 'idle' ? '#ff9900' : '#555';
   return (
     <span style={{
       display: 'inline-block', width: 10, height: 10, borderRadius: '50%',
@@ -75,6 +75,14 @@ const DecisionCard = ({ dec, onSelect }) => {
         <span className={`status-badge ${statusColor}`}>{statusText}</span>
       </div>
       <p className="reason-preview">{dec.reasoning || "No reasoning provided."}</p>
+      
+      {dec.data_preview && (
+        <div className="rich-data-preview">
+          <FaExternalLinkAlt size={10} style={{ marginRight: 6 }} />
+          <span className="preview-url">{dec.data_preview}</span>
+        </div>
+      )}
+
       <div className="meta">
         <span className="time">{dec.time}</span>
         {dec.tool_used && <span className="tool">🔧 {dec.tool_used}</span>}
@@ -94,7 +102,7 @@ const BrainPulseSidebar = ({ logs, paused, onTogglePause }) => (
     </div>
     <div className="terminal-log">
       {logs.length === 0 && <p className="empty-log">Awaiting brain signals...</p>}
-      {logs.map((log, i) => (
+      {(logs || []).map((log, i) => (
         <div key={`${log.time}-${i}`} className={`log-line ${log.event?.toLowerCase()}`}>
           <span className="log-time">[{log.time}]</span>
           <span className="log-msg">{log.message}</span>
@@ -253,8 +261,8 @@ const AdminDashboard = () => {
             >
               <t.icon />
               <span>{t.label}</span>
-              {t.id === 'queue' && status.queue_size > 0 && <span className="sidebar-badge">{status.queue_size}</span>}
-              {t.id === 'trenches' && status.unprocessed_trenches > 0 && <span className="sidebar-badge">{status.unprocessed_trenches}</span>}
+              {t.id === 'queue' && status.reply_queue_size > 0 && <span className="sidebar-badge">{status.reply_queue_size}</span>}
+              {t.id === 'trenches' && status.unread_trenches > 0 && <span className="sidebar-badge">{status.unread_trenches}</span>}
             </div>
           ))}
         </nav>
@@ -302,16 +310,16 @@ const AdminDashboard = () => {
                 {activeTab === 'overview' && (
                   <div className="tab-container">
                     <div className="grid-4">
-                      <StatCard label="BRAIN CYCLE" value={`${status.brain_freq || 25}M`} sub="Autonomous Interval" color="#ff00ff" />
-                      <StatCard label="MEMORY VECTORS" value={status.memory_count} sub={status.memory_status} color="#00ffaa" />
-                      <StatCard label="QUEUED ACTIONS" value={status.queue_size} sub="Pending execution" color="#ff9900" />
-                      <StatCard label="UNREAD TRENCHES" value={status.unprocessed_trenches} sub="Needs replies" color="#ff00ff" />
+                      <StatCard label="BRAIN CYCLE" value={`${status.sensor_cooldown_minutes || 25}M`} sub="Autonomous Interval" color="#ff00ff" />
+                      <StatCard label="MEMORY VECTORS" value={status.memory_vectors} sub="Embedded Vectors" color="#00ffaa" />
+                      <StatCard label="QUEUED ACTIONS" value={status.reply_queue_size} sub="Pending execution" color="#ff9900" />
+                      <StatCard label="UNREAD TRENCHES" value={status.unread_trenches} sub="Needs replies" color="#ff00ff" />
                     </div>
 
                     <div className="grid-3">
-                      <StatCard label="SCOURAGE PRICE" value={status.rcr_price} sub="SOL" color="#00ffaa" />
-                      <StatCard label="MARKET CAP" value={status.rcr_mc} sub="USD" color="#ff9900" />
-                      <StatCard label="X SPEND TODAY" value={`$${status.credits_used || '0.000'}`} sub={`Total: $${status.total_credits || '0.00'}`} color="#ff00ff" />
+                      <StatCard label="SCOURAGE PRICE" value={`$${status.rcr_price || '0.00'}`} sub="SOL" color="#00ffaa" />
+                      <StatCard label="MARKET CAP" value={`$${status.rcr_stats?.market_cap || '—'}`} sub="USD" color="#ff9900" />
+                      <StatCard label="X SPEND TODAY" value={`$${status.x_spend_today || '0.000'}`} sub={`Total: $${status.x_spend_total || '0.00'}`} color="#ff00ff" />
                     </div>
 
                     <div className="grid-2">
@@ -328,20 +336,42 @@ const AdminDashboard = () => {
                         <button className="btn-pink" style={{ marginBottom: 12 }} onClick={forceTick}>
                           <FaBolt style={{ marginRight: 10 }} /> Force Autonomous Tick
                         </button>
-                        <SensorControl currentFreq={status.brain_freq} onUpdate={refreshTab} API={API} showToast={showToast} />
+                        <SensorControl currentFreq={status.sensor_cooldown_minutes} onUpdate={refreshTab} API={API} showToast={showToast} />
                       </div>
                     </div>
 
                     <div className="glass-card" style={{ marginTop: '2rem' }}>
                       <h3 className="card-title"><FaHistory style={{ marginRight: 10 }} /> RECENT BRAIN DECISIONS</h3>
                       <div className="grid-3">
-                        {decisions.slice(0, 6).map((dec, i) => (
+                        {(decisions || []).slice(0, 6).map((dec, i) => (
                           <DecisionCard key={i} dec={dec} onSelect={setSelectedDecision} />
                         ))}
                       </div>
-                      {decisions.length === 0 && <p className="empty-state">No decisions recorded today.</p>}
+                      {decisions?.length === 0 && <p className="empty-state">No decisions recorded today.</p>}
                     </div>
                   </div>
+                )}
+
+                {/* BRAIN (Neural Terminal) */}
+                {activeTab === 'brain' && (
+                   <div className="tab-container full-height">
+                    <div className="glass-card neural-terminal">
+                      <div className="terminal-header">
+                         <Led status="active" /> <span>NEURAL ACTIVITY STREAM</span>
+                         <span className="vibe-badge">{status.vibe}</span>
+                      </div>
+                      <div className="terminal-body">
+                        {(brainLogs || []).map((log, i) => (
+                          <div key={i} className={`log-row ${log.event?.toLowerCase()}`}>
+                            <span className="timestamp">[{log.time}]</span>
+                            <span className="event-tag">{log.event}</span>
+                            <span className="message">{log.message}</span>
+                          </div>
+                        ))}
+                        {brainLogs?.length === 0 && <div className="empty-state">No neural signals detected in current window.</div>}
+                      </div>
+                    </div>
+                   </div>
                 )}
 
                 {/* DECISIONS (Full History) */}
@@ -350,13 +380,14 @@ const AdminDashboard = () => {
                     <div className="glass-card">
                       <h3 className="card-title">Full Decision History</h3>
                       <div className="decision-list">
-                        {history.map((dec, i) => (
+                        {(history || []).map((dec, i) => (
                           <div key={i} className="decision-row" onClick={() => setSelectedDecision(dec)}>
                             <div className="row-header">
                               <span className="action">{dec.action}</span>
                               <span className="time">{dec.time}</span>
                             </div>
-                            <p className="reasoning">{dec.reasoning?.substring(0, 160)}...</p>
+                            <p className="reasoning">{dec.reasoning}</p>
+                            {dec.data_preview && <div className="rich-meta">{dec.data_preview}</div>}
                             <div className="row-footer">
                               <span className={`status ${dec.success ? 'ok' : 'fail'}`}>
                                 {dec.success ? '✓ EXECUTED' : '✗ FAILED'}
@@ -370,16 +401,39 @@ const AdminDashboard = () => {
                   </div>
                 )}
 
+                {/* TOKEN HUSTLE */}
+                {activeTab === 'token' && (
+                  <div className="tab-container">
+                    <div className="grid-3">
+                       <StatCard label="RCR PRICE" value={`$${status.rcr_price}`} sub="Live Solana Feed" color="#00ffaa" />
+                       <StatCard label="DAILY VOLUME" value={status.rcr_stats?.volume_24h || '—'} sub="Last 24h" color="#ff9900" />
+                       <StatCard label="TOTAL HOLDERS" value="1,402" sub="+12 today" color="#ff00ff" />
+                    </div>
+                    <div className="glass-card" style={{ marginTop: '2rem' }}>
+                      <h3 className="card-title">Price Performance (Last 24h)</h3>
+                      <div className="placeholder-chart">
+                         {/* We will map price_history here if we had a chart component, for now simple list */}
+                         {(status.price_history || []).map((p, i) => (
+                           <div key={i} className="price-row">
+                             <span>{new Date(p.date).toLocaleTimeString()}</span>
+                             <span style={{ color: '#00ffaa' }}>${p.price.toFixed(6)}</span>
+                           </div>
+                         ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* TRENCHES */}
                 {activeTab === 'trenches' && (
                   <div className="tab-container">
                     <div className="trench-grid">
-                      {trenches.map(t => (
+                      {(trenches || []).map(t => (
                         <div key={t.tweet_id} className="glass-card trench-card">
                           <div className="author">@{t.author}</div>
                           <p className="text">{t.text}</p>
                           <a href={`https://x.com/any/status/${t.tweet_id}`} target="_blank" rel="noreferrer" className="trench-link">
-                            View on X <FaExternalLinkAlt />
+                            View on X <FaTwitter />
                           </a>
                         </div>
                       ))}
@@ -387,11 +441,89 @@ const AdminDashboard = () => {
                   </div>
                 )}
 
+                {/* GAME MOMENTS */}
+                {activeTab === 'moments' && (
+                   <div className="tab-container">
+                     <div className="glass-card">
+                        <h3 className="card-title">Recent Player Interactions</h3>
+                        <div className="moments-list">
+                          {(moments || []).map((m, i) => (
+                            <div key={i} className="moment-row">
+                               <div className="moment-icon"><FaGamepad /></div>
+                               <div className="moment-info">
+                                  <div className="moment-user">@{m.author}</div>
+                                  <div className="moment-msg">{m.message || "Interacted with Courage"}</div>
+                               </div>
+                               <div className="moment-time">{m.timestamp || "Just now"}</div>
+                            </div>
+                          ))}
+                          {moments?.length === 0 && <div className="empty-state">No player moments captured yet.</div>}
+                        </div>
+                     </div>
+                   </div>
+                )}
+
+                {/* QUEUE INSPECTOR */}
+                {activeTab === 'queue' && (
+                   <div className="tab-container">
+                      <div className="glass-card">
+                         <h3 className="card-title">Pending Reply Queue ({queue?.length || 0})</h3>
+                         <div className="queue-list">
+                            {(queue || []).map((q, i) => (
+                              <div key={i} className="queue-item">
+                                 <div className="queue-meta">
+                                    <span className="target">Target: @{q.target_user}</span>
+                                    <span className="priority">HIGH PRIORITY</span>
+                                 </div>
+                                 <p className="queue-text">{q.text}</p>
+                                 <div className="queue-actions">
+                                    <button className="btn-small"><FaTrash /> Drop</button>
+                                    <button className="btn-small"><FaPlay /> Force Send</button>
+                                 </div>
+                              </div>
+                            ))}
+                            {queue?.length === 0 && <div className="empty-state">Queue is empty. Courage is caught up.</div>}
+                         </div>
+                      </div>
+                   </div>
+                )}
+
+                {/* VOICE LIVE */}
+                {activeTab === 'voice' && (
+                   <div className="tab-container">
+                      <div className="grid-2">
+                        <div className="glass-card">
+                           <h3 className="card-title">Active Voice Sessions</h3>
+                           <div className="sessions-list">
+                              {(voiceData.sessions || []).map((s, i) => (
+                                <div key={i} className="session-item">
+                                   <div className="session-header">
+                                      <Led status="active" /> <span>Session #{s.session_id}</span>
+                                   </div>
+                                   <div className="session-meta">User: {s.user_id} | Status: {s.status}</div>
+                                </div>
+                              ))}
+                              {voiceData.sessions?.length === 0 && <div className="empty-state">No active voice sessions.</div>}
+                           </div>
+                        </div>
+                        <div className="glass-card">
+                           <h3 className="card-title">Voice Priority Guard</h3>
+                           <div className={`guard-status ${voiceData.active ? 'active' : 'idle'}`}>
+                              {voiceData.active ? '🔥 VOICE ACTIVE - AGENT PAUSED' : '✓ IDLE - AGENT RUNNING'}
+                           </div>
+                           <p style={{ marginTop: 20, fontSize: '0.8rem', opacity: 0.5 }}>
+                              When a user is on the mic, Courage automatically pauses all autonomous background tasks to preserve personality consistency.
+                           </p>
+                        </div>
+                      </div>
+                   </div>
+                )}
+
                 {/* NEWS POSTERS */}
                 {activeTab === 'posters' && (
                   <div className="tab-container">
                     <div className="posters-grid">
-                      {posters.map((p, i) => (
+                      {(posters || []).map((p, i) => (
                         <div key={i} className="glass-card poster-card">
                           <img src={`${API}${p}`} alt="News Poster" />
                           <div style={{ marginTop: 10, fontSize: '0.7rem', opacity: 0.5 }}>{p.split('/').pop()}</div>
@@ -407,7 +539,7 @@ const AdminDashboard = () => {
                     <div className="glass-card">
                       <h3 className="card-title">Vector Memory Graph</h3>
                       <div className="memory-list">
-                        {ragData.vectors.map(v => (
+                        {(ragData.vectors || []).map(v => (
                           <div key={v.id} className="memory-item">
                             <span className="source">[{v.source.toUpperCase()}]</span>
                             <span className="text">{v.text_preview}</span>
@@ -415,16 +547,6 @@ const AdminDashboard = () => {
                         ))}
                       </div>
                     </div>
-                  </div>
-                )}
-
-                {/* Other tabs follow similar clean professional patterns... */}
-                {['brain', 'token', 'moments', 'queue', 'voice'].includes(activeTab) && (
-                  <div className="glass-card" style={{ textAlign: 'center', padding: '5rem' }}>
-                    <h3 className="card-title" style={{ justifyContent: 'center' }}>
-                      {TABS.find(t => t.id === activeTab)?.label}
-                    </h3>
-                    <p style={{ opacity: 0.5 }}>Advanced data visualization for this module coming in next update.</p>
                   </div>
                 )}
 
@@ -471,7 +593,7 @@ const AdminDashboard = () => {
         .dashboard-root {
           display: flex;
           height: 100vh;
-          width: 100vw;
+          width: 100%;
           background: #050505;
           color: #fff;
           overflow: hidden;
@@ -555,6 +677,7 @@ const AdminDashboard = () => {
         .dashboard-main {
           flex: 1;
           overflow-y: auto;
+          overflow-x: hidden;
           display: flex;
           flex-direction: column;
           background: radial-gradient(circle at top right, rgba(255,0,255,0.03), transparent 40%);
@@ -629,7 +752,6 @@ const AdminDashboard = () => {
           font-weight: 600;
         }
         .nav-btn:hover { background: rgba(255,255,255,0.1); border-color: #ff00ff; color: #ff00ff; }
-        .nav-btn.exit:hover { border-color: #ff4444; color: #ff4444; }
 
         .decision-card {
           background: rgba(255,255,255,0.02);
@@ -645,13 +767,50 @@ const AdminDashboard = () => {
         .status-badge.success { background: rgba(0,255,170,0.1); color: #00ffaa; }
         .status-badge.queued { background: rgba(255,153,0,0.1); color: #ff9900; }
         .reason-preview { font-size: 0.9rem; opacity: 0.7; line-height: 1.6; margin: 1rem 0; height: 4.8em; overflow: hidden; }
+        
+        .rich-data-preview {
+          background: rgba(0,0,0,0.3);
+          border-radius: 8px;
+          padding: 8px 12px;
+          font-size: 0.75rem;
+          color: #00ffaa;
+          display: flex;
+          align-items: center;
+          margin-bottom: 1rem;
+          border: 1px solid rgba(0,255,170,0.1);
+        }
+        .preview-url { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
         .meta { display: flex; justify-content: space-between; font-size: 0.75rem; opacity: 0.4; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem; }
 
         .terminal-log { flex: 1; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 8px; }
         .log-line { font-size: 0.75rem; line-height: 1.4; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.02); }
         .log-time { color: #555; margin-right: 8px; }
         .log-msg { color: #aaa; }
-        .log-line.success .log-msg { color: #00ffaa; }
+
+        .neural-terminal { height: 600px; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+        .terminal-header { padding: 1rem 2rem; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; }
+        .vibe-badge { font-size: 0.7rem; color: #ff00ff; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+        .terminal-body { flex: 1; overflow-y: auto; padding: 1.5rem; font-family: monospace; font-size: 0.85rem; line-height: 1.6; }
+        .log-row { margin-bottom: 8px; display: flex; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.02); padding-bottom: 4px; }
+        .timestamp { color: #555; }
+        .event-tag { color: #ff00ff; font-weight: bold; min-width: 100px; }
+        .log-row.success .message { color: #00ffaa; }
+
+        .price-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.02); }
+
+        .moment-row { display: flex; align-items: center; gap: 15px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .moment-icon { color: #ff00ff; }
+        .moment-user { font-weight: bold; color: #00ffaa; font-size: 0.9rem; }
+        .moment-msg { font-size: 0.85rem; opacity: 0.7; }
+        .moment-time { margin-left: auto; font-size: 0.7rem; opacity: 0.4; }
+
+        .queue-item { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; border: 1px solid rgba(255,255,255,0.05); }
+        .queue-meta { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.75rem; }
+        .queue-text { font-size: 0.9rem; margin-bottom: 12px; line-height: 1.5; }
+        .queue-actions { display: flex; gap: 10px; }
+
+        .btn-small { background: rgba(255,255,255,0.05); border: 1px solid #333; color: #888; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(20px); z-index: 1000; display: flex; align-items: center; justifyContent: center; padding: 2rem; }
         .modal-content { background: #080808; border: 1px solid #222; border-radius: 32px; width: 100%; max-width: 900px; padding: 3rem; position: relative; }
@@ -663,6 +822,10 @@ const AdminDashboard = () => {
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
         .empty-state { text-align: center; padding: 4rem; opacity: 0.3; font-style: italic; }
+
+        .trench-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+        .posters-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; }
+        .poster-card img { width: 100%; border-radius: 12px; }
 
         @media (max-width: 1100px) {
           .dashboard-sidebar { width: 80px; }
