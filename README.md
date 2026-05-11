@@ -97,6 +97,19 @@ Score ≥ 80 overrides even a credit-capped state — alien/government/nuclear n
 4. **Credit cap** (`courage:x_credit_status = "capped"`) → idle_hype mode
 5. **Quiet trenches + no game moments** → proactive personality post
 
+### Real-Time Brain Heartbeat
+
+Every tick that passes all guards writes a **live timestamp** to `courage:last_brain_tick` in Redis. The Admin Dashboard's Sub-Agent Status card reads this key to show the true time since last brain activity — not the container boot time. This makes the dashboard accurate across long-running deployments without restarts.
+
+### Engagement Queue Circuit Breaker
+
+The `engagement_queue.py` worker runs a **spend-cap circuit breaker** independently of the brain loop:
+
+- On a `403 SpendCapReached` error from the X API, the worker sets a **30-minute pause** before retrying.
+- During the pause, all queued items (replies, news posts, game moments) accumulate safely — nothing is dropped.
+- The `spend_cap_active` flag is exposed in the Admin Dashboard's Overview tab as a red warning banner, and in the Queue Inspector as a dedicated banner.
+- Once the billing cycle clears, the worker resumes automatically with no manual intervention.
+
 ---
 
 ## ⚡ Event-Driven Sensor Architecture
@@ -193,6 +206,7 @@ Courage has semantic long-term memory — no external API, no LangChain.
 - **Storage**: NumPy byte arrays in SQLite `rag_vectors` table
 - **Retrieval**: Raw cosine similarity — top-K relevant memories per query
 - **Auto-embedded**: Trench tweets, token snapshots, daily summaries
+- **Docker Pre-bake**: The model is downloaded during the Docker image build (`server/Dockerfile`), not at runtime. This means RAG memory is available on the very first container startup — no cold-start model download delay, no `HAS_RAG_DEPS = False` failures on Sliplane.
 
 ---
 
@@ -221,17 +235,42 @@ Courage lives in four immersive **React Three Fiber** worlds (Sunrise, Noon, Eve
 
 ## 🎛️ Creator God-Mode Dashboard
 
-Real-time observability at `/api/admin`:
+Real-time observability at `/api/admin`. All data auto-refreshes every 30 seconds via a stable singleton interval (no request storms).
+
+### Tab Overview
+
+| Tab | What It Shows |
+|-----|---------------|
+| **Overview** | Groq circuit breaker state, sub-agent heartbeats (real timestamps), $RCR price, memory vector count, latest decisions, trench activity chart, sensor frequency slider. Shows spend-cap warning banner when active. |
+| **Live Brain** | Card and Timeline views of the last 30 autonomous decisions from SQLite `autonomous_ticks`. |
+| **Decisions** | Full scrollable decision log with reasoning, tool used, success/fail status. Click any row for a full trace modal. |
+| **Token Hustle** | $RCR live price, 24h change, volume, market cap, X API spend, auto-tweet counter, price history chart. |
+| **Trenches** | All captured `tw_trench_tweets` with processed/unprocessed status and cashtag. |
+| **News Posters** | Grid of generated "Courageous Chronicle" newspaper images saved to `public/news_posters/`. |
+| **Game Moments** | Pending game moments in Redis queue + recent history. |
+| **Queue Inspector** | Unified stream of Reply Queue + Game Moments + Trench Tweets with color-coded source badges. Spend-cap warning banner if `403` was hit. |
+| **Voice Live** | Active WebSocket voice sessions with message count and timestamp. |
+| **RAG Memory** | Recent memory vector embeddings — source, content preview, creation time. |
+
+### Key API Endpoints
 
 | Endpoint | Returns |
 |---------|---------|
-| `GET /api/admin/system-status` | Full metrics — voice, queues, $RCR price, memory vectors |
-| `GET /api/admin/live-activity` | Latest 30 activity messages |
-| `GET /api/admin/recent-decisions` | Latest 50 brain decisions with args + execution status |
-| `GET /api/admin/history` | Full decision history |
+| `GET /api/admin/system-status` | Full metrics — voice, queues, $RCR price, memory vectors, groq circuit breaker, spend cap, auto tweets today |
+| `GET /api/admin/live-activity` | Latest 20 activity messages from Redis stream |
+| `GET /api/admin/recent-decisions` | Latest 30 brain decisions with tool args + execution status |
+| `GET /api/admin/history` | Full decision history (aliased from recent-decisions) |
+| `GET /api/admin/queues` | Unified queue stream: reply queue + game moments + trench tweets |
+| `GET /api/admin/trenches` | Captured trench tweets from `tw_trench_tweets` |
+| `GET /api/admin/news-posters` | List of poster images from `public/news_posters/` |
+| `GET /api/admin/game-moments` | Pending + history from Redis |
+| `GET /api/admin/voice-sessions` | Active WebSocket voice sessions |
+| `GET /api/admin/rag-graph` | Top memory vectors for graph/table view |
 | `POST /api/admin/override_frequency` | Change sensor cooldown in Redis without restart |
-| `POST /api/autonomous/trigger-now` | Fire tick immediately |
+| `POST /api/autonomous/trigger-now` | Fire brain tick immediately |
 | `POST /api/autonomous/reset-circuit-breaker` | Clear Groq 429 backoff |
+| `POST /api/autonomous/trench-scan` | Manual trench tweet fetch |
+| `DELETE /api/admin/queues` | Clear the reply queue |
 
 ---
 
@@ -351,6 +390,7 @@ Courage is built to react to all of these automatically:
 | 🤖 Groq 429 hit | Exception in `decide_and_act` | 1-hour circuit breaker set, both voice + loop respect it |
 | 😴 Quiet day | No trenches, no game moments, low signal | `proactive_personality_post` (GM/GN/hype) |
 | 📉 Bear market | CoinDesk crash headlines (signal 60) | Brain reacts with Courage's "brave despite fear" persona |
+| 💸 X spend cap hit | `403 SpendCapReached` in engagement queue | 30-min queue pause; dashboard shows red warning banner; tweets accumulate safely and auto-resume |
 
 ---
 
