@@ -1329,10 +1329,6 @@ const AdminDashboard = () => {
                     </tbody>
                   </table>
                 </div>
-                
-                <!-- removed -->, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '0.8rem', opacity: 0.4 }}>Memory clustering visualization coming in Phase 14...</span>
-                </div>
               </div>
             )}
 
