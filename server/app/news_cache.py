@@ -21,7 +21,7 @@ async def get_redis():
     return await get_redis_client()
 
 # ── SQLite schema ──────────────────────────────────────────────────────────────
-CREATE_TABLE = """
+CREATE_TABLE_ARTICLES = """
 CREATE TABLE IF NOT EXISTS articles (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     title        TEXT NOT NULL,
@@ -39,10 +39,35 @@ CREATE TABLE IF NOT EXISTS articles (
 )
 """
 
+CREATE_TABLE_TICKS = """
+CREATE TABLE IF NOT EXISTS autonomous_ticks (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp    TEXT,
+    action       TEXT,
+    reasoning    TEXT,
+    tool_used    TEXT,
+    success      INTEGER,
+    data_preview TEXT
+)
+"""
+
+CREATE_TABLE_RAG = """
+CREATE TABLE IF NOT EXISTS rag_vectors (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    content      TEXT,
+    embedding    BLOB,
+    source       TEXT,
+    metadata     TEXT,
+    created_at   REAL
+)
+"""
+
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("PRAGMA journal_mode=WAL")
-        await db.execute(CREATE_TABLE)
+        await db.execute(CREATE_TABLE_ARTICLES)
+        await db.execute(CREATE_TABLE_TICKS)
+        await db.execute(CREATE_TABLE_RAG)
         await db.commit()
 
 # ── Article normalisation ──────────────────────────────────────────────────────

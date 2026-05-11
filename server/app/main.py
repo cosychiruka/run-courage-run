@@ -862,10 +862,20 @@ async def _get_brain_decisions(limit: int = 30):
         
         decisions = []
         for row in rows:
+            raw = row["reasoning"] or ""
+            data_preview = None
+            if raw.strip().startswith('{'):
+                try:
+                    args = json.loads(raw)
+                    data_preview = args.get('article_url') or args.get('url')
+                except:
+                    pass
+
             decisions.append({
                 "time": row["timestamp"].split("T")[1][:8] if row["timestamp"] and "T" in row["timestamp"] else (row["timestamp"] or ""),
                 "action": row["action"],
-                "reasoning": row["reasoning"] or "No reasoning provided.",
+                "reasoning": raw or "No reasoning provided.",
+                "data_preview": data_preview,
                 "tool_used": row["tool_used"],
                 "success": bool(row["success"]),
                 "timestamp": row["timestamp"]
