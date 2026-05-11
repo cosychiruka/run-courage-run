@@ -14,10 +14,20 @@ from app.redis_utils import get_redis_client, track_x_search_cost
 async def fetch_trench_tweets(cashtag: str = "$RCR", limit: int = 50, since_days: int = 1):
     """Bulk fetch new cashtag tweets → save to DB → return count."""
     
-    # PHASE 5.8: Configurable Cooldown
+    # PHASE 5.8: Configurable Cooldown (with Hustle Mode Intelligence)
     _redis = await get_redis_client()
     if _redis:
         cooldown_min = int(await _redis.get("courage:sensor_cooldown_minutes") or 25)
+        
+        # === HUSTLE OVERRIDE: Faster scans during pumps ===
+        try:
+            from app.autonomous_loop import _get_rcr_stats
+            stats = await _get_rcr_stats()
+            if float(stats.get("change_24h", 0)) > 5.0:
+                cooldown_min = max(5, int(cooldown_min / 2))
+                print(f"[TRENCH HUSTLE] Pump detected! Cooldown cut to {cooldown_min}m")
+        except: pass
+
         last_sensor = await _redis.get("courage:last_sensor_search")
         if last_sensor and (time.time() - float(last_sensor)) < (cooldown_min * 60):
             print(f"[TRENCH] Cooldown active ({cooldown_min} min) — skipping")
@@ -47,15 +57,20 @@ async def fetch_trench_tweets(cashtag: str = "$RCR", limit: int = 50, since_days
         added_count = 0
         for t in tweets.data:
             try:
-                await tw_mem.record_trench_tweet(
-                    tweet_id=str(t.id),
-                    author=str(getattr(t, "author_id", t.id)),
-                    text=t.text,
-                    cashtag=cashtag,
-                )
+                tweet_data = {
+                    "tweet_id": str(t.id),
+                    "author": str(getattr(t, "author_id", t.id)),
+                    "text": t.text,
+                    "cashtag": cashtag,
+                }
+                await tw_mem.record_trench_tweet(**tweet_data)
+                
+                # INTEGRATION: Push to RAG for Mission Control visualization
+                await tw_mem.save_trench_tweet_with_rag(tweet_data)
+                
                 added_count += 1
             except Exception as insert_err:
-                print(f"[TRENCH] Insert skipped (dupe or error): {insert_err}")
+                print(f"[TRENCH] Insert/RAG skipped: {insert_err}")
 
         return added_count
     except Exception as e:
