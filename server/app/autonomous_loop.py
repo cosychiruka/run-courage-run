@@ -51,7 +51,7 @@ def _score_article(article: dict) -> int:
 # ── Phase 5 Globals ───────────────────────────────────────────────────────────
 groq_client = AsyncGroq(api_key=GROQ_API_KEY)
 LAST_REACTIVE_TICK = 0
-REACTIVE_COOLDOWN_SECONDS = 180 
+REACTIVE_COOLDOWN_SECONDS = 360 # Default fallback only
 _redis = None
 
 def _get_tools_spec():
@@ -531,15 +531,38 @@ async def log_brain_decision(action: str, text: str, executed: bool = False, err
 # ── Heartbeat ──────────────────────────────────────────────────────────────────
 
 async def autonomous_tick(x_client=None, tweet_image_fn=None):
-    """Global heartbeat — called every few minutes by scheduler."""
+    """Global heartbeat — respects the dashboard slider and Redis-backed frequency."""
+    global _redis
+    if _redis is None:
+        from app.redis_utils import get_redis_client
+        _redis = await get_redis_client()
+
     now = time.time()
-    if now - LAST_REACTIVE_TICK < REACTIVE_COOLDOWN_SECONDS:
+    
+    # DYNAMIC COOLDOWN: Read directly from your dashboard slider setting
+    cooldown_min = 25
+    if _redis:
+        try:
+            val = await _redis.get("courage:sensor_cooldown_minutes")
+            if val: cooldown_min = int(val)
+        except: pass
+    
+    cooldown_sec = cooldown_min * 60
+    if now - LAST_REACTIVE_TICK < cooldown_sec:
+        # Respect the user's manual slider setting
         return
 
     state = await _gather_state()
     await decide_and_act(state, x_client=x_client, tweet_image_fn=tweet_image_fn)
 
 async def force_autonomous_tick(x_client=None, tweet_image_fn=None, event_type: str = None):
-    """Force a tick (accepts event_type for compatibility)."""
+    """Force a tick bypass for urgent events (Market Surges / Game Moments)."""
+    now = time.time()
+    # Micro-debounce (30s) to prevent event-loop cascades
+    if now - LAST_REACTIVE_TICK < 30:
+        print(f"[FORCE TICK] Debounce active for {event_type} — skipping")
+        return
+
+    print(f"[FORCE TICK] Bypassing cooldown for: {event_type}")
     state = await _gather_state()
     await decide_and_act(state, x_client=x_client, tweet_image_fn=tweet_image_fn)

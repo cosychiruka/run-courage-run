@@ -163,7 +163,7 @@ async def lifespan(app: FastAPI):
                 scheduler.add_job(prune_twitter_memory,  "interval", weeks=1,     id="memory_prune")
                 scheduler.add_job(
                     autonomous_tick, "interval",
-                    minutes=AUTONOMOUS_INTERVAL_MINUTES, id="autonomous", jitter=60,
+                    minutes=1, id="autonomous", # Heartbeat is now 1m; actual logic respects the dashboard slider
                     kwargs={"x_client": x_client, "tweet_image_fn": _tweet_image_fn},
                 )
                 scheduler.start()
