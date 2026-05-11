@@ -712,7 +712,30 @@ const AdminDashboard = () => {
   };
 
   const copyToClipboard = (text) => {
-    navigator.clipboard?.writeText(text).then(() => showToast('Copied!')).catch(() => showToast('Copy failed', 'err'));
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text)
+        .then(() => showToast('Copied!'))
+        .catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  };
+
+  const fallbackCopy = (text) => {
+    try {
+      const el = document.createElement('textarea');
+      el.value = text;
+      el.setAttribute('readonly', '');
+      el.style.position = 'absolute';
+      el.style.left = '-9999px';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      showToast('Copied! (Fallback)');
+    } catch (err) {
+      showToast('Copy failed', 'err');
+    }
   };
 
   const exportDecisions = () => {
@@ -1719,10 +1742,6 @@ const AdminDashboard = () => {
           color: #00ffaa !important;
         }
         
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
         .spin { animation: spin 1s linear infinite; }
 
         /* Decision Cards V2 */
@@ -1758,10 +1777,6 @@ const AdminDashboard = () => {
           opacity: 0.8;
         }
         .glass-table th { padding: 8px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
-        .stat-sub { font-size: 0.72rem; opacity: 0.45; margin: 4px 0 0; }
-        .agent-row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
-        .agent-name { flex: 1; font-size: 0.85rem; }
-        .agent-detail { font-size: 0.75rem; opacity: 0.5; font-family: monospace; }
         .guard-status { padding: 1.5rem; border-radius: 16px; font-weight: bold; font-family: 'Bangers', cursive; letter-spacing: 1px; text-align: center; }
         .guard-status.active { background: rgba(0,255,170,0.1); color: #00ffaa; border: 1px solid rgba(0,255,170,0.2); }
         .guard-status.idle { background: rgba(255,255,255,0.05); color: #666; border: 1px solid rgba(255,255,255,0.1); }
