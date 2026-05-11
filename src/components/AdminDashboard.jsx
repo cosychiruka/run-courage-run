@@ -6,7 +6,7 @@ import {
   FaTrash, FaSync, FaCheckCircle, FaClock, FaCopy, FaDownload,
   FaMicrophone, FaSitemap
 } from 'react-icons/fa';
-import { ErrorBoundary } from './ErrorBoundary';
+import ErrorBoundary from './ErrorBoundary';
 
 const TABS = [
   { id: 'overview',  label: 'Overview',      icon: FaBolt      },
