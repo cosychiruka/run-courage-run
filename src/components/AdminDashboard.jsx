@@ -496,7 +496,11 @@ const AdminDashboard = () => {
       loadStatus(), loadAgents(), loadBrain(),
       loadTrenches(), loadPosters(), loadMoments(), loadQueue(),
       loadVoiceData(), loadRagData(),
-    ]).finally(() => setInitialLoad(false));
+    ]).then(async () => {
+      const mCount = await safeFetch(`${API}/api/admin/memory-vectors`);
+      if (mCount) setMemory(mCount);
+      setInitialLoad(false);
+    });
   }, []);
 
   // ── 30s refresh — only overview stats + current tab ─────────────────────────
@@ -521,6 +525,8 @@ const AdminDashboard = () => {
       loadTrenches(), loadPosters(), loadMoments(), loadQueue(),
       loadVoiceData(), loadRagData(),
     ]);
+    const mCount = await safeFetch(`${API}/api/admin/memory-vectors`);
+    if (mCount) setMemory(mCount);
     const decData = await safeFetch(`${API}/api/admin/recent-decisions`);
     if (decData) setDecisions(decData);
 
