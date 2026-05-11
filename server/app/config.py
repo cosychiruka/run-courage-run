@@ -8,8 +8,9 @@ GROQ_API_KEY     = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL       = os.getenv("GROQ_MODEL",      "llama-3.3-70b-versatile")      # smart: tool calls & reasoning (high performance, widely available)
 GROQ_MODEL_FAST  = os.getenv("GROQ_MODEL_FAST", "llama-3.1-8b-instant")                       # fast: final no-tool answer pass ($0.05/$0.08 per 1M, 840 TPS)
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
-DB_PATH   = os.getenv("DB_PATH",   "./data/courage.db")
+DB_PATH   = os.getenv("DB_PATH",   os.path.join(BASE_DIR, "data", "courage.db"))
 
 GNEWS_API_KEY     = os.getenv("GNEWS_API_KEY",    "")
 GUARDIAN_API_KEY  = os.getenv("GUARDIAN_API_KEY", "test")

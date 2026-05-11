@@ -138,12 +138,33 @@ const styles = {
 const safeFetch = async (url, opts) => {
   try {
     const r = await fetch(url, opts);
-    if (!r.ok) return null;
-    return r.json();
+    if (!r.ok) {
+       console.warn(`Fetch non-ok: ${url} -> ${r.status}`);
+       return null;
+    }
+    const data = await r.json();
+    console.log(`Fetch Success: ${url}`, data);
+    return data;
   } catch (err) {
     console.error("Fetch Error:", url, err);
     return null;
   }
+};
+
+const SafeImage = ({ src, alt, style, className }) => {
+  const [error, setError] = useState(false);
+  if (error || !src) return <div style={{ ...style, background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', opacity: 0.3 }}>Media Unavailable</div>;
+  
+  return (
+    <img 
+      crossOrigin="anonymous" 
+      src={src} 
+      alt={alt} 
+      style={style} 
+      className={className} 
+      onError={() => setError(true)}
+    />
+  );
 };
 
 const parseReasoning = (raw) => {
@@ -249,7 +270,7 @@ const DecisionCard = ({ dec, onSelect }) => {
 
       {isImage ? (
         <div style={{ width: '100%', height: 160, borderRadius: 12, overflow: 'hidden', background: '#000', border: '1px solid rgba(255,255,255,0.1)' }}>
-          <img crossOrigin="anonymous" src={dataUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => e.target.style.display='none'} />
+          <SafeImage src={dataUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
       ) : dataUrl ? (
         <div style={{ 
@@ -373,8 +394,7 @@ const MemoryPreview = ({ content }) => {
           border: '1px solid rgba(255,0,255,0.2)', background: '#000',
           marginTop: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
         }}>
-          <img 
-            crossOrigin="anonymous" 
+          <SafeImage 
             src={url} 
             alt="memory-preview" 
             style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
@@ -388,35 +408,79 @@ const MemoryPreview = ({ content }) => {
 // ── Sub-component: SensorControl ─────────────────────────────────────────────
 const SensorControl = ({ currentFreq, onUpdate, API, showToast }) => {
   const [freq, setFreq] = useState(currentFreq || 25);
+  const [saving, setSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   
   useEffect(() => {
     if (currentFreq) setFreq(currentFreq);
   }, [currentFreq]);
 
   const apply = async () => {
-    const d = await safeFetch(`${API}/api/admin/update-sensor-cooldown?minutes=${freq}`, {
+    setSaving(true);
+    const d = await safeFetch(`${API}/api/admin/set-sensor-cooldown?minutes=${freq}`, {
       method: 'POST',
     });
+    setSaving(false);
     if (d) {
-      showToast('Sensor frequency updated!');
+      setJustSaved(true);
+      showToast('Sensor frequency updated and saved to global config!');
       onUpdate();
+      setTimeout(() => setJustSaved(false), 2000);
+    } else {
+      showToast('Failed to update sensor frequency', 'err');
     }
   };
 
   return (
-    <div className="sensor-control-card glass-card">
-      <h3 className="card-title"><FaGamepad style={{ marginRight: 8 }} /> Game Sensor Frequency</h3>
-      <div className="sensor-slider-wrap">
+    <div className="sensor-control-card glass-card" style={{ position: 'relative', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h3 className="card-title" style={{ margin: 0 }}><FaGamepad style={{ marginRight: 8 }} /> Pulse Frequency</h3>
+        <span style={{ 
+          background: '#ff00ff22', color: '#ff00ff', padding: '4px 12px', borderRadius: 20, 
+          fontSize: '0.8rem', fontWeight: 'bold', border: '1px solid #ff00ff44',
+          boxShadow: '0 0 10px rgba(255,0,255,0.1)'
+        }}>
+          {freq}m interval
+        </span>
+      </div>
+
+      <div className="sensor-slider-wrap" style={{ marginBottom: '1.5rem' }}>
         <input 
           type="range" 
           min="5" 
           max="60" 
+          step="5"
+          className="spruce-slider"
           value={freq} 
           onChange={e => setFreq(parseInt(e.target.value))} 
         />
-        <div className="sensor-value">Search every <strong>{freq}m</strong></div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: '0.65rem', opacity: 0.3, letterSpacing: 1 }}>
+          <span>HYPER (5M)</span>
+          <span>STABLE (60M)</span>
+        </div>
       </div>
-      <button className="btn-pink" onClick={apply}>Apply Override</button>
+
+      <button 
+        className={justSaved ? "btn-success" : "btn-pink"} 
+        onClick={apply} 
+        disabled={saving}
+        style={{ 
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        }}
+      >
+        {saving ? <FaSync className="spin" /> : justSaved ? <FaCheckCircle /> : <FaBolt />}
+        {saving ? 'UPDATING...' : justSaved ? 'APPLIED!' : 'SYNC FREQUENCY'}
+      </button>
+
+      {justSaved && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+          style={{ position: 'absolute', top: 10, right: 10, color: '#00ffaa' }}
+        >
+          <FaCheckCircle size={20} />
+        </motion.div>
+      )}
     </div>
   );
 };
@@ -433,7 +497,7 @@ const MemorySprucePreview = ({ content }) => {
     <div style={{ marginTop: 12 }}>
       {isImage ? (
         <div style={{ width: '100%', maxHeight: 300, borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,0,255,0.2)', background: '#000' }}>
-          <img crossOrigin="anonymous" src={url} alt="memory-big-preview" style={{ width: '100%', display: 'block' }} />
+          <SafeImage src={url} alt="memory-big-preview" style={{ width: '100%', display: 'block' }} />
         </div>
       ) : (
         <div style={{ background: 'rgba(255,0,255,0.05)', padding: 20, borderRadius: 16, border: '1px solid rgba(255,0,255,0.1)', display: 'flex', alignItems: 'center', gap: 15 }}>
@@ -1086,12 +1150,10 @@ const AdminDashboard = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
                     {posters.map((p, i) => (
                       <div key={i} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #222', background: '#0a0a0a' }}>
-                        <img
-                          crossOrigin="anonymous"
+                        <SafeImage
                           src={typeof p === 'string' ? `${API}${p}` : `${API}${p.url}`}
                           alt={`Poster ${i + 1}`}
                           style={{ width: '100%', display: 'block', objectFit: 'cover' }}
-                          onError={e => { e.target.style.display = 'none'; }}
                         />
                         <p style={{ fontSize: '0.7rem', opacity: 0.5, margin: '6px 10px', fontFamily: 'monospace' }}>
                           {typeof p === 'string' ? p.split('/').pop() : (p.time || p.url?.split('/').pop())}
@@ -1267,8 +1329,8 @@ const AdminDashboard = () => {
                     </tbody>
                   </table>
                 </div>
-                {/* Visualizer placeholder for Phase 14 */}
-                <div style={{ marginTop: 20, height: 100, background: 'linear-gradient(90deg, #ff00ff11, #00ffaa11)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                
+                <!-- removed -->, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span style={{ fontSize: '0.8rem', opacity: 0.4 }}>Memory clustering visualization coming in Phase 14...</span>
                 </div>
               </div>
@@ -1538,20 +1600,43 @@ const AdminDashboard = () => {
         .log-line.post_success .log-msg { color: #00ffaa; font-weight: bold; }
         .log-line.error .log-msg { color: #ff4444; }
 
-        /* Sensor Slider */
-        .sensor-slider-wrap {
-          margin: 1.5rem 0;
-        }
-        .sensor-slider-wrap input {
+        /* SPRUCE SLIDER */
+        .spruce-slider {
+          -webkit-appearance: none;
           width: 100%;
-          accent-color: #ff00ff;
+          height: 6px;
+          background: #1a1a1a;
+          border-radius: 10px;
+          outline: none;
+          margin: 15px 0;
         }
-        .sensor-value {
-          text-align: center;
-          margin-top: 10px;
-          font-size: 0.9rem;
-          opacity: 0.8;
+        .spruce-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 20px;
+          height: 20px;
+          background: #ff00ff;
+          border-radius: 50%;
+          cursor: pointer;
+          box-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
+          border: 2px solid #fff;
+          transition: transform 0.2s;
         }
+        .spruce-slider::-webkit-slider-thumb:hover {
+          transform: scale(1.2);
+        }
+        
+        .btn-success {
+          background: rgba(0, 255, 170, 0.15) !important;
+          border: 1px solid #00ffaa !important;
+          color: #00ffaa !important;
+        }
+        
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .spin { animation: spin 1s linear infinite; }
 
         /* Decision Cards V2 */
         .decision-card-v2 {
