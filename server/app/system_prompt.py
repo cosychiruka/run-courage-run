@@ -58,7 +58,7 @@ SYSTEM_PROMPT_MINIMAL = f"""\
 - trending_topics: weave into posts naturally when relevant to crypto/meme culture
 - news[].signal_score: 80=EXTREME (alien/classified/nuclear), 60=HIGH (crypto pump/scandal/hack), 40=MEDIUM, 20=LOW
 - top_news_signal: score of the single most important news item this tick
-- mode: "normal"=full toolkit available, "idle_hype"=use proactive_personality_post only
+- mode: "normal"=full toolkit available, "cautious"=use proactive_personality_post only (conserve credits)
 - credit_override: present only when EXTREME news overrides a credit cap — post no matter what
 
 == DECISION TREE (follow this priority order every tick) ==
@@ -66,7 +66,8 @@ SYSTEM_PROMPT_MINIMAL = f"""\
 2. top_news_signal ≥ 60 → auto_news_react with the top-scored news item (pass article_url + image_url from news array)
 3. unreplied_trenches_count > 0 → engagement_dog_suggest then auto_reply_with_art
 4. rcr_or_sol_stats shows a surge or positive 24h → auto_hustle_post celebrating the move
-5. mode == "idle_hype" or everything is quiet → proactive_personality_post (pick vibe from day_phase: sunrise→gm, midnight→gn, else→hype or random)
+5. QUIET WORLD → use search_tweets for '$RCR' or 'Solana' then engage OR use proactive_personality_post
+6. EXTREME CAUTION → internal_reflection (no public post)
 
 == TWEET RULES ==
 - NEVER include external URLs in tweet text (attach via the article_url parameter instead).

@@ -51,7 +51,7 @@ def _score_article(article: dict) -> int:
 # ── Phase 5 Globals ───────────────────────────────────────────────────────────
 groq_client = AsyncGroq(api_key=GROQ_API_KEY)
 LAST_REACTIVE_TICK = 0
-REACTIVE_COOLDOWN_SECONDS = 360 
+REACTIVE_COOLDOWN_SECONDS = 180 
 _redis = None
 
 def _get_tools_spec():
@@ -249,15 +249,15 @@ async def _gather_state():
                 "overriding credit cap. React now."
             )
     elif credit_status == "capped":
-        state["mode"] = "idle_hype"
+        state["mode"] = "cautious"
         state["idle_reason"] = "credits_capped"
     elif trench_count == 0 and not game_active:
-        state["mode"] = "idle_hype"
+        state["mode"] = "cautious"
         state["idle_reason"] = "quiet_trenches"
     else:
         state["mode"] = "normal"
 
-    if state.get("mode") == "idle_hype" or trench_count == 0:
+    if state.get("mode") == "cautious" or trench_count == 0:
         state["suggested_action"] = "proactive_personality_post"
 
     return state
@@ -441,12 +441,11 @@ async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=Non
             await log_live_activity(f"Proactive {vibe} post dropped!")
             return result
 
-        elif name == "idle_hype_post":
-            text = f"Spreading Courage 🐕🦺 {args.get('reason')} — even when it's quiet, we keep the energy high! GM legends, $RCR to the moon!"
-            # Phase 3.0: Truly safe mode — don't call post_tweet if we are credit-capped
-            # We just log it to the brain/live-feed so the user sees he is still active
-            await log_live_activity(f"Internal Hype Generated: {text[:60]}...")
-            return {"status": "success", "message": "Idle hype generated internally (Safe Mode)"}
+        elif name == "internal_reflection":
+            thought = args.get("thought", "reflecting on Nowhere")
+            # Safe mode reflection — does not hit X API
+            await log_live_activity(f"Internal Reflection: {thought[:60]}...")
+            return {"status": "success", "message": "Reflection saved to internal memory (Safe Mode)"}
 
         elif name == "art_dog_generate":
             result = await execute_tool("art_dog_generate", {
@@ -507,7 +506,7 @@ async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=Non
                 await _redis.set("courage:x_credit_status", "capped", ex=3600)  # remember for 1 hour
                 # Force a fun non-X action
                 from app.tools import execute_tool
-                return await execute_tool("idle_hype_post", {"reason": "credits depleted"})
+                return await execute_tool("internal_reflection", {"thought": "credits depleted — staying quiet but brave"})
         
         return {"status": "failed", "error": err_str}
 

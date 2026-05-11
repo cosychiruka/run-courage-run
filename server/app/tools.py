@@ -175,14 +175,14 @@ TOOL_SCHEMAS = [
     {
         "type": "function",
         "function": {
-            "name": "idle_hype_post",
-            "description": "When trenches are quiet, credits are low, or no urgent events — post fun, proactive 'Spreading Courage' content (GM/GN, random meme, SOL update, hype).",
+            "name": "internal_reflection",
+            "description": "Dream or reflect internally when credits are low, when you feel cautious, or when you just want to think without posting publicly. This does NOT post to Twitter.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "reason": {"type": "string", "description": "Why we are posting (quiet, credits low, etc.)"}
+                    "thought": {"type": "string", "description": "What you are reflecting on"}
                 },
-                "required": ["reason"]
+                "required": ["thought"]
             }
         }
     },
