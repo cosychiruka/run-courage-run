@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaRobot, FaBrain, FaBolt, FaHistory, FaChartLine,
   FaUsers, FaDog, FaNewspaper, FaGamepad, FaList,
-  FaTrash, FaSync, FaCheckCircle, FaClock, FaCopy, FaDownload
+  FaTrash, FaSync, FaCheckCircle, FaClock, FaCopy, FaDownload,
+  FaMicrophone, FaSitemap
 } from 'react-icons/fa';
 import { ErrorBoundary } from './ErrorBoundary';
 
@@ -16,6 +17,8 @@ const TABS = [
   { id: 'posters',   label: 'News Posters',  icon: FaNewspaper },
   { id: 'moments',   label: 'Game Moments',  icon: FaGamepad   },
   { id: 'queue',     label: '🔄 Queue Inspector',   icon: FaList      },
+  { id: 'voice',     label: '🎤 Voice Live',        icon: FaMicrophone },
+  { id: 'rag',       label: '🧬 RAG Memory Graph',  icon: FaSitemap    },
 ];
 
 const API = import.meta.env.VITE_BACKEND_URL || '';
@@ -325,6 +328,8 @@ const AdminDashboard = () => {
   const [queueData, setQueueData] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [viewMode, setViewMode] = useState('card'); // 'card' or 'timeline'
+  const [voiceData, setVoiceData] = useState({ active: false, sessions: [], count: 0 });
+  const [ragData, setRagData] = useState({ vectors: [] });
 
   // ── Fetch helpers — merge into existing state to avoid flicker ───────────────
   const loadStatus = useCallback(async () => {
@@ -383,11 +388,22 @@ const AdminDashboard = () => {
     if (d) setQueueData(d);
   }, []);
 
+  const loadVoiceData = useCallback(async () => {
+    const d = await safeFetch(`${API}/api/admin/voice-sessions`);
+    if (d) setVoiceData(d);
+  }, []);
+
+  const loadRagData = useCallback(async () => {
+    const d = await safeFetch(`${API}/api/admin/rag-graph`);
+    if (d) setRagData(d);
+  }, []);
+
   // ── Initial load: fetch everything ──────────────────────────────────────────
   useEffect(() => {
     Promise.all([
       loadStatus(), loadAgents(), loadBrain(),
       loadTrenches(), loadPosters(), loadMoments(), loadQueue(),
+      loadVoiceData(), loadRagData(),
     ]).finally(() => setInitialLoad(false));
   }, []);
 
@@ -398,6 +414,7 @@ const AdminDashboard = () => {
       const loaders = {
         brain: loadBrain, decisions: loadBrain, trenches: loadTrenches,
         posters: loadPosters, moments: loadMoments, queue: loadQueue,
+        voice: loadVoiceData, rag: loadRagData,
       };
       if (loaders[activeTab]) await loaders[activeTab]();
     }, 30000);
@@ -410,6 +427,7 @@ const AdminDashboard = () => {
     await Promise.all([
       loadStatus(), loadAgents(), loadBrain(),
       loadTrenches(), loadPosters(), loadMoments(), loadQueue(),
+      loadVoiceData(), loadRagData(),
     ]);
     const decData = await safeFetch(`${API}/api/admin/recent-decisions`);
     if (decData) setDecisions(decData);
@@ -495,11 +513,23 @@ const AdminDashboard = () => {
     const d = await safeFetch(`${API}/api/admin/queues/process`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ queue_name: queueName, index })
+      body: JSON.stringify({ queue_name: queueName, item_index: index })
     });
     if (d) {
-      showToast(d.status === 'success' ? 'Item processed!' : 'Processing failed', d.status === 'success' ? 'ok' : 'err');
+      showToast(d.status === 'success' || d.status === 'processed' ? 'Item processed!' : 'Processing failed', (d.status === 'success' || d.status === 'processed') ? 'ok' : 'err');
       loadQueue();
+    }
+  };
+
+  const endVoiceSession = async (sessionId) => {
+    const d = await safeFetch(`${API}/api/admin/voice-sessions/end`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId })
+    });
+    if (d) {
+      showToast('Session ended');
+      loadVoiceData();
     }
   };
 
@@ -968,6 +998,91 @@ const AdminDashboard = () => {
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── VOICE LIVE ──────────────────────────────────────────────── */}
+            {activeTab === 'voice' && (
+              <div className="glass-card" style={styles.card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                  <h3 style={{ ...styles.cardTitle, margin: 0 }}>🎤 Voice Sessions Live • {voiceData.count || 0} active</h3>
+                  <span style={{ 
+                    background: voiceData.active ? '#00ffaa22' : '#333', 
+                    color: voiceData.active ? '#00ffaa' : '#888',
+                    padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 'bold'
+                  }}>
+                    {voiceData.active ? '🟢 GLOBAL VOICE ACTIVE' : '⚪ IDLE'}
+                  </span>
+                </div>
+                
+                <div style={styles.grid2}>
+                  {voiceData.sessions.length === 0 ? (
+                    <p style={{ opacity: 0.4, gridColumn: '1/-1', textAlign: 'center', padding: '2rem' }}>No active voice sessions found.</p>
+                  ) : (
+                    voiceData.sessions.map(s => (
+                      <div key={s.session_id} className="glass-card" style={{ ...styles.card, background: 'rgba(255,255,255,0.01)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <strong style={{ color: '#ff00ff', fontSize: '1.1rem' }}>Session {s.session_id}</strong>
+                            <p style={{ margin: '4px 0', fontSize: '0.85rem' }}>User: <span style={{ color: '#00ffaa' }}>{s.user_id}</span></p>
+                          </div>
+                          <button 
+                            className="btn-small" 
+                            style={{ borderColor: '#ff4444', color: '#ff4444', background: 'transparent', padding: '4px 8px', borderRadius: 6, cursor: 'pointer' }}
+                            onClick={() => endVoiceSession(s.session_id)}
+                          >
+                            ⛔ End Session
+                          </button>
+                        </div>
+                        <div style={{ marginTop: 12, display: 'flex', gap: 15, fontSize: '0.75rem', opacity: 0.6 }}>
+                          <span>💬 {s.messages} msgs</span>
+                          <span>🕒 Started {new Date(s.started).toLocaleTimeString()}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── RAG MEMORY GRAPH ────────────────────────────────────────── */}
+            {activeTab === 'rag' && (
+              <div className="glass-card" style={styles.card}>
+                <h3 style={styles.cardTitle}>🧬 RAG Memory Vault • {ragData.vectors.length} latest vectors</h3>
+                <div style={{ ...styles.feedScroll, maxHeight: '65vh' }}>
+                  <table className="glass-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', opacity: 0.6 }}>
+                        <th style={{ textAlign: 'left', padding: '12px 8px' }}>Memory Preview</th>
+                        <th style={{ textAlign: 'center', padding: '12px 8px' }}>Age (Days)</th>
+                        <th style={{ textAlign: 'right', padding: '12px 8px' }}>Last Accessed</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ragData.vectors.map(v => {
+                        const ageDays = Math.floor((Date.now() - new Date(v.embedding_timestamp).getTime()) / 86400000);
+                        return (
+                          <tr key={v.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                            <td style={{ padding: '12px 8px', fontSize: '0.85rem', opacity: 0.85 }}>{v.text_preview?.substring(0, 100)}...</td>
+                            <td style={{ padding: '12px 8px', textAlign: 'center', color: '#ff9900' }}>{ageDays}d</td>
+                            <td style={{ padding: '12px 8px', textAlign: 'right', fontSize: '0.75rem', opacity: 0.5 }}>
+                              {new Date(v.last_accessed).toLocaleTimeString()}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {ragData.vectors.length === 0 && (
+                        <tr>
+                          <td colSpan="3" style={{ textAlign: 'center', padding: '3rem', opacity: 0.4 }}>No memory vectors found.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Visualizer placeholder for Phase 14 */}
+                <div style={{ marginTop: 20, height: 100, background: 'linear-gradient(90deg, #ff00ff11, #00ffaa11)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '0.8rem', opacity: 0.4 }}>Memory clustering visualization coming in Phase 14...</span>
                 </div>
               </div>
             )}

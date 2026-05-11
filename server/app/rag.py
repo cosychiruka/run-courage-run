@@ -107,3 +107,19 @@ async def get_top_rag_vectors(limit: int = 50) -> list[dict]:
     except Exception as e:
         print(f"[RAG] Error fetching top vectors: {e}")
         return []
+async def get_top_vectors_for_graph(limit: int = 50) -> list[dict]:
+    """Return the most recent embedded vectors for visualization."""
+    if not HAS_RAG_DEPS: return []
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                "SELECT id, content as text_preview, created_at as embedding_timestamp, created_at as last_accessed "
+                "FROM rag_vectors ORDER BY created_at DESC LIMIT ?",
+                (limit,)
+            ) as cur:
+                rows = await cur.fetchall()
+                return [dict(row) for row in rows]
+    except Exception as e:
+        print(f"[RAG] Error fetching graph data: {e}")
+        return []

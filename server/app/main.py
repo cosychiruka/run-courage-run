@@ -1185,54 +1185,59 @@ async def get_game_moments():
 
 @app.get("/api/admin/queues")
 async def get_queues():
-    """EPIC UPGRADE: View all pending queues in one shot."""
-    from app.redis_utils import get_redis_client
-    r = await get_redis_client()
-    if not r: return {"error": "Redis unavailable"}
-    
-    pending_game = await r.lrange("courage:pending_game_moments", 0, -1)
-    reply_queue = await r.lrange("courage:reply_queue_v5", 0, -1)
-    
-    return {
-        "pending_game_moments": [json.loads(item) for item in pending_game],
-        "reply_queue": [json.loads(item) for item in reply_queue],
-        "counts": {
-            "game_moments": len(pending_game),
-            "replies": len(reply_queue)
+    """Return live content of all queues + counts. Used by Queue Inspector tab."""
+    if not _redis:
+        raise HTTPException(status_code=503, detail="Redis unavailable")
+    try:
+        # Game moments queue (list)
+        pending_game = await _redis.lrange("courage:pending_game_moments", 0, -1)
+        game_list = [json.loads(item) for item in pending_game if item]
+
+        # Reply / engagement queue (v5 is the current one)
+        reply_queue = await _redis.lrange("courage:reply_queue_v5", 0, -1) or []
+        reply_list = [json.loads(item) for item in reply_queue if item]
+
+        return {
+            "pending_game_moments": game_list,
+            "reply_queue": reply_list,
+            "counts": {
+                "game_moments": len(game_list),
+                "replies": len(reply_list)
+            }
         }
-    }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Queue fetch failed: {e}")
 
 @app.post("/api/admin/queues/process")
-async def process_queue_item(data: dict):
-    """EPIC UPGRADE: Manually trigger a specific item from a queue."""
-    queue_name = data.get("queue_name")
-    if not queue_name: raise HTTPException(400, "Missing queue_name")
+async def process_queue_item(payload: dict):
+    """Process one item immediately (called from dashboard "Process Now")."""
+    if not _redis:
+        raise HTTPException(status_code=503, detail="Redis unavailable")
     
-    from app.redis_utils import get_redis_client
-    r = await get_redis_client()
-    if not r: raise HTTPException(503, "Redis unavailable")
+    queue_name = payload.get("queue_name")
+    item_index = payload.get("item_index", 0)
+    if not queue_name:
+        raise HTTPException(status_code=400, detail="Missing queue_name")
     
-    item_json = await r.lpop(queue_name)
-    if not item_json: return {"status": "empty"}
-    
-    item = json.loads(item_json)
-    
-    # Process based on type
-    if "reply_queue" in queue_name:
-        from app.engagement_queue import process_reply_queue
-        # We process just this one item by mocking the queue for a second or calling a helper
-        # For simplicity, we'll use a direct post helper if it exists
-        # Or just let the background loop pick it up? No, the user wants "Process Now".
-        # Let's trigger a one-off processing
-        from app.x_client import make_x_client
-        x = make_x_client()
-        # Mocking the process loop logic for one item
-        text = item["text"]
-        image_url = item.get("image_url")
-        reply_to = item.get("reply_to_tweet_id")
+    try:
+        # Get the item at index
+        item_bytes = await _redis.lindex(queue_name, item_index)
+        if not item_bytes:
+            raise HTTPException(status_code=404, detail="Item not found")
         
-        # This logic is duplicated from engagement_queue, but tailored for single execution
-        try:
+        item = json.loads(item_bytes)
+        
+        # Pop it from the list
+        await _redis.lrem(queue_name, 0, item_bytes)
+        
+        # Process based on type
+        if "reply_queue" in queue_name:
+            from app.x_client import make_x_client
+            x = make_x_client()
+            text = item["text"]
+            image_url = item.get("image_url")
+            reply_to = item.get("reply_to_tweet_id")
+            
             media_id = None
             if image_url:
                 from app.engagement_queue import _upload_media_to_twitter
@@ -1246,22 +1251,18 @@ async def process_queue_item(data: dict):
             from app.twitter_memory import save_posted_tweet
             await save_posted_tweet(resp.data['id'], text, reply_to)
             return {"status": "success", "tweet_id": resp.data['id']}
-        except Exception as e:
-            # If it fails, we put it back? No, just error out.
-            return {"status": "error", "message": str(e)}
 
-    elif "pending_game_moments" in queue_name:
-        # For game moments, we trigger a brain tick with this moment forced
-        from app.autonomous_loop import force_autonomous_tick
-        from app.main import _tweet_image_fn
-        from app.x_client import make_x_client
-        # We put it back temporarily or pass it directly if force_autonomous_tick supported it
-        # Since force_autonomous_tick gathers state from Redis, we'll push it back, tick, then it gets cleared
-        await r.lpush("courage:pending_game_moments", json.dumps(item))
-        await force_autonomous_tick(x_client=make_x_client(), tweet_image_fn=_tweet_image_fn)
-        return {"status": "success", "message": "Brain tick triggered for game moment"}
+        elif "pending_game_moments" in queue_name:
+            from app.autonomous_loop import force_autonomous_tick
+            from app.x_client import make_x_client
+            # We push it back temporarily because force_autonomous_tick gathers state from Redis
+            await _redis.lpush("courage:pending_game_moments", json.dumps(item))
+            await force_autonomous_tick(x_client=make_x_client(), tweet_image_fn=_tweet_image_fn)
+            return {"status": "success", "message": "Brain tick triggered for game moment"}
 
-    return {"status": "unknown_queue"}
+        return {"status": "unknown_queue"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Process failed: {e}")
 
 @app.get("/api/admin/news-posters")
 async def get_news_posters(limit: int = 12):
@@ -1300,6 +1301,67 @@ async def get_trenches(limit: int = 30, unprocessed_only: bool = False):
         return {"tweets": result, "total_unprocessed": total_unprocessed, "returned": len(result)}
     except Exception as e:
         return {"tweets": [], "total_unprocessed": 0, "error": str(e)}
+
+# ── NEW: Voice Sessions Live View (Round 3) ───────────────────────────────
+@app.get("/api/admin/voice-sessions")
+async def get_voice_sessions():
+    """Return all active voice sessions + global voice_active flag."""
+    if not _redis:
+        return {"active": False, "sessions": [], "count": 0}
+    try:
+        # Global flag
+        voice_active = await _redis.exists("courage:voice_active") > 0
+        
+        # All session keys
+        session_keys = await _redis.keys("courage:session:*")
+        sessions = []
+        for key in session_keys:
+            data = await _redis.hgetall(key)
+            if data:
+                sessions.append({
+                    "session_id": key.decode().split(":")[-1],
+                    "started": data.get(b"started", b"").decode(),
+                    "last_ping": data.get(b"last_ping", b"").decode(),
+                    "user_id": data.get(b"user_id", b"anon").decode(),
+                    "messages": int(data.get(b"msg_count", b"0"))
+                })
+        
+        return {
+            "active": voice_active,
+            "sessions": sessions,
+            "count": len(sessions)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Voice session fetch failed: {e}")
+
+@app.post("/api/admin/voice-sessions/end")
+async def end_voice_session(payload: dict):
+    session_id = payload.get("session_id")
+    if _redis and session_id:
+        await _redis.delete(f"courage:session:{session_id}")
+        await _redis.srem("active_voice_sessions", session_id)
+    return {"status": "ended"}
+
+# ── NEW: RAG Memory Graph Data (Round 3) ───────────────────────────────────
+@app.get("/api/admin/rag-graph")
+async def get_rag_graph(limit: int = 30):
+    """Return top memory vectors for graph + table view."""
+    try:
+        from app.rag import get_top_vectors_for_graph
+        vectors = await get_top_vectors_for_graph(limit)
+        return {"vectors": vectors}
+    except Exception as e:
+        # Fallback if helper doesn't exist yet
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("""
+                SELECT id, content as text_preview, created_at as embedding_timestamp, created_at as last_accessed 
+                FROM rag_vectors 
+                ORDER BY created_at DESC LIMIT ?
+            """, (limit,)) as cursor:
+                rows = await cursor.fetchall()
+                vectors = [dict(row) for row in rows]
+        return {"vectors": vectors}
 
 # ── Static Files (Frontend) ───────────────────────────────────────────────────
 # Mount the built React app. Serve index.html for any unknown paths (SPA)
