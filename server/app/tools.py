@@ -1236,6 +1236,7 @@ async def _auto_news_react(args: any, x_client, tweet_image_fn) -> str:
     Post a news reaction using 'The Courageous Chronicle' newspaper design.
     Falls back to Fal.ai meme art if newspaper generation fails.
     """
+    if not isinstance(args, dict): args = {}  # Guard: LLM may pass a raw string
     news_title   = (args.get("news_title") or "Breaking news")[:120]
     news_summary = args.get("news_summary") or ""
     article_url  = args.get("article_url") or ""
@@ -1274,7 +1275,17 @@ async def _auto_news_react(args: any, x_client, tweet_image_fn) -> str:
             }
             img_bytes = await generate_news_poster_bytes(news_data)
             if img_bytes:
-                # Save to temp file for the queue worker
+                # Bug fix 6: persist to public/news_posters/ so Admin Posters tab shows images
+                import os as _os, time as _t2
+                _poster_dir = "public/news_posters"
+                _os.makedirs(_poster_dir, exist_ok=True)
+                _ptype = "crypto" if is_crypto else "general"
+                _pfname = f"courage_news_{_ptype}_{int(_t2.time())}.png"
+                with open(_os.path.join(_poster_dir, _pfname), "wb") as _pf:
+                    _pf.write(img_bytes)
+                print(f"[AUTO_NEWS_REACT] Poster saved to disk: {_poster_dir}/{_pfname}")
+
+                # Save to temp file for Twitter upload via queue worker
                 import tempfile
                 with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
                     tmp.write(img_bytes)
@@ -1289,6 +1300,7 @@ async def _auto_news_react(args: any, x_client, tweet_image_fn) -> str:
                 )
                 print(f"[AUTO_NEWS_REACT] Newspaper enqueued! Path: {tmp_path}")
                 return f"Newspaper reaction enqueued! Will be posted shortly. Preview: {tweet_text[:60]}..."
+
         except Exception as e:
             print(f"[AUTO_NEWS_REACT] Newspaper render failed, falling back to Fal.ai: {e}")
 

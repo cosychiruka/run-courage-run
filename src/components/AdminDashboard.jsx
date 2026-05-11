@@ -171,10 +171,19 @@ const parseReasoning = (raw) => {
   if (!raw || raw === "...") return "Autonomous decision in progress or awaiting details...";
   try {
     const parsed = JSON.parse(raw);
+    // Handle nested structures the LLM produces
     if (parsed.text) return parsed.text;
     if (parsed.content) return parsed.content;
-    if (parsed.article_url) return `News React: ${parsed.article_url}`;
-    if (parsed.vibe) return `Personality Post: ${parsed.vibe} mode`;
+    if (parsed.article_url) {
+      const title = parsed.news_title || '';
+      const summary = (parsed.news_summary || '').substring(0, 120);
+      return `📰 ${title || parsed.article_url}${summary ? ' — ' + summary + '…' : ''}`;
+    }
+    if (parsed.vibe) return `🎭 Personality post (${parsed.vibe} mode)${parsed.post_text ? ': ' + parsed.post_text.substring(0, 120) : ''}`;
+    if (parsed.post_text) return parsed.post_text;
+    if (parsed.scene) return `🎨 Art: ${parsed.scene}`;
+    if (parsed.thought) return `💭 ${parsed.thought}`;
+    if (parsed.trench_ids) return `💬 Trench replies queued for: ${parsed.trench_ids.join(', ')}`;
     return JSON.stringify(parsed, null, 2);
   } catch {
     return raw;
@@ -571,11 +580,15 @@ const AdminDashboard = () => {
     if (mDetail) setMemoryDetail(mDetail.vectors || []);
   }, []);
 
+  // ── isLogPaused ref — avoids re-creating loadBrain on every toggle ──────────
+  const isLogPausedRef = React.useRef(isLogPaused);
+  useEffect(() => { isLogPausedRef.current = isLogPaused; }, [isLogPaused]);
+
   const loadBrain = useCallback(async () => {
     const d = await safeFetch(`${API}/api/admin/live-activity`);
     if (d) {
       setActivity(d);
-      if (!isLogPaused) {
+      if (!isLogPausedRef.current) {
         setBrainLogs(prev => {
           const combined = [...d, ...prev];
           const seen = new Set();
@@ -590,11 +603,9 @@ const AdminDashboard = () => {
     }
     const h = await safeFetch(`${API}/api/admin/history`);
     if (h) setHistory(h);
-    
-    // NEW: Populate the 'decisions' state used by the Live Brain tab
     const dec = await safeFetch(`${API}/api/admin/recent-decisions`);
     if (dec) setDecisions(dec);
-  }, [isLogPaused]);
+  }, []); // stable — no longer depends on isLogPaused directly
 
   const loadTrenches = useCallback(async () => {
     const d = await safeFetch(`${API}/api/admin/trenches?limit=40`);
@@ -639,19 +650,25 @@ const AdminDashboard = () => {
     });
   }, []);
 
-  // ── 30s refresh — only overview stats + current tab ─────────────────────────
+  // ── 30s refresh — stable ref-based, no stacking intervals ───────────────────
+  // All loaders are stable (empty dep arrays) so this interval is truly singleton.
+  const activeTabRef = React.useRef(activeTab);
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+
   useEffect(() => {
     const interval = setInterval(async () => {
       await Promise.all([loadStatus(), loadAgents()]);
+      const tab = activeTabRef.current;
       const loaders = {
         brain: loadBrain, decisions: loadBrain, trenches: loadTrenches,
         posters: loadPosters, moments: loadMoments, queue: loadQueue,
         voice: loadVoiceData, rag: loadRagData,
       };
-      if (loaders[activeTab]) await loaders[activeTab]();
+      if (loaders[tab]) await loaders[tab]();
     }, 30000);
     return () => clearInterval(interval);
-  }, [activeTab]);
+  }, []); // ← EMPTY: interval registers exactly once, never stacks
+
 
   // ── Manual full refresh ──────────────────────────────────────────────────────
   const doRefresh = async () => {
@@ -896,6 +913,17 @@ const AdminDashboard = () => {
                     onClick={() => setActiveTab('trenches')} />
                 </div>
 
+                {/* Spend-cap warning banner on Overview */}
+                {status?.spend_cap_active && (
+                  <div className="glass-card" style={{ padding: '0.9rem 1.5rem', borderLeft: '6px solid #ff4444', background: 'rgba(255,68,68,0.07)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+                    <div>
+                      <strong style={{ color: '#ff4444' }}>X SPEND CAP ACTIVE</strong>
+                      <span style={{ opacity: 0.6, fontSize: '0.8rem', marginLeft: 12 }}>Queue worker paused. Tweets queue up safely and will post once billing clears.</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Token stats */}
                 <div style={styles.grid3}>
                   <StatCard label="$COURAGE PRICE" value={rcr.price ? `$${Number(rcr.price).toFixed(6)}` : '—'} sub={rcr.symbol} />
@@ -1025,8 +1053,9 @@ const AdminDashboard = () => {
                   <div className="glass-card" style={styles.feedScroll}>
                     {brainLogs.map((log, i) => (
                       <div key={i} style={styles.feedItem}>
-                        <span style={styles.feedTime}>{new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                        <span style={{ ...styles.feedEvent, color: log.type?.includes('SUCCESS') ? '#00ffaa' : '#ff9900' }}>{log.type}</span>
+                        {/* Bug fix 5: API returns `time` and `event`, NOT `timestamp` and `type` */}
+                        <span style={styles.feedTime}>{log.time || '??:??:??'}</span>
+                        <span style={{ ...styles.feedEvent, color: log.event === 'SUCCESS' || log.event === 'POST_SUCCESS' ? '#00ffaa' : log.event === 'ERROR' ? '#ff4444' : '#ff9900' }}>{log.event}</span>
                         <span style={styles.feedMsg}>{log.message}</span>
                       </div>
                     ))}

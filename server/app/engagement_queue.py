@@ -68,7 +68,6 @@ async def process_reply_queue(x_client):
                 media_id = await _upload_media_to_twitter(x_client, image_url)
 
             # Post using correct client
-            # Note: create_tweet in x_client (MixedAuthClient) handles media_ids and reply_to correctly
             resp = x_client.create_tweet(
                 text=text,
                 media_ids=[media_id] if media_id else None,
@@ -90,8 +89,22 @@ async def process_reply_queue(x_client):
             await asyncio.sleep(45)
 
         except Exception as e:
-            print(f"[QUEUE ERROR] {e}")
-            await asyncio.sleep(20)
+            err_str = str(e)
+            print(f"[QUEUE ERROR] {err_str}")
+
+            # ── Spend-cap circuit breaker ──────────────────────────────────
+            # 403 SpendCapReached means we're blocked until May 29 (billing reset).
+            # Stop hammering the API — pause the worker for 30 minutes.
+            if "403" in err_str or "SpendCapReached" in err_str or "spend cap" in err_str.lower():
+                print("[QUEUE] ⚠️  X spend cap detected — pausing queue worker for 30 minutes")
+                try:
+                    await r.set("courage:x_spend_cap_hit", "1", ex=1800)  # 30-min Redis flag
+                    await r.set("courage:x_credit_status", "capped", ex=1800)
+                except Exception:
+                    pass
+                await asyncio.sleep(1800)  # 30 minutes
+            else:
+                await asyncio.sleep(20)
 
 async def _upload_media_to_twitter(x_client, image_url: str):
     """Uploads Fal.ai image OR local path to Twitter v1.1 API."""

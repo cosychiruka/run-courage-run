@@ -325,6 +325,7 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
 
     print(f"[AUTONOMOUS] Thinking... (Payload size: {len(decision_prompt)} chars)")
     
+    global LAST_REACTIVE_TICK
     try:
         completion = await groq_client.chat.completions.create(
             model=GROQ_MODEL,
@@ -574,17 +575,24 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
             cooldown_min = max(5, int(cooldown_min / 2))
             print(f"[HUSTLE MODE] Token is pumping ({change:+.1f}%) or Treasury is rich (${rev:.2f}). Frequency boosted!")
     except: pass
-    
+
     cooldown_sec = cooldown_min * 60
     if now - LAST_REACTIVE_TICK < cooldown_sec:
-        # Respect the layered layers of defense
         return
+
+    # Bug fix 9: stamp real tick time so sub-agent status card is accurate
+    if _redis:
+        try:
+            await _redis.set("courage:last_brain_tick", str(now))
+        except Exception:
+            pass
 
     state = await _gather_state()
     await decide_and_act(state, x_client=x_client, tweet_image_fn=tweet_image_fn)
 
 async def force_autonomous_tick(x_client=None, tweet_image_fn=None, event_type: str = None):
     """Force a tick bypass for urgent events (Market Surges / Game Moments)."""
+    global LAST_REACTIVE_TICK
     now = time.time()
     # Micro-debounce (30s) to prevent event-loop cascades
     if now - LAST_REACTIVE_TICK < 30:
