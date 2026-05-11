@@ -15,93 +15,129 @@ function loadImage(src) {
 }
 
 /**
- * Capture the active WebGL canvas, optionally composite a selfie face,
- * then share via Web Share API (mobile) or download + tweet intent (desktop).
- *
- * @param {object} opts
- * @param {string|null} opts.previewUrl   - data URL of the circular selfie crop
- * @param {string}      opts.label        - monster name label
- * @param {string}      opts.worldName    - e.g. "Nowhere High School Disco"
- * @param {string}      opts.monsterEmoji - e.g. "👻" | "🪰"
- * @param {string}      opts.tweetText    - text to pre-fill in tweet
+ * Capture the active WebGL canvas, respecting original aspect ratio (no squeezing),
+ * then composite a selfie face and share via Web Share API or download.
  */
 export async function captureAndShareSelfie({ previewUrl, label, worldName, monsterEmoji = '👻', tweetText }) {
   const glCanvas = document.querySelector('.world3d-overlay canvas');
 
-  // Build composite card canvas
-  const W = 800, H = 450;
+  // 1. High-Res Card Setup (1280x720 for professional HD quality)
+  const W = 1280, H = 720;
   const card = document.createElement('canvas');
   card.width = W; card.height = H;
-  const ctx = card.getContext('2d');
+  const ctx = card.getContext('2d', { alpha: false });
 
-  // 1. Game screenshot as background (works when preserveDrawingBuffer: true)
+  // 2. Game screenshot with World-Class Aspect Ratio Handling (Center-Crop)
   if (glCanvas) {
     try {
-      ctx.drawImage(glCanvas, 0, 0, W, H);
-    } catch {
-      // Fallback background if canvas can't be read
+      const sw = glCanvas.width;
+      const sh = glCanvas.height;
+      const sRatio = sw / sh;
+      const tRatio = W / H;
+
+      let dx, dy, dw, dh, sx, sy, sWidth, sHeight;
+
+      if (sRatio > tRatio) {
+        // Source is wider than target (e.g. 21:9 ultra-wide) -> crop sides
+        sHeight = sh;
+        sWidth = sh * tRatio;
+        sx = (sw - sWidth) / 2;
+        sy = 0;
+      } else {
+        // Source is taller than target (e.g. mobile 19:9) -> crop top/bottom
+        sWidth = sw;
+        sHeight = sw / tRatio;
+        sx = 0;
+        sy = (sh - sHeight) / 2;
+      }
+
+      // Draw high-quality center-cropped background
+      ctx.drawImage(glCanvas, sx, sy, sWidth, sHeight, 0, 0, W, H);
+      
+      // Subtle vignette for depth
+      const grad = ctx.createRadialGradient(W/2, H/2, W/4, W/2, H/2, W/1.2);
+      grad.addColorStop(0, 'rgba(0,0,0,0)');
+      grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+    } catch (e) {
+      console.error("[SCREENSHOT] Capture failed:", e);
       const g = ctx.createLinearGradient(0, 0, W, H);
-      g.addColorStop(0, '#0d0820'); g.addColorStop(1, '#1a0a2e');
+      g.addColorStop(0, '#1a0a2e'); g.addColorStop(1, '#0d0820');
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     }
   }
 
-  // 2. Selfie circle overlay — top-right corner
+  // 3. Selfie circle overlay (larger, higher fidelity)
   if (previewUrl) {
     try {
-      const size = 140;
-      const x = W - size - 20, y = 20;
+      const size = 220;
+      const x = W - size - 40, y = 40;
       const selfieImg = await loadImage(previewUrl);
       ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 20;
       ctx.beginPath();
       ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
       ctx.clip();
       ctx.drawImage(selfieImg, x, y, size, size);
       ctx.restore();
-      // Pink border
-      ctx.strokeStyle = '#ff00cc';
-      ctx.lineWidth = 5;
+      
+      // Neon Pink border
+      ctx.strokeStyle = '#eb57c1';
+      ctx.lineWidth = 8;
       ctx.beginPath();
       ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
       ctx.stroke();
-    } catch { /* skip selfie overlay if image fails */ }
+    } catch { /* skip selfie */ }
   }
 
-  // 3. Branding strip at bottom
-  ctx.fillStyle = 'rgba(0,0,0,0.65)';
-  ctx.fillRect(0, H - 60, W, 60);
+  // 4. Premium Branding Strip
+  const stripH = 80;
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  ctx.fillRect(0, H - stripH, W, stripH);
+  
+  // Decorative line
+  ctx.fillStyle = '#eb57c1';
+  ctx.fillRect(0, H - stripH, W, 4);
+
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 17px "Comic Sans MS", cursive, sans-serif';
+  ctx.font = 'bold 28px "Outfit", "Inter", sans-serif';
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
-  ctx.fillText(`${monsterEmoji} ${label || 'Monster'} at ${worldName}`, 20, H - 38);
-  ctx.fillStyle = 'rgba(255,0,204,0.9)';
+  ctx.fillText(`${monsterEmoji} ${label || 'Monster'} in Courage's World`, 40, H - (stripH / 2));
+  
   ctx.textAlign = 'right';
-  ctx.fillText('@runcouragerun', W - 20, H - 38);
+  ctx.fillStyle = '#eb57c1';
+  ctx.font = 'bold 24px "Outfit", sans-serif';
+  ctx.fillText('@RunCourageRun', W - 40, H - (stripH / 2));
 
-  // 4. Share or download
+  // 5. Native Share or Download
   const filename = `monster-selfie-${Date.now()}.png`;
-  const shareText = tweetText || `${monsterEmoji} I became a monster at ${worldName}! @runcouragerun #CourageRunRun #MonsterSelfie`;
+  const shareText = tweetText || `${monsterEmoji} I became a monster at ${worldName}! @runcouragerun #CourageRunRun`;
 
   return new Promise((resolve) => {
     card.toBlob(async (blob) => {
       if (!blob) { resolve(); return; }
 
-      // Try Web Share API first (native mobile share sheet with image)
-      if (navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: 'image/png' })] })) {
+      const file = new File([blob], filename, { type: 'image/png' });
+      
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
-            files: [new File([blob], filename, { type: 'image/png' })],
+            files: [file],
+            title: 'Monster Selfie',
             text: shareText,
           });
           resolve();
           return;
-        } catch {
-          // User cancelled or share failed — fall through to download
+        } catch (e) {
+          // Fall through on cancel/fail
         }
       }
 
-      // Desktop fallback: download image + open X intent
+      // Desktop/Fallback
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = filename;
@@ -110,14 +146,12 @@ export async function captureAndShareSelfie({ previewUrl, label, worldName, mons
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 10000);
 
-      // Open X intent after short delay
       setTimeout(() => {
-        const encoded = encodeURIComponent(shareText);
-        window.open(`https://twitter.com/intent/tweet?text=${encoded}`, '_blank');
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank');
       }, 800);
 
       resolve();
-    }, 'image/png');
+    }, 'image/png', 0.95); // High quality PNG
   });
 }
 
