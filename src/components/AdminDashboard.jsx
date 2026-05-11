@@ -516,6 +516,7 @@ const MemorySprucePreview = ({ content }) => {
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const AdminDashboard = () => {
+  const [showXModal, setShowXModal] = useState(false);
   const [activeTab, setActiveTab]     = useState('overview');
   const [initialLoad, setInitialLoad] = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
@@ -1073,7 +1074,13 @@ const AdminDashboard = () => {
                   <StatCard label="VOLUME 24H" value={rcr.volume_24h ? `$${Number(rcr.volume_24h).toLocaleString()}` : '—'} sub="Trading volume" color="#ff9900" />
                   <StatCard label="MARKET CAP" value={rcr.market_cap ? `$${Number(rcr.market_cap).toLocaleString()}` : '—'} sub="USD" />
                   <StatCard label="AUTO TWEETS TODAY" value={status?.auto_tweets_today ?? '—'} sub="of 25 daily limit" color="#ff9900" />
-                  <StatCard label="X API SPEND" value={`$${(status?.x_spend_today || 0).toFixed(3)}`} sub={`Total: $${(status?.x_spend_total || 0).toFixed(2)}`} color="#aaa" />
+                  <StatCard 
+                    label="X API SPEND" 
+                    value={`$${(status?.x_spend_today || 0).toFixed(3)}`} 
+                    sub={`Total: $${(status?.x_spend_total || 0).toFixed(2)}`} 
+                    color="#aaa" 
+                    onClick={() => setShowXModal(true)}
+                  />
                 </div>
 
                 {status?.price_history?.length > 0 && (
@@ -1528,6 +1535,90 @@ const AdminDashboard = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── INTELLIGENCE & ECONOMY MODAL ───────────────────────────────────── */}
+      <AnimatePresence>
+        {showXModal && (
+          <motion.div 
+            className="modal-overlay" 
+            style={styles.overlay}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowXModal(false)}
+          >
+            <motion.div 
+              className="intelligence-modal glass-card"
+              style={{ ...styles.modal, maxWidth: 800, border: '1px solid #ff00ff44', boxShadow: '0 0 40px rgba(255,0,255,0.1)' }}
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h2 style={{ ...styles.navTitle, fontSize: '2rem' }}>🧠 BRAIN INTELLIGENCE & ECONOMY</h2>
+                <button className="btn-small" onClick={() => setShowXModal(false)}>CLOSE</button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                {/* Left Column: The Eyes */}
+                <div>
+                  <h3 style={{ color: '#00ffaa', borderBottom: '1px solid #00ffaa33', paddingBottom: 8 }}>👀 THE EYES (Search Costs)</h3>
+                  <p style={{ fontSize: '0.85rem', opacity: 0.8, lineHeight: 1.6 }}>
+                    Courage uses <strong>Sensors</strong> to watch X/Twitter. These are the primary source of your <strong>Search Costs</strong>.
+                  </p>
+                  <ul style={{ fontSize: '0.8rem', opacity: 0.7, paddingLeft: 20 }}>
+                    <li style={{ marginBottom: 8 }}><strong>Trench Sensor</strong>: Scans $RCR cashtags for community sentiment.</li>
+                    <li style={{ marginBottom: 8 }}><strong>Game Sensor</strong>: Scans for player activity at the Homestead.</li>
+                    <li><strong>Pulse Control</strong>: Both sensors follow your <strong>Dashboard Slider</strong>. Set it higher (e.g., 25m) to slash search costs.</li>
+                  </ul>
+
+                  <h3 style={{ color: '#ff00ff', borderBottom: '1px solid #ff00ff33', paddingBottom: 8, marginTop: '2rem' }}>💓 THE HEART (Post Costs)</h3>
+                  <p style={{ fontSize: '0.85rem', opacity: 0.8, lineHeight: 1.6 }}>
+                    This is where Courage decides to speak. We use <strong>Layered Defense</strong> to protect your Post Quota.
+                  </p>
+                  <ul style={{ fontSize: '0.8rem', opacity: 0.7, paddingLeft: 20 }}>
+                    <li style={{ marginBottom: 8 }}><strong>The Layered Cooldown</strong>: Courage checks your <strong>Slider</strong> VS his own <strong>AI Suggested Frequency</strong>. He always picks the <strong>most restrictive</strong> (longest) one.</li>
+                    <li><strong>Character Laziness</strong>: If his reflection says "I'm talking too much," he'll wait 30m even if your slider is at 5m.</li>
+                  </ul>
+                </div>
+
+                {/* Right Column: The Logic */}
+                <div>
+                  <h3 style={{ color: '#ff9900', borderBottom: '1px solid #ff990033', paddingBottom: 8 }}>🔄 GROUPING (Smart Savings)</h3>
+                  <div style={{ background: 'rgba(255,153,0,0.05)', padding: '1rem', borderRadius: 12, border: '1px dashed #ff990044', fontSize: '0.8rem' }}>
+                    <p style={{ margin: 0, fontWeight: 'bold', color: '#ff9900' }}>GAME MOMENTS ARE GROUPED</p>
+                    <p style={{ opacity: 0.8, marginTop: 8 }}>
+                      Courage no longer wakes up for every player visit. He lets them pile up in memory, then reacts to <strong>ALL of them in one single post</strong> during his next pulse. 
+                      <br/><br/>
+                      <em>1 Post vs 10 Posts = Massive $ Savings.</em>
+                    </p>
+                  </div>
+
+                  <h3 style={{ color: '#ff4444', borderBottom: '1px solid #ff444433', paddingBottom: 8, marginTop: '2rem' }}>⚡ THE URGENT BYPASS</h3>
+                  <p style={{ fontSize: '0.85rem', opacity: 0.8, lineHeight: 1.6 }}>
+                    Only rare, high-impact events can "wake up" the brain instantly:
+                  </p>
+                  <ul style={{ fontSize: '0.8rem', opacity: 0.7, paddingLeft: 20 }}>
+                    <li style={{ marginBottom: 8 }}><strong>Market Surges</strong>: If $RCR or SOL pumps, he wakes up instantly to hype it.</li>
+                    <li><strong>High-Signal News</strong>: Alien sightings or classified gov leaks override all cooldowns.</li>
+                  </ul>
+
+                  <h3 style={{ color: '#aaa', borderBottom: '1px solid #333', paddingBottom: 8, marginTop: '2rem' }}>📰 NEWS VS TWITTER</h3>
+                  <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>
+                    <strong>News</strong> provides the knowledge for his "Courageous Chronicle" art. <strong>Twitter</strong> provides the social loop. He weaves them together to become the "Mario Nawfal of Nowhere."
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '2rem', textAlign: 'center', opacity: 0.4, fontSize: '0.7rem', borderTop: '1px solid #333', paddingTop: '1.5rem' }}>
+                COURAGE ENGINE v6.2 • OPTIMIZED FOR COST-AWARE AUTONOMY
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
