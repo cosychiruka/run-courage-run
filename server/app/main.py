@@ -737,6 +737,13 @@ async def set_sensor_cooldown(data: dict):
     return {"status": "ok", "sensor_cooldown_minutes": minutes}
 
 
+@app.get("/api/admin/memory-vectors")
+async def get_memory_vectors_count():
+    """Returns the total count of RAG vectors for the dashboard."""
+    from app.rag import get_rag_vector_count
+    count = await get_rag_vector_count()
+    return {"count": count}
+
 @app.get("/api/admin/memory-vectors/detail")
 async def get_memory_vectors_detail(limit: int = 50):
     """Returns a list of recent RAG vectors for the dashboard."""
@@ -744,9 +751,7 @@ async def get_memory_vectors_detail(limit: int = 50):
     vectors = await get_top_rag_vectors(limit)
     return {"vectors": vectors}
 
-
-# ── Admin Dashboard ────────────────────────────────────────────────────────────
-
+@app.get("/api/admin/recent-decisions")
 @app.get("/api/admin/history")
 async def admin_history(limit: int = 50):
     """Returns the full history of autonomous decisions with cleaned reasoning."""
@@ -857,31 +862,10 @@ async def _get_brain_decisions(limit: int = 30):
         
         decisions = []
         for row in rows:
-            raw = row["reasoning"] or ""
-            cleaned = "No reasoning provided."
-            data_preview = None
-            
-            # Smart Extraction for Rich Cards
-            if raw.strip().startswith('{'):
-                try:
-                    args = json.loads(raw)
-                    if 'article_url' in args:
-                        cleaned = f"Reacting to news: {args.get('title', 'Unknown Article')}"
-                        data_preview = args.get('article_url')
-                    elif 'text' in args:
-                        cleaned = args.get('text')
-                    elif 'vibe' in args:
-                        cleaned = f"Dropping a {args.get('vibe')} personality post"
-                except:
-                    cleaned = raw[:100]
-            else:
-                cleaned = raw
-
             decisions.append({
                 "time": row["timestamp"].split("T")[1][:8] if row["timestamp"] and "T" in row["timestamp"] else (row["timestamp"] or ""),
                 "action": row["action"],
-                "reasoning": cleaned,
-                "data_preview": data_preview,
+                "reasoning": row["reasoning"] or "No reasoning provided.",
                 "tool_used": row["tool_used"],
                 "success": bool(row["success"]),
                 "timestamp": row["timestamp"]

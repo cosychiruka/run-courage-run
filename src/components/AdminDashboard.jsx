@@ -147,12 +147,13 @@ const safeFetch = async (url, opts) => {
 };
 
 const parseReasoning = (raw) => {
-  if (!raw) return "No reasoning provided.";
+  if (!raw || raw === "...") return "Autonomous decision in progress or awaiting details...";
   try {
-    // If it's a JSON string of tool arguments, make it pretty
     const parsed = JSON.parse(raw);
     if (parsed.text) return parsed.text;
     if (parsed.content) return parsed.content;
+    if (parsed.article_url) return `News React: ${parsed.article_url}`;
+    if (parsed.vibe) return `Personality Post: ${parsed.vibe} mode`;
     return JSON.stringify(parsed, null, 2);
   } catch {
     return raw;
@@ -381,7 +382,6 @@ const AdminDashboard = () => {
       if (!isLogPaused) {
         setBrainLogs(prev => {
           const combined = [...d, ...prev];
-          // Filter unique messages to avoid dupes in the stream
           const seen = new Set();
           return combined.filter(item => {
             const key = `${item.time}-${item.message}`;
@@ -394,6 +394,10 @@ const AdminDashboard = () => {
     }
     const h = await safeFetch(`${API}/api/admin/history`);
     if (h) setHistory(h);
+    
+    // NEW: Populate the 'decisions' state used by the Live Brain tab
+    const dec = await safeFetch(`${API}/api/admin/recent-decisions`);
+    if (dec) setDecisions(dec);
   }, [isLogPaused]);
 
   const loadTrenches = useCallback(async () => {
