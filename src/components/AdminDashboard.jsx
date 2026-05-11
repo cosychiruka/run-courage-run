@@ -831,7 +831,7 @@ const AdminDashboard = () => {
   }
 
   const rcr = status?.rcr_stats || {};
-  const groq = status?.groq_circuit_breaker || {};
+  const llm = status?.llm_circuit_breaker || status?.groq_circuit_breaker || {};
 
   return (
     <div style={styles.root}>
@@ -949,14 +949,14 @@ const AdminDashboard = () => {
                         <button style={{ ...styles.btnSmall, padding: '10px' }} onClick={triggerTrenchScan}>🔍 TRENCH SCAN</button>
                         <button style={{ ...styles.btnSmall, padding: '10px' }} onClick={triggerMarketPulse}>📈 MARKET PULSE</button>
                       </div>
-                      <button style={{ ...styles.btnSmall, opacity: 0.7 }} onClick={resetBreaker}>Reset Groq Circuit Breaker</button>
+                      <button style={{ ...styles.btnSmall, opacity: 0.7 }} onClick={resetBreaker}>Reset LLM Circuit Breaker</button>
                     </div>
                     <div style={{ marginTop: 20, padding: 12, background: '#0a0a0a', borderRadius: 8 }}>
-                      <p style={{ fontSize: '0.75rem', opacity: 0.6, margin: 0 }}>Groq Status</p>
+                      <p style={{ fontSize: '0.75rem', opacity: 0.6, margin: 0 }}>LLM Status</p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                        <Led status={groq.active ? 'stale' : 'active'} />
-                        <span style={{ fontWeight: 'bold', color: groq.active ? '#ff4444' : '#00ffaa' }}>
-                          {groq.active ? `CIRCUIT OPEN — ${groq.remaining_min}m remaining` : 'READY'}
+                        <Led status={llm.active ? 'stale' : 'active'} />
+                        <span style={{ fontWeight: 'bold', color: llm.active ? '#ff4444' : '#00ffaa' }}>
+                          {llm.active ? `CIRCUIT OPEN — ${llm.remaining_min}m remaining` : 'READY'}
                         </span>
                       </div>
                     </div>

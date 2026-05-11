@@ -28,6 +28,7 @@ python-multipart
 aiosqlite
 
 # AI Brain
+openai
 groq
 fal
 sentence-transformers

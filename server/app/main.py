@@ -38,6 +38,7 @@ from app.twitter_memory import init_twitter_db, prune_old_data as prune_twitter_
 from app.goal_tracker import init_goal_db
 from app.crypto_news import crypto_discovery_round
 from app.autonomous_loop import autonomous_tick
+from app.llm import active_llm_label, create_chat_completion
 import aiosqlite
 import redis.asyncio as aioredis
 from app.engagement_queue import process_reply_queue
@@ -266,10 +267,9 @@ async def lifespan(app: FastAPI):
 
             # ── READINESS BANNER ──
             await asyncio.sleep(1.5)  # let voice models finish loading before final banner
-            from app.config import GROQ_MODEL
             print("\n" + "="*50)
             print("🐕 COURAGE AI BACKEND — READY")
-            print(f"🧠 BRAIN:       Groq ({GROQ_MODEL})")
+            print(f"🧠 BRAIN:       {active_llm_label()}")
             print(f"🐦 TWITTER:     {'CONNECTED ✓' if x_client else 'DISABLED ✗'}")
             print(f"🗄️ REDIS:       {REDIS_URL.split('@')[-1] if '@' in REDIS_URL else REDIS_URL}")
             print(f"🌐 FRONTEND:    {FRONTEND_ORIGIN}")
@@ -629,39 +629,43 @@ async def goal_progress():
             total_tweets = int(await _redis.get(f"courage:total_tweets:{today}") or 0)
         except Exception:
             pass
-    groq_backoff_until = None
-    groq_429_streak    = 0
+    llm_backoff_until = None
+    llm_429_streak    = 0
     if _redis:
         try:
-            backoff_raw = await _redis.get("courage:groq_backoff_until")
+            backoff_raw = await _redis.get("courage:llm_backoff_until") or await _redis.get("courage:groq_backoff_until")
             if backoff_raw:
-                groq_backoff_until = float(backoff_raw)
-            groq_429_streak = int(await _redis.get("courage:groq_429_streak") or 0)
+                llm_backoff_until = float(backoff_raw)
+            llm_429_streak = int(await _redis.get("courage:llm_429_streak") or await _redis.get("courage:groq_429_streak") or 0)
         except Exception:
             pass
+    circuit_breaker = {
+        "active":           llm_backoff_until is not None and time.time() < (llm_backoff_until or 0),
+        "backoff_until_ts": llm_backoff_until,
+        "streak":           llm_429_streak,
+        "remaining_min":    max(0, int(((llm_backoff_until or 0) - time.time()) / 60)),
+    }
     return JSONResponse({
         "summary":              summary,
         "bucket_last_used":     bucket_times,
         "auto_tweets_today":    auto_tweets,
         "total_tweets_today":   total_tweets,
-        "groq_circuit_breaker": {
-            "active":           groq_backoff_until is not None and time.time() < (groq_backoff_until or 0),
-            "backoff_until_ts": groq_backoff_until,
-            "streak":           groq_429_streak,
-            "remaining_min":    max(0, int(((groq_backoff_until or 0) - time.time()) / 60)),
-        },
+        "llm_circuit_breaker":  circuit_breaker,
+        "groq_circuit_breaker": circuit_breaker,
     })
 
 
 @app.post("/api/autonomous/reset-circuit-breaker")
 async def reset_circuit_breaker():
-    """Clear the Groq 429 circuit breaker so the next autonomous tick runs immediately."""
+    """Clear the LLM circuit breaker so the next autonomous tick runs immediately."""
     if not _redis:
         raise HTTPException(status_code=503, detail="Redis unavailable")
     try:
+        await _redis.delete("courage:llm_backoff_until")
+        await _redis.delete("courage:llm_429_streak")
         await _redis.delete("courage:groq_backoff_until")
         await _redis.delete("courage:groq_429_streak")
-        print("[ADMIN] Groq circuit breaker manually cleared.")
+        print("[ADMIN] LLM circuit breaker manually cleared.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return JSONResponse({"status": "ok", "message": "Circuit breaker cleared. Next tick will attempt execution."})
@@ -688,22 +692,22 @@ async def system_status():
     # ── Bug fix 3: add price_change_24h alias so dashboard 24H change card works ──
     rcr["price_change_24h"] = rcr.get("change_24h", 0)
 
-    # ── Bug fix 1: Groq circuit breaker state (was only in /api/goal_progress) ──
-    groq_backoff_until = None
-    groq_429_streak = 0
+    # ── LLM circuit breaker state (also aliased for existing dashboard UI) ──
+    llm_backoff_until = None
+    llm_429_streak = 0
     if r:
         try:
-            raw = await r.get("courage:groq_backoff_until")
+            raw = await r.get("courage:llm_backoff_until") or await r.get("courage:groq_backoff_until")
             if raw:
-                groq_backoff_until = float(raw)
-            groq_429_streak = int(await r.get("courage:groq_429_streak") or 0)
+                llm_backoff_until = float(raw)
+            llm_429_streak = int(await r.get("courage:llm_429_streak") or await r.get("courage:groq_429_streak") or 0)
         except Exception:
             pass
-    groq_circuit_breaker = {
-        "active": groq_backoff_until is not None and time.time() < (groq_backoff_until or 0),
-        "backoff_until_ts": groq_backoff_until,
-        "streak": groq_429_streak,
-        "remaining_min": max(0, int(((groq_backoff_until or 0) - time.time()) / 60)),
+    llm_circuit_breaker = {
+        "active": llm_backoff_until is not None and time.time() < (llm_backoff_until or 0),
+        "backoff_until_ts": llm_backoff_until,
+        "streak": llm_429_streak,
+        "remaining_min": max(0, int(((llm_backoff_until or 0) - time.time()) / 60)),
     }
 
     # ── Bug fix 9: use real brain-tick timestamp (written each tick, not boot time) ──
@@ -747,7 +751,8 @@ async def system_status():
         "recent_trenches": await _get_recent_trenches(),
         "news_posters": await _get_news_posters(),
         "sub_agents": sub_agents,
-        "groq_circuit_breaker": groq_circuit_breaker,
+        "llm_circuit_breaker": llm_circuit_breaker,
+        "groq_circuit_breaker": llm_circuit_breaker,
         "auto_tweets_today": auto_tweets_today,
         "spend_cap_active": spend_cap_active,
         "x_spend_today": float(await r.get("courage:x_spend_today") or 0) if r else 0,
@@ -1071,23 +1076,18 @@ async def world_event(payload: dict):
     except KeyError:
         prompt = template
 
-    from app.config import GROQ_API_KEY, GROQ_MODEL
-    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     messages = [
         {"role": "system", "content": "You are a world event director. Output ONLY valid JSON. No extra text."},
         {"role": "user",   "content": prompt},
     ]
     try:
-        client = get_http_client()
-        r = await client.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json={
-            "model":   GROQ_MODEL,
-            "messages": messages,
-            "stream":  False,
-            "response_format": {"type": "json_object"},
-            "temperature": 0.9,
-        })
-        r.raise_for_status()
-        raw = r.json().get("choices", [{}])[0].get("message", {}).get("content", "{}").strip()
+        completion = await create_chat_completion(
+            messages=messages,
+            stream=False,
+            response_format={"type": "json_object"},
+            temperature=0.9,
+        )
+        raw = completion.choices[0].message.content.strip()
         # Strip markdown fences just in case
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()

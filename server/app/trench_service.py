@@ -6,7 +6,7 @@ Atomic, rate-limit safe.
 import time
 import asyncio
 import aiosqlite
-from app.config import DB_PATH, REDIS_URL
+from app.config import DB_PATH, REDIS_URL, X_DAILY_SEARCH_SPEND_CAP
 from app.x_client import make_x_client
 import app.twitter_memory as tw_mem
 from app.redis_utils import get_redis_client, track_x_search_cost
@@ -17,6 +17,12 @@ async def fetch_trench_tweets(cashtag: str = "$RCR", limit: int = 50, since_days
     # PHASE 5.8: Configurable Cooldown (with Hustle Mode Intelligence)
     _redis = await get_redis_client()
     if _redis:
+        credit_status = await _redis.get("courage:x_credit_status")
+        spent_today = float(await _redis.get("courage:x_spend_today") or 0)
+        if credit_status == "capped" or spent_today >= X_DAILY_SEARCH_SPEND_CAP:
+            await _redis.set("courage:x_credit_status", "capped", ex=1800)
+            return f"X search spend guard active (${spent_today:.2f}/${X_DAILY_SEARCH_SPEND_CAP:.2f}) — skipping trench fetch."
+
         cooldown_min = int(await _redis.get("courage:sensor_cooldown_minutes") or 25)
         
         # === HUSTLE OVERRIDE: Faster scans during pumps ===

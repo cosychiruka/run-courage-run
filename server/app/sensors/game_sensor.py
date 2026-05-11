@@ -8,6 +8,7 @@ import time
 from app.redis_utils import get_redis_client, track_x_search_cost
 from app.x_client import make_x_client
 from app.events import emit_event
+from app.config import X_DAILY_SEARCH_SPEND_CAP
 
 async def game_sensor_loop():
     """15-MIN SENSOR COOLDOWN (configurable in dashboard)"""
@@ -15,9 +16,25 @@ async def game_sensor_loop():
     _redis = await get_redis_client()
     
     while True:
+        if x is None:
+            x = make_x_client()
+            if x is None:
+                print("[GAME_SENSOR] X client unavailable — sleeping without spending")
+                await asyncio.sleep(300)
+                continue
+
         # CONFIGURABLE COOLDOWN FROM DASHBOARD (Default to 25m for ~$2.88/day)
         cooldown_min = int(await _redis.get("courage:sensor_cooldown_minutes") or 25)
         last_sensor = await _redis.get("courage:last_sensor_search") if _redis else None
+
+        if _redis:
+            credit_status = await _redis.get("courage:x_credit_status")
+            spent_today = float(await _redis.get("courage:x_spend_today") or 0)
+            if credit_status == "capped" or spent_today >= X_DAILY_SEARCH_SPEND_CAP:
+                await _redis.set("courage:x_credit_status", "capped", ex=1800)
+                print(f"[GAME_SENSOR] X spend guard active (${spent_today:.2f}/${X_DAILY_SEARCH_SPEND_CAP:.2f})")
+                await asyncio.sleep(300)
+                continue
 
         if last_sensor and (time.time() - float(last_sensor)) < (cooldown_min * 60):
             print(f"[GAME_SENSOR] Cooldown active ({cooldown_min} min) — backing off")
@@ -48,7 +65,7 @@ async def game_sensor_loop():
                     "monster", "homestead", "courage", "runcouragerun",
                     "@runcouragerun", "$rcr", "cowardly dog",
                 ]):
-                    # PHASE 5.9: Debounce events to prevent Groq spam (max 1 every 30s)
+                    # PHASE 5.9: Debounce events to prevent LLM spam (max 1 every 30s)
                     last_event = await _redis.get("courage:last_game_moment_event") if _redis else None
                     if last_event and (time.time() - float(last_event)) < 30:
                         print("[GAME_SENSOR] Event debounce active — skipping emit")

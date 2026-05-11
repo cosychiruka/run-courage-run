@@ -41,6 +41,14 @@ async def process_reply_queue(x_client):
     r = await _get_queue_redis()
     while True:
         try:
+            if x_client is None:
+                from app.x_client import make_x_client
+                x_client = make_x_client()
+                if x_client is None:
+                    print("[QUEUE] X client unavailable — preserving queue and sleeping")
+                    await asyncio.sleep(60)
+                    continue
+
             # Check v5 queue first
             item_json = await r.lpop("courage:reply_queue_v5")
             if not item_json:

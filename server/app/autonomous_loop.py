@@ -7,9 +7,7 @@ import json
 import asyncio
 import time
 from datetime import datetime
-from groq import AsyncGroq
 
-from app.config import GROQ_API_KEY, GROQ_MODEL
 from app.x_client import make_x_client
 from app.hustle_service import get_rcr_stats
 from app.news_cache import get_all_recent as get_recent_news
@@ -23,6 +21,7 @@ from app.voice_priority import is_voice_active
 from app.system_prompt import SYSTEM_PROMPT_MINIMAL
 from app.tools import TOOL_SCHEMAS as COURAGE_TOOLS
 import app.tools as tools
+from app.llm import create_chat_completion, is_retryable_llm_error
 
 # ── News Signal Scoring ───────────────────────────────────────────────────────
 # Tiers: (score, keywords). First match wins. Score ≥ 80 = EXTREME override.
@@ -34,8 +33,10 @@ _SIGNAL_TIERS = [
           "all time high", "record high", "100k", "breakthrough", "scandal",
           "major hack", "exploit", "rug pull"]),
     (40, ["crypto", "blockchain", "regulation", "fed rate", "inflation",
-          "market rally", "market crash", "bullish", "bearish"]),
-    (20, ["stocks", "economy", "business", "earnings", "gdp"]),
+          "market rally", "market crash", "markets plunge", "stock market",
+          "bullish", "bearish", "exploit"]),
+    (20, ["stocks", "stock", "economy", "business", "earnings", "gdp",
+          "virus", "shutdown"]),
 ]
 
 def _score_article(article: dict) -> int:
@@ -48,8 +49,25 @@ def _score_article(article: dict) -> int:
             return score
     return 10
 
+async def _triage_news(articles: list[dict]) -> list[dict]:
+    """Backward-compatible news triage helper used by tests and debug scripts."""
+    triaged = []
+    for article in articles or []:
+        score = _score_article(article)
+        if score >= 80:
+            panic_index = 10
+        elif score >= 60:
+            panic_index = 8
+        elif score >= 40:
+            panic_index = 6
+        elif score >= 20:
+            panic_index = 3
+        else:
+            panic_index = 1
+        triaged.append({**article, "signal_score": score, "panic_index": panic_index})
+    return triaged
+
 # ── Phase 5 Globals ───────────────────────────────────────────────────────────
-groq_client = AsyncGroq(api_key=GROQ_API_KEY)
 LAST_REACTIVE_TICK = 0
 REACTIVE_COOLDOWN_SECONDS = 360 # Default fallback only
 _redis = None
@@ -97,7 +115,7 @@ async def get_x_rate_status():
 async def _generate_personality_post(
     vibe: str, time_ctx: dict, community_vibe: str, game_moments: list
 ) -> str | None:
-    """Groq-authored personality post — makes idle ticks sound alive, not canned."""
+    """LLM-authored personality post — makes idle ticks sound alive, not canned."""
     hour  = time_ctx.get("hour", 12)
     phase = time_ctx.get("day_phase", "noon")
     energy = time_ctx.get("energy", "midday grind")
@@ -122,8 +140,7 @@ async def _generate_personality_post(
         "Tweet text only (no quotes, no extra commentary):"
     )
     try:
-        resp = await groq_client.chat.completions.create(
-            model=GROQ_MODEL,
+        resp = await create_chat_completion(
             messages=[{"role": "user", "content": prompt}],
             max_tokens=110,
             temperature=0.93,
@@ -281,13 +298,13 @@ async def decide_and_act(state, x_client=None, tweet_image_fn=None):
         print("[VOICE PRIORITY] Skipping autonomous actions — voice session active")
         return
 
-    # Groq 429 circuit breaker — mirrors the voice agent's protection
+    # LLM circuit breaker — mirrors the voice agent's protection
     if _redis:
-        backoff_until = await _redis.get("courage:groq_backoff_until")
+        backoff_until = await _redis.get("courage:llm_backoff_until") or await _redis.get("courage:groq_backoff_until")
         if backoff_until and time.time() < float(backoff_until):
             remaining = int(float(backoff_until) - time.time())
-            print(f"[AUTONOMOUS] Groq circuit breaker active — {remaining // 60}m {remaining % 60}s remaining")
-            await log_live_activity(f"Groq rate-limit backoff active ({remaining // 60}m left) — staying quiet")
+            print(f"[AUTONOMOUS] LLM circuit breaker active — {remaining // 60}m {remaining % 60}s remaining")
+            await log_live_activity(f"LLM rate-limit backoff active ({remaining // 60}m left) — staying quiet")
             return
 
     # Compact JSON context
@@ -327,8 +344,7 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
     
     global LAST_REACTIVE_TICK
     try:
-        completion = await groq_client.chat.completions.create(
-            model=GROQ_MODEL,
+        completion = await create_chat_completion(
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT_MINIMAL},
                 {"role": "user", "content": decision_prompt}
@@ -401,11 +417,14 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
 
     except Exception as e:
         print(f"[AUTONOMOUS ERROR] {e}")
-        err_str = str(e)
-        if "429" in err_str or "rate_limit" in err_str.lower() or "RateLimitError" in type(e).__name__:
+        if is_retryable_llm_error(e):
             if _redis:
-                await _redis.set("courage:groq_backoff_until", time.time() + 3600, ex=3600)
-                await log_live_activity("Groq 429 hit — circuit breaker set for 1 hour")
+                until = time.time() + 3600
+                await _redis.set("courage:llm_backoff_until", until, ex=3600)
+                await _redis.set("courage:groq_backoff_until", until, ex=3600)
+                await _redis.incr("courage:llm_429_streak")
+                await _redis.incr("courage:groq_429_streak")
+                await log_live_activity("LLM rate limit hit — circuit breaker set for 1 hour")
 
 async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=None):
     """Routes LLM tool calls to actual function executions with rich logging (Phase 1.5)"""
@@ -423,7 +442,7 @@ async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=Non
             community_vibe = state.get("community_vibe", "quiet") if state else "quiet"
             game_moments  = state.get("game_moments", []) if state else []
 
-            # LLM writes the post — falls back to canned text only if Groq fails
+            # LLM writes the post — falls back to canned text only if inference fails
             text = await _generate_personality_post(vibe, time_ctx, community_vibe, game_moments)
             if not text:
                 _FALLBACK = {

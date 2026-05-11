@@ -1,5 +1,5 @@
 """
-agent.py — Courage AI tool-calling agent (Groq backend).
+agent.py — Courage AI tool-calling agent.
 
 Features:
 - Tiered model: llama-3.1-8b-instant for simple chat, llama-3.3-70b-versatile for tool calls
@@ -11,7 +11,6 @@ Features:
 import json
 import re
 import datetime
-import httpx
 import redis as _sync_redis
 from typing import Optional, Callable, Awaitable
 
@@ -21,16 +20,14 @@ from app.news_cache import get_all_recent, get_varied_articles
 from app.twitter_memory import init_twitter_db, get_twitter_summary
 from app.goal_tracker import get_goal_progress_summary
 
-from app.config import (
-    GROQ_API_KEY, GROQ_MODEL, GROQ_MODEL_FAST, GROQ_DAILY_TOKEN_BUDGET,
-    REDIS_URL
-)
+from app.config import LLM_DAILY_TOKEN_BUDGET, REDIS_URL
+from app.llm import completion_to_dict, create_chat_completion, default_model_name, is_retryable_llm_error
 import time
 
 MAX_TOOL_ROUNDS = 8
 CONTEXT_TIMEOUT = 60
 
-# ── Groq token tracking ────────────────────────────────────────────────────────
+# ── LLM token tracking ─────────────────────────────────────────────────────────
 _token_redis: Optional[_sync_redis.Redis] = None
 
 def _init_token_tracker(redis_url: str):
@@ -38,12 +35,17 @@ def _init_token_tracker(redis_url: str):
     from app.redis_utils import get_sync_redis_client
     _token_redis = get_sync_redis_client()
 
-def _track_groq_usage(usage: dict):
+def _track_llm_usage(usage: dict):
     if not _token_redis or not usage:
         return
     try:
         today = datetime.date.today().isoformat()
         tokens = usage.get("total_tokens", 0)
+        _token_redis.incrby(f"llm:tokens:{today}", tokens)
+        _token_redis.incrby(f"llm:calls:{today}", 1)
+        _token_redis.expire(f"llm:tokens:{today}", 86400)
+        _token_redis.expire(f"llm:calls:{today}", 86400)
+        # Backward-compatible dashboard keys while the UI still says "Groq".
         _token_redis.incrby(f"groq:tokens:{today}", tokens)
         _token_redis.incrby(f"groq:calls:{today}", 1)
         _token_redis.expire(f"groq:tokens:{today}", 86400)
@@ -51,14 +53,14 @@ def _track_groq_usage(usage: dict):
     except Exception:
         pass
 
-def _groq_budget_ok() -> bool:
-    """Return False when today's Groq token spend has hit the daily ceiling."""
+def _llm_budget_ok() -> bool:
+    """Return False when today's LLM token spend has hit the daily ceiling."""
     if not _token_redis:
         return True  # can't check → allow
     try:
         today = datetime.date.today().isoformat()
-        used = int(_token_redis.get(f"groq:tokens:{today}") or 0)
-        return used < GROQ_DAILY_TOKEN_BUDGET
+        used = int(_token_redis.get(f"llm:tokens:{today}") or _token_redis.get(f"groq:tokens:{today}") or 0)
+        return used < LLM_DAILY_TOKEN_BUDGET
     except Exception:
         return True  # Redis error → allow rather than block
 
@@ -73,71 +75,41 @@ _TOOL_TAG_RE = re.compile(
 )
 
 
-# ── Groq chat completion call ──────────────────────────────────────────────────
+# ── Chat completion call ───────────────────────────────────────────────────────
 
-async def _groq_chat(messages: list[dict], use_tools: bool = True, fast: bool = False) -> dict:
-    # IMPORTANT: Only use fast (8b) model when NOT offering tools.
-    # llama-3.1-8b-instant does not reliably emit structured tool_calls —
-    # it leaks JSON args into the text content, which corrupts history and causes 400 errors.
-    model = GROQ_MODEL_FAST if (fast and not use_tools) else GROQ_MODEL
-    payload = {
-        "model":       model,
-        "messages":    messages,
-        "stream":      False,
+async def _llm_chat(messages: list[dict], use_tools: bool = True, fast: bool = False) -> dict:
+    # IMPORTANT: Only use fast models when NOT offering tools. Smaller/fast models
+    # may leak JSON args into text instead of emitting structured tool_calls.
+    kwargs = {
+        "stream": False,
         "temperature": 0.78,
-        "max_tokens":  1024,
+        "max_tokens": 1024,
     }
 
     if use_tools:
-        payload["tools"]       = TOOL_SCHEMAS
-        payload["tool_choice"] = "auto"
+        kwargs["tools"] = TOOL_SCHEMAS
+        kwargs["tool_choice"] = "auto"
 
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type":  "application/json",
-    }
-
-    async with httpx.AsyncClient(timeout=CONTEXT_TIMEOUT) as client:
-        try:
-            r = await client.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                json=payload,
-                headers=headers,
-            )
-            r.raise_for_status()
-            resp = r.json()
-            _track_groq_usage(resp.get("usage", {}))
-            return resp
-        except httpx.HTTPStatusError as e:
-            # Handle both Rate Limit (429) and Payload Too Large (413)
-            if e.response.status_code in (413, 429):
-                retry_after = e.response.headers.get("retry-after", "60")
-                code = e.response.status_code
-                print(f"[GROQ] {code} Error on {model} (Retry-After: {retry_after}s).")
-                # FALLBACK: If 70b (with tools) hits 429, try 8b without tools as last resort.
-                # 8b can't emit structured tool_calls but can produce a plain text tweet
-                # when the prompt already contains the article content.
-                if not fast and use_tools:
-                    print("[GROQ] Attempting fallback to 8b (no tools)...")
-                    payload["model"] = GROQ_MODEL_FAST
-                    payload.pop("tools", None)
-                    payload.pop("tool_choice", None)
-                    try:
-                        r2 = await client.post(
-                            "https://api.groq.com/openai/v1/chat/completions",
-                            json=payload,
-                            headers=headers,
-                        )
-                        r2.raise_for_status()
-                        resp = r2.json()
-                        _track_groq_usage(resp.get("usage", {}))
-                        return resp
-                    except httpx.HTTPStatusError as e2:
-                        if e2.response.status_code == 429:
-                            retry_after2 = e2.response.headers.get("retry-after", "?")
-                            print(f"[GROQ] Fallback also 429 (Retry-After: {retry_after2}s). Both models exhausted.")
-                        raise e2
-            raise e
+    try:
+        completion = await create_chat_completion(
+            messages=messages,
+            fast=(fast and not use_tools),
+            **kwargs,
+        )
+        resp = completion_to_dict(completion)
+        _track_llm_usage(resp.get("usage", {}))
+        return resp
+    except Exception as exc:
+        if is_retryable_llm_error(exc) and _token_redis:
+            try:
+                until = time.time() + 3600
+                _token_redis.set("courage:llm_backoff_until", until, ex=3600)
+                _token_redis.set("courage:groq_backoff_until", until, ex=3600)
+                _token_redis.incr("courage:llm_429_streak")
+                _token_redis.incr("courage:groq_429_streak")
+            except Exception:
+                pass
+        raise exc
 
 
 # ── Helper: scrub any leaked tool syntax from text ────────────────────────────
@@ -149,18 +121,18 @@ def _clean(text: str) -> str:
     return cleaned or "..."
 
 
-# ── Helper: build properly structured tool_calls for Groq ─────────────────────
+# ── Helper: build properly structured tool_calls ───────────────────────────────
 
 def _build_groq_tool_calls(calls: list[dict]) -> list[dict]:
     """
-    Groq requires tool_calls to be a list of:
+    Some OpenAI-compatible providers require tool_calls to be a list of:
       {"id": "...", "type": "function", "function": {"name": "...", "arguments": "<json string>"}}
-    This normalises both native-Groq format and any dict-style calls we constructed.
+    This normalises both native format and any dict-style calls we constructed.
     """
     out = []
     for i, call in enumerate(calls):
         if "function" in call:
-            # Already in Groq format
+            # Already in provider-native format
             out.append(call)
         else:
             # Our constructed dict format
@@ -193,17 +165,20 @@ async def run_agent(
     Run one full Courage agent turn and return the final text response.
     ws_emit: async callable to stream tool events to the frontend.
     max_tool_rounds: cap on tool-call iterations (default MAX_TOOL_ROUNDS; use 4 for autonomous mode).
-    compact: trim context, skip twitter_summary — reduces Groq token burn.
+    compact: trim context, skip twitter_summary — reduces LLM token burn.
     target_article: Direct Handoff — skip general fetch and focus ONLY on this story.
     """
-    # 0. Circuit breaker: skip if we're in a Groq 429 backoff window.
+    # 0. Circuit breaker: skip if we're in an LLM 429 backoff window.
     if _token_redis:
         try:
-            backoff_until = _token_redis.get("courage:groq_backoff_until")
+            backoff_until = (
+                _token_redis.get("courage:llm_backoff_until")
+                or _token_redis.get("courage:groq_backoff_until")
+            )
             if backoff_until and time.time() < float(backoff_until):
                 remaining_min = int((float(backoff_until) - time.time()) / 60)
                 msg = (
-                    f"Aah! My brain is overheating! Groq is telling me to pipe down for a bit. "
+                    f"Aah! My brain is overheating! The LLM is telling me to pipe down for a bit. "
                     f"I'll be back in about {remaining_min} minute(s). *whimper*"
                 )
                 if ws_emit:
@@ -212,10 +187,10 @@ async def run_agent(
         except Exception:
             pass
 
-    # Hard stop if today's Groq token budget is exhausted
-    if not _groq_budget_ok():
+    # Hard stop if today's LLM token budget is exhausted
+    if not _llm_budget_ok():
         msg = (
-            "The things I do for you people... I've burned through all my Grok thinking power for today! "
+            "The things I do for you people... I've burned through my thinking budget for today! "
             "*collapses dramatically* Try again tomorrow. *whimper*"
         )
         if ws_emit:
@@ -239,7 +214,7 @@ async def run_agent(
         recent_articles,
         world_context=world_context,
         twitter_summary=twitter_summary,
-        model_name=GROQ_MODEL,
+        model_name=default_model_name(),
         goal_summary=goal_summary,
         target_article=target_article,
         community_vibe=community_vibe,
@@ -256,7 +231,7 @@ async def run_agent(
     def _sanitise_history(hist: list[dict]) -> list[dict]:
         """
         Remove corrupted assistant messages where the 8b model leaked raw tool-call
-        JSON into the text content field instead of tool_calls. These cause Groq 400s.
+        JSON into the text content field instead of tool_calls. These cause provider 400s.
         We detect actual corruption specifically: valid JSON that contains tool-call
         keys (arguments, name, function) — not arbitrary JSON-shaped chat replies.
         """
@@ -285,9 +260,8 @@ async def run_agent(
 
 
     for _round in range(max_tool_rounds):
-        # Always use 70b (GROQ_MODEL) when tools are enabled.
-        # 8b-instant cannot reliably emit structured tool_calls — it leaks JSON as text.
-        resp    = await _groq_chat(messages, use_tools=True, fast=False)
+        # Always use the default model when tools are enabled.
+        resp    = await _llm_chat(messages, use_tools=True, fast=False)
         choice  = resp.get("choices", [{}])[0]
         msg     = choice.get("message", {})
         content = msg.get("content") or ""
@@ -348,8 +322,8 @@ async def run_agent(
             return _clean(content)
 
     # ── Safety: force a final answer after MAX_TOOL_ROUNDS ────────────────────
-    # Forced final answer: 8b-instant is fine here — no tools offered, just text generation
-    final_resp = await _groq_chat(messages, use_tools=False, fast=True)
+    # Forced final answer: fast mode is fine here; no tools are offered.
+    final_resp = await _llm_chat(messages, use_tools=False, fast=True)
     final_msg  = final_resp.get("choices", [{}])[0].get("message", {})
     return _clean(final_msg.get("content", "") or "The things I do for you people... something got lost. Try again?")
 

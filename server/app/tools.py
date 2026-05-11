@@ -12,7 +12,7 @@ Tools available to Courage:
   - get_twitter_trends    : discover trending topics on X/Twitter
   - get_twitter_memory    : recall Courage's stored Twitter activity history
   - record_twitter_action : save a tweet/mention/trend to long-term memory
-  - check_api_credits     : check remaining API budget (Groq tokens, X searches, news)
+  - check_api_credits     : check remaining API budget (LLM tokens, X searches, news)
 """
 
 import os
@@ -33,7 +33,8 @@ from app.news_cache import (
     get_cached_tweet_search, cache_tweet_search,
     get_budget_status,
 )
-from app.config import REDIS_URL
+from app.config import REDIS_URL, X_DAILY_SEARCH_SPEND_CAP
+from app.llm import create_chat_completion
 import app.twitter_memory as tw_mem
 
 # ── Module-level tweet card buffer (populated on each search_tweets call) ──────
@@ -306,7 +307,7 @@ TOOL_SCHEMAS = [
             "description": (
                 "Check how many AI tokens and API credits remain today. "
                 "Call this when you feel like you've been searching a lot, when users ask about your energy or capacity, "
-                "or when you want to know if you can keep using tools. Reports Groq tokens used, X search quota, and news budgets."
+                "or when you want to know if you can keep using tools. Reports LLM tokens used, X search quota, and news budgets."
             ),
             "parameters": {"type": "object", "properties": {}, "required": []},
         },
@@ -907,10 +908,23 @@ async def _search_tweets(args: dict, x_client) -> str:
         print(f"[TWITTER] Cache HIT: {query!r}")
         return cached
 
+    r = await _get_tools_redis()
+    if r:
+        credit_status = await r.get("courage:x_credit_status")
+        spent_today = float(await r.get("courage:x_spend_today") or 0)
+        if credit_status == "capped" or spent_today >= X_DAILY_SEARCH_SPEND_CAP:
+            await r.set("courage:x_credit_status", "capped", ex=1800)
+            return f"X search spend guard active (${spent_today:.2f}/${X_DAILY_SEARCH_SPEND_CAP:.2f}) — using memory/cache only."
+
     try:
         resp = x_client.search_recent(query=query, max_results=max_results)
         if not resp or not resp.data:
             return f"No tweets found for: {query}"
+        try:
+            from app.redis_utils import track_x_search_cost
+            await track_x_search_cost(len(resp.data))
+        except Exception:
+            pass
 
         # Build username lookup from includes
         user_map = {}
@@ -1021,10 +1035,10 @@ async def _record_twitter_action(args: dict) -> str:
 
 
 async def _check_api_credits(x_client) -> str:
-    from app.config import GROQ_DAILY_TOKEN_BUDGET, COINDESK_API_KEY, COINGECKO_DAILY_BUDGET
+    from app.config import LLM_DAILY_TOKEN_BUDGET, COINDESK_API_KEY, COINGECKO_DAILY_BUDGET
     today = datetime.date.today().isoformat()
 
-    groq_tokens = groq_calls = 0
+    llm_tokens = llm_calls = 0
     search_rem = "use get_x_rate_status for live data"
     auto_tweets = total_tweets = 0
     cp_used = cg_used = 0
@@ -1032,8 +1046,8 @@ async def _check_api_credits(x_client) -> str:
     try:
         r = await _get_tools_redis()
         if r:
-            groq_tokens  = int(await r.get(f"groq:tokens:{today}") or 0)
-            groq_calls   = int(await r.get(f"groq:calls:{today}") or 0)
+            llm_tokens   = int(await r.get(f"llm:tokens:{today}") or await r.get(f"groq:tokens:{today}") or 0)
+            llm_calls    = int(await r.get(f"llm:calls:{today}") or await r.get(f"groq:calls:{today}") or 0)
             auto_tweets  = int(await r.get(f"courage:auto_tweets:{today}") or 0)
             total_tweets = int(await r.get(f"courage:total_tweets:{today}") or 0)
             cd_used      = int(await r.get(f"budget:coindesk:{today}") or 0)
@@ -1045,11 +1059,11 @@ async def _check_api_credits(x_client) -> str:
         pass
 
     budget = await get_budget_status()
-    groq_pct = int(groq_tokens / GROQ_DAILY_TOKEN_BUDGET * 100) if GROQ_DAILY_TOKEN_BUDGET else 0
+    llm_pct = int(llm_tokens / LLM_DAILY_TOKEN_BUDGET * 100) if LLM_DAILY_TOKEN_BUDGET else 0
 
     lines = [
         "== API CREDIT REPORT ==",
-        f"AI brain (Groq):    {groq_tokens:,} / {GROQ_DAILY_TOKEN_BUDGET:,} tokens today ({groq_pct}%) — {groq_calls} calls",
+        f"AI brain (LLM):     {llm_tokens:,} / {LLM_DAILY_TOKEN_BUDGET:,} tokens today ({llm_pct}%) — {llm_calls} calls",
         f"X search quota:     {search_rem} remaining this window",
         f"Auto tweets today:  {auto_tweets} / 25 (autonomous cap)",
         f"Total tweets today: {total_tweets} (auto + interactive)",
@@ -1326,14 +1340,10 @@ async def _auto_news_react(args: any, x_client, tweet_image_fn) -> str:
 
 
 async def _llm_news_tweet(title: str, summary: str) -> str:
-    """Fast 8b model writes a Courage-voiced reaction. Falls back to _build_news_tweet."""
+    """Fast LLM call writes a Courage-voiced reaction. Falls back to _build_news_tweet."""
     try:
-        from groq import AsyncGroq
-        from app.config import GROQ_API_KEY
-        _model = os.getenv("GROQ_MODEL_FAST", "llama-3.1-8b-instant")
-        _client = AsyncGroq(api_key=GROQ_API_KEY)
-        resp = await _client.chat.completions.create(
-            model=_model,
+        resp = await create_chat_completion(
+            fast=True,
             messages=[{"role": "user", "content": (
                 f"You are Courage the Cowardly Dog reacting to breaking news. Write ONE tweet.\n\n"
                 f"Headline: {title[:120]}\n"
