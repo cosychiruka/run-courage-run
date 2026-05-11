@@ -138,9 +138,24 @@ const styles = {
 const safeFetch = async (url, opts) => {
   try {
     const r = await fetch(url, opts);
-    return r.ok ? r.json() : null;
-  } catch {
+    if (!r.ok) return null;
+    return r.json();
+  } catch (err) {
+    console.error("Fetch Error:", url, err);
     return null;
+  }
+};
+
+const parseReasoning = (raw) => {
+  if (!raw) return "No reasoning provided.";
+  try {
+    // If it's a JSON string of tool arguments, make it pretty
+    const parsed = JSON.parse(raw);
+    if (parsed.text) return parsed.text;
+    if (parsed.content) return parsed.content;
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return raw;
   }
 };
 
@@ -196,7 +211,7 @@ const DecisionCard = ({ dec, onSelect }) => {
         </span>
       </div>
       <p style={{ fontSize: '0.85rem', opacity: 0.7, margin: '8px 0', lineHeight: 1.5, height: '3em', overflow: 'hidden' }}>
-        {dec.reasoning || "No reasoning provided."}
+        {parseReasoning(dec.reasoning)}
       </p>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, fontSize: '0.75rem', opacity: 0.5 }}>
         <span>{dec.time || "Just now"}</span>
@@ -274,10 +289,8 @@ const SensorControl = ({ currentFreq, onUpdate, API, showToast }) => {
   }, [currentFreq]);
 
   const apply = async () => {
-    const d = await safeFetch(`${API}/api/admin/set-sensor-cooldown`, {
+    const d = await safeFetch(`${API}/api/admin/update-sensor-cooldown?minutes=${freq}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ minutes: freq })
     });
     if (d) {
       showToast('Sensor frequency updated!');
@@ -470,7 +483,7 @@ const AdminDashboard = () => {
 
   const clearQueue = async () => {
     if (!window.confirm('Clear the entire reply queue?')) return;
-    const d = await safeFetch(`${API}/api/admin/queue`, { method: 'DELETE' });
+    const d = await safeFetch(`${API}/api/admin/queues`, { method: 'DELETE' });
     showToast(d?.message || 'Queue cleared!', d ? 'ok' : 'err');
     await loadQueue();
   };
@@ -793,7 +806,7 @@ const AdminDashboard = () => {
                       style={{
                         borderLeft: `4px solid ${h.success ? '#00ffaa' : '#ff9900'}`,
                       }}
-                      onClick={() => setSelectedRow(h)}
+                      onClick={() => setSelectedDecision(h)}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                         <span className="decision-action-text">
@@ -912,13 +925,13 @@ const AdminDashboard = () => {
                     {posters.map((p, i) => (
                       <div key={i} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #222', background: '#0a0a0a' }}>
                         <img
-                          src={`${API}${p.url}`}
+                          src={typeof p === 'string' ? `${API}${p}` : `${API}${p.url}`}
                           alt={`Poster ${i + 1}`}
                           style={{ width: '100%', display: 'block', objectFit: 'cover' }}
                           onError={e => { e.target.style.display = 'none'; }}
                         />
                         <p style={{ fontSize: '0.7rem', opacity: 0.5, margin: '6px 10px', fontFamily: 'monospace' }}>
-                          {p.time || p.url?.split('/').pop()}
+                          {typeof p === 'string' ? p.split('/').pop() : (p.time || p.url?.split('/').pop())}
                         </p>
                       </div>
                     ))}
@@ -1071,13 +1084,14 @@ const AdminDashboard = () => {
                     </thead>
                     <tbody>
                       {ragData.vectors.map(v => {
-                        const ageDays = Math.floor((Date.now() - new Date(v.embedding_timestamp).getTime()) / 86400000);
+                        const timestamp = v.metadata ? JSON.parse(v.metadata).timestamp : null;
+                        const ageDays = timestamp ? Math.floor((Date.now() - new Date(timestamp).getTime()) / 86400000) : '?';
                         return (
                           <tr key={v.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                            <td style={{ padding: '12px 8px', fontSize: '0.85rem', opacity: 0.85 }}>{v.text_preview?.substring(0, 100)}...</td>
+                            <td style={{ padding: '12px 8px', fontSize: '0.85rem', opacity: 0.85 }}>{v.preview || v.key}</td>
                             <td style={{ padding: '12px 8px', textAlign: 'center', color: '#ff9900' }}>{ageDays}d</td>
                             <td style={{ padding: '12px 8px', textAlign: 'right', fontSize: '0.75rem', opacity: 0.5 }}>
-                              {new Date(v.last_accessed).toLocaleTimeString()}
+                              {v.key?.substring(0, 8)}...
                             </td>
                           </tr>
                         );
@@ -1103,35 +1117,7 @@ const AdminDashboard = () => {
         </main>
       </div>
 
-      {/* DETAIL MODAL */}
-      <AnimatePresence>
-        {selectedRow && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSelectedRow(null)}
-            style={styles.overlay}
-          >
-            <motion.div
-              initial={{ scale: 0.92, y: 16 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.92 }}
-              onClick={e => e.stopPropagation()}
-              style={styles.modal}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <h2 style={{ color: '#00ffaa', margin: 0, fontFamily: 'Bangers, cursive', letterSpacing: 2 }}>
-                  {selectedRow.action || selectedRow.type || 'Detail'}
-                </h2>
-                <button onClick={() => setSelectedRow(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.8rem', cursor: 'pointer', opacity: 0.5 }}>×</button>
-              </div>
-              <pre style={styles.modalPre}>{JSON.stringify(selectedRow, null, 2)}</pre>
-              <button style={{ ...styles.btnPink, width: '100%', marginTop: 12 }} onClick={() => setSelectedRow(null)}>CLOSE</button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* MODAL REDIRECTED TO DECISION TRACE */}
 
       {/* DECISION MODAL */}
       <AnimatePresence>
@@ -1170,7 +1156,7 @@ const AdminDashboard = () => {
                 <div>
                   <h3 style={{ fontSize: '0.9rem', color: '#00ffaa', marginBottom: 8, textTransform: 'uppercase' }}>Reasoning</h3>
                   <div style={{ ...styles.modalPre, maxHeight: 300, fontSize: '0.9rem', lineHeight: 1.5 }}>
-                    {selectedDecision.reasoning}
+                    {parseReasoning(selectedDecision.reasoning)}
                   </div>
                   <button 
                     style={{ ...styles.btnSmall, marginTop: 10, width: '100%' }}
