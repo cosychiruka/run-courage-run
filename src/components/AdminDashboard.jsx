@@ -249,7 +249,7 @@ const DecisionCard = ({ dec, onSelect }) => {
 
       {isImage ? (
         <div style={{ width: '100%', height: 160, borderRadius: 12, overflow: 'hidden', background: '#000', border: '1px solid rgba(255,255,255,0.1)' }}>
-          <img src={dataUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => e.target.style.display='none'} />
+          <img crossOrigin="anonymous" src={dataUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => e.target.style.display='none'} />
         </div>
       ) : dataUrl ? (
         <div style={{ 
@@ -423,9 +423,6 @@ const AdminDashboard = () => {
     const d = await safeFetch(`${API}/api/admin/system-status`);
     if (d) {
       setStatus(prev => ({ ...prev, ...d }));
-      if (d.sensor_cooldown_minutes != null) {
-        setSensorValue(d.sensor_cooldown_minutes);
-      }
     }
   }, []);
 
@@ -1013,6 +1010,7 @@ const AdminDashboard = () => {
                     {posters.map((p, i) => (
                       <div key={i} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #222', background: '#0a0a0a' }}>
                         <img
+                          crossOrigin="anonymous"
                           src={typeof p === 'string' ? `${API}${p}` : `${API}${p.url}`}
                           alt={`Poster ${i + 1}`}
                           style={{ width: '100%', display: 'block', objectFit: 'cover' }}
@@ -1259,7 +1257,7 @@ const AdminDashboard = () => {
                   <div style={{ marginBottom: 24 }}>
                     { (selectedDecision.data_preview?.match(/\.(jpeg|jpg|gif|png|webp)/i) || selectedDecision.data_preview?.includes('fal.ai')) ? (
                       <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', background: '#000' }}>
-                        <img src={selectedDecision.data_preview} alt="result" style={{ width: '100%', display: 'block' }} />
+                        <img crossOrigin="anonymous" src={selectedDecision.data_preview} alt="result" style={{ width: '100%', display: 'block' }} />
                       </div>
                     ) : (
                       <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 12 }}>
