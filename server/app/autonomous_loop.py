@@ -354,14 +354,8 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
                         import aiosqlite as _aiosqlite
                         from app.config import DB_PATH as _DB_PATH
                         
-                        # PRIORITIZE RICH DATA: Save tool arguments as reasoning
-                        # This ensures history cards show actual news URLs, tweet text, etc.
-                        db_reasoning = ""
-                        if message.tool_calls:
-                            # Save the first tool's arguments as the reasoning
-                            db_reasoning = message.tool_calls[0].function.arguments
-                        else:
-                            db_reasoning = (message.content or "")[:400]
+                        # Use the actual arguments from the current tool_call
+                        db_reasoning = tool_call.function.arguments
                             
                         async with _aiosqlite.connect(_DB_PATH) as _db:
                             await _db.execute(
