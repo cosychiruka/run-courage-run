@@ -371,7 +371,7 @@ async def decide_and_act(state, x_client=None, tweet_image_fn=None):
 
     # LLM circuit breaker — mirrors the voice agent's protection
     if _redis:
-        backoff_until = await _redis.get("courage:llm_backoff_until") or await _redis.get("courage:groq_backoff_until")
+        backoff_until = await _redis.get("courage:llm_backoff_until")
         if backoff_until and time.time() < float(backoff_until):
             remaining = int(float(backoff_until) - time.time())
             print(f"[AUTONOMOUS] LLM circuit breaker active — {remaining // 60}m {remaining % 60}s remaining")
@@ -501,9 +501,7 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
             if _redis:
                 until = time.time() + 3600
                 await _redis.set("courage:llm_backoff_until", until, ex=3600)
-                await _redis.set("courage:groq_backoff_until", until, ex=3600)
                 await _redis.incr("courage:llm_429_streak")
-                await _redis.incr("courage:groq_429_streak")
                 await log_live_activity("LLM rate limit hit — circuit breaker set for 1 hour", event="BACKOFF")
 
 async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=None):

@@ -15,9 +15,9 @@ from openai import AsyncOpenAI
 from app.config import (
     DEFAULT_MODEL,
     FALLBACK_MODEL,
-    GROQ_API_KEY,
-    GROQ_MODEL,
-    GROQ_MODEL_FAST,
+    # GROQ_API_KEY,  # Legacy - now using OpenRouter
+    # GROQ_MODEL,   # Legacy - now using OpenRouter
+    # GROQ_MODEL_FAST,  # Legacy - now using OpenRouter
     LLM_PROVIDER,
     OPENROUTER_API_KEY,
     OPENROUTER_REFERER,
@@ -25,21 +25,23 @@ from app.config import (
 )
 
 _openrouter_client: AsyncOpenAI | None = None
-_groq_client: Any | None = None
+# _groq_client: Any | None = None  # Legacy - now using OpenRouter
 
 
 def active_llm_label() -> str:
     provider = (LLM_PROVIDER or "openrouter").lower()
     if provider == "openrouter":
         return f"OpenRouter ({DEFAULT_MODEL})"
-    return f"Groq ({GROQ_MODEL})"
+    # Legacy Groq support removed
+    raise ValueError(f"Unsupported LLM_PROVIDER: {provider}. Only 'openrouter' is supported now.")
 
 
 def default_model_name(fast: bool = False) -> str:
     provider = (LLM_PROVIDER or "openrouter").lower()
     if provider == "openrouter":
         return DEFAULT_MODEL
-    return GROQ_MODEL_FAST if fast else GROQ_MODEL
+    # Legacy Groq support removed - fast parameter ignored for OpenRouter
+    raise ValueError(f"Unsupported LLM_PROVIDER: {provider}. Only 'openrouter' is supported now.")
 
 
 def _get_openrouter_client() -> AsyncOpenAI:
@@ -59,26 +61,27 @@ def _get_openrouter_client() -> AsyncOpenAI:
     return _openrouter_client
 
 
-def _get_groq_client() -> Any:
-    global _groq_client
-    if not GROQ_API_KEY:
-        raise RuntimeError("GROQ_API_KEY is not configured")
-    if _groq_client is None:
-        from groq import AsyncGroq
-
-        _groq_client = AsyncGroq(api_key=GROQ_API_KEY)
-    return _groq_client
+# def _get_groq_client() -> Any:  # Legacy - now using OpenRouter
+#     global _groq_client
+#     if not GROQ_API_KEY:
+#         raise RuntimeError("GROQ_API_KEY is not configured")
+#     if _groq_client is None:
+#         from groq import AsyncGroq
+#
+#         _groq_client = AsyncGroq(api_key=GROQ_API_KEY)
+#     return _groq_client
 
 
 async def get_llm_client_and_model(fast: bool = False, fallback: bool = False):
     """Return an OpenAI-compatible async client and model name."""
     provider = (LLM_PROVIDER or "openrouter").lower()
+    
     if provider == "openrouter":
         model = FALLBACK_MODEL if fallback else DEFAULT_MODEL
         return _get_openrouter_client(), model
-
-    model = GROQ_MODEL_FAST if fast else GROQ_MODEL
-    return _get_groq_client(), model
+    
+    # Legacy Groq support removed
+    raise ValueError(f"Unsupported LLM_PROVIDER: {provider}. Only 'openrouter' is supported now.")
 
 
 def _status_code(exc: Exception) -> int | None:

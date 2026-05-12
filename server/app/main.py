@@ -633,10 +633,10 @@ async def goal_progress():
     llm_429_streak    = 0
     if _redis:
         try:
-            backoff_raw = await _redis.get("courage:llm_backoff_until") or await _redis.get("courage:groq_backoff_until")
+            backoff_raw = await _redis.get("courage:llm_backoff_until")
             if backoff_raw:
                 llm_backoff_until = float(backoff_raw)
-            llm_429_streak = int(await _redis.get("courage:llm_429_streak") or await _redis.get("courage:groq_429_streak") or 0)
+            llm_429_streak = int(await _redis.get("courage:llm_429_streak") or 0)
         except Exception:
             pass
     circuit_breaker = {
@@ -651,7 +651,6 @@ async def goal_progress():
         "auto_tweets_today":    auto_tweets,
         "total_tweets_today":   total_tweets,
         "llm_circuit_breaker":  circuit_breaker,
-        "groq_circuit_breaker": circuit_breaker,
     })
 
 
@@ -663,8 +662,6 @@ async def reset_circuit_breaker():
     try:
         await _redis.delete("courage:llm_backoff_until")
         await _redis.delete("courage:llm_429_streak")
-        await _redis.delete("courage:groq_backoff_until")
-        await _redis.delete("courage:groq_429_streak")
         print("[ADMIN] LLM circuit breaker manually cleared.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -697,10 +694,10 @@ async def system_status():
     llm_429_streak = 0
     if r:
         try:
-            raw = await r.get("courage:llm_backoff_until") or await r.get("courage:groq_backoff_until")
+            raw = await r.get("courage:llm_backoff_until")
             if raw:
                 llm_backoff_until = float(raw)
-            llm_429_streak = int(await r.get("courage:llm_429_streak") or await r.get("courage:groq_429_streak") or 0)
+            llm_429_streak = int(await r.get("courage:llm_429_streak") or 0)
         except Exception:
             pass
     llm_circuit_breaker = {
@@ -756,7 +753,6 @@ async def system_status():
         "news_posters": await _get_news_posters(),
         "sub_agents": sub_agents,
         "llm_circuit_breaker": llm_circuit_breaker,
-        "groq_circuit_breaker": llm_circuit_breaker,
         "auto_tweets_today": auto_tweets_today,
         "spend_cap_active": spend_cap_active,
         "x_spend_today": float(await r.get("courage:x_spend_today") or 0) if r else 0,

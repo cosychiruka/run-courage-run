@@ -4,8 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# LLM configuration. OpenRouter is the production default; Groq remains available
-# only when LLM_PROVIDER=groq is set explicitly.
+# LLM configuration. OpenRouter is the production provider.
 LLM_PROVIDER       = os.getenv("LLM_PROVIDER", "openrouter").lower()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 DEFAULT_MODEL      = os.getenv("DEFAULT_MODEL", "qwen/qwen3-coder:free")
@@ -13,9 +12,9 @@ FALLBACK_MODEL     = os.getenv("FALLBACK_MODEL", "meta-llama/llama-3.3-70b-instr
 OPENROUTER_REFERER = os.getenv("OPENROUTER_REFERER", "https://github.com/cosychiruka/run-courage-run")
 OPENROUTER_TITLE   = os.getenv("OPENROUTER_TITLE", "Run Courage Run")
 
-GROQ_API_KEY     = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL       = os.getenv("GROQ_MODEL",      "llama-3.3-70b-versatile")      # legacy smart model
-GROQ_MODEL_FAST  = os.getenv("GROQ_MODEL_FAST", "llama-3.1-8b-instant")        # legacy fast model
+# GROQ_API_KEY     = os.getenv("GROQ_API_KEY", "")  # Legacy - now using OpenRouter
+# GROQ_MODEL       = os.getenv("GROQ_MODEL",      "llama-3.3-70b-versatile")      # legacy smart model
+# GROQ_MODEL_FAST  = os.getenv("GROQ_MODEL_FAST", "llama-3.1-8b-instant")        # legacy fast model
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
@@ -48,8 +47,8 @@ KOKORO_VOICE  = "af_bella"  # more cartoonish voice
 # Guardian: 5000/day              → effectively unlimited, no counter needed
 GNEWS_DAILY_BUDGET        = int(os.getenv("GNEWS_DAILY_BUDGET",        "80"))
 NEWSAPI_DAILY_BUDGET      = int(os.getenv("NEWSAPI_DAILY_BUDGET",      "80"))
-LLM_DAILY_TOKEN_BUDGET    = int(os.getenv("LLM_DAILY_TOKEN_BUDGET", os.getenv("GROQ_DAILY_TOKEN_BUDGET", "500000")))
-GROQ_DAILY_TOKEN_BUDGET   = LLM_DAILY_TOKEN_BUDGET
+LLM_DAILY_TOKEN_BUDGET    = int(os.getenv("LLM_DAILY_TOKEN_BUDGET", "500000"))
+# GROQ_DAILY_TOKEN_BUDGET   = LLM_DAILY_TOKEN_BUDGET  # Legacy - now using OpenRouter
 
 CRYPTOPANIC_API_KEY         = os.getenv("CRYPTOPANIC_API_KEY", "") # Deprecated
 COINDESK_API_KEY            = os.getenv("COINDESK_API_KEY",    "")
