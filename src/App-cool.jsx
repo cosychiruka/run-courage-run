@@ -128,7 +128,7 @@ export default function App() {
 
   // Refresh quota display every 5 seconds
   useEffect(() => {
-    const t = setInterval(() => setVoiceQuota(quotaStatus()), 5000);
+    const t = setInterval(() => setVoiceQuota(quotaStatus()), 15000);
     return () => clearInterval(t);
   }, []);
 
@@ -399,7 +399,7 @@ export default function App() {
           <div className="stage-curtain left"></div>
           <div className="stage-curtain right"></div>
           <div className="disco-spotlight"></div>
-
+          
           <div className="disco-ball">
             <div className="disco-sparkle"></div>
             <div className="disco-sparkle s2"></div>
@@ -649,7 +649,7 @@ export default function App() {
         <div className="halloctober__banner p-flex">
           <h1 className="couragesign">
             <a href="https://pump.fun/coin/$RCR" target="_blank" rel="noopener noreferrer" className="couragesign-link">
-              RUN COURAGE,<br className="mobile-only" /> <span className="couragesign-emphasis">RUN!!!</span>
+                RUN COURAGE,<br className="mobile-only" /> <span className="couragesign-emphasis">RUN!!!</span>
             </a>
           </h1>
           <div className="fog p-circle" />
@@ -835,49 +835,43 @@ export default function App() {
         <section className="landing-section about-section container">
           <div className="about-grid">
             <div className="about-card glass-panel comic animate-float">
-              <div className="comic-banner">
-                <h2 className="landing-heading"><span className="icon-dog-wag">🐕</span> Who is $RCR?</h2>
-              </div>
-              <p>
-                Tribute to Courage the Cowardly Dog — Cartoon Network 1999–2002. Always watching the TV and reading Newspapers. Re-incarnated as a self-aware meme, he lives in a 3D browser world with his usual horrors, he treats X/Twitter as his escape, running his handle to socialize, hustle, and to keep watch on the world.
-              </p>
+              <h2 className="landing-heading"><span className="icon-dog-wag">🐕</span> WHAT IS $RCR?</h2>
+              <p><strong>Run Courage Run ($RCR)</strong> is a fully autonomous pink meme-dog AI agent born May 1 2026. Scared of everything… but posting anyway. He’s the panic-stricken news runner who scans global/crypto headlines 24/7, reacts with *whimper* energy, generates meme art, and hustles his own Solana token.</p>
             </div>
             <div className="about-card glass-panel comic animate-float-delay">
-              <div className="comic-banner comic-banner--yellow">
-                <h2 className="landing-heading"><span className="icon-tv-flicker">📺</span> What does he do?</h2>
-              </div>
-              <p>
-                Courage lives in your browser & on X: voice chat in 4 immersive 3D worlds, real-time X posts on breaking news/pumps/game moments, community shoutouts, RAG memory of trenches, credit-aware decisions. He never sleeps — sensors + heartbeat keep him reacting.🐕🦺
-              </p>
+              <h2 className="landing-heading"><span className="icon-bolt">⚡</span> WHAT DOES HE DO NEXT?</h2>
+              <p>Courage lives in your browser: voice chat in 4 immersive 3D worlds, real-time X posts on breaking news/pumps/game moments, community shoutouts, RAG memory of trenches, credit-aware decisions. He never sleeps — sensors + heartbeat keep him reacting. The things he does for love… and for $RCR. 🐕🦺</p>
             </div>
           </div>
         </section>
 
-        {/* Tokenomics */}
-        <section className="landing-section container glass-panel" style={{ padding: '2rem' }}>
-          <div className="comic-banner">
-            <h2 className="landing-heading"><span className="icon-chart-grow">📊</span> Tokenomics</h2>
-          </div>
-          <div className="token-grid">
-            <div className="token-card">
-              <span className="token-icon icon-pill-bounce">💊</span>
-              <span className="token-label">Total Supply</span>
-              <span className="token-value">1,000,000,000</span>
+        {/* Tokenomics — polished */}
+        <section className="landing-section tokenomics container">
+          <div className="glass-panel token-container">
+            <div className="comic-banner">
+              <h2 className="landing-heading"><span className="icon-chart-grow">📊</span> TOKENOMICS</h2>
             </div>
-            <div className="token-card">
-              <span className="token-icon icon-fire-glow">🔥</span>
-              <span className="token-label">Liquidity</span>
-              <span className="token-value">Locked</span>
-            </div>
-            <div className="token-card">
-              <span className="token-icon icon-chart-line">📈</span>
-              <span className="token-label">Tax</span>
-              <span className="token-value">0.5%</span>
-            </div>
-            <div className="token-card">
-              <span className="token-icon icon-dog-wag">🐕</span>
-              <span className="token-label">Dev Wallet</span>
-              <span className="token-value">0% (he's a dog)</span>
+            <div className="token-grid">
+              <div className="token-card glass-card-mini animate-pulse-slow">
+                <span className="token-icon">💊</span>
+                <span className="token-label">Total Supply</span>
+                <span className="token-value">1,000,000,000</span>
+              </div>
+              <div className="token-card glass-card-mini">
+                <span className="token-icon">🔥</span>
+                <span className="token-label">Liquidity</span>
+                <span className="token-value">Locked & Burned</span>
+              </div>
+              <div className="token-card glass-card-mini">
+                <span className="token-icon">📈</span>
+                <span className="token-label">Tax</span>
+                <span className="token-value">0% Buy / Sell</span>
+              </div>
+              <div className="token-card glass-card-mini animate-bounce-subtle">
+                <span className="token-icon">🐕</span>
+                <span className="token-label">Team Wallet</span>
+                <span className="token-value">0% (He's a dog)</span>
+              </div>
             </div>
           </div>
         </section>

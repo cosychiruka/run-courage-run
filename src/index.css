@@ -10,13 +10,21 @@
   /* Refined from 4px */
 }
 
-body {
+html, body {
   margin: 0;
   padding: 0;
   font-family: 'Outfit', sans-serif;
   background-color: #1a1a1a;
   color: var(--brutal-black);
   overflow-x: hidden;
+  width: 100%;
+  position: relative;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 .container {
@@ -144,118 +152,87 @@ body {
 }
 
 /* ── About Grid Restoration ── */
-/* ── About Section (Tabbed Restore) ── */
 .about-section {
   padding: 4rem 0;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: center;
 }
 
-.about-tabs-container {
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 2rem;
   width: 100%;
-  max-width: 900px;
+  max-width: 1000px; /* Prevents cards from getting too wide/narrow on large screens */
+}
+
+.about-card {
+  position: relative;
+  padding: 2.5rem;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  background: rgba(10, 10, 15, 0.9) !important; /* Darker for premium readability */
+  border: 2px solid rgba(235, 87, 193, 0.3) !important;
+  border-radius: 32px;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
 }
 
-.about-tabs-nav {
-  display: flex;
-  gap: 1rem;
-  padding: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.2);
+.about-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--courage-pink), var(--courage-purple));
+  opacity: 0.6;
 }
 
-.about-tab-btn {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: rgba(255, 255, 255, 0.6) !important;
-  padding: 0.8rem 1.5rem !important;
-  border-radius: 50px !important;
-  font-family: 'Bangers', cursive !important;
-  font-size: 1.1rem !important;
-  letter-spacing: 1px !important;
-  cursor: pointer !important;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
-  box-shadow: none !important;
-  transform: none !important;
-  flex: 1;
-  max-width: 280px;
+.about-card.comic {
+  border: 3px solid black !important;
+  box-shadow: 8px 8px 0px black;
 }
 
-.about-tab-btn:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-  color: white !important;
+.about-card:hover {
+  transform: translateY(-10px) rotate(1deg);
+  box-shadow: 12px 12px 0px black;
+  border-color: var(--courage-pink) !important;
 }
 
-.about-tab-btn.active {
-  background: var(--courage-pink) !important;
-  color: white !important;
-  border-color: white !important;
-  box-shadow: 0 0 20px rgba(235, 87, 193, 0.4) !important;
-  transform: translateY(-2px) !important;
-}
-
-.about-tab-content {
-  padding: 3rem;
-  min-height: 240px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: aboutFadeIn 0.4s ease-out forwards;
-}
-
-@keyframes aboutFadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.about-card-inner {
-  max-width: 700px;
-  text-align: center;
-}
-
-.about-card-inner h2 {
-  font-family: 'Bangers', cursive;
-  font-size: 2.2rem;
-  color: var(--courage-pink);
-  margin-bottom: 1.5rem;
-  letter-spacing: 1px;
-}
-
-.about-card-inner p {
-  font-size: 1.15rem;
-  line-height: 1.8;
-  color: rgba(255, 255, 255, 0.9);
+.about-card p {
+  line-height: 1.7;
+  color: #f0f0f0;
+  font-size: 1.05rem;
   margin: 0;
-}
-
-.about-card-inner p strong {
-  color: white;
-  border-bottom: 2px solid var(--courage-pink);
+  font-family: 'Outfit', sans-serif;
 }
 
 @media (max-width: 768px) {
-  .about-tabs-nav {
-    flex-direction: column;
-    padding: 1rem;
+  .about-grid {
+    grid-template-columns: 1fr;
+    max-width: 450px;
+    margin: 0 auto;
   }
-  .about-tab-btn {
-    max-width: 100%;
-    width: 100%;
+  
+  .about-card {
+    padding: 2rem;
   }
-  .about-tab-content {
-    padding: 2rem 1.5rem;
-  }
-  .about-card-inner h2 {
-    font-size: 1.8rem;
-  }
-  .about-card-inner p {
-    font-size: 1rem;
-    line-height: 1.6;
-  }
+}
+
+@keyframes wavey {
+  0%, 100% { clip-path: polygon(0% 0%, 100% 2%, 100% 100%, 0% 98%); }
+  50% { clip-path: polygon(0% 2%, 100% 0%, 100% 98%, 0% 100%); }
+}
+
+.about-card.animate-float {
+  animation: float 6s ease-in-out infinite, wavey 8s ease-in-out infinite;
+}
+
+.about-card.animate-float-delay {
+  animation: float 6s ease-in-out infinite 3s, wavey 8s ease-in-out infinite 4s;
 }
 
 /* ── Tokenomics Polished ── */
@@ -333,6 +310,13 @@ body {
 
 @media (max-width: 600px) {
   .token-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Landing Content Wrapper ── */
+.landing-wrapper {
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
 }
 
 /* ── TV Modal Cleanup (No Nested Containers) ── */
@@ -444,7 +428,7 @@ body {
     max-height: 450px;
     opacity: 1;
     visibility: visible;
-    padding: 1rem 0;
+    padding: 0;
   }
 
   .sticky-actions--expanded {

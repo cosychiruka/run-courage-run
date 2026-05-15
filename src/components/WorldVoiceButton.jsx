@@ -159,21 +159,11 @@ export default function WorldVoiceButton({ worldContext, visible }) {
         {expanded && (transcript || reply || error) && (
           <div className="world-chat-bubble">
             <button className="world-chat-close" onClick={() => setExpanded(false)}>✕</button>
-            
-            {/* User Transcript Header (Matching 02 May design) */}
-            {transcript && (
-              <div className="world-chat-text" style={{ marginBottom: '12px', opacity: 0.9 }}>
-                <span className="world-chat-user">You:</span> {transcript}
-              </div>
-            )}
-
-            {/* Courage Reply */}
             {reply && (
               <div className="world-chat-text">
                 <span className="world-chat-courage">🐕 Courage:</span> {formatText(reply)}
               </div>
             )}
-
             {error && (
               <div style={{ fontSize: '0.8rem', color: '#ff6666', marginTop: '8px' }}>⚠️ {error}</div>
             )}

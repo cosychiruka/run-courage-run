@@ -44,10 +44,10 @@ body {
 
 @keyframes zoomOutEffectMobile {
   0% {
-    background-size: 150vmax;
+    background-size: 120% 120%; /* Reduced from 150vmax to prevent crazy initial zoom feel */
   }
   100% {
-    background-size: 100vmax;
+    background-size: cover;
   }
 }
 
@@ -104,17 +104,13 @@ body {
 
 /* Bone-Shaped Navigation Bar */
 .bone-nav {
-  position: relative;
-  width: 80%;
-  /* SINK */
   position: fixed;
   width: 65%;
   top: 1.5em;
-  left: 0;
-  right: 0;
-
+  left: 50%;
+  transform: translateX(-50%);
   height: 20px;
-  margin: 2em auto;
+  margin: 0; /* Removed margin auto to use translateX centering */
   padding: 1em 2em;
   display: flex;
   justify-content: space-between;
@@ -130,13 +126,13 @@ body {
 /* Circles for Bone Lobes */
 .bone-nav .circle {
   position: absolute;
-  width: 50px;
-  height: 50px;
+  width: 44px; /* Slightly smaller for better mobile fit */
+  height: 44px;
   background: #ffc2f8;
   border-radius: 50%;
-  border-top: 6px solid #333333;
-  border-left: 6px solid #333333;
-  border-right: 6px solid #333333;
+  border-top: 5px solid #333333;
+  border-left: 5px solid #333333;
+  border-right: 5px solid #333333;
 }
 
 .circle {
@@ -1834,10 +1830,13 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   .bone-nav {
     position: relative !important;
     top: 0;
-    margin: 1em auto;
-    width: 90%;
-    padding: 1.5em 2em;
+    margin: 1.5em auto;
+    width: calc(100% - 80px); /* Leave space for circles (30px + 30px + buffer) */
+    max-width: 300px;
+    padding: 1.2em 1.5em;
     box-sizing: border-box;
+    transform: none;
+    left: auto;
   }
 
   .home-icon {
@@ -4841,67 +4840,59 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 }
 
 /* ── World Chat Bubbles ── */
-/* ── World Chat Bubbles ── */
 .world-chat-bubble-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* Center horizontally */
+  gap: 10px;
   position: fixed;
-  bottom: 160px; /* Higher to clear the mic controls */
-  left: 0;
-  right: 0;
-  width: 100%;
-  padding: 0 20px;
+  bottom: 160px;
+  /* Higher to clear the lowered mic controls */
+  left: 50%;
+  transform: translateX(-50%);
+  justify-content: center;
+  width: 90%;
+  max-width: 400px;
   pointer-events: none;
   z-index: 1001;
 }
 
 .world-chat-bubble {
-  background: rgba(15, 10, 30, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 2px solid #eb57c1;
-  border-radius: 20px;
-  padding: 18px 24px;
-  width: 100%;
-  max-width: 480px;
-  color: #ffffff;
-  box-shadow: 
-    0 10px 40px rgba(0, 0, 0, 0.6),
-    0 0 20px rgba(235, 87, 193, 0.25);
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+  border: 3px solid #eb57c1;
+  border-radius: 18px;
+  padding: 16px 20px;
+  max-width: 320px;
+  color: #2a1044;
+  box-shadow: 0 8px 0 rgba(235, 87, 193, 0.2), 0 15px 30px rgba(0, 0, 0, 0.15);
   position: relative;
-  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
-  animation: worldEventIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  font-family: 'Inter', system-ui, sans-serif;
+  animation: hintSlideIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
   pointer-events: all;
-  text-align: left;
 }
 
 .world-chat-user {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #eb57c1;
   font-weight: 700;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   display: block;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .world-chat-courage {
-  font-size: 0.85rem;
-  color: #c247ff;
-  font-weight: 900;
-  margin-bottom: 6px;
+  font-size: 0.75rem;
+  color: #6600cc;
+  font-weight: 700;
+  margin-bottom: 4px;
   display: block;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .world-chat-text {
-  font-size: 1rem;
-  line-height: 1.6;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  font-weight: 500;
 }
 
 .world-chat-text strong {
@@ -4911,14 +4902,13 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 
 .world-chat-close {
   position: absolute;
-  top: 10px;
-  right: 14px;
+  top: 8px;
+  right: 12px;
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.3);
+  color: #ccc;
   cursor: pointer;
-  font-size: 1.1rem;
-  transition: color 0.2s ease;
+  font-size: 1rem;
 }
 
 .world-chat-close:hover {
@@ -4927,17 +4917,16 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 
 /* ── World Quota ── */
 .world-quota-panel {
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(235, 87, 193, 0.4);
+  background: #ffffff;
+  border: 2px solid #eb57c1;
   border-radius: 12px;
   padding: 8px 12px;
   min-width: 130px;
   font-size: 0.72rem;
-  color: #ffffff;
+  color: #2a1044;
   font-weight: 700;
   text-align: center;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 0 rgba(235, 87, 193, 0.15);
   pointer-events: all;
 }
 
@@ -4945,37 +4934,47 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   margin-top: 6px;
   height: 4px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(235, 87, 193, 0.1);
 }
 
 .world-quota-progress {
   height: 100%;
   border-radius: 2px;
-  background: linear-gradient(90deg, #eb57c1, #c247ff);
+  background: linear-gradient(90deg, #eb57c1, #6600cc);
   transition: width 1s ease;
 }
 
 @media (max-width: 620px) {
+  .disco-music-panel {
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 14px;
+    z-index: 1002;
+  }
+
+  .disco-music-title {
+    max-width: 120px;
+    font-size: 0.9rem;
+  }
+
   .world-chat-bubble-container {
-    bottom: 120px;
-    padding: 0 15px;
+    bottom: 130px;
+    left: 50%;
+    transform: translateX(-50%);
+    gap: 6px;
   }
 
   .world-chat-bubble {
-    max-width: 90vw;
-    padding: 14px 18px;
-    border-radius: 16px;
-  }
-
-  .world-chat-text {
-    font-size: 0.9rem;
-    line-height: 1.5;
+    max-width: 75vw;
+    padding: 10px 14px;
+    font-size: 0.85rem;
   }
 
   .world-chat-user,
   .world-chat-courage {
-    font-size: 0.7rem !important;
-    margin-bottom: 4px;
+    font-size: 0.65rem !important;
+    margin-bottom: 2px;
   }
 
   .world-quota-panel {

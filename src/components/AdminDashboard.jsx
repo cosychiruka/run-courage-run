@@ -171,19 +171,10 @@ const parseReasoning = (raw) => {
   if (!raw || raw === "...") return "Autonomous decision in progress or awaiting details...";
   try {
     const parsed = JSON.parse(raw);
-    // Handle nested structures the LLM produces
     if (parsed.text) return parsed.text;
     if (parsed.content) return parsed.content;
-    if (parsed.article_url) {
-      const title = parsed.news_title || '';
-      const summary = (parsed.news_summary || '').substring(0, 120);
-      return `📰 ${title || parsed.article_url}${summary ? ' — ' + summary + '…' : ''}`;
-    }
-    if (parsed.vibe) return `🎭 Personality post (${parsed.vibe} mode)${parsed.post_text ? ': ' + parsed.post_text.substring(0, 120) : ''}`;
-    if (parsed.post_text) return parsed.post_text;
-    if (parsed.scene) return `🎨 Art: ${parsed.scene}`;
-    if (parsed.thought) return `💭 ${parsed.thought}`;
-    if (parsed.trench_ids) return `💬 Trench replies queued for: ${parsed.trench_ids.join(', ')}`;
+    if (parsed.article_url) return `News React: ${parsed.article_url}`;
+    if (parsed.vibe) return `Personality Post: ${parsed.vibe} mode`;
     return JSON.stringify(parsed, null, 2);
   } catch {
     return raw;
@@ -580,15 +571,11 @@ const AdminDashboard = () => {
     if (mDetail) setMemoryDetail(mDetail.vectors || []);
   }, []);
 
-  // ── isLogPaused ref — avoids re-creating loadBrain on every toggle ──────────
-  const isLogPausedRef = React.useRef(isLogPaused);
-  useEffect(() => { isLogPausedRef.current = isLogPaused; }, [isLogPaused]);
-
   const loadBrain = useCallback(async () => {
     const d = await safeFetch(`${API}/api/admin/live-activity`);
     if (d) {
       setActivity(d);
-      if (!isLogPausedRef.current) {
+      if (!isLogPaused) {
         setBrainLogs(prev => {
           const combined = [...d, ...prev];
           const seen = new Set();
@@ -603,9 +590,11 @@ const AdminDashboard = () => {
     }
     const h = await safeFetch(`${API}/api/admin/history`);
     if (h) setHistory(h);
+    
+    // NEW: Populate the 'decisions' state used by the Live Brain tab
     const dec = await safeFetch(`${API}/api/admin/recent-decisions`);
     if (dec) setDecisions(dec);
-  }, []); // stable — no longer depends on isLogPaused directly
+  }, [isLogPaused]);
 
   const loadTrenches = useCallback(async () => {
     const d = await safeFetch(`${API}/api/admin/trenches?limit=40`);
@@ -650,25 +639,19 @@ const AdminDashboard = () => {
     });
   }, []);
 
-  // ── 30s refresh — stable ref-based, no stacking intervals ───────────────────
-  // All loaders are stable (empty dep arrays) so this interval is truly singleton.
-  const activeTabRef = React.useRef(activeTab);
-  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
-
+  // ── 30s refresh — only overview stats + current tab ─────────────────────────
   useEffect(() => {
     const interval = setInterval(async () => {
       await Promise.all([loadStatus(), loadAgents()]);
-      const tab = activeTabRef.current;
       const loaders = {
         brain: loadBrain, decisions: loadBrain, trenches: loadTrenches,
         posters: loadPosters, moments: loadMoments, queue: loadQueue,
         voice: loadVoiceData, rag: loadRagData,
       };
-      if (loaders[tab]) await loaders[tab]();
+      if (loaders[activeTab]) await loaders[activeTab]();
     }, 30000);
     return () => clearInterval(interval);
-  }, []); // ← EMPTY: interval registers exactly once, never stacks
-
+  }, [activeTab]);
 
   // ── Manual full refresh ──────────────────────────────────────────────────────
   const doRefresh = async () => {
@@ -831,7 +814,7 @@ const AdminDashboard = () => {
   }
 
   const rcr = status?.rcr_stats || {};
-  const llm = status?.llm_circuit_breaker || status?.groq_circuit_breaker || {};
+  const groq = status?.groq_circuit_breaker || {};
 
   return (
     <div style={styles.root}>
@@ -906,23 +889,12 @@ const AdminDashboard = () => {
                 {/* Stats row */}
                 <div style={styles.grid4}>
                   <StatCard label="BRAIN CYCLE" value={`${status?.sensor_cooldown_minutes || 25}m`} sub="Autonomous interval" color="#ff00ff" />
-                  <StatCard label="MEMORY VECTORS" value={memory.count} sub={memory.status || 'unknown'} />
-                  <StatCard label="QUEUED ACTIONS" value={queueData?.counts?.total || 0} sub="Pending execution" color="#ff9900"
+                  <StatCard label="MEMORY VECTORS" value={memory.count} sub={memory.status} />
+                  <StatCard label="QUEUED ACTIONS" value={(queueData?.counts?.replies || 0) + (queueData?.counts?.game_moments || 0)} sub="Pending execution" color="#ff9900"
                     onClick={() => setActiveTab('queue')} />
                   <StatCard label="UNREAD TRENCHES" value={trenches.total_unprocessed} sub="Needs replies" color="#ff00ff"
                     onClick={() => setActiveTab('trenches')} />
                 </div>
-
-                {/* Spend-cap warning banner on Overview */}
-                {status?.spend_cap_active && (
-                  <div className="glass-card" style={{ padding: '0.9rem 1.5rem', borderLeft: '6px solid #ff4444', background: 'rgba(255,68,68,0.07)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{ fontSize: '1.2rem' }}>⚠️</span>
-                    <div>
-                      <strong style={{ color: '#ff4444' }}>X SPEND CAP ACTIVE</strong>
-                      <span style={{ opacity: 0.6, fontSize: '0.8rem', marginLeft: 12 }}>Queue worker paused. Tweets queue up safely and will post once billing clears.</span>
-                    </div>
-                  </div>
-                )}
 
                 {/* Token stats */}
                 <div style={styles.grid3}>
@@ -949,14 +921,14 @@ const AdminDashboard = () => {
                         <button style={{ ...styles.btnSmall, padding: '10px' }} onClick={triggerTrenchScan}>🔍 TRENCH SCAN</button>
                         <button style={{ ...styles.btnSmall, padding: '10px' }} onClick={triggerMarketPulse}>📈 MARKET PULSE</button>
                       </div>
-                      <button style={{ ...styles.btnSmall, opacity: 0.7 }} onClick={resetBreaker}>Reset LLM Circuit Breaker</button>
+                      <button style={{ ...styles.btnSmall, opacity: 0.7 }} onClick={resetBreaker}>Reset Groq Circuit Breaker</button>
                     </div>
                     <div style={{ marginTop: 20, padding: 12, background: '#0a0a0a', borderRadius: 8 }}>
-                      <p style={{ fontSize: '0.75rem', opacity: 0.6, margin: 0 }}>LLM Status</p>
+                      <p style={{ fontSize: '0.75rem', opacity: 0.6, margin: 0 }}>Groq Status</p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                        <Led status={llm.active ? 'stale' : 'active'} />
-                        <span style={{ fontWeight: 'bold', color: llm.active ? '#ff4444' : '#00ffaa' }}>
-                          {llm.active ? `CIRCUIT OPEN — ${llm.remaining_min}m remaining` : 'READY'}
+                        <Led status={groq.active ? 'stale' : 'active'} />
+                        <span style={{ fontWeight: 'bold', color: groq.active ? '#ff4444' : '#00ffaa' }}>
+                          {groq.active ? `CIRCUIT OPEN — ${groq.remaining_min}m remaining` : 'READY'}
                         </span>
                       </div>
                     </div>
@@ -1053,9 +1025,8 @@ const AdminDashboard = () => {
                   <div className="glass-card" style={styles.feedScroll}>
                     {brainLogs.map((log, i) => (
                       <div key={i} style={styles.feedItem}>
-                        {/* Bug fix 5: API returns `time` and `event`, NOT `timestamp` and `type` */}
-                        <span style={styles.feedTime}>{log.time || '??:??:??'}</span>
-                        <span style={{ ...styles.feedEvent, color: log.event === 'SUCCESS' || log.event === 'POST_SUCCESS' ? '#00ffaa' : log.event === 'ERROR' ? '#ff4444' : '#ff9900' }}>{log.event}</span>
+                        <span style={styles.feedTime}>{new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                        <span style={{ ...styles.feedEvent, color: log.type?.includes('SUCCESS') ? '#00ffaa' : '#ff9900' }}>{log.type}</span>
                         <span style={styles.feedMsg}>{log.message}</span>
                       </div>
                     ))}
@@ -1099,8 +1070,8 @@ const AdminDashboard = () => {
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, alignItems: 'center' }}>
                         <div style={{ display: 'flex', gap: 12, fontSize: '0.75rem', opacity: 0.55 }}>
                           {h.tool_used && <span><FaRobot style={{ marginRight: 4 }} /> {h.tool_used}</span>}
-                          <span style={{ color: h.status === 'queued' ? '#ff9900' : h.success ? '#00ffaa' : '#ff4444' }}>
-                            {h.status === 'queued' ? '⏳ Queued' : h.success ? '✓ Success' : '✗ Failed'}
+                          <span style={{ color: h.success ? '#00ffaa' : '#ff4444' }}>
+                            {h.success ? '✓ Success' : '✗ Failed'}
                           </span>
                         </div>
                         <span className="view-details-hint">View Details →</span>
@@ -1279,7 +1250,7 @@ const AdminDashboard = () => {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#ff00ff', fontFamily: 'Bangers, cursive' }}>
-                      {(((queueData?.counts?.replies || 0) + (queueData?.counts?.processing || 0)) * 0.75).toFixed(1)} MIN
+                      {((queueData?.counts?.replies || 0) * 0.75).toFixed(1)} MIN
                     </div>
                     <div style={{ fontSize: '0.65rem', opacity: 0.4, textTransform: 'uppercase', letterSpacing: 1 }}>Est. Time to Clear</div>
                   </div>
@@ -1315,10 +1286,8 @@ const AdminDashboard = () => {
                   <div className="glass-card" style={styles.card}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                       <h3 style={{ ...styles.cardTitle, margin: 0, color: '#ff00ff' }}><FaList style={{ marginRight: 8 }} />Unified Post Queue</h3>
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                         <span style={{ ...styles.badge, background: '#ff00ff' }}>{queueData?.counts?.replies || 0}</span>
-                        <span style={{ ...styles.badge, background: '#00ffaa', color: '#04140f' }}>{queueData?.counts?.processing || 0} active</span>
-                        <span style={{ ...styles.badge, background: '#ff4444' }}>{queueData?.counts?.dead_letters || 0} dead</span>
                         <button style={{ ...styles.btnSmall, borderColor: '#ff4444', color: '#ff4444', background: 'rgba(255,68,68,0.1)' }} onClick={clearQueue}>
                           <FaTrash style={{ marginRight: 6 }} /> CLEAR ALL
                         </button>
@@ -1379,39 +1348,6 @@ const AdminDashboard = () => {
                           </div>
                         );
                       })}
-
-                      {(queueData?.processing_queue || []).map((r, i) => (
-                        <div key={`processing-${i}`} className="decision-card-v2" style={{ borderLeft: '4px solid #00ffaa', padding: '1rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                            <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#00ffaa' }}>
-                              PROCESSING • {r.type || 'POST'}
-                            </span>
-                            <span style={{ fontSize: '0.7rem', opacity: 0.55 }}>
-                              retry {r.retries || 0}
-                            </span>
-                          </div>
-                          <p style={{ margin: 0, fontSize: '0.82rem', opacity: 0.88 }}>{r.text}</p>
-                        </div>
-                      ))}
-
-                      {(queueData?.unified || []).filter(i => i.source === 'DEAD_LETTER').map((r, i) => (
-                        <div key={`dead-${i}`} className="decision-card-v2" style={{ borderLeft: '4px solid #ff4444', padding: '1rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                            <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#ff4444' }}>
-                              DEAD LETTER • {r.type || 'POST'}
-                            </span>
-                            <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>
-                              retries: {r.retries || 0}
-                            </span>
-                          </div>
-                          <p style={{ margin: 0, fontSize: '0.82rem', opacity: 0.85 }}>{r.text}</p>
-                          {r.last_error && (
-                            <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: '#ff7777', opacity: 0.9 }}>
-                              {r.last_error}
-                            </p>
-                          )}
-                        </div>
-                      ))}
                     </div>
                   </div>
                 </div>
@@ -1477,14 +1413,14 @@ const AdminDashboard = () => {
                     </thead>
                     <tbody>
                       {ragData.vectors.map(v => {
-                        const ts = v.embedding_timestamp || v.last_accessed || v.created_at || null;
-                        const ageDays = ts ? Math.floor((Date.now() - (Number(ts) * 1000)) / 86400000) : '?';
+                        const timestamp = v.metadata ? JSON.parse(v.metadata).timestamp : null;
+                        const ageDays = timestamp ? Math.floor((Date.now() - new Date(timestamp).getTime()) / 86400000) : '?';
                         return (
                           <tr key={v.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', cursor: 'pointer' }} onClick={() => setSelectedMemory(v)}>
                             <td style={{ padding: '12px 8px', fontSize: '0.85rem', opacity: 0.85 }}><MemoryPreview content={v.content || v.text_preview} /></td>
                             <td style={{ padding: '12px 8px', textAlign: 'center', color: '#ff9900' }}>{ageDays}d</td>
                             <td style={{ padding: '12px 8px', textAlign: 'right', fontSize: '0.75rem', opacity: 0.5 }}>
-                              {ts ? new Date(Number(ts) * 1000).toLocaleString() : '—'}
+                              {v.key?.substring(0, 8)}...
                             </td>
                           </tr>
                         );
