@@ -30,6 +30,10 @@ class MockRedis:
         self._pubsub = {}
         print("[REDIS] Using In-Memory Mock (Seamless Fallback)")
 
+    async def aclose(self):
+        """Mock close method to prevent shutdown crashes."""
+        pass
+
     async def get(self, key):
         return self._data.get(key)
 
