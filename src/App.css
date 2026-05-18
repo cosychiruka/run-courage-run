@@ -106,12 +106,12 @@ body {
 .bone-nav {
   position: fixed;
   width: 65%;
-  top: 1.5em;
+  top: 2.5em;
   left: 50%;
   transform: translateX(-50%);
   height: 20px;
   margin: 0; /* Removed margin auto to use translateX centering */
-  padding: 1em 2em;
+  padding: 1.5em 2em;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -126,13 +126,13 @@ body {
 /* Circles for Bone Lobes */
 .bone-nav .circle {
   position: absolute;
-  width: 44px; /* Slightly smaller for better mobile fit */
-  height: 44px;
+  width: 55px;
+  height: 55px;
   background: #ffc2f8;
   border-radius: 50%;
-  border-top: 5px solid #333333;
-  border-left: 5px solid #333333;
-  border-right: 5px solid #333333;
+  border-top: 6px solid #333333;
+  border-left: 6px solid #333333;
+  border-right: 6px solid #333333;
 }
 
 .circle {
@@ -1792,8 +1792,6 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 
 @media (max-width: 768px) {
   body {
-    /* cover fills the viewport properly on portrait mobile; kill the zoom animation */
-    background-size: 150vmax !important;
     background-attachment: scroll !important;
     /* 'fixed' causes iOS scroll glitch */
     animation: zoomOutEffectMobile 4s ease-out forwards !important;
@@ -1803,8 +1801,6 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 /* Responsive stacking layout for smaller screens */
 @media (max-width: 650px) {
   body {
-    /* cover fills the viewport properly on portrait mobile; kill the zoom animation */
-    background-size: 150vmax !important;
     background-attachment: scroll !important;
     /* 'fixed' causes iOS scroll glitch */
     animation: zoomOutEffectMobile 4s ease-out forwards !important;
@@ -1829,8 +1825,9 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 
   .bone-nav {
     position: relative !important;
-    top: 0;
+    top: 35px;
     margin: 1.5em auto;
+    margin-top: 0;
     width: calc(100% - 80px); /* Leave space for circles (30px + 30px + buffer) */
     max-width: 300px;
     padding: 1.2em 1.5em;
@@ -1859,7 +1856,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   .couragesign {
     width: auto !important;
     text-align: center;
-    font-size: 1.8rem !important;
+    font-size: 2rem !important;
     line-height: 1.1;
     font-family: 'Bangers', cursive !important;
   }
@@ -1929,57 +1926,6 @@ div:where(.swal2-container) div:where(.swal2-popup) {
       opacity: 0;
       transform: translateX(-10px);
     }
-  }
-
-  #loan-list-section {
-    width: 100%;
-    min-height: 350px;
-  }
-
-  #loan-list-section h2 {
-    margin: 0 0 1rem 1rem;
-    margin-bottom: 1rem;
-    font-size: 1em;
-    margin-bottom: 1em;
-    text-align: left;
-  }
-
-  .search-bar {
-    right: 7px;
-  }
-
-  .search-input {
-    border: none !important;
-    font-size: 12px;
-  }
-
-  .search-button {
-    padding: .3em .4em;
-  }
-
-  .filter-options {
-    gap: 0 0.5em;
-  }
-
-  .filter-options label {
-    font-size: 11px;
-    font-weight: 600;
-    width: 100px;
-    height: unset;
-    border-radius: 35%;
-  }
-
-  .icon-with-text {
-    padding: 5px 10px;
-  }
-
-  .network-display {
-    width: 100px;
-    font-size: 11px;
-  }
-
-  .token-card {
-    font-size: 10px;
   }
 
   .floating-menu {
@@ -2058,15 +2004,10 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   }
 }
 
-/* Push nav down so it clears the ticker */
-.bone-nav {
-  top: 28px !important;
-}
-
 /* Scene toggle button inside bone-nav */
 .scene-toggle-btn {
   position: absolute;
-  right: 1.2rem;
+  right: 1.4rem;
   background: rgba(0, 0, 0, 0.3);
   border: 2px solid rgba(255, 255, 255, 0.4);
   border-radius: 50%;
@@ -2568,6 +2509,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 7;
   /* clicks fall through to app-background */
 }
 
@@ -2925,7 +2867,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 /* Tokenomics grid */
 .token-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: 1fr;
   gap: 1.5rem;
 }
 
@@ -3976,7 +3918,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   }
 
   .couragesign {
-    font-size: 2.2rem !important;
+    font-size: 2.2rem;
     line-height: 1.1;
     text-shadow: 2px 2px 0px #000 !important;
     font-family: 'Bangers', cursive !important;
@@ -4282,7 +4224,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   .bone-nav h1,
   .couragesign {
     font-family: 'Bangers', cursive !important;
-    font-size: 1.8rem !important;
+    font-size: 3rem;
     animation: cartoon3dBounce 4s infinite ease-in-out, comicBulge 6s infinite ease-in-out !important;
   }
 }

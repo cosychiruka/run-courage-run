@@ -121,8 +121,7 @@ async def _generate_personality_post(
         "Tweet text only (no quotes, no extra commentary):"
     )
     try:
-        resp = await groq_client.chat.completions.create(
-            model=GROQ_MODEL,
+        resp = await create_chat_completion(
             messages=[{"role": "user", "content": prompt}],
             max_tokens=110,
             temperature=0.93,
@@ -331,19 +330,19 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
                 {"role": "user", "content": decision_prompt}
             ],
             temperature=0.7,
-            max_tokens=800,
+            max_tokens=700,
         )
 
         resp = completion_to_dict(completion)
         choice = resp.get("choices", [{}])[0]
         message = choice.get("message", {})
-        LAST_REACTIVE_TICK = time.time() 
+        LAST_REACTIVE_TICK = time.time()
         chosen_action = "NO_ACTION"
 
-        if message.tool_calls:
-            for tool_call in message.tool_calls:
-                name = tool_call.function.name
-                args = json.loads(tool_call.function.arguments)
+        if message.get("tool_calls"):
+            for tool_call in message["tool_calls"]:
+                name = tool_call["function"]["name"]
+                args = json.loads(tool_call["function"]["arguments"])
                 chosen_action = name
                 print(f"[AUTONOMOUS] Executing tool: {name}")
 
@@ -362,7 +361,7 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
                         from app.config import DB_PATH as _DB_PATH
                         
                         # Use the actual arguments from the current tool_call
-                        db_reasoning = tool_call.function.arguments
+                        db_reasoning = tool_call["function"]["arguments"]
                             
                         async with _aiosqlite.connect(_DB_PATH) as _db:
                             await _db.execute(

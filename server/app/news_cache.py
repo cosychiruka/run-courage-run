@@ -68,6 +68,11 @@ async def init_db():
         await db.execute(CREATE_TABLE_ARTICLES)
         await db.execute(CREATE_TABLE_TICKS)
         await db.execute(CREATE_TABLE_RAG)
+        # Migration: add metadata column to rag_vectors if it was created before this column existed
+        try:
+            await db.execute("ALTER TABLE rag_vectors ADD COLUMN metadata TEXT DEFAULT '{}'")
+        except Exception:
+            pass  # column already exists — normal on fresh deployments
         await db.commit()
 
 # ── Article normalisation ──────────────────────────────────────────────────────

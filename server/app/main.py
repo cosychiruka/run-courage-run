@@ -266,10 +266,10 @@ async def lifespan(app: FastAPI):
 
             # ── READINESS BANNER ──
             await asyncio.sleep(1.5)  # let voice models finish loading before final banner
-            from app.config import GROQ_MODEL
+            from app.config import DEFAULT_MODEL
             print("\n" + "="*50)
             print("🐕 COURAGE AI BACKEND — READY")
-            print(f"🧠 BRAIN:       Groq ({GROQ_MODEL})")
+            print(f"🧠 BRAIN:       OpenRouter ({DEFAULT_MODEL})")
             print(f"🐦 TWITTER:     {'CONNECTED ✓' if x_client else 'DISABLED ✗'}")
             print(f"🗄️ REDIS:       {REDIS_URL.split('@')[-1] if '@' in REDIS_URL else REDIS_URL}")
             print(f"🌐 FRONTEND:    {FRONTEND_ORIGIN}")
@@ -1031,23 +1031,18 @@ async def world_event(payload: dict):
     except KeyError:
         prompt = template
 
-    from app.config import GROQ_API_KEY, GROQ_MODEL
-    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+    from app.llm import create_chat_completion
     messages = [
         {"role": "system", "content": "You are a world event director. Output ONLY valid JSON. No extra text."},
         {"role": "user",   "content": prompt},
     ]
     try:
-        client = get_http_client()
-        r = await client.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json={
-            "model":   GROQ_MODEL,
-            "messages": messages,
-            "stream":  False,
-            "response_format": {"type": "json_object"},
-            "temperature": 0.9,
-        })
-        r.raise_for_status()
-        raw = r.json().get("choices", [{}])[0].get("message", {}).get("content", "{}").strip()
+        completion = await create_chat_completion(
+            messages=messages,
+            temperature=0.9,
+            max_tokens=200,
+        )
+        raw = completion.choices[0].message.content.strip()
         # Strip markdown fences just in case
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
