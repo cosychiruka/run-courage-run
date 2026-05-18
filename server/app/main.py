@@ -1239,6 +1239,26 @@ async def clear_reply_queue():
     except Exception as e:
         raise HTTPException(500, str(e))
 
+@app.delete("/api/admin/queue/{index}")
+async def delete_queue_item(index: int):
+    """Delete a single item from the reply queue by its position index."""
+    from app.redis_utils import get_redis_client
+    r = await get_redis_client()
+    if not r:
+        raise HTTPException(503, "Redis unavailable")
+    try:
+        _SENTINEL = "__DELETED__"
+        length = await r.llen("courage:reply_queue_v5")
+        if index < 0 or index >= length:
+            raise HTTPException(400, f"Index {index} out of range (queue has {length} items)")
+        await r.lset("courage:reply_queue_v5", index, _SENTINEL)
+        await r.lrem("courage:reply_queue_v5", 0, _SENTINEL)
+        return {"status": "ok", "message": f"Item {index} removed.", "remaining": length - 1}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
 @app.get("/api/admin/game-moments")
 async def get_game_moments():
     """Fetch pending + recent game moments from Redis."""

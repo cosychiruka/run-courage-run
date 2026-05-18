@@ -706,8 +706,14 @@ const AdminDashboard = () => {
 
   const clearQueue = async () => {
     if (!window.confirm('Clear the entire reply queue?')) return;
-    const d = await safeFetch(`${API}/api/admin/queues`, { method: 'DELETE' });
+    const d = await safeFetch(`${API}/api/admin/queue`, { method: 'DELETE' });
     showToast(d?.message || 'Queue cleared!', d ? 'ok' : 'err');
+    await loadQueue();
+  };
+
+  const deleteQueueItem = async (index) => {
+    const d = await safeFetch(`${API}/api/admin/queue/${index}`, { method: 'DELETE' });
+    showToast(d?.message || `Item ${index} removed`, d ? 'ok' : 'err');
     await loadQueue();
   };
 
@@ -1319,9 +1325,14 @@ const AdminDashboard = () => {
                                 </span>
                                 <span style={{ fontSize: '0.65rem', opacity: 0.4 }}>{r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : 'PENDING'}</span>
                               </div>
-                              <button className="btn-small" style={{ borderColor: typeColor, color: typeColor }} onClick={() => processQueueItem('courage:reply_queue_v5', i)}>
-                                <FaPlay /> SEND NOW
-                              </button>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button className="btn-small" style={{ borderColor: typeColor, color: typeColor }} onClick={() => processQueueItem('courage:reply_queue_v5', i)}>
+                                  <FaPlay /> SEND NOW
+                                </button>
+                                <button className="btn-small" style={{ borderColor: '#ff4444', color: '#ff4444', background: 'rgba(255,68,68,0.08)' }} onClick={() => deleteQueueItem(i)} title="Remove from queue">
+                                  <FaTrash />
+                                </button>
+                              </div>
                             </div>
 
                             <div style={{ display: 'flex', gap: 15 }}>
