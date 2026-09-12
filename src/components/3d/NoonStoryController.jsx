@@ -70,7 +70,7 @@ export function NoonStoryController({ eventLine = '' }) {
       } else if (p === 1) {
         // Walks from house to truck
         eurielRef.current.scale.setScalar(0.6);
-        const walkT = (t - 5) / 5;
+        const walkT = THREE.MathUtils.smoothstep((t - 5) / 5, 0, 1);
         eurielRef.current.position.set(
           THREE.MathUtils.lerp(-2.8, 3.5, walkT),
           -0.1,
@@ -80,7 +80,7 @@ export function NoonStoryController({ eventLine = '' }) {
       } else if (p === 5) {
         // Walks from truck back to house
         eurielRef.current.scale.setScalar(0.6);
-        const walkT = (t - 45) / 5;
+        const walkT = THREE.MathUtils.smoothstep((t - 45) / 5, 0, 1);
         eurielRef.current.position.set(
           THREE.MathUtils.lerp(3.5, -2.8, walkT),
           -0.1,
@@ -186,7 +186,12 @@ export function NoonStoryController({ eventLine = '' }) {
 
       {/* Animated Truck Group */}
       <group ref={truckGroupRef}>
-        <Truck position={[0, 0, 0]} rotation={[0, 0, 0]} />
+        <Truck
+          position={[0, 0, 0]}
+          rotation={[0, 0, 0]}
+          driverDoorOpen={phase === 1 || phase === 5}
+          lightsOn={false}
+        />
       </group>
 
       {/* Courage — 2D animated character in Html billboard */}
