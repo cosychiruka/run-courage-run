@@ -21,10 +21,10 @@ function mulberry32(seed) {
   };
 }
 
-function BackdropForest({ colors }) {
+function BackdropForest({ colors, treeCount }) {
   const treeData = useMemo(() => {
     const random = mulberry32(7319);
-    return Array.from({ length: 30 }, (_, index) => {
+    return Array.from({ length: treeCount }, (_, index) => {
       const side = index % 2 === 0 ? -1 : 1;
       const lane = Math.floor(index / 2);
       const x = side * (5.5 + random() * 21);
@@ -39,7 +39,7 @@ function BackdropForest({ colors }) {
         rotation: [0, random() * Math.PI, 0],
       };
     });
-  }, []);
+  }, [treeCount]);
 
   return (
     <group name="forest-backdrop">
@@ -73,6 +73,7 @@ function BackdropForest({ colors }) {
 
 BackdropForest.propTypes = {
   colors: PropTypes.shape({ canopy: PropTypes.string.isRequired }).isRequired,
+  treeCount: PropTypes.number.isRequired,
 };
 
 function River({ color }) {
@@ -172,7 +173,7 @@ SignalTrail.propTypes = {
   glow: PropTypes.string.isRequired,
 };
 
-function Portal({ colors }) {
+function Portal({ colors, particleCount }) {
   const portalRef = useRef(null);
   const outerRingRef = useRef(null);
   const innerRingRef = useRef(null);
@@ -181,7 +182,7 @@ function Portal({ colors }) {
   const particleGeometry = useMemo(() => {
     const random = mulberry32(90210);
     const positions = [];
-    for (let index = 0; index < 44; index += 1) {
+    for (let index = 0; index < particleCount; index += 1) {
       const angle = random() * Math.PI * 2;
       const radius = 1.6 + random() * 1.65;
       positions.push(
@@ -193,7 +194,7 @@ function Portal({ colors }) {
     const buffer = new THREE.BufferGeometry();
     buffer.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     return buffer;
-  }, []);
+  }, [particleCount]);
 
   useEffect(() => () => particleGeometry.dispose(), [particleGeometry]);
 
@@ -236,6 +237,7 @@ Portal.propTypes = {
     accent: PropTypes.string.isRequired,
     glow: PropTypes.string.isRequired,
   }).isRequired,
+  particleCount: PropTypes.number.isRequired,
 };
 
 function GodRays({ glow }) {
@@ -264,13 +266,14 @@ GodRays.propTypes = {
 
 export function ForestPortal({ scene = 'evening' }) {
   const colors = PORTAL_THEME[scene] || PORTAL_THEME.evening;
+  const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
   return (
     <group name="portal-clearing">
-      <BackdropForest colors={colors} />
+      <BackdropForest colors={colors} treeCount={isMobile ? 18 : 30} />
       <River color={colors.river} />
       <SignalTrail glow={colors.glow} />
-      <Portal colors={colors} />
-      {scene !== 'noon' && <GodRays glow={colors.glow} />}
+      <Portal colors={colors} particleCount={isMobile ? 26 : 44} />
+      {!isMobile && scene !== 'noon' && <GodRays glow={colors.glow} />}
     </group>
   );
 }

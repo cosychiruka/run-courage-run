@@ -267,11 +267,11 @@ TickerlingBush.propTypes = {
   trigger: PropTypes.func.isRequired,
 };
 
-function FarBushRing({ colors }) {
+function FarBushRing({ bushCount, colors }) {
   const clumps = useMemo(() => {
     const generated = [];
-    for (let bushIndex = 0; bushIndex < 18; bushIndex += 1) {
-      const angle = (bushIndex / 18) * Math.PI * 2 + 0.18;
+    for (let bushIndex = 0; bushIndex < bushCount; bushIndex += 1) {
+      const angle = (bushIndex / bushCount) * Math.PI * 2 + 0.18;
       const radius = 23 + (bushIndex % 3) * 3.2;
       const centerX = Math.sin(angle) * radius;
       const centerZ = Math.cos(angle) * radius;
@@ -287,7 +287,7 @@ function FarBushRing({ colors }) {
       });
     }
     return generated;
-  }, []);
+  }, [bushCount]);
 
   return (
     <Instances limit={clumps.length}>
@@ -306,6 +306,7 @@ function FarBushRing({ colors }) {
 }
 
 FarBushRing.propTypes = {
+  bushCount: PropTypes.number.isRequired,
   colors: PropTypes.shape({
     leaf: PropTypes.arrayOf(PropTypes.string).isRequired,
   }).isRequired,
@@ -395,7 +396,7 @@ export function TickerlingForest({ scene = 'evening' }) {
 
   return (
     <group name="tickerling-forest">
-      <FarBushRing colors={colors} />
+      <FarBushRing bushCount={isMobile ? 10 : 18} colors={colors} />
       {bushes.map((bush, index) => (
         <TickerlingBush
           key={bush.id}

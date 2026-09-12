@@ -545,6 +545,7 @@ function StylizedCloud({ position, scale = 1, opacity = 0.5, speed = 0.05, morni
 export function Scene({ scene = 'evening', showStory = true, selfieFlyTexture = null, selfieFlyLabel = '', selfieFlyPreviewUrl = null, eventLine = '' }) {
   const isSunrise = scene === 'sunrise';
   const isNoon = scene === 'noon';
+  const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
   const ambientColor = isNoon ? '#ffffff' : isSunrise ? '#c8dff0' : '#bd80e8';
   const ambientIntensity = isNoon ? 1.4 : isSunrise ? 0.9 : 0.4;
   const dirLightColor = isNoon ? '#ffffff' : isSunrise ? '#ffe8a0' : '#ffccf5';
@@ -591,7 +592,7 @@ export function Scene({ scene = 'evening', showStory = true, selfieFlyTexture = 
       <color attach="background" args={[bgColor]} />
       <mesh position={[0, -5, 0]}><sphereGeometry args={[120, 16, 16]} /><meshBasicMaterial side={THREE.BackSide} depthWrite={false} map={gradientTexture} /></mesh>
       {/* Stars only for night/evening scenes */}
-      {!isNoon && <Stars radius={80} depth={30} count={2000} factor={6} saturation={0.5} fade speed={0.5} />}
+      {!isNoon && <Stars radius={80} depth={30} count={isMobile ? 800 : 2000} factor={6} saturation={0.5} fade speed={0.5} />}
       {scene === 'sunrise' && (
         <>
           <StylizedCloud position={[-40, 30, -50]} scale={1.2} morning={true} opacity={0.6} />

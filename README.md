@@ -217,6 +217,22 @@ Courage lives in four immersive **React Three Fiber** worlds (Sunrise, Noon, Eve
 - **Wholistic Integration**: Voice is the highest-priority state. Any active voice session **freezes the autonomous loop**, ensuring Courage is 100% focused on the human in the room.
 - **3D Reactivity**: `trigger_3d_reaction` emits Redis stream event → frontend switches worlds dynamically.
 
+### 🌲 Living Forest and Tickerlings
+
+The shared world environment now contains a hidden river portal, an original
+emerald signal trail, a layered forest, and short interactive bushes called
+**Tickerlings**. A click—or sustained camera attention after the visitor begins
+orbiting—can make an eligible Robinhood Chain token signal emerge from a bush.
+The landing market widget and 3D encounters share one truthfully attributed,
+cached DexScreener snapshot; remote logos pass through a bounded re-encoding
+proxy before they reach the experience.
+
+Noon also includes rebuilt procedural caretaker and truck models with articulated
+walking, a phase-linked driver door, and displacement-driven wheel rotation.
+
+See [`docs/WORLD_EXPERIENCE.md`](docs/WORLD_EXPERIENCE.md) for the lore, scene
+graph, market-data contract, mobile budgets, brand boundary, and QA checklist.
+
 ---
 
 ## 🎛️ Creator God-Mode Dashboard
