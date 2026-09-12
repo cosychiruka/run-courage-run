@@ -5,10 +5,29 @@ import { getBackendUrl } from '../services/newsService';
 
 const API_BASE = getBackendUrl();
 
+const DEFAULT_TICKERS = [
+  { symbol: "$PEPE", name: "Pepe", price: 0.0000098, change_24h: 14.2, platform: "Robinhood Crypto", is_trending: true, image_url: "https://assets.coingecko.com/coins/images/29850/large/pepe-token.png" },
+  { symbol: "$DOGE", name: "Dogecoin", price: 0.125, change_24h: 6.4, platform: "Robinhood Crypto", is_trending: true, image_url: "https://assets.coingecko.com/coins/images/5/large/dogecoin.png" },
+  { symbol: "$SOL", name: "Solana", price: 148.5, change_24h: 5.8, platform: "Robinhood Crypto", is_trending: true, image_url: "https://assets.coingecko.com/coins/images/4128/large/solana.png" },
+  { symbol: "$SHIB", name: "Shiba Inu", price: 0.0000185, change_24h: 4.1, platform: "Robinhood Crypto", is_trending: true, image_url: "https://assets.coingecko.com/coins/images/11939/large/shiba.png" },
+  { symbol: "$SUI", name: "Sui", price: 1.05, change_24h: 11.5, platform: "Robinhood Crypto", is_trending: true, image_url: "https://assets.coingecko.com/coins/images/26375/large/sui-ocean-square.png" },
+  { symbol: "$WIF", name: "dogwifhat", price: 1.62, change_24h: 9.7, platform: "Robinhood Crypto", is_trending: true, image_url: "https://assets.coingecko.com/coins/images/33566/large/dogwifhat.jpg" },
+  { symbol: "$BTC", name: "Bitcoin", price: 64200.0, change_24h: 2.4, platform: "Robinhood Crypto", is_trending: false, image_url: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png" },
+];
+
 // ── Widget 1: Live Robinhood & Trending Crypto Pulse (Sorted Live Data) ────────────────
 export const LiveMarketWidget = () => {
-  const [data, setData] = useState({ stats: [], movers: { top_gainers: [] } });
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(() => {
+    try {
+      const cached = localStorage.getItem('courage_robinhood_tickers');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.stats && parsed.stats.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return { stats: DEFAULT_TICKERS, movers: { top_gainers: [] } };
+  });
+  const [loading, setLoading] = useState(false);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -16,7 +35,10 @@ export const LiveMarketWidget = () => {
       const res = await fetch(`${API_BASE}/api/robinhood-crypto`);
       if (res.ok) {
         const json = await res.json();
-        setData(json);
+        if (json.stats && json.stats.length > 0) {
+          setData(json);
+          try { localStorage.setItem('courage_robinhood_tickers', JSON.stringify(json)); } catch (e) {}
+        }
       }
     } catch (err) {
       console.warn('Failed to fetch Robinhood stats:', err);
@@ -31,7 +53,8 @@ export const LiveMarketWidget = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const sortedStats = [...(data.stats || [])].sort((a, b) => {
+  const rawStats = (data && data.stats && data.stats.length > 0) ? data.stats : DEFAULT_TICKERS;
+  const sortedStats = [...rawStats].sort((a, b) => {
     if (b.is_trending !== a.is_trending) return b.is_trending ? 1 : -1;
     return (b.change_24h || 0) - (a.change_24h || 0);
   });
