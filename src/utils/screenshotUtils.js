@@ -111,11 +111,11 @@ export async function captureAndShareSelfie({ previewUrl, label, worldName, mons
   ctx.textAlign = 'right';
   ctx.fillStyle = '#eb57c1';
   ctx.font = 'bold 24px "Outfit", sans-serif';
-  ctx.fillText('@hoodcourage', W - 40, H - (stripH / 2));
+  ctx.fillText('@cowardlyhood', W - 40, H - (stripH / 2));
 
   // 5. Native Share or Download
   const filename = `monster-selfie-${Date.now()}.png`;
-  const shareText = tweetText || `${monsterEmoji} I became a monster at ${worldName}! @hoodcourage #CourageRunRun`;
+  const shareText = tweetText || `${monsterEmoji} I became a monster at ${worldName}! @cowardlyhood #CourageRunRun`;
 
   return new Promise((resolve) => {
     card.toBlob(async (blob) => {

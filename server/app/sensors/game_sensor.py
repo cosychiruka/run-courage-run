@@ -45,7 +45,7 @@ async def game_sensor_loop():
             # Search for Robinhood crypto topics, direct mentions & game moments
             query = (
                 '"Robinhood crypto" OR "Robinhood listing" OR "$DOGE" OR "$PEPE" OR "$SHIB" '
-                'OR "@hoodcourage" OR "runcouragerun" -is:retweet lang:en'
+                'OR "@cowardlyhood" OR "runcouragerun" -is:retweet lang:en'
             )
             tweets = x.search_recent(query=query, max_results=10)
 
@@ -62,7 +62,7 @@ async def game_sensor_loop():
             for t in tweets.data or []:
                 if any(kw in t.text.lower() for kw in [
                     "robinhood", "doge", "pepe", "shib", "crypto", "courage", "runcouragerun",
-                    "@hoodcourage", "homestead", "cowardly dog",
+                    "@cowardlyhood", "homestead", "cowardly dog",
                 ]):
                     # PHASE 5.9: Debounce events to prevent LLM spam (max 1 every 30s)
                     last_event = await _redis.get("courage:last_game_moment_event") if _redis else None

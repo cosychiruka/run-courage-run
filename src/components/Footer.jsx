@@ -69,7 +69,7 @@ const Footer = () => {
         <div className="footer-meta">
           <span>© {new Date().getFullYear()} Run Courage Run</span>
           <span className="footer-dot">•</span>
-          <a href="https://x.com/hoodcourage" target="_blank" rel="noopener noreferrer" className="footer-link">@hoodcourage</a>
+          <a href="https://x.com/cowardlyhood" target="_blank" rel="noopener noreferrer" className="footer-link">@cowardlyhood</a>
           <span className="footer-dot">•</span>
           <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="footer-link">Terms</a>
           <span className="footer-dot">•</span>

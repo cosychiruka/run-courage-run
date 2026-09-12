@@ -10,9 +10,12 @@ const DEFAULT_TICKERS = [
   { symbol: "$DOGE", name: "Dogecoin", price: 0.125, change_24h: 6.4, platform: "Robinhood Crypto", is_trending: true, image_url: "https://assets.coingecko.com/coins/images/5/large/dogecoin.png" },
   { symbol: "$SOL", name: "Solana", price: 148.5, change_24h: 5.8, platform: "Robinhood Crypto", is_trending: true, image_url: "https://assets.coingecko.com/coins/images/4128/large/solana.png" },
   { symbol: "$SHIB", name: "Shiba Inu", price: 0.0000185, change_24h: 4.1, platform: "Robinhood Crypto", is_trending: true, image_url: "https://assets.coingecko.com/coins/images/11939/large/shiba.png" },
-  { symbol: "$SUI", name: "Sui", price: 1.05, change_24h: 11.5, platform: "Robinhood Crypto", is_trending: true, image_url: "https://assets.coingecko.com/coins/images/26375/large/sui-ocean-square.png" },
-  { symbol: "$WIF", name: "dogwifhat", price: 1.62, change_24h: 9.7, platform: "Robinhood Crypto", is_trending: true, image_url: "https://assets.coingecko.com/coins/images/33566/large/dogwifhat.jpg" },
   { symbol: "$BTC", name: "Bitcoin", price: 64200.0, change_24h: 2.4, platform: "Robinhood Crypto", is_trending: false, image_url: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png" },
+  { symbol: "$ETH", name: "Ethereum", price: 3450.0, change_24h: 3.1, platform: "Robinhood Crypto", is_trending: false, image_url: "https://assets.coingecko.com/coins/images/279/large/ethereum.png" },
+  { symbol: "$AVAX", name: "Avalanche", price: 24.8, change_24h: 4.6, platform: "Robinhood Crypto", is_trending: false, image_url: "https://assets.coingecko.com/coins/images/12559/large/Avalanche_Circle_RedWhite_Trans.png" },
+  { symbol: "$LINK", name: "Chainlink", price: 11.2, change_24h: 1.8, platform: "Robinhood Crypto", is_trending: false, image_url: "https://assets.coingecko.com/coins/images/877/large/chainlink-new-logo.png" },
+  { symbol: "$UNI", name: "Uniswap", price: 6.85, change_24h: -1.2, platform: "Robinhood Crypto", is_trending: false, image_url: "https://assets.coingecko.com/coins/images/12504/large/uniswap-uni.png" },
+  { symbol: "$LTC", name: "Litecoin", price: 65.4, change_24h: 0.9, platform: "Robinhood Crypto", is_trending: false, image_url: "https://assets.coingecko.com/coins/images/2/large/litecoin.png" },
 ];
 
 // ── Widget 1: Live Robinhood & Trending Crypto Pulse (Sorted Live Data) ────────────────

@@ -471,7 +471,7 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
       label: selfie.label,
       worldName: 'Nowhere High School Disco',
       monsterEmoji: '👻',
-      tweetText: `👻 I became a Monster at the Nowhere High School Disco with @hoodcourage! #CourageRunRun #MonsterSelfie #Web3`,
+      tweetText: `👻 I became a Monster at the Nowhere High School Disco with @cowardlyhood! #CourageRunRun #MonsterSelfie #Web3`,
     });
   }, [selfie.previewUrl, selfie.label]);
 

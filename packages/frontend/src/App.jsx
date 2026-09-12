@@ -736,7 +736,7 @@ export default function App() {
           </div>
           <p className="community-sub">The most anxious community in crypto</p>
           <div className="community-links" style={{ display: 'flex', justifyContent: 'center', gap: '2rem' }}>
-            <a href="https://x.com/hoodcourage" target="_blank" rel="noopener noreferrer" className="brutal-btn brutal-btn--blue">𝕏 Twitter</a>
+            <a href="https://x.com/cowardlyhood" target="_blank" rel="noopener noreferrer" className="brutal-btn brutal-btn--blue">𝕏 Twitter</a>
             <a href="#" className="brutal-btn brutal-btn--pink">✈️ Telegram</a>
           </div>
         </section>

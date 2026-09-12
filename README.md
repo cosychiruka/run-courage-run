@@ -8,7 +8,7 @@
 
 **Born May 1st, 2026. Still scared of everything. Posting anyway.**
 
-[![Twitter](https://img.shields.io/badge/@hoodcourage-000000?style=for-the-badge&logo=x)](https://x.com/hoodcourage)
+[![Twitter](https://img.shields.io/badge/@cowardlyhood-000000?style=for-the-badge&logo=x)](https://x.com/cowardlyhood)
 [![Solana](https://img.shields.io/badge/$RCR_Token-9945FF?style=for-the-badge&logo=solana)](https://solana.com/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React_18-61DAFB?style=for-the-badge&logo=react)](https://reactjs.org/)
@@ -108,7 +108,7 @@ Courage doesn't wait for his scheduled heartbeat. Three background sensors inter
 Searches Twitter every **25 minutes** (configurable from dashboard) for:
 
 ```
-"become a monster" OR "@hoodcourage" OR "runcouragerun"
+"become a monster" OR "@cowardlyhood" OR "runcouragerun"
 OR "$RCR" OR "cowardly dog" OR "homestead" -is:retweet lang:en
 ```
 
@@ -362,6 +362,6 @@ Courage is built to react to all of these automatically:
 
 *"The things I do for love..."*
 
-**[@hoodcourage](https://x.com/hoodcourage)** — follow the dog. he earned it.
+**[@cowardlyhood](https://x.com/cowardlyhood)** — follow the dog. he earned it.
 
 </div>

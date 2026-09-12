@@ -65,7 +65,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "get_my_tweets",
-            "description": "Retrieve @hoodcourage's recent tweets to stay aware of what was already posted.",
+            "description": "Retrieve @cowardlyhood's recent tweets to stay aware of what was already posted.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -79,7 +79,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "get_mentions",
-            "description": "Check recent mentions / replies to @hoodcourage on X.",
+            "description": "Check recent mentions / replies to @cowardlyhood on X.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -94,7 +94,7 @@ TOOL_SCHEMAS = [
         "function": {
             "name": "post_tweet",
             "description": (
-                "Post a tweet as @hoodcourage. "
+                "Post a tweet as @cowardlyhood. "
                 "ALWAYS check get_x_rate_status first. "
                 "Tweets must be Courage-voiced: punchy, dramatic, 1-2 sentences + a Courage-ism. "
                 "Max 280 chars."
@@ -220,7 +220,7 @@ async def _get_my_tweets(args: dict, x_client) -> str:
         posts = x_client.get_my_recent_posts(max_results)
         if not posts or not posts.data:
             return "No recent posts found."
-        return "Recent @hoodcourage tweets:\n" + "\n".join(
+        return "Recent @cowardlyhood tweets:\n" + "\n".join(
             f"- [{t.id}] {t.text}" for t in posts.data
         )
     except Exception as e:

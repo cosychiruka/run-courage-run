@@ -76,7 +76,7 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
       label: selfie.label,
       worldName: 'Sunrise World',
       monsterEmoji: '🪰',
-      tweetText: `🪰 I became a Giant Fly chasing Courage at Sunrise with @hoodcourage! #CourageRunRun #GiantFlySelfie`,
+      tweetText: `🪰 I became a Giant Fly chasing Courage at Sunrise with @cowardlyhood! #CourageRunRun #GiantFlySelfie`,
     });
   }, [selfie.previewUrl, selfie.label]);
 

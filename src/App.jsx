@@ -876,8 +876,8 @@ export default function App() {
           </div>
           <p className="community-sub">Follow Courage AI for real-time Robinhood dispatches & breaking crypto commentary</p>
           <div className="community-links">
-            <a href="https://x.com/hoodcourage" target="_blank" rel="noopener noreferrer" className="community-btn">
-              <span className="x-logo">𝕏</span> Follow @hoodcourage
+            <a href="https://x.com/cowardlyhood" target="_blank" rel="noopener noreferrer" className="community-btn">
+              <span className="x-logo">𝕏</span> Follow @cowardlyhood
             </a>
           </div>
         </section>
