@@ -9,6 +9,7 @@ import { Terrain } from './Terrain3D';
 import CourageRunningAnimationComplete from './CourageRunningAnimationComplete';
 import { NoonStoryController } from './NoonStoryController';
 import { TickerlingForest } from './TickerlingForest';
+import { ForestPortal } from './ForestPortal';
 
 const MemoHouse = memo(House);
 const MemoWindmill = memo(Windmill);
@@ -642,6 +643,7 @@ export function Scene({ scene = 'evening', showStory = true, selfieFlyTexture = 
       {!isNoon && <ShootingStar />}
       <group position={[0, -2, 0]}>
         <MemoTerrain scene={scene} />
+        <ForestPortal scene={scene} />
         <TickerlingForest scene={scene} />
         {showStory && (
           scene === 'noon' ? <NoonStoryController eventLine={eventLine} /> :
