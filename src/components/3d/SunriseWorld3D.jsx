@@ -12,7 +12,7 @@ import { useWorldEvents, registerPresence } from '../../hooks/useWorldEvents';
 import { captureAndShareSelfie } from '../../utils/screenshotUtils';
 
 const SUNRISE_TRACKS = [
-  { id: 'shush-all-star',      url: '/audio/shush-all-star.mp3',       title: 'Shush All Star' },
+  { id: 'shush-all-star', url: '/audio/shush-all-star.mp3', title: 'Shush All Star' },
   { id: 'more-makreel-thrifty', url: '/audio/more-makreel-thrifty.mp3', title: 'More Makreel' },
 ];
 
@@ -25,11 +25,11 @@ function ReadySignal({ onReady }) {
 }
 
 export default function SunriseWorld3D({ visible, onReady, onClose }) {
-  const [audioLoaded, setAudioLoaded]         = useState(false);
-  const [isMuted, setIsMuted]                 = useState(false);
+  const [audioLoaded, setAudioLoaded] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const [currentTrackIdx, setCurrentTrackIdx] = useState(0);
   const canvasRef = useRef(null);
-  const selfie    = useSelfie();
+  const selfie = useSelfie();
 
   const { event, clearEvent, presenceCount } = useWorldEvents({
     world: 'sunrise',
@@ -66,7 +66,7 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
     registerPresence({ world: 'sunrise', uid, name: selfie.label, emoji: '🪰' });
     const hb = setInterval(() =>
       registerPresence({ world: 'sunrise', uid, name: selfie.label, emoji: '🪰' }),
-    120_000);
+      120_000);
     return () => clearInterval(hb);
   }, [selfie.isActive, selfie.label]);
 
@@ -76,7 +76,7 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
       label: selfie.label,
       worldName: 'Sunrise World',
       monsterEmoji: '🪰',
-      tweetText: `🪰 I became a Giant Fly chasing Courage at Sunrise with @runcouragerun! #CourageRunRun #GiantFlySelfie`,
+      tweetText: `🪰 I became a Giant Fly chasing Courage at Sunrise with @hoodcourage! #CourageRunRun #GiantFlySelfie`,
     });
   }, [selfie.previewUrl, selfie.label]);
 

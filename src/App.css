@@ -2946,42 +2946,56 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   font-size: 0.8rem;
 }
 
-/* Community */
+/* Community Section */
 .community-sub {
   text-align: center;
-  color: #ddd;
-  margin-bottom: 1.4rem;
-  font-family: 'Comic Sans MS', sans-serif;
-  font-size: 0.85rem;
+  color: #c0c0d0;
+  margin-bottom: 1.5rem;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 0.95rem;
+  letter-spacing: 0.2px;
 }
 
 .community-links {
   display: flex;
   justify-content: center;
-  gap: 1rem;
+  align-items: center;
+  gap: 1.2rem;
   flex-wrap: wrap;
 }
 
 .community-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 9px 18px;
-  background: rgba(22, 25, 33, 0.82);
-  border: 2px solid #9945FF;
-  border-radius: 12px;
-  color: #fff;
-  font-family: 'Comic Sans MS', sans-serif;
-  font-size: 0.82rem;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #000000;
+  border: 2px solid #00C805;
+  border-radius: 14px;
+  color: #00C805;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.3px;
   text-decoration: none;
-  transition: all 0.2s;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 14px rgba(0, 200, 5, 0.15);
   backdrop-filter: blur(8px);
+  cursor: pointer;
 }
 
 .community-btn:hover {
-  background: #9945FF;
-  transform: translateY(-3px);
-  box-shadow: 0 6px 18px #9945FF66;
+  background: #00C805;
+  color: #000000;
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(0, 200, 5, 0.45);
+  border-color: #00E676;
+}
+
+.community-btn .x-logo {
+  font-size: 1.1rem;
+  font-weight: 900;
 }
 
 /* ── Buy $RCR CTA section ── */

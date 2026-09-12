@@ -5,7 +5,7 @@ Tools available to Courage:
   - get_news              : fetch news by category (5 per category)
   - fetch_article         : scrape full article text
   - get_x_rate_status     : check Twitter API rate limits
-  - get_my_tweets         : fetch @runcouragerun's recent posts
+  - get_my_tweets         : fetch @hoodcourage's recent posts
   - get_mentions          : fetch mentions and replies
   - post_tweet            : post a tweet (or reply)
   - search_tweets         : search recent tweets by keyword/hashtag/cashtag
@@ -126,7 +126,7 @@ TOOL_SCHEMAS = [
         "function": {
             "name": "get_my_tweets",
             "description": (
-                "Retrieve @runcouragerun's recent tweets directly from the X API. "
+                "Retrieve @hoodcourage's recent tweets directly from the X API. "
                 "Use get_twitter_memory instead if you just want a quick summary of past activity "
                 "without spending a rate-limit call."
             ),
@@ -144,7 +144,7 @@ TOOL_SCHEMAS = [
         "function": {
             "name": "get_mentions",
             "description": (
-                "Fetch recent mentions and replies to @runcouragerun on X. "
+                "Fetch recent mentions and replies to @hoodcourage on X. "
                 "You should proactively check this and reply to interesting mentions. "
                 "After replying, call record_twitter_action to save it."
             ),
@@ -161,7 +161,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "post_tweet",
-            "description": "Post a tweet to @RunCourageRun. Use this ONLY when the brain decides to publish.",
+            "description": "Post a tweet to @hoodcourage. Use this ONLY when the brain decides to publish.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -205,7 +205,7 @@ TOOL_SCHEMAS = [
         "function": {
             "name": "get_my_profile",
             "description": (
-                "Fetch @runcouragerun's own Twitter profile info: username, display name, bio, "
+                "Fetch @hoodcourage's own Twitter profile info: username, display name, bio, "
                 "follower/following counts, and account creation date. "
                 "Use when a user asks about your Twitter presence or stats."
             ),
@@ -812,7 +812,7 @@ async def _get_my_tweets(args: dict, x_client) -> str:
             return "No recent posts found."
         lines = [f"- [{t.id}] {t.text}" for t in posts.data]
         print(f"[TWITTER] get_my_tweets: found {len(posts.data)} posts")
-        return "Recent @runcouragerun tweets:\n" + "\n".join(lines)
+        return "Recent @hoodcourage tweets:\n" + "\n".join(lines)
     except Exception as e:
         print(f"[TWITTER] get_my_tweets FAILED: {e}")
         return f"Failed to fetch tweets: {e}"

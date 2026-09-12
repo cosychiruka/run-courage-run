@@ -155,7 +155,7 @@ class XRateLimitedClient:
         return self.create_tweet(text, media_ids=media_ids, reply_to=reply_to_id)
 
     def get_my_profile(self):
-        """Fetch @runcouragerun's own profile info."""
+        """Fetch @hoodcourage's own profile info."""
         return self.client.get_me(
             user_fields=["username", "name", "description", "public_metrics", "profile_image_url", "created_at"],
         )

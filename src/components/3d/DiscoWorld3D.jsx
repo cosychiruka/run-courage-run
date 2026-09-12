@@ -31,36 +31,36 @@ function HayStack({ position, rotation = [0, 0, 0] }) {
   const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#cca355', roughness: 1 }), []);
   return (
     <group position={position} rotation={rotation}>
-       <mesh position={[0, 0.5, 0]} geometry={geo} material={mat} />
-       <mesh position={[0.4, 1.5, -0.2]} rotation={[0, 0.2, 0]} geometry={geo} material={mat} />
-       <mesh position={[-0.4, 0.5, 0.4]} rotation={[0, -0.15, 0]} geometry={geo} material={mat} />
-       <mesh position={[-0.2, 1.4, 0.3]} rotation={[0, -0.3, 0]} geometry={geo} material={mat} />
-       <mesh position={[0.1, 2.5, 0]} rotation={[0, 0.1, 0]} geometry={geo} material={mat} />
+      <mesh position={[0, 0.5, 0]} geometry={geo} material={mat} />
+      <mesh position={[0.4, 1.5, -0.2]} rotation={[0, 0.2, 0]} geometry={geo} material={mat} />
+      <mesh position={[-0.4, 0.5, 0.4]} rotation={[0, -0.15, 0]} geometry={geo} material={mat} />
+      <mesh position={[-0.2, 1.4, 0.3]} rotation={[0, -0.3, 0]} geometry={geo} material={mat} />
+      <mesh position={[0.1, 2.5, 0]} rotation={[0, 0.1, 0]} geometry={geo} material={mat} />
     </group>
   );
 }
 
 function StrawGround({ position }) {
   const straws = useMemo(() => {
-     const arr = [];
-     for(let i=0; i<60; i++) {
-        arr.push({
-           x: (Math.random() - 0.5) * 8,
-           z: (Math.random() - 0.5) * 6,
-           r: Math.random() * Math.PI,
-           s: Math.random() * 0.4 + 0.6
-        });
-     }
-     return arr;
+    const arr = [];
+    for (let i = 0; i < 60; i++) {
+      arr.push({
+        x: (Math.random() - 0.5) * 8,
+        z: (Math.random() - 0.5) * 6,
+        r: Math.random() * Math.PI,
+        s: Math.random() * 0.4 + 0.6
+      });
+    }
+    return arr;
   }, []);
   const mat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#e8c982' }), []);
   const geo = useMemo(() => new THREE.CylinderGeometry(0.015, 0.015, 0.6, 4), []);
-  
+
   return (
     <group position={position}>
-       {straws.map((s, i) => (
-          <mesh key={i} position={[s.x, 0.02, s.z]} rotation={[Math.PI/2, 0, s.r]} scale={[1, s.s, 1]} geometry={geo} material={mat} />
-       ))}
+      {straws.map((s, i) => (
+        <mesh key={i} position={[s.x, 0.02, s.z]} rotation={[Math.PI / 2, 0, s.r]} scale={[1, s.s, 1]} geometry={geo} material={mat} />
+      ))}
     </group>
   );
 }
@@ -68,12 +68,12 @@ function StrawGround({ position }) {
 function Speaker({ position, rotation }) {
   const groupRef = useRef();
   useFrame((state) => {
-     if (groupRef.current) {
-        const t = state.clock.elapsedTime * 8; 
-        const scale = 1 + Math.max(0, Math.sin(t)) * 0.15;
-        groupRef.current.scale.set(1, scale, 1);
-        groupRef.current.position.y = position[1] + (scale - 1) * 0.5;
-     }
+    if (groupRef.current) {
+      const t = state.clock.elapsedTime * 8;
+      const scale = 1 + Math.max(0, Math.sin(t)) * 0.15;
+      groupRef.current.scale.set(1, scale, 1);
+      groupRef.current.position.y = position[1] + (scale - 1) * 0.5;
+    }
   });
   const matBox = useMemo(() => new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.8 }), []);
   const matTweeter = useMemo(() => new THREE.MeshStandardMaterial({ color: '#333333' }), []);
@@ -81,13 +81,13 @@ function Speaker({ position, rotation }) {
   return (
     <group position={position} rotation={rotation} ref={groupRef}>
       <mesh position={[0, 1, 0]} material={matBox}>
-         <boxGeometry args={[1.5, 2.5, 1]} />
+        <boxGeometry args={[1.5, 2.5, 1]} />
       </mesh>
       <mesh position={[0, 1.8, 0.51]} material={matTweeter}>
-         <circleGeometry args={[0.3, 16]} />
+        <circleGeometry args={[0.3, 16]} />
       </mesh>
       <mesh position={[0, 0.8, 0.51]} material={matWoofer}>
-         <circleGeometry args={[0.5, 32]} />
+        <circleGeometry args={[0.5, 32]} />
       </mesh>
     </group>
   );
@@ -185,42 +185,42 @@ function DiscoBall3D({ position }) {
 function TextileBanner({ position, rotation }) {
   const texRef = useRef(new THREE.CanvasTexture(document.createElement('canvas')));
   useEffect(() => {
-     const canvas = document.createElement('canvas');
-     canvas.width = 1024; canvas.height = 256;
-     const ctx = canvas.getContext('2d');
-     ctx.fillStyle = '#1e1e1e';
-     ctx.fillRect(0, 0, 1024, 256);
-     ctx.strokeStyle = '#00FF00'; ctx.lineWidth = 15;
-     ctx.strokeRect(10, 10, 1004, 236);
-     ctx.fillStyle = '#00FF00'; ctx.font = 'bold 64px "Comic Sans MS"';
-     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-     ctx.fillText('NOWHERE HIGH SCHOOL DISCO', 512, 128);
-     
-     ctx.fillStyle = '#ffffff';
-     const drawGhost = (cx, cy) => {
-        ctx.beginPath();
-        ctx.arc(cx, cy, 35, Math.PI, 0);
-        ctx.lineTo(cx+35, cy+70); ctx.lineTo(cx+17, cy+50);
-        ctx.lineTo(cx, cy+70); ctx.lineTo(cx-17, cy+50);
-        ctx.lineTo(cx-35, cy+70); ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#000000';
-        ctx.beginPath(); ctx.arc(cx-15, cy+10, 5, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(cx+15, cy+10, 5, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#ffffff';
-     };
-     drawGhost(100, 80);
-     drawGhost(924, 80);
-     
-     texRef.current.image = canvas;
-     texRef.current.needsUpdate = true;
-     return () => { texRef.current?.dispose(); };
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024; canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#1e1e1e';
+    ctx.fillRect(0, 0, 1024, 256);
+    ctx.strokeStyle = '#00FF00'; ctx.lineWidth = 15;
+    ctx.strokeRect(10, 10, 1004, 236);
+    ctx.fillStyle = '#00FF00'; ctx.font = 'bold 64px "Comic Sans MS"';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('NOWHERE HIGH SCHOOL DISCO', 512, 128);
+
+    ctx.fillStyle = '#ffffff';
+    const drawGhost = (cx, cy) => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, 35, Math.PI, 0);
+      ctx.lineTo(cx + 35, cy + 70); ctx.lineTo(cx + 17, cy + 50);
+      ctx.lineTo(cx, cy + 70); ctx.lineTo(cx - 17, cy + 50);
+      ctx.lineTo(cx - 35, cy + 70); ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#000000';
+      ctx.beginPath(); ctx.arc(cx - 15, cy + 10, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + 15, cy + 10, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffffff';
+    };
+    drawGhost(100, 80);
+    drawGhost(924, 80);
+
+    texRef.current.image = canvas;
+    texRef.current.needsUpdate = true;
+    return () => { texRef.current?.dispose(); };
   }, []);
   return (
-     <mesh position={position} rotation={rotation}>
-        <planeGeometry args={[8, 2]} />
-        <meshStandardMaterial map={texRef.current} roughness={0.9} />
-     </mesh>
+    <mesh position={position} rotation={rotation}>
+      <planeGeometry args={[8, 2]} />
+      <meshStandardMaterial map={texRef.current} roughness={0.9} />
+    </mesh>
   );
 }
 
@@ -271,14 +271,14 @@ const _discoSpeedMult = { current: 1.0 };
 
 function DancingGhost({ position, offsetTime = 0, patternIdx = 0, selfieTexture = null, selfieLabel = '', selfiePreviewUrl = null, isSelfie = false }) {
   const groupRef = useRef(null);
-  const ghostMat = useMemo(() => new THREE.MeshStandardMaterial({ 
+  const ghostMat = useMemo(() => new THREE.MeshStandardMaterial({
     color: '#ffffff', emissive: '#d7d4ff', emissiveIntensity: 0.8,
     transparent: true, opacity: isSelfie ? 0.95 : 0.85, roughness: 0.8
   }), [isSelfie]);
   const selfieMat = useMemo(() => selfieTexture
     ? new THREE.MeshBasicMaterial({ map: selfieTexture })
     : null,
-  [selfieTexture]);
+    [selfieTexture]);
   const haloMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ff00ff', wireframe: true }), []);
   const eyeGeo = useMemo(() => new THREE.CircleGeometry(0.08, 16), []);
   const eyeMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#111122' }), []);
@@ -437,7 +437,7 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
     registerPresence({ world: 'disco', uid, name: selfie.label, emoji: '👻' });
     const hb = setInterval(() =>
       registerPresence({ world: 'disco', uid, name: selfie.label, emoji: '👻' }),
-    120_000);
+      120_000);
     return () => clearInterval(hb);
   }, [selfie.isActive, selfie.label]);
 
@@ -445,13 +445,13 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
   useEffect(() => {
     if (!event) return;
     const SPEED_MAP = {
-      ghost_frenzy:  2.2,
-      speed_up:      1.6,
-      slow_down:     0.45,
-      freeze_frame:  0.0,
-      lights_out:    1.0,
-      color_shift:   1.0,
-      dj_shoutout:   1.0,
+      ghost_frenzy: 2.2,
+      speed_up: 1.6,
+      slow_down: 0.45,
+      freeze_frame: 0.0,
+      lights_out: 1.0,
+      color_shift: 1.0,
+      dj_shoutout: 1.0,
     };
     const mult = SPEED_MAP[event.action] ?? 1.0;
     _discoSpeedMult.current = mult;
@@ -471,7 +471,7 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
       label: selfie.label,
       worldName: 'Nowhere High School Disco',
       monsterEmoji: '👻',
-      tweetText: `👻 I became a Monster at the Nowhere High School Disco with @runcouragerun! #CourageRunRun #MonsterSelfie #Web3`,
+      tweetText: `👻 I became a Monster at the Nowhere High School Disco with @hoodcourage! #CourageRunRun #MonsterSelfie #Web3`,
     });
   }, [selfie.previewUrl, selfie.label]);
 
@@ -483,8 +483,8 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
 
   useEffect(() => {
     if (visible && !audioLoaded) {
-       // We don't preload all 6 tracks globally to save memory. Just mark audio loaded.
-       setAudioLoaded(true);
+      // We don't preload all 6 tracks globally to save memory. Just mark audio loaded.
+      setAudioLoaded(true);
     }
   }, [visible, audioLoaded]);
 
@@ -492,12 +492,12 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
     if (!(visible && audioLoaded)) return;
     let cancelled = false;
     const track = DISCO_TRACKS[currentTrackIdx];
-    
+
     const playCurrentTrack = async () => {
       console.log(`DiscoWorld3D: Loading track ${currentTrackIdx} - ${track.title}`);
       const success = await audioManager.loadTrack(track.id, track.url);
       if (cancelled || !success) return;
-      
+
       if (isPlaying) {
         console.log(`DiscoWorld3D: Playing track ${track.title}`);
         await audioManager.playTrack(track.id, {
@@ -514,9 +514,9 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
     };
 
     playCurrentTrack();
-    
-    return () => { 
-      cancelled = true; 
+
+    return () => {
+      cancelled = true;
       // We don't call softCleanup here anymore because it kills the NEXT track's play attempt
       // instead we rely on playTrack's internal stopImmediate().
     };
@@ -526,24 +526,24 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
     <div className="world3d-overlay" style={{ opacity: visible ? 1 : 0, pointerEvents: visible ? 'all' : 'none', transition: 'opacity 0.8s ease', zIndex: 9999 }}>
       {visible && <button className="world3d-close" onClick={onClose} aria-label="Exit 3D World">✕ Exit</button>}
       {visible && <div className="world3d-hint">drag to orbit &nbsp;·&nbsp; scroll to zoom</div>}
-      
+
       {/* Disco Music Player Overlay — centered horizontally */}
       {visible && (
-         <div className="disco-music-panel">
-            <div style={{ fontSize: '2rem' }}>💿</div>
-            <div className="disco-music-info">
-               <span className="disco-music-label">DJ Courage's Playlist</span>
-               <span className="disco-music-title">{DISCO_TRACKS[currentTrackIdx].title}</span>
-            </div>
-            <div className="disco-music-controls">
-               <button className="disco-music-btn" onClick={() => setIsPlaying(!isPlaying)}>
-                  {isPlaying ? '⏸' : '▶️'}
-               </button>
-               <button className="disco-music-btn" onClick={() => setCurrentTrackIdx(i => (i + 1) % DISCO_TRACKS.length)}>
-                  ⏭
-               </button>
-            </div>
-         </div>
+        <div className="disco-music-panel">
+          <div style={{ fontSize: '2rem' }}>💿</div>
+          <div className="disco-music-info">
+            <span className="disco-music-label">DJ Courage's Playlist</span>
+            <span className="disco-music-title">{DISCO_TRACKS[currentTrackIdx].title}</span>
+          </div>
+          <div className="disco-music-controls">
+            <button className="disco-music-btn" onClick={() => setIsPlaying(!isPlaying)}>
+              {isPlaying ? '⏸' : '▶️'}
+            </button>
+            <button className="disco-music-btn" onClick={() => setCurrentTrackIdx(i => (i + 1) % DISCO_TRACKS.length)}>
+              ⏭
+            </button>
+          </div>
+        </div>
       )}
 
       <SelfieUI
@@ -573,24 +573,24 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
         <PerspectiveCamera makeDefault position={[0, 5, 25]} fov={50} />
         <OrbitControls target={[0, 2, -5]} minDistance={5} maxDistance={60} minPolarAngle={Math.PI / 8} maxPolarAngle={Math.PI / 2} enablePan={true} />
         <ReadySignal onReady={onReady} />
-        
+
         {/* We reuse evening colors and objects but disable the moving Courage/Ghost animations */}
         <Scene scene="evening" showStory={false} />
-        
+
         {/* The House — the Scene terrain group is at Y:-2, so house offset is -0.2+2=1.8 net.
             We keep house group at Y:-0.2 relative to scene group (which sits at Y:-2 in Scene3D)
             House group local Y needs to be 0 so it sits on the terrain sphere top at Y=-0.5 approx */}
         <group position={[-2.5, -1.5, 0]}>
-           <MemoHouse doorOpen={false} />
-           {/* Banner: mounted on the BACK wall of the house (Z negative = behind house from camera).
+          <MemoHouse doorOpen={false} />
+          {/* Banner: mounted on the BACK wall of the house (Z negative = behind house from camera).
                Only visible when user orbits to look at the party side. */}
-           <TextileBanner position={[0, 4.5, -3.8]} rotation={[0, Math.PI, 0]} />
+          <TextileBanner position={[0, 4.5, -3.8]} rotation={[0, Math.PI, 0]} />
         </group>
-        
+
         {/* Pumping speakers on the dance floor — lowered to sit on terrain */}
         <Speaker position={[-5, -1.5, -6]} rotation={[0, 0.4, 0]} />
         <Speaker position={[5, -1.5, -6]} rotation={[0, -0.4, 0]} />
-        
+
         {/* Hay stacks flanking the dancing floor */}
         <HayStack position={[-9, -1.5, -10]} rotation={[0, 0.5, 0]} />
         <HayStack position={[-7, -1.5, -4]} rotation={[0, -0.3, 0]} />
@@ -598,23 +598,23 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
         <HayStack position={[9, -1.5, -5]} rotation={[0, 0.4, 0]} />
 
         <StrawGround position={[0, -1.5, -9]} />
-        
+
         {/* 3D Disco Ball hanging above the dance floor */}
         <DiscoBall3D position={[0, 10, -9]} />
-        
+
         {/* Dance floor spotlight directly under Courage */}
         <pointLight position={[0, -1.5, -9.5]} color="#ff00ff" intensity={4} distance={12} />
-        
+
         {/* Courage GIF: sits just above ground level (-1.5 terrain + 0.3 height offset) */}
         <Html position={[0, -1.2, -9.5]} center transform zIndexRange={[100, 0]}>
-           <img src={courageDancingGif} alt="Courage Dancing" style={{ width: '220px', filter: 'drop-shadow(0px 10px 10px rgba(0,0,0,0.8))' }} />
+          <img src={courageDancingGif} alt="Courage Dancing" style={{ width: '220px', filter: 'drop-shadow(0px 10px 10px rgba(0,0,0,0.8))' }} />
         </Html>
-        
+
         {/* Dancing Ghosts — each with a distinct choreography pattern */}
-        <DancingGhost position={[-4, -0.5, -10]} offsetTime={0}   patternIdx={0} />
-        <DancingGhost position={[4,  -0.5, -10]} offsetTime={1.2} patternIdx={1} />
+        <DancingGhost position={[-4, -0.5, -10]} offsetTime={0} patternIdx={0} />
+        <DancingGhost position={[4, -0.5, -10]} offsetTime={1.2} patternIdx={1} />
         <DancingGhost position={[-2, -0.5, -14]} offsetTime={0.5} patternIdx={2} />
-        <DancingGhost position={[2,  -0.5, -14]} offsetTime={2.3} patternIdx={3} />
+        <DancingGhost position={[2, -0.5, -14]} offsetTime={2.3} patternIdx={3} />
         {/* Ghost 5: reserved for Monster Selfie — only visible when selfie is active */}
         {selfie.isActive ? (
           <DancingGhost
@@ -629,7 +629,7 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
         ) : (
           <DancingGhost position={[0, -0.5, -6]} offsetTime={3.1} patternIdx={4} />
         )}
-        
+
       </Canvas>
     </div>
   );

@@ -53,9 +53,9 @@ export async function captureAndShareSelfie({ previewUrl, label, worldName, mons
 
       // Draw high-quality center-cropped background
       ctx.drawImage(glCanvas, sx, sy, sWidth, sHeight, 0, 0, W, H);
-      
+
       // Subtle vignette for depth
-      const grad = ctx.createRadialGradient(W/2, H/2, W/4, W/2, H/2, W/1.2);
+      const grad = ctx.createRadialGradient(W / 2, H / 2, W / 4, W / 2, H / 2, W / 1.2);
       grad.addColorStop(0, 'rgba(0,0,0,0)');
       grad.addColorStop(1, 'rgba(0,0,0,0.3)');
       ctx.fillStyle = grad;
@@ -83,7 +83,7 @@ export async function captureAndShareSelfie({ previewUrl, label, worldName, mons
       ctx.clip();
       ctx.drawImage(selfieImg, x, y, size, size);
       ctx.restore();
-      
+
       // Neon Pink border
       ctx.strokeStyle = '#eb57c1';
       ctx.lineWidth = 8;
@@ -97,7 +97,7 @@ export async function captureAndShareSelfie({ previewUrl, label, worldName, mons
   const stripH = 80;
   ctx.fillStyle = 'rgba(0,0,0,0.75)';
   ctx.fillRect(0, H - stripH, W, stripH);
-  
+
   // Decorative line
   ctx.fillStyle = '#eb57c1';
   ctx.fillRect(0, H - stripH, W, 4);
@@ -107,22 +107,22 @@ export async function captureAndShareSelfie({ previewUrl, label, worldName, mons
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
   ctx.fillText(`${monsterEmoji} ${label || 'Monster'} in Courage's World`, 40, H - (stripH / 2));
-  
+
   ctx.textAlign = 'right';
   ctx.fillStyle = '#eb57c1';
   ctx.font = 'bold 24px "Outfit", sans-serif';
-  ctx.fillText('@RunCourageRun', W - 40, H - (stripH / 2));
+  ctx.fillText('@hoodcourage', W - 40, H - (stripH / 2));
 
   // 5. Native Share or Download
   const filename = `monster-selfie-${Date.now()}.png`;
-  const shareText = tweetText || `${monsterEmoji} I became a monster at ${worldName}! @runcouragerun #CourageRunRun`;
+  const shareText = tweetText || `${monsterEmoji} I became a monster at ${worldName}! @hoodcourage #CourageRunRun`;
 
   return new Promise((resolve) => {
     card.toBlob(async (blob) => {
       if (!blob) { resolve(); return; }
 
       const file = new File([blob], filename, { type: 'image/png' });
-      
+
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
@@ -193,7 +193,7 @@ export async function downloadArticleCard(article, emotion = 'neutral') {
   const ctx = canvas.getContext('2d');
 
   const BANNER_H = 60, FOOTER_H = 70;
-  const PINK     = '#eb57c1', BG_PAPER = '#e6e1d7', BG_DARK  = '#22252d';
+  const PINK = '#eb57c1', BG_PAPER = '#e6e1d7', BG_DARK = '#22252d';
 
   // 1. Paper Background
   ctx.fillStyle = BG_PAPER;
@@ -212,7 +212,7 @@ export async function downloadArticleCard(article, emotion = 'neutral') {
   let cy = BANNER_H + 30;
   ctx.fillStyle = '#040404';
   ctx.textBaseline = 'top';
-  
+
   // Left: Extra!
   ctx.font = 'bold 28px Serif';
   ctx.fillText('EXTRA!\nEXTRA!', PAD, cy);
@@ -220,10 +220,10 @@ export async function downloadArticleCard(article, emotion = 'neutral') {
   // Center: Title
   ctx.textAlign = 'center';
   ctx.font = 'bold 52px Serif';
-  ctx.fillText('The Courageous Chronicle', W/2, cy);
+  ctx.fillText('The Courageous Chronicle', W / 2, cy);
   ctx.font = '20px Serif';
   ctx.fillStyle = '#444';
-  ctx.fillText('The Worlds Bravest Newspaper', W/2, cy + 65);
+  ctx.fillText('The Worlds Bravest Newspaper', W / 2, cy + 65);
 
   // Right: Edition
   const h = new Date().getHours();
@@ -231,7 +231,7 @@ export async function downloadArticleCard(article, emotion = 'neutral') {
   if (h >= 11 && h < 17) { ed = 'AFTERNOON'; icon = '☀️'; }
   else if (h >= 17 && h < 21) { ed = 'EVENING'; icon = '🌆'; }
   else if (h < 5 || h >= 21) { ed = 'LATE'; icon = '🌙'; }
-  
+
   ctx.textAlign = 'right';
   ctx.fillStyle = '#040404';
   ctx.font = '24px Serif';
@@ -253,7 +253,7 @@ export async function downloadArticleCard(article, emotion = 'neutral') {
 
   // 4. Middle Section: 2 Columns
   const colW = (W - PAD * 3) / 2;
-  
+
   // Left: Image
   const imgUrl = article.image || 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/1145795/paperboy.jpg';
   try {
@@ -266,7 +266,7 @@ export async function downloadArticleCard(article, emotion = 'neutral') {
     ctx.strokeRect(PAD, cy, colW, colW);
   } catch (e) {
     ctx.fillStyle = '#2a2a32'; ctx.fillRect(PAD, cy, colW, colW);
-    ctx.fillStyle = PINK; ctx.textAlign = 'center'; ctx.fillText('NOWHERE NEWS', PAD + colW/2, cy + colW/2);
+    ctx.fillStyle = PINK; ctx.textAlign = 'center'; ctx.fillText('NOWHERE NEWS', PAD + colW / 2, cy + colW / 2);
   }
 
   // Right: Content
@@ -299,7 +299,7 @@ export async function downloadArticleCard(article, emotion = 'neutral') {
   ctx.fillStyle = BG_DARK; ctx.fillRect(0, H - FOOTER_H, W, FOOTER_H);
   ctx.fillStyle = PINK; ctx.font = 'bold 18px "Comic Sans MS", cursive';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('THE THINGS I DO FOR YOU PEOPLE... — COURAGE', W/2, H - FOOTER_H/2);
+  ctx.fillText('THE THINGS I DO FOR YOU PEOPLE... — COURAGE', W / 2, H - FOOTER_H / 2);
 
   // ── Trigger download ──────────────────────────────────────────────────────
   canvas.toBlob(blob => {

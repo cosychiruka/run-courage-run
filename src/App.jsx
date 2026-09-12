@@ -870,13 +870,15 @@ export default function App() {
         </section>
 
         {/* Robinhood News Community */}
-        <section className="landing-section container glass-panel" style={{ padding: '2rem', borderTop: '2px solid #00C805' }}>
+        <section className="landing-section container glass-panel" style={{ padding: '2.2rem 2rem', borderTop: '3px solid #00C805' }}>
           <div className="comic-banner" style={{ background: '#00C805', color: '#000' }}>
             <h2 className="landing-heading" style={{ color: '#000' }}><span className="icon-globe-spin">🌐</span> JOIN THE ROBINHOOD PACK</h2>
           </div>
-          <p className="community-sub" style={{ color: '#ccc' }}>Follow Courage AI for real-time Robinhood dispatches & breaking crypto commentary</p>
-          <div className="community-links" style={{ display: 'flex', justifyContent: 'center', gap: '2rem' }}>
-            <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer" className="brutal-btn brutal-btn--blue" style={{ background: '#00C805', color: '#000', borderColor: '#00C805' }}>𝕏 Follow on Twitter</a>
+          <p className="community-sub">Follow Courage AI for real-time Robinhood dispatches & breaking crypto commentary</p>
+          <div className="community-links">
+            <a href="https://x.com/hoodcourage" target="_blank" rel="noopener noreferrer" className="community-btn">
+              <span className="x-logo">𝕏</span> Follow @hoodcourage
+            </a>
           </div>
         </section>
       </div>

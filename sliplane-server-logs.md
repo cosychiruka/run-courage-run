@@ -9,7 +9,7 @@ runtime
 [HUSTLE] No $RCR token yet → tracking SOL as placeholder
 05/17/2026, 23:42:34:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/17/2026, 23:42:34:
 runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
@@ -48,7 +48,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/17/2026, 23:43:34:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/17/2026, 23:43:34:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 6114 chars)
@@ -114,7 +114,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/17/2026, 23:44:34:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/17/2026, 23:44:34:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 6114 chars)
@@ -150,7 +150,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/17/2026, 23:45:34:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/17/2026, 23:45:34:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 6114 chars)
@@ -192,7 +192,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/17/2026, 23:46:35:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/17/2026, 23:46:35:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 6114 chars)
@@ -228,7 +228,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/17/2026, 23:47:35:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/17/2026, 23:47:35:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 6114 chars)
@@ -261,7 +261,7 @@ runtime
 [HUSTLE] No $RCR token yet → tracking SOL as placeholder
 05/17/2026, 23:48:35:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/17/2026, 23:48:35:
 runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
@@ -300,7 +300,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/17/2026, 23:49:35:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/17/2026, 23:49:35:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 6114 chars)
@@ -336,7 +336,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/17/2026, 23:50:35:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/17/2026, 23:50:35:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 6114 chars)
@@ -523,7 +523,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/17/2026, 23:51:32:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/17/2026, 23:51:32:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 6114 chars)
@@ -565,7 +565,7 @@ runtime
 Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
 05/17/2026, 23:52:00:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/17/2026, 23:52:00:
 runtime
 [STARTUP] FATAL BACKGROUND ERROR: cannot import name 'GROQ_MODEL' from 'app.config' (/app/app/config.py)
@@ -598,7 +598,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/17/2026, 23:52:00:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/17/2026, 23:52:00:
 runtime
 [STARTUP] Scheduler online.
@@ -667,7 +667,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/17/2026, 23:52:00:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/17/2026, 23:52:00:
 runtime
 [DISCOVERY] Stored 20 articles from Guardian: us/general
@@ -1101,7 +1101,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/17/2026, 23:53:14:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/17/2026, 23:53:14:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5620 chars)
@@ -5009,7 +5009,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 00:34:56:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 00:34:56:
 runtime
 INFO:     10.1.0.3:39444 - "GET /api/admin/queues HTTP/1.1" 200 OK
@@ -7172,7 +7172,7 @@ runtime
 INFO:     10.1.0.3:38558 - "GET /health HTTP/1.1" 200 OK
 05/18/2026, 01:17:00:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:17:00:
 runtime
 [HUSTLE] No $RCR token yet → tracking SOL as placeholder
@@ -7280,7 +7280,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:19:01:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:19:01:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7313,7 +7313,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:20:01:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:20:01:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7361,7 +7361,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:22:01:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:22:01:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7442,7 +7442,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:23:01:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:23:01:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7472,7 +7472,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:24:02:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:24:02:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7508,7 +7508,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:25:02:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:25:02:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7541,7 +7541,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:26:02:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:26:02:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7574,7 +7574,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:27:02:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:27:02:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7610,7 +7610,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:28:02:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:28:02:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7658,7 +7658,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:30:03:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:30:03:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7691,7 +7691,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:31:03:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:31:03:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7724,7 +7724,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:32:03:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:32:03:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7760,7 +7760,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:33:03:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:33:03:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7808,7 +7808,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:35:03:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:35:03:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7841,7 +7841,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:36:04:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:36:04:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7874,7 +7874,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:37:04:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:37:04:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7910,7 +7910,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:38:04:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:38:04:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7943,7 +7943,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:39:04:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:39:04:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -7991,7 +7991,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:41:05:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:41:05:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -8024,7 +8024,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:42:05:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:42:05:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -8060,7 +8060,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:43:05:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:43:05:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -8093,7 +8093,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:44:05:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:44:05:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -8126,7 +8126,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:45:05:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:45:05:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -8159,7 +8159,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:46:05:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:46:05:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -8180,7 +8180,7 @@ runtime
 INFO:     10.1.0.3:22628 - "GET /health HTTP/1.1" 200 OK
 05/18/2026, 01:47:06:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:47:06:
 runtime
 [HUSTLE] No $RCR token yet → tracking SOL as placeholder
@@ -8225,7 +8225,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:48:06:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:48:06:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -8258,7 +8258,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:49:06:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:49:06:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -8282,7 +8282,7 @@ runtime
 INFO:     10.1.0.3:1040 - "GET /health HTTP/1.1" 200 OK
 05/18/2026, 01:50:06:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:50:06:
 runtime
 [HUSTLE] No $RCR token yet → tracking SOL as placeholder
@@ -8324,7 +8324,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:51:06:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:51:06:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5875 chars)
@@ -8372,7 +8372,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:52:07:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:52:07:
 runtime
 [GAME_SENSOR] X spend guard active ($0.00/$5.00)
@@ -8408,7 +8408,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:53:07:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:53:07:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5981 chars)
@@ -8441,7 +8441,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:54:07:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:54:07:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5981 chars)
@@ -8474,7 +8474,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:55:07:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:55:07:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5981 chars)
@@ -8507,7 +8507,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:56:04:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:56:04:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5981 chars)
@@ -8543,7 +8543,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:57:08:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:57:08:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5981 chars)
@@ -8579,7 +8579,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:58:08:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:58:08:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5981 chars)
@@ -8612,7 +8612,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 01:59:08:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 01:59:08:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5981 chars)
@@ -8645,7 +8645,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:00:08:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:00:38:
 runtime
 INFO:     127.0.0.1:60500 - "HEAD /health HTTP/1.1" 200 OK
@@ -8660,7 +8660,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:01:08:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:01:08:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -8690,7 +8690,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:02:08:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:02:08:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -8726,7 +8726,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:03:09:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:03:09:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -8759,7 +8759,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:04:09:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:04:09:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -8789,7 +8789,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:05:09:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:05:09:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -8819,7 +8819,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:06:09:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:06:09:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -8849,7 +8849,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:07:09:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:07:09:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -8882,7 +8882,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:08:10:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:08:10:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -8915,7 +8915,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:09:10:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:09:10:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -8945,7 +8945,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:10:10:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:10:10:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -8978,7 +8978,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:11:10:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:11:10:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9011,7 +9011,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:12:10:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:12:10:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9047,7 +9047,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:13:10:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:13:10:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9080,7 +9080,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:14:11:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:14:11:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9110,7 +9110,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:15:11:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:15:11:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9149,7 +9149,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:15:56:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:15:56:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9218,7 +9218,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:16:54:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:16:54:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9287,7 +9287,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:17:54:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:17:54:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9356,7 +9356,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:18:54:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:18:54:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9422,7 +9422,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:20:12:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:20:12:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9452,7 +9452,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:21:12:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:21:12:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9485,7 +9485,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:22:12:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:22:12:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9521,7 +9521,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:23:12:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:23:12:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9554,7 +9554,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:24:12:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:24:12:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9587,7 +9587,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:25:13:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:25:13:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9617,7 +9617,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:26:13:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:26:13:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9650,7 +9650,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:27:13:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:27:13:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9698,7 +9698,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:29:13:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:29:13:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9728,7 +9728,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:30:13:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:30:13:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9761,7 +9761,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:31:14:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:31:14:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9794,7 +9794,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:32:06:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:32:06:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9833,7 +9833,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:33:04:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:33:04:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9881,7 +9881,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:35:14:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:35:14:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9911,7 +9911,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:36:15:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:36:15:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9944,7 +9944,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:37:11:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:37:11:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -9983,7 +9983,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:38:15:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:38:15:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -10013,7 +10013,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:39:15:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:39:15:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -10049,7 +10049,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:40:15:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:40:15:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -10082,7 +10082,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:41:16:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:41:16:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)
@@ -10112,7 +10112,7 @@ runtime
 [X_CLIENT DEBUG] Key Check: {'consumer_key': True, 'consumer_secret': True, 'access_token': True, 'access_token_secret': True, 'bearer_token': True}
 05/18/2026, 02:42:16:
 runtime
-[X] [ OK ] Authenticated as @RunCourageRun (User Context)
+[X] [ OK ] Authenticated as @hoodcourage (User Context)
 05/18/2026, 02:42:16:
 runtime
 [AUTONOMOUS] Thinking... (Payload size: 5985 chars)

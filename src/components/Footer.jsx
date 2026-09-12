@@ -5,7 +5,7 @@ const Footer = () => {
   const [isInstalled, setIsInstalled]       = useState(false);
   const [showIOSHint, setShowIOSHint]       = useState(false);
 
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  const isIOS = typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
 
   useEffect(() => {
     // Already running as installed PWA
@@ -61,8 +61,19 @@ const Footer = () => {
             <span className="install-badge installed-badge">Installed ✓</span>
           )}
         </div>
+
         <div className="footer-outro">
-          "When someone says the world is too much for them, tell them they need some Courage. Download the App, wink!!"
+          "When someone says the world is too much for them, tell them they need some <span className="highlight">Courage</span>. Download the app & stay ahead of Robinhood Crypto!"
+        </div>
+
+        <div className="footer-meta">
+          <span>© {new Date().getFullYear()} Run Courage Run</span>
+          <span className="footer-dot">•</span>
+          <a href="https://x.com/hoodcourage" target="_blank" rel="noopener noreferrer" className="footer-link">@hoodcourage</a>
+          <span className="footer-dot">•</span>
+          <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="footer-link">Terms</a>
+          <span className="footer-dot">•</span>
+          <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="footer-link">Privacy</a>
         </div>
       </div>
 
@@ -84,9 +95,9 @@ const Footer = () => {
       <style>{`
         .courage-footer {
           margin-top: auto;
-          background: linear-gradient(180deg, transparent 0%, rgba(203, 156, 251, 0.6) 100%);
-          border-top: 1px solid #eb57c1;
-          padding: 2.5rem 1rem 3rem;
+          background: linear-gradient(180deg, rgba(10, 10, 16, 0.4) 0%, rgba(0, 200, 5, 0.07) 100%);
+          border-top: 1px solid rgba(0, 200, 5, 0.25);
+          padding: 3rem 1rem 4rem;
           display: flex;
           justify-content: center;
           align-items: center;
@@ -97,8 +108,8 @@ const Footer = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 1rem;
-          max-width: 600px;
+          gap: 1.2rem;
+          max-width: 620px;
           text-align: center;
           animation: floatFooter 4s ease-in-out infinite;
         }
@@ -114,60 +125,92 @@ const Footer = () => {
           width: 64px;
           height: 64px;
           border-radius: 50%;
-          border: 2px solid #eb57c1;
-          box-shadow: 0 0 15px rgba(235, 87, 193, 0.5), inset 0 0 10px rgba(235, 87, 193, 0.3);
+          border: 2px solid #00C805;
+          box-shadow: 0 0 16px rgba(0, 200, 5, 0.4), inset 0 0 10px rgba(0, 200, 5, 0.2);
           transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
         }
         .footer-icon.installable {
-          box-shadow: 0 0 22px rgba(235, 87, 193, 0.9), 0 0 8px rgba(255,255,255,0.4);
+          box-shadow: 0 0 24px rgba(0, 200, 5, 0.85), 0 0 8px rgba(255, 255, 255, 0.4);
           animation: installPulse 2s ease-in-out infinite;
         }
         .footer-icon.installed {
-          border-color: #14F195;
-          box-shadow: 0 0 18px rgba(20, 241, 149, 0.6);
+          border-color: #00E676;
+          box-shadow: 0 0 18px rgba(0, 230, 118, 0.6);
         }
         .footer-icon-wrap:hover .footer-icon {
-          transform: scale(1.15) rotate(10deg);
+          transform: scale(1.15) rotate(8deg);
+          box-shadow: 0 0 24px rgba(0, 200, 5, 0.7);
         }
         .install-badge {
-          font-family: 'Bangers', cursive;
-          font-size: 0.8rem;
-          letter-spacing: 1px;
-          background: #eb57c1;
-          color: white;
-          padding: 2px 10px;
+          font-family: 'Outfit', 'Inter', sans-serif;
+          font-weight: 700;
+          font-size: 0.78rem;
+          letter-spacing: 0.5px;
+          background: #00C805;
+          color: #000000;
+          padding: 3px 12px;
           border-radius: 20px;
-          border: 1.5px solid black;
-          box-shadow: 2px 2px 0 black;
+          border: 1px solid #00E676;
+          box-shadow: 0 2px 8px rgba(0, 200, 5, 0.3);
           pointer-events: none;
         }
         .installed-badge {
-          background: #14F195;
-          color: black;
+          background: #00E676;
+          color: #000000;
         }
         .footer-outro {
-          font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+          font-family: 'Outfit', 'Inter', sans-serif;
           font-size: 0.95rem;
-          color: #eb57c1;
-          text-shadow: 0 0 2px black;
-          line-height: 1.4;
-          font-weight: bold;
+          color: #a5a5bc;
+          line-height: 1.5;
+          font-weight: 400;
           font-style: italic;
+        }
+        .footer-outro .highlight {
+          color: #00E676;
+          font-weight: 600;
+          font-style: normal;
+        }
+        .footer-meta {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.7rem;
+          flex-wrap: wrap;
+          margin-top: 0.2rem;
+          font-family: 'Outfit', 'Inter', sans-serif;
+          font-size: 0.85rem;
+          color: #707085;
+        }
+        .footer-link {
+          color: #a0a0b8;
+          text-decoration: none;
+          transition: color 0.2s ease;
+          font-weight: 500;
+        }
+        .footer-link:hover {
+          color: #00C805;
+          text-decoration: underline;
+        }
+        .footer-dot {
+          color: #404055;
+          font-size: 0.75rem;
         }
         @keyframes floatFooter {
           0%, 100% { transform: translateY(0px); }
-          50%       { transform: translateY(-5px); }
+          50%       { transform: translateY(-4px); }
         }
         @keyframes installPulse {
-          0%, 100% { box-shadow: 0 0 15px rgba(235,87,193,0.6); }
-          50%       { box-shadow: 0 0 28px rgba(235,87,193,1), 0 0 10px rgba(255,255,255,0.5); }
+          0%, 100% { box-shadow: 0 0 15px rgba(0, 200, 5, 0.5); }
+          50%       { box-shadow: 0 0 28px rgba(0, 200, 5, 1), 0 0 10px rgba(255,255,255,0.5); }
         }
 
         /* iOS hint sheet */
         .ios-hint-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(0,0,0,0.6);
+          background: rgba(0,0,0,0.75);
+          backdrop-filter: blur(4px);
           z-index: 9999;
           display: flex;
           align-items: flex-end;
@@ -175,14 +218,15 @@ const Footer = () => {
           padding-bottom: env(safe-area-inset-bottom, 0px);
         }
         .ios-hint-card {
-          background: #1a1a2e;
-          border: 2px solid #eb57c1;
+          background: #12121c;
+          border: 2px solid #00C805;
           border-radius: 24px 24px 0 0;
           padding: 2rem 1.5rem 2.5rem;
           width: 100%;
           max-width: 480px;
           position: relative;
           color: white;
+          box-shadow: 0 -10px 30px rgba(0, 200, 5, 0.2);
         }
         .ios-hint-close {
           position: absolute;
@@ -198,10 +242,11 @@ const Footer = () => {
           cursor: pointer;
         }
         .ios-hint-title {
-          font-family: 'Bangers', cursive;
-          font-size: 1.6rem;
-          letter-spacing: 2px;
-          color: #eb57c1;
+          font-family: 'Outfit', sans-serif;
+          font-weight: 800;
+          font-size: 1.5rem;
+          letter-spacing: 1px;
+          color: #00C805;
           margin: 0 0 1rem;
           text-align: center;
         }
@@ -217,11 +262,12 @@ const Footer = () => {
         }
         .ios-share-icon {
           display: inline-block;
-          background: #007AFF;
-          color: white;
-          padding: 0 5px;
+          background: #00C805;
+          color: black;
+          padding: 0 6px;
           border-radius: 4px;
-          font-size: 0.8rem;
+          font-size: 0.85rem;
+          font-weight: bold;
         }
       `}</style>
     </footer>
