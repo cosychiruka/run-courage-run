@@ -1,8 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Outfit:wght@400;700;900&display=swap');
 
 :root {
-  --courage-pink: #eb57c1;
-  --courage-purple: #c247ff;
+  --courage-pink: #ccff00;
+  --robinhood-green: #ccff00;
+  --courage-purple: #9c27b0;
   --nowhere-yellow: #E5D352;
   --brutal-black: #000000;
   --brutal-shadow: 4px 4px 0px #000000;
@@ -81,8 +82,9 @@ html, body {
 
 .brutal-btn--pink,
 .hero-btn--news {
-  background: var(--courage-pink) !important;
-  color: white !important;
+  background: #ccff00 !important;
+  color: #000000 !important;
+  font-weight: 900 !important;
 }
 
 .brutal-btn--blue {
@@ -450,8 +452,8 @@ html, body {
 }
 
 .step-num {
-  background: var(--courage-pink);
-  color: white;
+  background: #ccff00;
+  color: #000000;
   font-family: 'Bangers', cursive;
   font-size: 1.6rem;
   width: 55px;
@@ -506,13 +508,13 @@ html, body {
   padding: 5px;
   margin-bottom: 15px;
   box-shadow: 0px 0px 15px #000;
-  border: 2px dashed #eb57c1; /* Dashed border for cartoonish look */
+  border: 2px dashed #ccff00; /* Robinhood Green dashed border */
 }
 
 .progress-bar {
   width: 0%; /* Initial progress */
   height: 25px; /* Progress bar height */
-  background-color: #eb57c1; /* Courage pink */
+  background-color: #ccff00; /* Robinhood Green */
   border-radius: 10px;
   position: relative;
   transition: width 0.3s ease-in-out;

@@ -272,30 +272,30 @@ function EveningStoryController({ eventLine = '' }) {
              <div style={{
                position: 'absolute', top: '-90px', left: '50%', transform: 'translateX(-50%)',
                backgroundColor: eventLine ? 'rgba(20,0,40,0.92)' : '#ffffff',
-               color: eventLine ? '#e0ccff' : '#000000',
+               color: eventLine ? '#e0ccff' : '#111111',
                fontWeight: 900,
-               fontSize: eventLine ? '1.1rem' : '2rem',
-               padding: eventLine ? '10px 18px' : '15px 25px',
-               borderRadius: '50px',
-               border: eventLine ? '2px solid rgba(150,0,255,0.6)' : '5px solid #000000',
-               WebkitTextStroke: eventLine ? 'unset' : '1px black',
+               fontSize: eventLine ? '1.1rem' : '1.8rem',
+               padding: eventLine ? '10px 18px' : '12px 22px',
+               borderRadius: '40px',
+               border: eventLine ? '2px solid rgba(150,0,255,0.6)' : '3px solid #000000',
+               WebkitTextStroke: '0px transparent',
                zIndex: 100,
                boxShadow: eventLine
                  ? '0 4px 20px rgba(120,0,255,0.5)'
-                 : '0 10px 0 rgba(0,0,0,0.2)',
-               fontFamily: '"Comic Sans MS", cursive',
+                 : '0 6px 16px rgba(0,0,0,0.3)',
+               fontFamily: '"Comic Sans MS", cursive, sans-serif',
                maxWidth: '220px', whiteSpace: 'normal', textAlign: 'center',
                transition: 'all 0.3s ease',
              }}>
                {eventLine || 'HELP!'}
                <div style={{
-                 position: 'absolute', bottom: '-18px', left: '50%',
+                 position: 'absolute', bottom: '-14px', left: '50%',
                  transform: 'translateX(-50%) rotate(45deg)',
-                 width: '20px', height: '20px',
+                 width: '16px', height: '16px',
                  backgroundColor: eventLine ? 'rgba(20,0,40,0.92)' : '#ffffff',
-                 borderBottom: eventLine ? '2px solid rgba(150,0,255,0.6)' : '5px solid #000000',
-                 borderLeft:  eventLine ? '2px solid rgba(150,0,255,0.6)' : '5px solid #000000',
-                 borderRadius: '3px',
+                 borderBottom: eventLine ? '2px solid rgba(150,0,255,0.6)' : '3px solid #000000',
+                 borderLeft:  eventLine ? '2px solid rgba(150,0,255,0.6)' : '3px solid #000000',
+                 borderRadius: '2px',
                }} />
              </div>
            )}
@@ -411,26 +411,27 @@ function SunriseStoryController({ selfieFlyTexture = null, selfieFlyLabel = '', 
              <div style={{
                position: 'absolute', top: '-90px', left: '50%', transform: 'translateX(-50%)',
                backgroundColor: '#ffffff',
-               color: '#000000',
+               color: '#111111',
                fontWeight: 900,
-               fontSize: '2rem',
-               padding: '15px 25px',
-               borderRadius: '50px',
-               border: '5px solid #000000',
+               fontSize: '1.8rem',
+               padding: '12px 22px',
+               borderRadius: '40px',
+               border: '3px solid #000000',
+               WebkitTextStroke: '0px transparent',
                zIndex: 100,
-               boxShadow: '0 10px 0 rgba(0,0,0,0.2)',
-               fontFamily: '"Comic Sans MS", cursive',
+               boxShadow: '0 6px 16px rgba(0,0,0,0.3)',
+               fontFamily: '"Comic Sans MS", cursive, sans-serif',
                maxWidth: '220px', whiteSpace: 'nowrap', textAlign: 'center',
              }}>
                HELP!
                <div style={{
-                 position: 'absolute', bottom: '-18px', left: '50%',
+                 position: 'absolute', bottom: '-14px', left: '50%',
                  transform: 'translateX(-50%) rotate(45deg)',
-                 width: '20px', height: '20px',
+                 width: '16px', height: '16px',
                  backgroundColor: '#ffffff',
-                 borderBottom: '5px solid #000000',
-                 borderLeft: '5px solid #000000',
-                 borderRadius: '3px',
+                 borderBottom: '3px solid #000000',
+                 borderLeft: '3px solid #000000',
+                 borderRadius: '2px',
                }} />
              </div>
            )}

@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { Instances, Instance, Html } from '@react-three/drei';
-import pumpfunPng from '../../assets/images/pump-fun-seeklogo.png';
+import robinhoodSvg from '../../assets/images/robinhood-feather.svg';
 
 function Window({ position, rotation = [0, 0, 0], scale = 1 }) {
   const windowMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#fffb80', emissive: '#ffb52e', emissiveIntensity: 2.5 }), []);
@@ -213,7 +213,7 @@ export function House({ position = [0, 0, 0], rotation = [0, 0, 0], doorOpen = f
       <Window position={[1.2, 4.5, 2.15]} scale={0.8} />
       <Window position={[0, 7.0, 2.15]} scale={0.5} />
 
-      {/* PumpFun / Nowhere sign on front gable — Html overlay for click + glitch */}
+      {/* Robinhood Crypto / Nowhere sign on front gable — Html overlay for click + glitch */}
       <Html 
         position={[0, 8.2, 2.4]} 
         center 
@@ -223,20 +223,20 @@ export function House({ position = [0, 0, 0], rotation = [0, 0, 0], doorOpen = f
         scale={0.22}
       >
         <a
-          href="https://pump.fun/coin/$RCR"
+          href="https://robinhood.com/crypto/"
           target="_blank"
           rel="noopener noreferrer"
-          title="Buy $RCR on pump.fun"
+          title="Trade Crypto on Robinhood"
           onClick={() => {
-            localStorage.setItem('courage_visited_pumpfun', 'true');
+            localStorage.setItem('courage_visited_robinhood', 'true');
             setHasVisited(true);
           }}
           style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
             background: glitching
-              ? 'rgba(0,255,136,0.9)'
+              ? 'rgba(204,255,0,0.9)'
               : 'rgba(10,5,20,0.88)',
-            border: `2px solid ${glitchMode ? (hasVisited ? '#ff80d5' : '#aaffcc') : (hasVisited ? '#eb57c1' : '#00ff88')}`,
+            border: `2px solid ${glitchMode ? (hasVisited ? '#e5ff80' : '#ccff00') : (hasVisited ? '#ccff00' : '#ccff00')}`,
             borderRadius: '12px',
             padding: '8px 16px',
             cursor: 'pointer',
@@ -244,8 +244,8 @@ export function House({ position = [0, 0, 0], rotation = [0, 0, 0], doorOpen = f
             minWidth: '130px',
             textAlign: 'center',
             boxShadow: glitching
-              ? '0 0 18px 6px #00ff88, 0 0 40px 10px #00ffaa'
-              : `0 0 8px ${hasVisited ? 'rgba(235,87,193,0.4)' : 'rgba(0,255,136,0.4)'}`,
+              ? '0 0 18px 6px #ccff00, 0 0 40px 10px #ccff00'
+              : '0 0 12px rgba(204,255,0,0.45)',
             transition: 'all 0.2s',
             filter: glitching ? 'hue-rotate(180deg) brightness(2)' : 'none',
             userSelect: 'none',
@@ -256,7 +256,7 @@ export function House({ position = [0, 0, 0], rotation = [0, 0, 0], doorOpen = f
               fontSize: '24px', 
               fontWeight: 900, 
               fontFamily: 'Arial Black, Arial', 
-              color: hasVisited ? '#ff80d5' : '#aaffcc', 
+              color: '#ccff00', 
               letterSpacing: '0.5px', 
               lineHeight: 1.1 
             }}>
@@ -264,15 +264,15 @@ export function House({ position = [0, 0, 0], rotation = [0, 0, 0], doorOpen = f
             </span>
           ) : (
             <>
-              <img src={pumpfunPng} alt="pump.fun" style={{ width: '36px', height: '36px', objectFit: 'contain', display: 'block' }} />
+              <img src={robinhoodSvg} alt="Robinhood Crypto" style={{ width: '36px', height: '36px', objectFit: 'contain', display: 'block' }} />
               <span style={{ 
                 fontSize: '11px', 
                 fontWeight: 700, 
-                color: hasVisited ? '#eb57c1' : '#00ff88', 
+                color: '#ccff00', 
                 fontFamily: 'Arial, sans-serif', 
                 letterSpacing: '0.5px' 
               }}>
-                pump.fun
+                Robinhood Crypto
               </span>
             </>
           )}

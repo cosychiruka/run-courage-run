@@ -12,7 +12,7 @@ const TABS = [
   { id: 'overview',  label: 'Overview',      icon: FaBolt      },
   { id: 'brain',     label: 'Live Brain',    icon: FaBrain     },
   { id: 'decisions', label: 'Decisions',     icon: FaHistory   },
-  { id: 'token',     label: 'Token Hustle',  icon: FaChartLine },
+  { id: 'token',     label: 'Robinhood Pulse', icon: FaChartLine },
   { id: 'trenches',  label: 'Trenches',      icon: FaUsers     },
   { id: 'posters',   label: 'News Posters',  icon: FaNewspaper },
   { id: 'moments',   label: 'Game Moments',  icon: FaGamepad   },
@@ -21,7 +21,9 @@ const TABS = [
   { id: 'rag',       label: '🧬 RAG Memory Graph',  icon: FaSitemap    },
 ];
 
-const API = import.meta.env.VITE_BACKEND_URL || '';
+import { getBackendUrl } from '../services/newsService';
+
+const API = getBackendUrl();
 
 // ── Inline styles ──────────────────────────────────────────────────────────────
 const styles = {
@@ -36,15 +38,15 @@ const styles = {
   },
   nav: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    borderBottom: '2px solid #ff00ff', paddingBottom: '1.25rem', marginBottom: '1.75rem',
+    borderBottom: '2px solid #00C805', paddingBottom: '1.25rem', marginBottom: '1.75rem',
   },
   navTitle: {
-    fontFamily: "'Bangers', cursive", letterSpacing: 2, color: '#ff00ff',
+    fontFamily: "'Bangers', cursive", letterSpacing: 2, color: '#00C805',
     margin: 0, fontSize: '1.8rem',
   },
   navActions: { display: 'flex', gap: '0.75rem', alignItems: 'center' },
   navBtn: {
-    background: '#ff00ff22', border: '1px solid #ff00ff', color: '#ff00ff',
+    background: '#00C80522', border: '1px solid #00C805', color: '#00C805',
     padding: '0.5rem 1rem', borderRadius: 8, cursor: 'pointer',
     fontWeight: 'bold', display: 'flex', alignItems: 'center',
   },
@@ -55,7 +57,7 @@ const styles = {
   },
   tabSpinner: {
     position: 'absolute', top: 12, right: 0, display: 'flex', alignItems: 'center',
-    gap: 6, fontSize: '0.75rem', color: '#ff00ff', opacity: 0.7, zIndex: 10,
+    gap: 6, fontSize: '0.75rem', color: '#00C805', opacity: 0.7, zIndex: 10,
   },
   loadMoreBtn: {
     display: 'block', width: '100%', marginTop: 10, padding: '0.6rem',
@@ -75,8 +77,8 @@ const styles = {
     fontSize: '0.875rem', transition: 'all 0.2s', position: 'relative',
   },
   tabActive: {
-    background: '#ff00ff18', borderColor: '#ff00ff',
-    color: '#ff00ff', boxShadow: '0 0 12px rgba(255,0,255,0.15)',
+    background: '#00C80518', borderColor: '#00C805',
+    color: '#00C805', boxShadow: '0 0 12px rgba(0,200,5,0.2)',
   },
   badge: {
     background: '#ff9900', color: '#000', borderRadius: 10,
@@ -417,8 +419,10 @@ const SensorControl = ({ currentFreq, onUpdate, API, showToast }) => {
 
   const apply = async () => {
     setSaving(true);
-    const d = await safeFetch(`${API}/api/admin/set-sensor-cooldown?minutes=${freq}`, {
+    const d = await safeFetch(`${API}/api/admin/override_frequency`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ minutes: freq })
     });
     setSaving(false);
     if (d) {
@@ -553,6 +557,7 @@ const AdminDashboard = () => {
   const [voiceData, setVoiceData] = useState({ active: false, sessions: [], count: 0 });
   const [ragData, setRagData] = useState({ vectors: [] });
   const [selectedMemory, setSelectedMemory] = useState(null);
+  const [robinhoodData, setRobinhoodData] = useState({ stats: [], movers: { top_gainers: [], top_dumpers: [] } });
 
   // ── Fetch helpers — merge into existing state to avoid flicker ───────────────
   const loadStatus = useCallback(async () => {
@@ -569,6 +574,11 @@ const AdminDashboard = () => {
     if (m) setMemory(m);
     const mDetail = await safeFetch(`${API}/api/admin/memory-vectors/detail`);
     if (mDetail) setMemoryDetail(mDetail.vectors || []);
+  }, []);
+
+  const loadRobinhoodCrypto = useCallback(async () => {
+    const d = await safeFetch(`${API}/api/robinhood-crypto`);
+    if (d) setRobinhoodData(d);
   }, []);
 
   const loadBrain = useCallback(async () => {
@@ -631,7 +641,7 @@ const AdminDashboard = () => {
     Promise.all([
       loadStatus(), loadAgents(), loadBrain(),
       loadTrenches(), loadPosters(), loadMoments(), loadQueue(),
-      loadVoiceData(), loadRagData(),
+      loadVoiceData(), loadRagData(), loadRobinhoodCrypto(),
     ]).then(async () => {
       const mCount = await safeFetch(`${API}/api/admin/memory-vectors`);
       if (mCount) setMemory(mCount);
@@ -646,7 +656,7 @@ const AdminDashboard = () => {
       const loaders = {
         brain: loadBrain, decisions: loadBrain, trenches: loadTrenches,
         posters: loadPosters, moments: loadMoments, queue: loadQueue,
-        voice: loadVoiceData, rag: loadRagData,
+        voice: loadVoiceData, rag: loadRagData, token: loadRobinhoodCrypto,
       };
       if (loaders[activeTab]) await loaders[activeTab]();
     }, 30000);
@@ -659,7 +669,7 @@ const AdminDashboard = () => {
     await Promise.all([
       loadStatus(), loadAgents(), loadBrain(),
       loadTrenches(), loadPosters(), loadMoments(), loadQueue(),
-      loadVoiceData(), loadRagData(),
+      loadVoiceData(), loadRagData(), loadRobinhoodCrypto(),
     ]);
     const mCount = await safeFetch(`${API}/api/admin/memory-vectors`);
     if (mCount) setMemory(mCount);
@@ -1093,42 +1103,91 @@ const AdminDashboard = () => {
               </div>
             )}
 
-            {/* ── TOKEN HUSTLE ─────────────────────────────────────────────── */}
+            {/* ── ROBINHOOD PULSE ───────────────────────────────────────────── */}
             {activeTab === 'token' && (
               <div>
-                <div style={styles.grid3}>
-                  <StatCard label="PRICE" value={rcr.price ? `$${Number(rcr.price).toFixed(8)}` : '—'} sub={rcr.symbol || '$COURAGE'} color="#ff00ff" />
-                  <StatCard label="24H CHANGE" value={rcr.price_change_24h != null ? `${rcr.price_change_24h > 0 ? '+' : ''}${Number(rcr.price_change_24h).toFixed(2)}%` : '—'}
-                    color={rcr.price_change_24h > 0 ? '#00ffaa' : '#ff4444'} sub="vs yesterday" />
-                  <StatCard label="VOLUME 24H" value={rcr.volume_24h ? `$${Number(rcr.volume_24h).toLocaleString()}` : '—'} sub="Trading volume" color="#ff9900" />
-                  <StatCard label="MARKET CAP" value={rcr.market_cap ? `$${Number(rcr.market_cap).toLocaleString()}` : '—'} sub="USD" />
-                  <StatCard label="AUTO TWEETS TODAY" value={status?.auto_tweets_today ?? '—'} sub="of 25 daily limit" color="#ff9900" />
-                  <StatCard 
-                    label="X API SPEND" 
-                    value={`$${(status?.x_spend_today || 0).toFixed(3)}`} 
-                    sub={`Total: $${(status?.x_spend_total || 0).toFixed(2)}`} 
-                    color="#aaa" 
-                    onClick={() => setShowXModal(true)}
-                  />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <div>
+                    <h2 style={{ ...styles.cardTitle, color: '#00C805', fontSize: '1.5rem', margin: 0 }}>
+                      🟢 ROBINHOOD CRYPTO MARKET PULSE
+                    </h2>
+                    <p style={{ opacity: 0.5, fontSize: '0.8rem', margin: '4px 0 0' }}>
+                      Live stats for crypto supported on Robinhood • Updates automatically
+                    </p>
+                  </div>
+                  <button style={{ ...styles.btnSmall, borderColor: '#00C805', color: '#00C805' }} onClick={loadRobinhoodCrypto}>
+                    <FaSync style={{ marginRight: 6 }} /> Refresh Market Data
+                  </button>
                 </div>
 
-                {status?.price_history?.length > 0 && (
+                {/* Top Robinhood Coins Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                  {(robinhoodData.stats || []).map(coin => {
+                    const isPositive = (coin.change_24h || 0) >= 0;
+                    return (
+                      <div key={coin.ticker || coin.symbol} className="glass-card" style={{ padding: '1.25rem', borderLeft: `4px solid ${isPositive ? '#00C805' : '#ff4444'}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <span style={{ fontWeight: 'bold', fontSize: '1.2rem', fontFamily: 'Bangers, cursive', letterSpacing: 1, color: '#fff' }}>
+                            {coin.ticker}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: isPositive ? '#00C805' : '#ff4444', background: isPositive ? '#00C80515' : '#ff444415', padding: '2px 8px', borderRadius: 6 }}>
+                            {isPositive ? '+' : ''}{Number(coin.change_24h || 0).toFixed(2)}%
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#00C805', fontFamily: 'monospace' }}>
+                          ${Number(coin.price_usd || 0) < 0.01 ? Number(coin.price_usd || 0).toFixed(6) : Number(coin.price_usd || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: '0.7rem', opacity: 0.5 }}>
+                          <span>Vol: ${coin.volume_24h ? (coin.volume_24h / 1e6).toFixed(1) + 'M' : '—'}</span>
+                          <span>MCap: ${coin.market_cap ? (coin.market_cap / 1e9).toFixed(2) + 'B' : '—'}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Top Movers (Gainers & Dumpers) */}
+                <div style={styles.grid2}>
                   <div className="glass-card" style={styles.card}>
-                    <h3 style={styles.cardTitle}><FaChartLine style={{ marginRight: 8 }} />Price History (24h)</h3>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 100, marginTop: 8 }}>
-                      {status.price_history.map((p, i) => {
-                        const prices = status.price_history.map(x => x.price);
-                        const mn = Math.min(...prices), mx = Math.max(...prices);
-                        const pct = mx === mn ? 0.5 : (p.price - mn) / (mx - mn);
-                        return (
-                          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-                            <div style={{ width: '100%', background: `hsl(${150 + pct * 100}deg, 80%, 55%)`, borderRadius: 2, height: `${Math.max(4, pct * 90)}px` }} />
+                    <h3 style={{ ...styles.cardTitle, color: '#00C805' }}>🚀 Top Robinhood Gainers (24h)</h3>
+                    {(robinhoodData.movers?.top_gainers || []).length === 0 ? (
+                      <p style={{ opacity: 0.4, fontSize: '0.85rem' }}>Loading top gainers...</p>
+                    ) : (
+                      (robinhoodData.movers?.top_gainers || []).map((g, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <div>
+                            <strong style={{ color: '#fff', fontSize: '1rem' }}>{g.ticker}</strong>
+                            <span style={{ fontSize: '0.75rem', opacity: 0.5, marginLeft: 8 }}>{g.name}</span>
                           </div>
-                        );
-                      })}
-                    </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ color: '#00C805', fontWeight: 'bold' }}>+{(g.change_24h || 0).toFixed(2)}%</div>
+                            <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>${Number(g.price_usd || 0) < 0.01 ? Number(g.price_usd || 0).toFixed(6) : Number(g.price_usd || 0).toFixed(2)}</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                )}
+
+                  <div className="glass-card" style={styles.card}>
+                    <h3 style={{ ...styles.cardTitle, color: '#ff4444' }}>🔻 Top Robinhood Dip Opportunities</h3>
+                    {(robinhoodData.movers?.top_dumpers || []).length === 0 ? (
+                      <p style={{ opacity: 0.4, fontSize: '0.85rem' }}>Loading dip opportunities...</p>
+                    ) : (
+                      (robinhoodData.movers?.top_dumpers || []).map((d, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <div>
+                            <strong style={{ color: '#fff', fontSize: '1rem' }}>{d.ticker}</strong>
+                            <span style={{ fontSize: '0.75rem', opacity: 0.5, marginLeft: 8 }}>{d.name}</span>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ color: '#ff4444', fontWeight: 'bold' }}>{(d.change_24h || 0).toFixed(2)}%</div>
+                            <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>${Number(d.price_usd || 0) < 0.01 ? Number(d.price_usd || 0).toFixed(6) : Number(d.price_usd || 0).toFixed(2)}</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 

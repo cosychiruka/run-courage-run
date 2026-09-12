@@ -165,6 +165,16 @@ async def _gather_state():
     recent_trends = await twitter_memory.get_recent_trends(limit=10)
     unique_trends = list({t["topic"] for t in recent_trends})[:5]
 
+    # ── Robinhood Market Intelligence ──────────────────────────────────────────
+    robinhood_stats = []
+    robinhood_movers = {}
+    try:
+        from app.robinhood_service import get_robinhood_crypto_stats, get_top_robinhood_movers
+        robinhood_stats = await get_robinhood_crypto_stats()
+        robinhood_movers = await get_top_robinhood_movers(limit=3)
+    except Exception as e:
+        print(f"[AUTONOMOUS] Robinhood stats fetch error: {e}")
+
     state = {
         "current_time": datetime.now().isoformat(),
         "time_context": {
@@ -181,10 +191,12 @@ async def _gather_state():
             "last_check": await _redis.get("courage:last_sensor_search") or "never"
         },
         "token_info": await tools.get_token_info(),
+        "robinhood_stats": robinhood_stats[:6],       # top Robinhood assets ($DOGE, $PEPE, $SHIB, $BTC, $ETH, $SOL)
+        "robinhood_movers": robinhood_movers,         # top 24h gainers/dumpers on Robinhood
         "past_reflections": await twitter_memory.get_recent_reflections(limit=3),
         "unreplied_trenches_count": await _count_unreplied_trenches(),
         "auto_tweets_today": await _count_auto_tweets_today(),
-        "rcr_or_sol_stats": await _get_rcr_stats(),           # always keep this
+        "rcr_or_sol_stats": await _get_rcr_stats(),           # fallback stats
         "x_rate_status": await get_x_rate_status(),           # critical for safety
         "community_vibe": await _get_community_vibe_summary(), # short 1-2 sentence vibe
         "hustle_stats": {
@@ -329,8 +341,10 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
                 {"role": "system", "content": SYSTEM_PROMPT_MINIMAL},
                 {"role": "user", "content": decision_prompt}
             ],
+            tools=_get_tools_spec(),
+            tool_choice="auto",
             temperature=0.7,
-            max_tokens=700,
+            max_tokens=800,
         )
 
         resp = completion_to_dict(completion)

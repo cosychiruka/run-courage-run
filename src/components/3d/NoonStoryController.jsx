@@ -197,10 +197,11 @@ export function NoonStoryController({ eventLine = '' }) {
           {phase >= 2 && phase <= 5 && seqRef.current === 1 && (
             <div style={{
               position: 'absolute', top: '-70px', left: '50%', transform: 'translateX(-50%)',
-              backgroundColor: '#ffffff', color: '#000000', fontWeight: 900, fontSize: '1.2rem',
+              backgroundColor: '#ffffff', color: '#111111', fontWeight: 900, fontSize: '1.2rem',
               padding: '10px 15px', borderRadius: '20px', border: '3px solid #000000',
-              whiteSpace: 'nowrap', WebkitTextStroke: '0.5px black', zIndex: 100,
-              boxShadow: '0 5px 0 rgba(0,0,0,0.2)',
+              whiteSpace: 'nowrap', WebkitTextStroke: '0px transparent', zIndex: 100,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              fontFamily: '"Comic Sans MS", cursive, sans-serif',
             }}>
               {phase === 2 ? 'VROOOM!' : 'Sniff sniff...'}
               <div style={{

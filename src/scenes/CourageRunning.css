@@ -1143,12 +1143,12 @@
 
 .runnercourage-thought-bubble {
   position: absolute;
-  top: -200px;
+  top: -85px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   align-items: center;
   pointer-events: none;
   animation: runnerThoughtBubbleLifecycle 4.5s ease forwards;
@@ -1182,13 +1182,14 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  margin-bottom: 5px;
+  margin-top: 5px;
 }
 
 .runnercourage-thought-bubble .thought-dot {
-  width: 6px;
-  height: 6px;
-  background-color: rgba(255, 255, 255, 0.8);
+  width: 7px;
+  height: 7px;
+  background-color: #ffffff;
+  border: 1.5px solid #000000;
   border-radius: 50%;
   animation: thoughtDotFade 4.5s ease forwards;
 }
@@ -1226,16 +1227,17 @@
 }
 
 .runnercourage-thought-bubble .thought-text {
-  background: rgba(255, 255, 255, 0.95);
-  color: #333;
-  padding: 8px 12px;
-  border-radius: 12px;
+  background: #ffffff !important;
+  color: #111111 !important;
+  padding: 8px 16px;
+  border-radius: 18px;
   font-size: 14px;
-  font-family: 'Comic Sans MS', cursive;
-  font-weight: bold;
+  font-family: 'Comic Sans MS', cursive, sans-serif;
+  font-weight: 900;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  border: 2px solid rgba(255, 26, 156, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  border: 3px solid #000000 !important;
+  -webkit-text-stroke: 0px transparent !important;
   animation: thoughtTextFade 4.5s ease forwards;
   /* Create new stacking context to prevent parent transform inheritance */
   isolation: isolate;

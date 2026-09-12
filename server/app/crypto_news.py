@@ -193,10 +193,57 @@ async def _save_to_sqlite(articles: list[dict]):
         print(f"[CRYPTO] SQLite save failed (non-fatal): {e}")
 
 
+async def _fetch_free_crypto_rss(limit: int = 20) -> list[dict]:
+    """Fetches free real-time crypto news from CoinDesk RSS feed (no API key required)."""
+    url = "https://www.coindesk.com/arc/outboundfeeds/rss/"
+    articles = []
+    try:
+        async with httpx.AsyncClient(timeout=12, follow_redirects=True) as client:
+            resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+            if resp.status_code == 200:
+                import xml.etree.ElementTree as ET
+                import re
+                root = ET.fromstring(resp.content)
+                channel = root.find("channel")
+                if channel is not None:
+                    for item in channel.findall("item")[:limit]:
+                        title = item.findtext("title") or ""
+                        link = item.findtext("link") or ""
+                        desc = item.findtext("description") or ""
+                        pub_date = item.findtext("pubDate") or ""
+                        
+                        clean_desc = re.sub(r'<[^>]+>', '', desc).strip()
+                        
+                        media_url = None
+                        for media in item.findall("{http://search.yahoo.com/mrss/}content"):
+                            media_url = media.get("url")
+                            if media_url:
+                                break
+                        if not media_url:
+                            enclosure = item.find("enclosure")
+                            if enclosure is not None:
+                                media_url = enclosure.get("url")
+
+                        if title:
+                            articles.append({
+                                "title": title.strip(),
+                                "description": clean_desc[:350],
+                                "url": link.strip(),
+                                "image_url": media_url,
+                                "source_name": "CoinDesk News",
+                                "published_at": pub_date,
+                                "category": "crypto",
+                                "country": "crypto",
+                            })
+    except Exception as e:
+        print(f"[CRYPTO_RSS] Free RSS fetch failed: {e}")
+    return articles
+
+
 # ── Public API ─────────────────────────────────────────────────────────────────
 
 async def get_crypto_headlines(limit: int = 10) -> list[dict]:
-    """Fetch crypto news from CoinDesk with caching."""
+    """Fetch Robinhood crypto news from CoinDesk / RSS feeds with caching."""
     r = await _get_redis()
 
     # 1. Cache hit
@@ -208,14 +255,21 @@ async def get_crypto_headlines(limit: int = 10) -> list[dict]:
         except Exception:
             pass
 
-    # 2. Fetch CoinDesk
+    # 2. Fetch CoinDesk API (if key available) or Free RSS feed
     articles: list[dict] = []
     if COINDESK_API_KEY:
         try:
             articles = await _fetch_coindesk(20)
-            print(f"[CRYPTO] CoinDesk: {len(articles)} articles")
+            print(f"[CRYPTO] CoinDesk API: {len(articles)} articles")
         except Exception as e:
-            print(f"[CRYPTO] CoinDesk failed: {e}")
+            print(f"[CRYPTO] CoinDesk API failed: {e}")
+
+    if not articles:
+        try:
+            articles = await _fetch_free_crypto_rss(20)
+            print(f"[CRYPTO] Free RSS Feed: {len(articles)} articles")
+        except Exception as e:
+            print(f"[CRYPTO] Free RSS failed: {e}")
 
     if not articles:
         return []

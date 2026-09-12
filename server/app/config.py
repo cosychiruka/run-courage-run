@@ -7,7 +7,7 @@ load_dotenv()
 # LLM configuration. OpenRouter is the production provider.
 LLM_PROVIDER       = os.getenv("LLM_PROVIDER", "openrouter").lower()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-DEFAULT_MODEL      = os.getenv("DEFAULT_MODEL", "qwen/qwen3-coder:free")
+DEFAULT_MODEL      = os.getenv("DEFAULT_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
 FALLBACK_MODEL     = os.getenv("FALLBACK_MODEL", "meta-llama/llama-3.3-70b-instruct")
 OPENROUTER_REFERER = os.getenv("OPENROUTER_REFERER", "https://github.com/cosychiruka/run-courage-run")
 OPENROUTER_TITLE   = os.getenv("OPENROUTER_TITLE", "Run Courage Run")

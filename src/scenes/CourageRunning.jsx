@@ -134,19 +134,19 @@ const CourageRunning = ({ voiceState = null, currentScene = 'sunrise' }) => {
         <div className='runnercourage-tail'></div>
         <div className='runnercourage-leg-back'></div>
         <div className='runnercourage-leg-front'></div>
-        
-        {/* Thought bubble - only show in sunrise scene on landing page */}
-        {showThought && isSunriseScene && (
-          <div className="runnercourage-thought-bubble">
-            <div className="thought-trail">
-              <div className="thought-dot"></div>
-              <div className="thought-dot"></div>
-              <div className="thought-dot"></div>
-            </div>
-            <div className="thought-text">{thoughtText}</div>
-          </div>
-        )}
       </div>
+
+      {/* Thought bubble - positioned above Courage's head in sunrise scene */}
+      {showThought && isSunriseScene && (
+        <div className="runnercourage-thought-bubble">
+          <div className="thought-trail">
+            <div className="thought-dot"></div>
+            <div className="thought-dot"></div>
+            <div className="thought-dot"></div>
+          </div>
+          <div className="thought-text">{thoughtText}</div>
+        </div>
+      )}
     </div>
   );
 };

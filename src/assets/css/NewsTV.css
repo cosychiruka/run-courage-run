@@ -24,8 +24,8 @@
   flex-direction: column;
   background: #1a1a1a;
   border-radius: 18px 18px 6px 6px;
-  border: 3px solid #eb57c1;
-  box-shadow: 0 0 40px #eb57c188, 0 0 80px #9945FF44;
+  border: 3px solid #ccff00;
+  box-shadow: 0 0 40px #ccff0088, 0 0 80px #9945FF44;
   animation: newsTvIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -56,7 +56,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px 8px;
-  border-bottom: 2px solid #eb57c1;
+  border-bottom: 2px solid #ccff00;
   flex-shrink: 0;
   position: relative;
   z-index: 2;
@@ -65,10 +65,10 @@
 .news-tv-brand {
   font-family: 'Comic Sans MS', sans-serif;
   font-size: 0.75rem;
-  color: #eb57c1;
+  color: #ccff00;
   letter-spacing: 2px;
   font-weight: bold;
-  text-shadow: 0 0 8px #eb57c1;
+  text-shadow: 0 0 8px #ccff00;
 }
 
 .news-emotion-chip {
@@ -83,7 +83,7 @@
 
 .news-tv-close {
   background: rgba(0, 0, 0, 0.65);
-  border: 2px solid #eb57c1;
+  border: 2px solid #ccff00;
   color: #fff;
   border-radius: 50%;
   width: 30px;
@@ -116,11 +116,11 @@
   z-index: 2;
   /* Custom scrollbar */
   scrollbar-width: thin;
-  scrollbar-color: #eb57c1 #111;
+  scrollbar-color: #ccff00 #111;
 }
 .news-tv-screen-area::-webkit-scrollbar { width: 5px; }
 .news-tv-screen-area::-webkit-scrollbar-track { background: #111; }
-.news-tv-screen-area::-webkit-scrollbar-thumb { background: #eb57c1; border-radius: 3px; }
+.news-tv-screen-area::-webkit-scrollbar-thumb { background: #ccff00; border-radius: 3px; }
 
 /* Loading */
 .news-loading {
@@ -130,7 +130,7 @@
   justify-content: center;
   height: 300px;
   gap: 16px;
-  color: #eb57c1;
+  color: #ccff00;
 }
 
 .news-spinner {

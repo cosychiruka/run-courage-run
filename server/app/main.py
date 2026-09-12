@@ -339,30 +339,45 @@ async def x_status():
     }
 
 
+@app.get("/api/robinhood-crypto")
+async def get_robinhood_crypto():
+    from app.robinhood_service import get_robinhood_crypto_stats, get_top_robinhood_movers
+    stats = await get_robinhood_crypto_stats()
+    movers = await get_top_robinhood_movers(limit=5)
+    return JSONResponse({"stats": stats, "movers": movers})
+
+
 @app.get("/api/news")
 async def get_news(
-    country: str = "us",
-    category: str = "general",
+    country: str = "crypto",
+    category: str = "crypto",
     limit: int = 10,
-    fresh: bool = False,   # ?fresh=true skips cache and fetches live (costs a request)
+    fresh: bool = False,
 ):
     """
-    Returns cached news for a given country/category.
-    Flow: Redis hot cache → SQLite → live fetch (only if cache miss or fresh=true).
+    Returns news for Courage News Net.
+    Defaults to Robinhood Crypto RSS feed, with fallback to crypto headlines.
     """
+    from app.crypto_news import get_crypto_headlines
+
+    if category == "crypto" or country == "crypto" or category == "memes" or category == "bitcoin" or category == "ethereum":
+        articles = await get_crypto_headlines(limit)
+        if articles:
+            return JSONResponse(articles)
+
     if not fresh:
-        # 1. Redis hot cache (30-min TTL)
         cached = await get_cached_articles(country, category)
         if cached:
             return JSONResponse(cached[:limit])
 
-        # 2. SQLite durable store
         stored = await get_recent_articles(limit, country, category)
         if stored:
             return JSONResponse(stored)
 
-    # 3. Live fetch — Guardian → NewsAPI → GNews with budget tracking
     articles = await fetch_pair(country, category, limit)
+    if not articles:
+        articles = await get_crypto_headlines(limit)
+
     return JSONResponse(articles)
 
 

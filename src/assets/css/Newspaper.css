@@ -69,7 +69,7 @@
   .newspaper-banner {
     display: flex;
     justify-content: space-between;
-    color: #eb57c1;
+    color: #00C805;
     border-bottom: 2px solid #040404;
     margin-bottom: 15px;
   }
@@ -179,7 +179,7 @@
     font-size: 2rem;
     line-height: 3rem;
     margin: 0;
-    color: #eb57c1; /* Color for banner h2 elements */
+    color: #00C805; /* Color for banner h2 elements */
   }
   
   /* Targeting the specific h1 inside the newspaper-heading */
@@ -203,7 +203,7 @@
     font-size: 2.5rem;
     line-height: 4rem;
     margin: 0;
-    color: #eb57c1; /* Color for banner h2 elements */
+    color: #00C805; /* Color for banner h2 elements */
   }
   
   /* Specific styling for 'Game' and 'Over' repeating h2 elements in the banner */
@@ -240,7 +240,7 @@
 /* ── Cartoonish "!!!" exclamation accent ─────────────────────────── */
 .newspaper-exclaim {
   display: inline-block;
-  color: #eb57c1;
+  color: #ccff00;
   font-size: 1.4em;
   font-weight: 900;
   font-family: 'Comic Sans MS', cursive;
@@ -258,7 +258,7 @@
   gap: 8px;
   padding: 6px 10px;
   background: #1a1a1a;
-  border-bottom: 1px solid #eb57c1;
+  border-bottom: 1px solid #ccff00;
   flex-wrap: wrap;
   position: sticky;
   top: 0;
@@ -268,8 +268,8 @@
 
 .newspaper-controls select {
   background: #111;
-  color: #eb57c1;
-  border: 1px solid #eb57c1;
+  color: #ccff00;
+  border: 1px solid #ccff00;
   border-radius: 4px;
   padding: 3px 6px;
   font-family: 'Comic Sans MS', sans-serif;
@@ -286,15 +286,15 @@
 
 .newspaper-nav button {
   background: #222;
-  color: #eb57c1;
-  border: 1px solid #eb57c1;
+  color: #ccff00;
+  border: 1px solid #ccff00;
   border-radius: 4px;
   padding: 3px 8px;
   cursor: pointer;
   font-size: 0.75rem;
   transition: background 0.15s;
 }
-.newspaper-nav button:hover:not(:disabled) { background: #eb57c1; color: #000; }
+.newspaper-nav button:hover:not(:disabled) { background: #ccff00; color: #000; }
 .newspaper-nav button:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .newspaper-nav span {
@@ -310,7 +310,7 @@
   width: calc(100% - 15px);
   margin: 8px 0 6px 15px;
   padding: 5px 0;
-  background: linear-gradient(135deg, #9945FF, #eb57c1);
+  background: linear-gradient(135deg, #9945FF, #ccff00);
   color: #fff;
   border: none;
   border-radius: 5px;

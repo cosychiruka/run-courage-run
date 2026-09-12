@@ -20,6 +20,7 @@ import { analyzeSentiment } from './utils/sentimentUtils';
 import { createVoiceService } from './services/voiceService';
 import { audioManager } from './utils/audioManager';
 import AdminDashboard from './components/AdminDashboard';
+import { LiveMarketWidget, LatestNewsCardWidget, BrainPulseWidget } from './components/RobinhoodWidgets';
 
 // Wrapper to handle Vite dynamic import chunk errors after redeployments
 const lazyWithReload = (componentImport) => {
@@ -55,10 +56,10 @@ export default function App() {
   const [newsLoading, setNewsLoading] = useState(false);
   const [newsEmotion, setNewsEmotion] = useState('neutral');
   const [newsCountry, setNewsCountry] = useState(
-    () => localStorage.getItem('courage_country') || 'us'
+    () => localStorage.getItem('courage_country') || 'crypto'
   );
   const [newsCategory, setNewsCategory] = useState(
-    () => localStorage.getItem('courage_category') || 'general'
+    () => localStorage.getItem('courage_category') || 'crypto'
   );
   const [tourOpen, setTourOpen] = useState(false);
 
@@ -648,7 +649,7 @@ export default function App() {
         <div className="circle left top" /><div className="circle left bottom" />
         <div className="halloctober__banner p-flex">
           <h1 className="couragesign">
-            <a href="https://pump.fun/coin/$RCR" target="_blank" rel="noopener noreferrer" className="couragesign-link">
+            <a href="https://robinhood.com/crypto/" target="_blank" rel="noopener noreferrer" className="couragesign-link">
               RUN COURAGE,<br className="mobile-only" /> <span className="couragesign-emphasis">RUN!!!</span>
             </a>
           </h1>
@@ -679,23 +680,23 @@ export default function App() {
       {/* ── Hero section ── */}
       <section className={`hero-section${scrolled ? ' hero-section--hidden' : ''}`}>
         <div className="hero-center">
-          <div className={`hero-badge${scrolled ? ' hero-badge--hidden' : ''}`}>
-            <span className="hero-badge-dot" />
-            Live on Solana
+          <div className={`hero-badge${scrolled ? ' hero-badge--hidden' : ''}`} style={{ borderColor: '#ccff00', color: '#ccff00' }}>
+            <span className="hero-badge-dot" style={{ background: '#ccff00', boxShadow: '0 0 10px #ccff00' }} />
+            Robinhood
           </div>
           <div className={`hero-text-block${heroTextVisible ? '' : ' hero-text-block--hidden'}`}>
             <div className="desktop-only">
-              <p className="hero-title">Self-Aware Living Meme on Solana</p>
-              <p className="hero-tagline">"He knows his a meme. He breaks the 4th wall. He's a runner!"</p>
+              <p className="hero-title">Self Aware Living Meme on Robinhood</p>
+              <p className="hero-tagline">"Powered by X API, interactive meme covering RH tickers and breaking news!"</p>
             </div>
             <div className="mobile-only">
-              <p className="hero-title">Self-Aware Meme <br /> Living on Solana</p>
-              <p className="hero-tagline">He knows he&rsquo;s a meme.<br /> He breaks the 4th wall.<br /> He&rsquo;s a runner!</p>
+              <p className="hero-title">Self Aware Living Meme <br /> on Robinhood</p>
+              <p className="hero-tagline">"Powered by X API, interactive meme covering RH tickers and breaking news!"</p>
             </div>
           </div>
           {aliveTextVisible && (
             <div className="hero-alive-text" aria-live="polite">
-              Animated Self Aware Meme &mdash; He&rsquo;s alive, Interact
+              Mario Nawfal of Robinhood News &mdash; He&rsquo;s alive, Interact
             </div>
           )}
 
@@ -706,8 +707,8 @@ export default function App() {
           {renderCourageScene()}
           {newsOpen && voiceState === null && (
             <div className={`emotion-chip emotion-chip--${newsEmotion}`}>
-              {newsEmotion === 'happy' && '🚀 WAGMI'}
-              {newsEmotion === 'scared' && '😱 NGMI'}
+              {newsEmotion === 'happy' && '🚀 ROBINHOOD PUMP'}
+              {newsEmotion === 'scared' && '😱 ROBINHOOD DIP'}
               {newsEmotion === 'neutral' && "🐕 chillin'"}
             </div>
           )}
@@ -834,112 +835,48 @@ export default function App() {
         {/* About — 2 cards */}
         <section className="landing-section about-section container">
           <div className="about-grid">
-            <div className="about-card glass-panel comic animate-float">
-              <div className="comic-banner">
-                <h2 className="landing-heading"><span className="icon-dog-wag">🐕</span> Who is $RCR?</h2>
+            <div className="about-card glass-panel comic animate-float" style={{ borderLeft: '4px solid #00C805' }}>
+              <div className="comic-banner" style={{ background: '#00C805', color: '#000' }}>
+                <h2 className="landing-heading" style={{ color: '#000' }}><span className="icon-dog-wag">🏹</span> MARIO NAWFAL OF ROBINHOOD NEWS</h2>
               </div>
               <p>
-                Tribute to Courage the Cowardly Dog — Cartoon Network 1999–2002. Always watching the TV and reading Newspapers. Re-incarnated as a self-aware meme, he lives in a 3D browser world with his usual horrors, he treats X/Twitter as his escape, running his handle to socialize, hustle, and to keep watch on the world.
+                <strong>Courage the Cowardly Dog</strong> is re-incarnated as the <strong>Mario Nawfal of Robinhood News</strong>! Scared of the world but posting anyway, he monitors Robinhood crypto tickers ($DOGE, $PEPE, $SHIB, $BTC, $ETH, $SOL), searches Twitter trenches, and reports top movers with Robinhood Green news cards.
               </p>
             </div>
-            <div className="about-card glass-panel comic animate-float-delay">
-              <div className="comic-banner comic-banner--yellow">
-                <h2 className="landing-heading"><span className="icon-tv-flicker">📺</span> What does he do?</h2>
+            <div className="about-card glass-panel comic animate-float-delay" style={{ borderLeft: '4px solid #00E676' }}>
+              <div className="comic-banner comic-banner--yellow" style={{ background: '#00E676', color: '#000' }}>
+                <h2 className="landing-heading" style={{ color: '#000' }}><span className="icon-tv-flicker">📺</span> WHAT DOES HE COVER NEXT?</h2>
               </div>
               <p>
-                Courage lives in your browser & on X: voice chat in 4 immersive 3D worlds, real-time X posts on breaking news/pumps/game moments, community shoutouts, RAG memory of trenches, credit-aware decisions. He never sleeps — sensors + heartbeat keep him reacting.🐕🦺
+                Courage tracks live Robinhood crypto gainers, breaks market news, tweets custom Robinhood Green cards, and chats with you in 4 3D worlds. He never sleeps — event sensors and his autonomous heartbeat keep him reacting 24/7. The things he does for love... 🏹🐕🦺
               </p>
             </div>
           </div>
         </section>
 
-        {/* Tokenomics */}
-        <section className="landing-section container glass-panel" style={{ padding: '2rem' }}>
-          <div className="comic-banner">
-            <h2 className="landing-heading"><span className="icon-chart-grow">📊</span> Tokenomics</h2>
-          </div>
-          <div className="token-grid">
-            <div className="token-card">
-              <span className="token-icon icon-pill-bounce">💊</span>
-              <span className="token-label">Total Supply</span>
-              <span className="token-value">1,000,000,000</span>
-            </div>
-            <div className="token-card">
-              <span className="token-icon icon-fire-glow">🔥</span>
-              <span className="token-label">Liquidity</span>
-              <span className="token-value">Locked</span>
-            </div>
-            <div className="token-card">
-              <span className="token-icon icon-chart-line">📈</span>
-              <span className="token-label">Tax</span>
-              <span className="token-value">0.5%</span>
-            </div>
-            <div className="token-card">
-              <span className="token-icon icon-dog-wag">🐕</span>
-              <span className="token-label">Dev Wallet</span>
-              <span className="token-value">0% (he's a dog)</span>
-            </div>
-          </div>
+        {/* Live Robinhood Crypto Market Pulse Widget */}
+        <section className="landing-section container">
+          <LiveMarketWidget />
         </section>
 
-        {/* Buy $RCR CTA */}
-        <section className="landing-section container glass-panel" style={{ textAlign: 'center', padding: '2rem' }}>
-          <div className="comic-banner comic-banner--pink">
-            <h2 className="landing-heading"><span className="icon-paw-step">🐾</span> Get $RCR</h2>
-          </div>
-          <p className="buy-cta-sub">Trade on Solana — Ser.</p>
-          <div className="buy-cta-row">
-            <a href="#" className="brutal-btn brutal-btn--dark">🔭 DexScreener</a>
-            <a href="#" className="brutal-btn brutal-btn--pink">🐾 Buy $RCR</a>
-          </div>
+        {/* Latest Generated News Card Widget */}
+        <section className="landing-section container">
+          <LatestNewsCardWidget />
         </section>
 
-        {/* How to buy */}
-        <section className="landing-section howtobuy-section container glass-panel">
-          <div className="comic-banner wiggle">
-            <h2 className="landing-heading section-title"><span className="icon-cart-bounce">🛒</span> How to Get $RCR</h2>
-          </div>
-          <div className="steps-list">
-            <div className="step-item">
-              <span className="step-num">1</span>
-              <div>
-                <strong>Get a Solana Wallet</strong>
-                <p>Download Phantom or Backpack — free and takes 2 minutes</p>
-              </div>
-            </div>
-            <div className="step-item">
-              <span className="step-num">2</span>
-              <div>
-                <strong>Buy SOL</strong>
-                <p>Get SOL from any exchange (Coinbase, Kraken, Binance)</p>
-              </div>
-            </div>
-            <div className="step-item">
-              <span className="step-num">3</span>
-              <div>
-                <strong>Swap for $RCR</strong>
-                <p>Head to Jupiter.ag or Raydium and paste the $RCR contract address</p>
-              </div>
-            </div>
-            <div className="step-item">
-              <span className="step-num">4</span>
-              <div>
-                <strong>WAGMI, ser</strong>
-                <p>You're now part of the pack. The things we do for you people...</p>
-              </div>
-            </div>
-          </div>
+        {/* Courage Brain Intelligence & World Pulse Widget */}
+        <section className="landing-section container">
+          <BrainPulseWidget />
         </section>
 
-        {/* Community */}
-        <section className="landing-section container glass-panel" style={{ padding: '2rem' }}>
-          <div className="comic-banner comic-banner--pink">
-            <h2 className="landing-heading"><span className="icon-globe-spin">🌐</span> Join the Pack</h2>
+        {/* Robinhood News Community */}
+        <section className="landing-section container glass-panel" style={{ padding: '2rem', borderTop: '2px solid #00C805' }}>
+          <div className="comic-banner" style={{ background: '#00C805', color: '#000' }}>
+            <h2 className="landing-heading" style={{ color: '#000' }}><span className="icon-globe-spin">🌐</span> JOIN THE ROBINHOOD PACK</h2>
           </div>
-          <p className="community-sub">The most anxious community in crypto</p>
+          <p className="community-sub" style={{ color: '#ccc' }}>Follow Courage AI for real-time Robinhood dispatches & breaking crypto commentary</p>
           <div className="community-links" style={{ display: 'flex', justifyContent: 'center', gap: '2rem' }}>
-            <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer" className="brutal-btn brutal-btn--blue">𝕏 Twitter</a>
-            <a href="#" className="brutal-btn brutal-btn--pink">✈️ Telegram</a>
+            <a href="https://x.com/runcouragerun" target="_blank" rel="noopener noreferrer" className="brutal-btn brutal-btn--blue" style={{ background: '#00C805', color: '#000', borderColor: '#00C805' }}>𝕏 Follow on Twitter</a>
           </div>
         </section>
       </div>

@@ -23,6 +23,9 @@ const DEFAULT_BACKEND = import.meta.env.VITE_BACKEND_URL ||
   (import.meta.env.PROD ? 'https://runcouragerun.fun' : 'http://localhost:8000');
 
 export function getBackendUrl() {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:8000';
+  }
   const stored = localStorage.getItem('courage_backend_url');
   // In production, ignore any stale localhost overrides in localStorage
   if (import.meta.env.PROD && stored && stored.includes('localhost')) {
@@ -37,15 +40,13 @@ const GUARDIAN_BASE = 'https://content.guardianapis.com';
 // ── Country / category metadata ───────────────────────────────────────────────
 
 export const NEWS_COUNTRIES = {
-  us: 'United States', gb: 'United Kingdom', au: 'Australia',
-  ca: 'Canada',        de: 'Germany',         fr: 'France',
-  jp: 'Japan',         br: 'Brazil',          in: 'India',
-  za: 'South Africa',  sg: 'Singapore',       nl: 'Netherlands',
+  crypto: 'Robinhood Crypto',
+  us: 'US Markets',
+  global: 'Global Crypto',
 };
 
 export const NEWS_CATEGORIES = [
-  'general', 'technology', 'business', 'science',
-  'health', 'sports', 'entertainment',
+  'crypto', 'memes', 'bitcoin', 'ethereum', 'macro', 'defi',
 ];
 
 // ── localStorage cache helpers ────────────────────────────────────────────────
@@ -244,25 +245,25 @@ export async function searchNews(query) {
 export function getSampleArticles() {
   return [
     {
-      title: 'Courage Checks The Trenches: No News Yet, Ser',
-      description: 'The backend is starting up or no API keys are configured. Real news incoming shortly.',
-      content: 'Add your Guardian API key in Settings, or start the backend server to get live news from all 3 sources.',
+      title: 'Robinhood Crypto Expands Ticker Intelligence & Meme Pulse',
+      description: 'Courage AI launches real-time reporting on $DOGE, $PEPE, $SHIB, $BTC, $ETH, $SOL, and top gainers on Robinhood.',
+      content: 'Live crypto headlines, trench sentiment, and gainer alerts now stream directly to Courage’s news brain.',
       url: '#', image: null, publishedAt: new Date().toISOString(),
-      source: { name: '$COURAGE News Network', url: '#' }, provider: 'sample',
+      source: { name: 'Robinhood Chronicle', url: '#' }, provider: 'sample',
     },
     {
-      title: 'Courage Spotted Living In A Browser, Witnesses Confirm',
-      description: 'The cowardly dog has been seen trembling at world events, unable to look away from the TV.',
-      content: 'Sources close to Courage report he has been living in a web server since early 2024, surviving on a diet of memes and news headlines.',
+      title: 'Dogecoin & Pepe Surge As Robinhood Trenches Heat Up',
+      description: 'Retail traders rally around Robinhood crypto offerings as social volume hits new weekly high.',
+      content: 'Courage monitors the X trenches for breaking momentum across Robinhood tickers.',
       url: '#', image: null, publishedAt: new Date().toISOString(),
-      source: { name: '$COURAGE News Network', url: '#' }, provider: 'sample',
+      source: { name: 'Robinhood Chronicle', url: '#' }, provider: 'sample',
     },
     {
-      title: 'Solana Meme Dog Refuses To Leave TV, Demands Snacks',
-      description: 'Local dog continues to watch the news 24/7. Experts say this is normal behaviour.',
-      content: "Courage, the self-aware CSS dog, has reportedly not moved from his TV spot in weeks. 'The things I do for you people...'",
+      title: 'Mario Nawfal Of Robinhood News: Courage Direct From The Studio',
+      description: 'Courage AI streams live news, market pulse, and automated post cards in Robinhood Green.',
+      content: 'Stay tuned for real-time crypto dispatches from Nowhere.',
       url: '#', image: null, publishedAt: new Date().toISOString(),
-      source: { name: '$COURAGE News Network', url: '#' }, provider: 'sample',
+      source: { name: 'Robinhood Chronicle', url: '#' }, provider: 'sample',
     },
   ];
 }

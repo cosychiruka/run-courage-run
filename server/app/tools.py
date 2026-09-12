@@ -372,6 +372,36 @@ TOOL_SCHEMAS = [
     {
         "type": "function",
         "function": {
+            "name": "get_robinhood_stats",
+            "description": "Fetch real-time prices, 24h gainers/losers, and volume for Robinhood crypto assets ($DOGE, $PEPE, $SHIB, $BTC, $ETH, $SOL).",
+            "parameters": {"type": "object", "properties": {}, "required": []}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_robinhood_movers",
+            "description": "Get top 24h gainers and dumpers on Robinhood Crypto for market commentary.",
+            "parameters": {"type": "object", "properties": {}, "required": []}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_robinhood_token_info",
+            "description": "Get detailed price, 24h change, and metrics for a specific Robinhood ticker (e.g. DOGE, PEPE, SHIB, BTC, ETH).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ticker": {"type": "string", "description": "Ticker symbol, e.g. DOGE, PEPE, SHIB, BTC, ETH"}
+                },
+                "required": ["ticker"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "create_courage_art",
             "description": "Generate a funny, relevant cartoon of Courage based on current context and sentiment. Always use the base image.",
             "parameters": {
@@ -616,6 +646,21 @@ async def dispatch_tool(name: str, args: any, x_client=None, tweet_image_fn=None
             case "check_api_credits":     return await _check_api_credits(x_client)
             case "get_crypto_news":       return await _get_crypto_news(args)
             case "get_token_info":        return await get_token_info()
+            case "get_robinhood_stats":
+                from app.robinhood_service import get_robinhood_crypto_stats
+                stats = await get_robinhood_crypto_stats()
+                lines = [f"{s['symbol']} ({s.get('name')}): ${s.get('price'):,.4f} ({s.get('change_24h', 0):+.1f}%)" for s in stats[:8]]
+                return "Robinhood Crypto Markets:\n" + "\n".join(lines)
+            case "get_robinhood_movers":
+                from app.robinhood_service import get_top_robinhood_movers
+                movers = await get_top_robinhood_movers()
+                gainers = ", ".join(f"{g['symbol']} ({g.get('change_24h'):+.1f}%)" for g in movers.get("gainers", []))
+                dumpers = ", ".join(f"{d['symbol']} ({d.get('change_24h'):+.1f}%)" for d in movers.get("dumpers", []))
+                return f"Robinhood Top Gainers: {gainers or 'none'}\nRobinhood Top Dumpers: {dumpers or 'none'}"
+            case "get_robinhood_token_info":
+                from app.robinhood_service import get_robinhood_token_info
+                info = await get_robinhood_token_info(args.get("ticker", "DOGE"))
+                return f"{info.get('symbol')} ${info.get('price'):,.4f} | 24h: {info.get('change_24h', 0):+.1f}% | High: ${info.get('high_24h', 0):,.4f} | Vol: ${info.get('volume_24h', 0):,.0f}"
             case "news_dog_scan":         return await news_dog_scan()
             case "art_dog_generate":      return await art_dog_generate(args.get("scene", "Courage being epic"))
             case "engagement_dog_suggest": return await engagement_dog_suggest()
@@ -1314,14 +1359,10 @@ async def _auto_news_react(args: any, x_client, tweet_image_fn) -> str:
 
 
 async def _llm_news_tweet(title: str, summary: str) -> str:
-    """Fast 8b model writes a Courage-voiced reaction. Falls back to _build_news_tweet."""
+    """Fast model writes a Courage-voiced reaction via OpenRouter. Falls back to _build_news_tweet."""
     try:
-        from groq import AsyncGroq
-        from app.config import GROQ_API_KEY
-        _model = os.getenv("GROQ_MODEL_FAST", "llama-3.1-8b-instant")
-        _client = AsyncGroq(api_key=GROQ_API_KEY)
-        resp = await _client.chat.completions.create(
-            model=_model,
+        from app.llm import create_chat_completion, completion_to_dict
+        resp = await create_chat_completion(
             messages=[{"role": "user", "content": (
                 f"You are Courage the Cowardly Dog reacting to breaking news. Write ONE tweet.\n\n"
                 f"Headline: {title[:120]}\n"
@@ -1334,10 +1375,13 @@ async def _llm_news_tweet(title: str, summary: str) -> str:
                 "- No external URLs, no contract addresses, no quotes around the tweet\n"
                 "Tweet text only:"
             )}],
+            fast=True,
             max_tokens=100,
             temperature=0.88,
         )
-        text = resp.choices[0].message.content.strip().strip('"').strip("'")
+        dict_resp = completion_to_dict(resp)
+        choice = dict_resp.get("choices", [{}])[0]
+        text = choice.get("message", {}).get("content", "").strip().strip('"').strip("'")
         text = re.sub(r'https?://\S+', '', text).strip()
         return (text[:237] + "...") if len(text) > 240 else text
     except Exception as e:
