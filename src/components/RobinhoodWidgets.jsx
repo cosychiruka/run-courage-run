@@ -104,7 +104,14 @@ export const LiveMarketWidget = () => {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {coin.logo_url && <img src={resolveTokenLogoUrl(coin)} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%' }} />}
+                    {coin.logo_url && (
+                      <img
+                        src={resolveTokenLogoUrl(coin)}
+                        alt=""
+                        style={{ width: '20px', height: '20px', borderRadius: '50%' }}
+                        onError={(event) => { event.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
                     <span style={{ fontFamily: 'Bangers, cursive', fontSize: '1.3rem', letterSpacing: '1px', color: '#fff' }}>
                       {coin.ticker || coin.symbol}
                     </span>

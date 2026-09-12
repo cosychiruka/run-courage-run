@@ -96,6 +96,11 @@ function assignTokens(tokens, seed, bushes) {
 function TokenMonsterFace({ active, token, glowColor }) {
   const faceRef = useRef(null);
   const logoUrl = resolveTokenLogoUrl(token);
+  const [logoFailed, setLogoFailed] = useState(false);
+
+  useEffect(() => {
+    setLogoFailed(false);
+  }, [logoUrl]);
 
   useFrame(({ clock }) => {
     if (!faceRef.current || !active) return;
@@ -119,8 +124,8 @@ function TokenMonsterFace({ active, token, glowColor }) {
       </mesh>
       <Html transform center sprite distanceFactor={7.5} position={[0, 0, 0.03]} style={{ pointerEvents: 'none' }}>
         <div className="tickerling-face" role="status" aria-live="polite">
-          {logoUrl ? (
-            <img src={logoUrl} alt="" draggable="false" />
+          {logoUrl && !logoFailed ? (
+            <img src={logoUrl} alt="" draggable="false" onError={() => setLogoFailed(true)} />
           ) : (
             <span className="tickerling-signal-rune" aria-hidden="true">C</span>
           )}
