@@ -94,6 +94,12 @@ def is_retryable_llm_error(exc: Exception) -> bool:
     if status in {429, 500, 502, 503, 504}:
         return True
     text = str(exc).lower()
+    if status == 404 and (
+        "model is unavailable" in text
+        or "model unavailable" in text
+        or "no endpoints found" in text
+    ):
+        return True
     return "rate limit" in text or "rate_limit" in text or "too many requests" in text
 
 

@@ -25,15 +25,18 @@ GUARDIAN_API_KEY  = os.getenv("GUARDIAN_API_KEY", "test")
 NEWSAPI_KEY       = os.getenv("NEWSAPI_KEY") or os.getenv("NEWS_API_KEY", "")  # .env uses NEWS_API_KEY
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
 
-X_CONSUMER_KEY        = os.getenv("X_CONSUMER_KEY")        or os.getenv("VITE_X_CONSUMER_KEY",        "")
-X_CONSUMER_SECRET     = os.getenv("X_CONSUMER_SECRET")     or os.getenv("VITE_X_CONSUMER_SECRET",     "")
-X_ACCESS_TOKEN        = os.getenv("X_ACCESS_TOKEN")        or os.getenv("VITE_X_ACCESS_TOKEN",        "")
-X_ACCESS_TOKEN_SECRET = os.getenv("X_ACCESS_TOKEN_SECRET") or os.getenv("VITE_X_ACCESS_TOKEN_SECRET", "")
-X_CLIENT_ID           = os.getenv("X_CLIENT_ID")           or os.getenv("VITE_X_CLIENT_ID",           "")
-X_CLIENT_SECRET       = os.getenv("X_CLIENT_SECRET")       or os.getenv("VITE_X_CLIENT_SECRET",       "")
+BACKGROUND_AUTOMATION_ENABLED = os.getenv("BACKGROUND_AUTOMATION_ENABLED", "false").strip().lower() in {"1", "true", "yes", "on"}
+X_AUTOMATION_ENABLED  = os.getenv("X_AUTOMATION_ENABLED", "false").strip().lower() in {"1", "true", "yes", "on"}
+X_EXPECTED_USERNAME   = os.getenv("X_EXPECTED_USERNAME", "cowardlyhood").strip().lstrip("@").lower()
+X_CONSUMER_KEY        = os.getenv("X_CONSUMER_KEY", "")
+X_CONSUMER_SECRET     = os.getenv("X_CONSUMER_SECRET", "")
+X_ACCESS_TOKEN        = os.getenv("X_ACCESS_TOKEN", "")
+X_ACCESS_TOKEN_SECRET = os.getenv("X_ACCESS_TOKEN_SECRET", "")
+X_CLIENT_ID           = os.getenv("X_CLIENT_ID", "")
+X_CLIENT_SECRET       = os.getenv("X_CLIENT_SECRET", "")
 
 # Bearer token may be URL-encoded from the X portal — decode it
-_bt_raw = os.getenv("X_BEARER_TOKEN") or os.getenv("VITE_X_BEARER_TOKEN", "")
+_bt_raw = os.getenv("X_BEARER_TOKEN", "")
 X_BEARER_TOKEN = _up.unquote(_bt_raw) if _bt_raw else ""
 
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")

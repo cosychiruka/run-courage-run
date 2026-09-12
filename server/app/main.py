@@ -28,7 +28,13 @@ import os
 import httpx
 from PIL import Image, UnidentifiedImageError
 
-from app.config import FRONTEND_ORIGIN, REDIS_URL, AUTONOMOUS_INTERVAL_MINUTES, DB_PATH
+from app.config import (
+    AUTONOMOUS_INTERVAL_MINUTES,
+    BACKGROUND_AUTOMATION_ENABLED,
+    DB_PATH,
+    FRONTEND_ORIGIN,
+    REDIS_URL,
+)
 from app.news_cache import (
     init_db, discovery_round, get_recent_articles,
     get_cached_articles, fetch_pair, search_newsapi, search_gnews,
@@ -172,20 +178,24 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 print(f"[STARTUP] X Client init failed: {e}")
             
-            # 5. Background jobs (Scheduler)
-            try:
-                scheduler.add_job(discovery_round,       "interval", minutes=60,  id="discovery")
-                scheduler.add_job(crypto_discovery_round,"interval", minutes=60,  id="crypto_discovery")
-                scheduler.add_job(prune_twitter_memory,  "interval", weeks=1,     id="memory_prune")
-                scheduler.add_job(
-                    autonomous_tick, "interval",
-                    minutes=1, id="autonomous", # Heartbeat is now 1m; actual logic respects the dashboard slider
-                    kwargs={"x_client": x_client, "tweet_image_fn": _tweet_image_fn},
-                )
-                scheduler.start()
-                print("[STARTUP] Scheduler online.")
-            except Exception as e:
-                print(f"[STARTUP] Scheduler failed: {e}")
+            # 5. Background jobs (Scheduler). Local/UI runs are fail-closed so
+            # opening the app cannot silently spend APIs, search X, or publish.
+            if BACKGROUND_AUTOMATION_ENABLED:
+                try:
+                    scheduler.add_job(discovery_round,       "interval", minutes=60,  id="discovery")
+                    scheduler.add_job(crypto_discovery_round,"interval", minutes=60,  id="crypto_discovery")
+                    scheduler.add_job(prune_twitter_memory,  "interval", weeks=1,     id="memory_prune")
+                    scheduler.add_job(
+                        autonomous_tick, "interval",
+                        minutes=1, id="autonomous", # Heartbeat is now 1m; actual logic respects the dashboard slider
+                        kwargs={"x_client": x_client, "tweet_image_fn": _tweet_image_fn},
+                    )
+                    scheduler.start()
+                    print("[STARTUP] Scheduler online.")
+                except Exception as e:
+                    print(f"[STARTUP] Scheduler failed: {e}")
+            else:
+                print("[STARTUP] Background automation disabled.")
 
             # 6. Conditional startup runs (Guarded Tick)
             async def _guarded_startup_tick():
@@ -206,49 +216,52 @@ async def lifespan(app: FastAPI):
                 except Exception as e:
                     print(f"[STARTUP] Initial tick failed: {e}")
 
-            asyncio.create_task(_guarded_startup_tick())
+            if BACKGROUND_AUTOMATION_ENABLED:
+                asyncio.create_task(_guarded_startup_tick())
 
             # 7. Engagement Queue Worker
-            try:
-                from app.engagement_queue import process_reply_queue
-                asyncio.create_task(process_reply_queue(x_client=x_client))
-                print("[STARTUP] Engagement queue worker online.")
-            except Exception as e:
-                print(f"[STARTUP] Queue worker failed: {e}")
+            if BACKGROUND_AUTOMATION_ENABLED:
+                try:
+                    from app.engagement_queue import process_reply_queue
+                    asyncio.create_task(process_reply_queue(x_client=x_client))
+                    print("[STARTUP] Engagement queue worker online.")
+                except Exception as e:
+                    print(f"[STARTUP] Queue worker failed: {e}")
 
             # 8. Reactive Sensors + Event Listener
-            try:
-                from app.sensors.market_sensor import market_sensor_loop
-                from app.sensors.game_sensor import game_sensor_loop
-                from app.events import _get_event_redis
-                from app.autonomous_loop import force_autonomous_tick
-                
-                asyncio.create_task(market_sensor_loop())
-                asyncio.create_task(game_sensor_loop())
-                
-                async def _urgent_event_listener():
-                    try:
-                        r = await _get_event_redis()
-                        pubsub = r.pubsub()
-                        await pubsub.subscribe("courage:urgent_events")
-                        print("[EVENT] Urgent event listener subscribed.")
-                        async for message in pubsub.listen():
-                            if message.get("type") == "message":
-                                data = json.loads(message["data"])
-                                event_type = data["type"]
-                                await r.set("courage:last_urgent_event", json.dumps(data), ex=300)
-                                if event_type == "MARKET_SURGE":
-                                    print(f"[EVENT] Emitted {event_type} → requesting cooldown-protected tick")
-                                    asyncio.create_task(force_autonomous_tick(x_client, _tweet_image_fn, event_type=event_type))
-                                elif event_type == "GAME_MOMENT":
-                                    print(f"[EVENT] Emitted {event_type} → grouping for next scheduled pulse")
-                                    # We don't wake him up instantly for games — saves post costs
-                    except Exception as e:
-                        print(f"[EVENT ERROR] Urgent listener failed: {e}")
+            if BACKGROUND_AUTOMATION_ENABLED:
+                try:
+                    from app.sensors.market_sensor import market_sensor_loop
+                    from app.sensors.game_sensor import game_sensor_loop
+                    from app.events import _get_event_redis
+                    from app.autonomous_loop import force_autonomous_tick
 
-                asyncio.create_task(_urgent_event_listener())
-            except Exception as e:
-                print(f"[STARTUP] Sensors init failed: {e}")
+                    asyncio.create_task(market_sensor_loop())
+                    asyncio.create_task(game_sensor_loop())
+
+                    async def _urgent_event_listener():
+                        try:
+                            r = await _get_event_redis()
+                            pubsub = r.pubsub()
+                            await pubsub.subscribe("courage:urgent_events")
+                            print("[EVENT] Urgent event listener subscribed.")
+                            async for message in pubsub.listen():
+                                if message.get("type") == "message":
+                                    data = json.loads(message["data"])
+                                    event_type = data["type"]
+                                    await r.set("courage:last_urgent_event", json.dumps(data), ex=300)
+                                    if event_type == "MARKET_SURGE":
+                                        print(f"[EVENT] Emitted {event_type} → requesting cooldown-protected tick")
+                                        asyncio.create_task(force_autonomous_tick(x_client, _tweet_image_fn, event_type=event_type))
+                                    elif event_type == "GAME_MOMENT":
+                                        print(f"[EVENT] Emitted {event_type} → grouping for next scheduled pulse")
+                                        # We don't wake him up instantly for games — saves post costs
+                        except Exception as e:
+                            print(f"[EVENT ERROR] Urgent listener failed: {e}")
+
+                    asyncio.create_task(_urgent_event_listener())
+                except Exception as e:
+                    print(f"[STARTUP] Sensors init failed: {e}")
 
             # 9. Final Background Tasks (Guarded against restart-spam)
             try:
@@ -267,7 +280,8 @@ async def lifespan(app: FastAPI):
                     asyncio.create_task(discovery_round())
                     asyncio.create_task(crypto_discovery_round())
 
-                asyncio.create_task(_guarded_discovery())
+                if BACKGROUND_AUTOMATION_ENABLED:
+                    asyncio.create_task(_guarded_discovery())
                 _init_token_tracker(REDIS_URL)
             except Exception as e:
                 print(f"[STARTUP] Final tasks failed: {e}")
@@ -276,11 +290,12 @@ async def lifespan(app: FastAPI):
             await asyncio.sleep(1.5)  # let voice models finish loading before final banner
             from app.config import DEFAULT_MODEL
             print("\n" + "="*50)
-            print("🐕 COURAGE AI BACKEND — READY")
-            print(f"🧠 BRAIN:       OpenRouter ({DEFAULT_MODEL})")
-            print(f"🐦 TWITTER:     {'CONNECTED ✓' if x_client else 'DISABLED ✗'}")
-            print(f"🗄️ REDIS:       {REDIS_URL.split('@')[-1] if '@' in REDIS_URL else REDIS_URL}")
-            print(f"🌐 FRONTEND:    {FRONTEND_ORIGIN}")
+            print("COURAGE AI BACKEND - READY")
+            print(f"BRAIN:       OpenRouter ({DEFAULT_MODEL})")
+            print(f"AUTOMATION:  {'ENABLED' if BACKGROUND_AUTOMATION_ENABLED else 'DISABLED'}")
+            print(f"X:           {'CONNECTED' if x_client else 'DISABLED'}")
+            print(f"REDIS:       {REDIS_URL.split('@')[-1] if '@' in REDIS_URL else REDIS_URL}")
+            print(f"FRONTEND:    {FRONTEND_ORIGIN}")
             print("="*50 + "\n")
 
         except Exception as e:
@@ -294,7 +309,8 @@ async def lifespan(app: FastAPI):
     # Cleanup
     print("[SHUTDOWN] Shutting down...")
     init_task.cancel()
-    scheduler.shutdown(wait=False)
+    if scheduler.running:
+        scheduler.shutdown(wait=False)
     if _http_client and not _http_client.is_closed:
         await _http_client.aclose()
     if _redis:
@@ -332,10 +348,15 @@ async def health():
 @app.get("/api/x-status")
 async def x_status():
     from app.config import (
+        X_AUTOMATION_ENABLED,
+        X_EXPECTED_USERNAME,
         X_CONSUMER_KEY, X_CONSUMER_SECRET,
         X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET, X_BEARER_TOKEN,
     )
     return {
+        "background_automation_enabled": BACKGROUND_AUTOMATION_ENABLED,
+        "automation_enabled": X_AUTOMATION_ENABLED,
+        "expected_username": X_EXPECTED_USERNAME,
         "x_client_active": x_client is not None,
         "keys": {
             "X_CONSUMER_KEY":        bool(X_CONSUMER_KEY),

@@ -10,7 +10,7 @@ load_dotenv()
 
 def test_bearer_search():
     print("--- X BEARER TOKEN SEARCH TEST ---")
-    raw_bearer = os.getenv("X_BEARER_TOKEN") or os.getenv("VITE_X_BEARER_TOKEN")
+    raw_bearer = os.getenv("X_BEARER_TOKEN")
     if not raw_bearer:
         print("[FAIL] No Bearer Token found in .env")
         return
@@ -32,10 +32,10 @@ def test_bearer_search():
 
 def test_user_search():
     print("\n--- X USER AUTH SEARCH TEST ---")
-    ck = os.getenv("X_CONSUMER_KEY") or os.getenv("VITE_X_CONSUMER_KEY")
-    cs = os.getenv("X_CONSUMER_SECRET") or os.getenv("VITE_X_CONSUMER_SECRET")
-    at = os.getenv("X_ACCESS_TOKEN") or os.getenv("VITE_X_ACCESS_TOKEN")
-    as_ = os.getenv("X_ACCESS_TOKEN_SECRET") or os.getenv("VITE_X_ACCESS_TOKEN_SECRET")
+    ck = os.getenv("X_CONSUMER_KEY")
+    cs = os.getenv("X_CONSUMER_SECRET")
+    at = os.getenv("X_ACCESS_TOKEN")
+    as_ = os.getenv("X_ACCESS_TOKEN_SECRET")
     
     client = tweepy.Client(
         consumer_key=ck,

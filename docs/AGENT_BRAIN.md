@@ -119,6 +119,12 @@ never override the system contract.
   invented.
 - Voice conversations require an explicit user request before any public X
   action.
+- `BACKGROUND_AUTOMATION_ENABLED=false` prevents scheduled discovery, sensors,
+  queue processing, and autonomous ticks; use it for local and UI-only runs.
+- `X_AUTOMATION_ENABLED=false` independently prevents the X client from being
+  created even when credentials exist.
+- When enabled, the authenticated handle must match `X_EXPECTED_USERNAME`
+  (`cowardlyhood` by default) or all X features remain disabled.
 - The agent does not give buy/sell instructions or promise returns.
 
 ## Voice behavior

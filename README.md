@@ -137,8 +137,12 @@ Copy-Item .env.example .env
 ```
 
 Edit `.env` and set at least `OPENROUTER_API_KEY`. Keep all X credentials server-side. For a
-safe UI-only local run, leave the X credential variables empty so scheduled background work
-cannot publish.
+safe UI-only local run, keep `BACKGROUND_AUTOMATION_ENABLED=false` and
+`X_AUTOMATION_ENABLED=false`. The first prevents scheduled discovery, sensors, queue processing,
+and autonomous LLM calls; the second disables X client creation even when credentials are present.
+Production also verifies the authenticated handle against
+`X_EXPECTED_USERNAME=cowardlyhood` before enabling X. Set both switches to `true` only in the
+deployment that should run the heartbeat and read or post through that account.
 
 For full local voice, place `kokoro-v1.0.onnx` and `voices-v1.0.bin` in the backend working
 directory (`server/` when using the command below). `faster-whisper` downloads `tiny.en` on its
@@ -189,9 +193,9 @@ Use [`.env.example`](.env.example) as the source of truth. Key groups are:
 | Group | Variables |
 | --- | --- |
 | LLM | `LLM_PROVIDER`, `OPENROUTER_API_KEY`, `DEFAULT_MODEL`, `FALLBACK_MODEL`, `LLM_DAILY_TOKEN_BUDGET` |
-| Runtime | `REDIS_URL`, `DB_PATH`, `FRONTEND_ORIGIN`, `AUTONOMOUS_INTERVAL_MINUTES` |
+| Runtime | `REDIS_URL`, `DB_PATH`, `FRONTEND_ORIGIN`, `BACKGROUND_AUTOMATION_ENABLED`, `AUTONOMOUS_INTERVAL_MINUTES` |
 | News | `GNEWS_API_KEY`, `GUARDIAN_API_KEY`, `NEWS_API_KEY`, `FIRECRAWL_API_KEY`, `COINDESK_API_KEY`, `COINGECKO_API_KEY` |
-| X | `X_BEARER_TOKEN`, OAuth consumer/access credentials, `X_DAILY_SEARCH_SPEND_CAP` |
+| X | `X_AUTOMATION_ENABLED`, `X_EXPECTED_USERNAME`, `X_BEARER_TOKEN`, OAuth consumer/access credentials, `X_DAILY_SEARCH_SPEND_CAP` |
 | Art | `FAL_API_KEY`, `COURAGE_BASE_IMAGE_URL` |
 | Browser | `VITE_BACKEND_URL`, `VITE_BACKEND_WS` |
 
@@ -204,7 +208,7 @@ Run the focused checks used for the current experience:
 
 ```powershell
 npx eslint src/components/RobinhoodWidgets.jsx src/components/WorldLoreSection.jsx src/components/3d/TickerlingForest.jsx src/services/newsService.js src/services/tokenService.js src/utils/sentimentUtils.js
-python -m unittest server.tests.test_robinhood_service_unit server.tests.test_market_sensor server.tests.test_system_prompt -v
+python -m unittest server.tests.test_robinhood_service_unit server.tests.test_market_sensor server.tests.test_system_prompt server.tests.test_x_client server.tests.test_llm -v
 python -m py_compile server/app/system_prompt.py server/app/autonomous_loop.py server/app/tools.py server/app/sensors/market_sensor.py server/app/sensors/game_sensor.py server/app/main.py
 npm run build
 ```

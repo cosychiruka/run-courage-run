@@ -9,6 +9,8 @@ import time
 import tweepy
 from app.redis_utils import get_sync_redis_client
 from app.config import (
+    X_AUTOMATION_ENABLED,
+    X_EXPECTED_USERNAME,
     X_CONSUMER_KEY, X_CONSUMER_SECRET,
     X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET,
     X_BEARER_TOKEN,
@@ -165,6 +167,10 @@ class XRateLimitedClient:
 
 def make_x_client() -> XRateLimitedClient | None:
     """Return configured client, or None if keys are missing."""
+    if not X_AUTOMATION_ENABLED:
+        print("[X] Automation disabled by X_AUTOMATION_ENABLED=false.")
+        return None
+
     print("[X_CLIENT DEBUG] Key Check:", {
         "consumer_key": bool(X_CONSUMER_KEY),
         "consumer_secret": bool(X_CONSUMER_SECRET),
@@ -181,7 +187,14 @@ def make_x_client() -> XRateLimitedClient | None:
         # Test login
         me = client.get_my_profile()
         if me and me.data:
-            print(f"[X] [ OK ] Authenticated as @{me.data.username} (User Context)")
+            username = str(me.data.username or "").lstrip("@").lower()
+            if X_EXPECTED_USERNAME and username != X_EXPECTED_USERNAME:
+                print(
+                    f"[X] [FAIL] Authenticated account @{username} does not match "
+                    f"expected @{X_EXPECTED_USERNAME}; X features disabled."
+                )
+                return None
+            print(f"[X] [ OK ] Authenticated as @{username} (User Context)")
         return client
     except Exception as e:
         print(f"[X] [FAIL] Client init failed: {e}")
