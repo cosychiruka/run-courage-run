@@ -1,39 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FaChartLine, FaNewspaper, FaBrain, FaSync, FaExternalLinkAlt, FaDownload, FaDog, FaBolt, FaFire } from 'react-icons/fa';
+import { FaChartLine, FaNewspaper, FaBrain, FaSync, FaExternalLinkAlt } from 'react-icons/fa';
 import { getBackendUrl } from '../services/newsService';
+import { fetchRobinhoodTokenSnapshot, getCachedTokenSnapshot, resolveTokenLogoUrl } from '../services/tokenService';
 
 const API_BASE = getBackendUrl();
 
-const DEFAULT_TICKERS = [
-  { symbol: "$LONGCAT", name: "LongCat", price: 0.0003155, change_24h: 476.0, volume_24h: 1276685.0, market_cap: 315579.0, platform: "Robinhood Chain (DexScreener)", is_trending: true, image_url: "https://cdn.dexscreener.com/cms/images/ZdN9d0VtFRojnp5a?width=800&height=800&quality=95&format=auto" },
-  { symbol: "$CHUMP", name: "Chump Coin", price: 0.04124, change_24h: -8.7, volume_24h: 1240003.0, market_cap: 41248569.0, platform: "Robinhood Chain (DexScreener)", is_trending: true, image_url: "https://cdn.dexscreener.com/cms/images/4cJVmRdL_zSKVHcY?width=800&height=800&quality=95&format=auto" },
-  { symbol: "$DOGGO", name: "Dancing Dog", price: 0.002273, change_24h: 57.08, volume_24h: 10730891.0, market_cap: 2273784.0, platform: "Robinhood Chain (DexScreener)", is_trending: true, image_url: "https://cdn.dexscreener.com/cms/images/hQ8W8tah1PaTq2YI" },
-  { symbol: "$LPAD", name: "Launchpad.meme", price: 0.0008303, change_24h: -31.78, volume_24h: 1672037.0, market_cap: 817872.0, platform: "Robinhood Chain (DexScreener)", is_trending: true },
-  { symbol: "$RUFUS", name: "RUFUS", price: 0.0003806, change_24h: 13.5, volume_24h: 256887.0, market_cap: 380653.0, platform: "Robinhood Chain (DexScreener)", is_trending: true },
-  { symbol: "$PENGUIN", name: "Nietzschean Penguin", price: 0.0001882, change_24h: 23.0, volume_24h: 88401.0, market_cap: 150473.0, platform: "Robinhood Chain (DexScreener)", is_trending: true },
-];
-
 // ── Widget 1: Live Robinhood & Trending Crypto Pulse (Sorted Live Data) ────────────────
 export const LiveMarketWidget = () => {
-  const [data, setData] = useState(() => {
-    try {
-      localStorage.removeItem('courage_robinhood_tickers');
-    } catch (e) {}
-    return { stats: DEFAULT_TICKERS, movers: { top_gainers: [] } };
-  });
+  const [data, setData] = useState(getCachedTokenSnapshot);
   const [loading, setLoading] = useState(false);
 
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/robinhood-crypto`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.stats && json.stats.length > 0) {
-          setData(json);
-        }
-      }
+      setData(await fetchRobinhoodTokenSnapshot({ force: true }));
     } catch (err) {
       console.warn('Failed to fetch Robinhood stats:', err);
     } finally {
@@ -47,7 +28,7 @@ export const LiveMarketWidget = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const rawStats = (data && data.stats && data.stats.length > 0) ? data.stats : DEFAULT_TICKERS;
+  const rawStats = data?.stats || [];
   const sortedStats = [...rawStats].sort((a, b) => {
     if (b.is_trending !== a.is_trending) return b.is_trending ? 1 : -1;
     return (b.change_24h || 0) - (a.change_24h || 0);
@@ -69,7 +50,7 @@ export const LiveMarketWidget = () => {
             <FaChartLine color="#ccff00" /> 🔥 LIVE TRENDING TOKENS & ROBINHOOD CRYPTO PULSE
           </h2>
           <p style={{ margin: '4px 0 0', opacity: 0.7, fontSize: '0.85rem', color: '#ccc' }}>
-            Real-time trending tokens & 24h market momentum sorted by top performance
+            Robinhood Chain discovery pulse via DexScreener · {data?.metadata?.status || 'connecting'}
           </p>
         </div>
         <button
@@ -123,13 +104,13 @@ export const LiveMarketWidget = () => {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {coin.image_url && <img src={coin.image_url} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%' }} />}
+                    {coin.logo_url && <img src={resolveTokenLogoUrl(coin)} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%' }} />}
                     <span style={{ fontFamily: 'Bangers, cursive', fontSize: '1.3rem', letterSpacing: '1px', color: '#fff' }}>
                       {coin.ticker || coin.symbol}
                     </span>
-                    {coin.is_trending && (
+                    {coin.is_boosted && (
                       <span style={{ fontSize: '0.65rem', background: '#ffaa0022', color: '#ffaa00', border: '1px solid #ffaa0044', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold' }}>
-                        🔥 TRENDING
+                        🔥 BOOSTED
                       </span>
                     )}
                   </div>

@@ -15,6 +15,9 @@ import json
 import asyncio
 import time
 import datetime
+from io import BytesIO
+import re
+from urllib.parse import urlparse
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,6 +26,7 @@ from fastapi.staticfiles import StaticFiles
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import os
 import httpx
+from PIL import Image, UnidentifiedImageError
 
 from app.config import FRONTEND_ORIGIN, REDIS_URL, AUTONOMOUS_INTERVAL_MINUTES, DB_PATH
 from app.news_cache import (
@@ -44,6 +48,17 @@ from app.engagement_queue import process_reply_queue
 
 # ── Shared HTTP client (persistent pool, not per-request) ─────────────────────
 _http_client: httpx.AsyncClient | None = None
+
+# Small, bounded in-process cache for sanitised world logo textures. The world
+# never accepts an arbitrary upstream URL, which avoids turning the endpoint
+# into an open proxy and keeps remote token art away from the WebGL loader.
+_token_logo_cache: dict[str, tuple[float, bytes]] = {}
+_token_logo_cache_lock = asyncio.Lock()
+_TOKEN_LOGO_TTL_SECONDS = 24 * 60 * 60
+_TOKEN_LOGO_MAX_BYTES = 2 * 1024 * 1024
+_TOKEN_LOGO_CACHE_LIMIT = 96
+_TOKEN_ADDRESS_RE = re.compile(r"^0x[a-fA-F0-9]{40}$")
+_TOKEN_IMAGE_HOSTS = {"cdn.dexscreener.com"}
 
 def get_http_client() -> httpx.AsyncClient:
     """Return the shared httpx client. Created lazily on first call."""
@@ -341,10 +356,94 @@ async def x_status():
 
 @app.get("/api/robinhood-crypto")
 async def get_robinhood_crypto():
-    from app.robinhood_service import get_robinhood_crypto_stats, get_top_robinhood_movers
+    from app.robinhood_service import (
+        get_robinhood_cache_metadata,
+        get_robinhood_crypto_stats,
+        get_top_robinhood_movers,
+    )
     stats = await get_robinhood_crypto_stats()
     movers = await get_top_robinhood_movers(limit=5)
-    return JSONResponse({"stats": stats, "movers": movers})
+    return JSONResponse({
+        "stats": stats,
+        "movers": movers,
+        "metadata": get_robinhood_cache_metadata(),
+    })
+
+
+@app.get("/api/token-logo/{token_address}")
+async def get_token_logo(token_address: str):
+    """Return a bounded, re-encoded texture for a known snapshot token."""
+    if not _TOKEN_ADDRESS_RE.fullmatch(token_address):
+        raise HTTPException(status_code=400, detail="invalid token address")
+
+    cache_key = token_address.lower()
+    now = time.time()
+    async with _token_logo_cache_lock:
+        cached = _token_logo_cache.get(cache_key)
+        if cached and now - cached[0] < _TOKEN_LOGO_TTL_SECONDS:
+            return Response(
+                content=cached[1],
+                media_type="image/webp",
+                headers={"Cache-Control": "public, max-age=86400, immutable"},
+            )
+
+    from app.robinhood_service import get_robinhood_crypto_stats
+    stats = await get_robinhood_crypto_stats()
+    token = next(
+        (item for item in stats if str(item.get("token_address", "")).lower() == cache_key),
+        None,
+    )
+    if not token or not token.get("world_eligible") or not token.get("image_url"):
+        raise HTTPException(status_code=404, detail="logo unavailable")
+
+    image_url = str(token["image_url"])
+    parsed = urlparse(image_url)
+    if parsed.scheme != "https" or parsed.hostname not in _TOKEN_IMAGE_HOSTS:
+        raise HTTPException(status_code=404, detail="logo source unavailable")
+
+    try:
+        upstream = await get_http_client().get(
+            image_url,
+            headers={"User-Agent": "CourageRobinhoodAgent/2.0"},
+            follow_redirects=True,
+        )
+        upstream.raise_for_status()
+        final_url = urlparse(str(upstream.url))
+        if final_url.scheme != "https" or final_url.hostname not in _TOKEN_IMAGE_HOSTS:
+            raise HTTPException(status_code=404, detail="logo redirect rejected")
+        content_type = upstream.headers.get("content-type", "").split(";", 1)[0].lower()
+        if content_type not in {"image/png", "image/jpeg", "image/webp", "image/gif"}:
+            raise HTTPException(status_code=415, detail="unsupported logo format")
+        if len(upstream.content) > _TOKEN_LOGO_MAX_BYTES:
+            raise HTTPException(status_code=413, detail="logo too large")
+
+        with Image.open(BytesIO(upstream.content)) as source:
+            if source.width * source.height > 4_000_000:
+                raise HTTPException(status_code=413, detail="logo dimensions too large")
+            frame = source.convert("RGBA")
+            frame.thumbnail((128, 128), Image.Resampling.LANCZOS)
+            canvas = Image.new("RGBA", (128, 128), (0, 0, 0, 0))
+            canvas.alpha_composite(frame, ((128 - frame.width) // 2, (128 - frame.height) // 2))
+            output = BytesIO()
+            canvas.save(output, format="WEBP", quality=84, method=4)
+            payload = output.getvalue()
+    except HTTPException:
+        raise
+    except (httpx.HTTPError, UnidentifiedImageError, OSError, ValueError) as exc:
+        print(f"[TOKEN_LOGO] Failed for {cache_key}: {exc}")
+        raise HTTPException(status_code=502, detail="logo fetch failed") from exc
+
+    async with _token_logo_cache_lock:
+        if len(_token_logo_cache) >= _TOKEN_LOGO_CACHE_LIMIT:
+            oldest_key = min(_token_logo_cache, key=lambda key: _token_logo_cache[key][0])
+            _token_logo_cache.pop(oldest_key, None)
+        _token_logo_cache[cache_key] = (now, payload)
+
+    return Response(
+        content=payload,
+        media_type="image/webp",
+        headers={"Cache-Control": "public, max-age=86400, immutable"},
+    )
 
 
 @app.get("/api/news")

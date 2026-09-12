@@ -1,191 +1,284 @@
-"""
-robinhood_service.py — Live Robinhood Chain Intelligence Tracker.
-Fetches 100% real-time tokens, prices, 24h % change, volume, and market cap
-directly from DexScreener's Robinhood chain (`chainId == 'robinhood'`).
+"""Live Robinhood Chain market discovery for Courage's world and widgets.
+
+The public UI and the 3D world share this process-local snapshot. DexScreener's
+boost feeds are discovery inputs, not proof that every returned token is
+organically trending, so every record retains its source tags and an explicit
+world-eligibility flag.
 """
 
-import httpx
-import time
+from __future__ import annotations
+
 import asyncio
-from typing import Dict, List, Any
+from datetime import datetime, timezone
+import math
+import time
+from typing import Any, Dict, Iterable, List
+
+import httpx
+
 
 _cache_stats: List[Dict[str, Any]] = []
 _last_fetch_ts: float = 0
-_CACHE_TTL_SECONDS = 30  # 30-second live cache
+_last_metadata: Dict[str, Any] = {
+    "status": "empty",
+    "is_live": False,
+    "fetched_at": None,
+    "age_seconds": None,
+    "provider": "DexScreener",
+    "chain": "Robinhood Chain",
+}
+
+_CACHE_TTL_SECONDS = 30
+_MAX_BATCH_ADDRESSES = 30
+_WORLD_MIN_LIQUIDITY_USD = 1_000
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _safe_float(value: Any) -> float:
+    try:
+        result = float(value or 0)
+        return result if math.isfinite(result) else 0.0
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _normalise_symbol(value: Any) -> str:
+    return str(value or "").strip().upper()[:18]
+
+
+def _trend_score(pair: Dict[str, Any], source_tags: Iterable[str]) -> float:
+    """Rank discovery candidates without presenting the score as advice."""
+    volume = _safe_float(pair.get("volume", {}).get("h24"))
+    liquidity = _safe_float(pair.get("liquidity", {}).get("usd"))
+    change = abs(_safe_float(pair.get("priceChange", {}).get("h24")))
+    txns = pair.get("txns", {}).get("h24", {}) or {}
+    activity = _safe_float(txns.get("buys")) + _safe_float(txns.get("sells"))
+    boosts = _safe_float(pair.get("boosts", {}).get("active"))
+    tags = set(source_tags)
+
+    return round(
+        math.log10(volume + 1) * 12
+        + math.log10(liquidity + 1) * 8
+        + min(change, 300) / 15
+        + min(activity, 4_000) / 200
+        + min(boosts, 500) / 10
+        + (12 if "boosted_top" in tags else 0)
+        + (6 if "boosted_latest" in tags else 0),
+        2,
+    )
+
+
+def _parse_pairs(
+    pairs: Iterable[Dict[str, Any]],
+    source_by_address: Dict[str, set[str]],
+    discovery_images: Dict[str, str],
+) -> List[Dict[str, Any]]:
+    """Normalise, deduplicate, rank, and flag DexScreener pair payloads."""
+    best_by_token: Dict[str, Dict[str, Any]] = {}
+
+    for pair in pairs:
+        if pair.get("chainId") != "robinhood":
+            continue
+
+        base_token = pair.get("baseToken") or {}
+        token_address = str(base_token.get("address") or "").strip()
+        symbol = _normalise_symbol(base_token.get("symbol"))
+        if not token_address or not symbol:
+            continue
+
+        address_key = token_address.lower()
+        tags = sorted(source_by_address.get(address_key, {"search_discovery"}))
+        price_usd = _safe_float(pair.get("priceUsd"))
+        change_24h = _safe_float(pair.get("priceChange", {}).get("h24"))
+        volume_24h = _safe_float(pair.get("volume", {}).get("h24"))
+        liquidity_usd = _safe_float(pair.get("liquidity", {}).get("usd"))
+        market_cap = _safe_float(pair.get("marketCap") or pair.get("fdv"))
+        info = pair.get("info") or {}
+        image_url = info.get("imageUrl") or discovery_images.get(address_key) or None
+        score = _trend_score(pair, tags)
+
+        record = {
+            "id": address_key,
+            "token_address": token_address,
+            "pair_address": pair.get("pairAddress") or "",
+            "dex_id": pair.get("dexId") or "",
+            "symbol": f"${symbol}",
+            "name": str(base_token.get("name") or symbol).strip()[:80],
+            "price": price_usd,
+            "change_24h": change_24h,
+            "volume_24h": volume_24h,
+            "liquidity_usd": liquidity_usd,
+            "market_cap": market_cap,
+            "image_url": image_url,
+            "logo_url": f"/api/token-logo/{token_address}" if image_url else None,
+            "platform": "Robinhood Chain",
+            "provider": "DexScreener",
+            "source_tags": tags,
+            "is_boosted": any(tag.startswith("boosted_") for tag in tags),
+            "is_trending": any(tag.startswith("boosted_") for tag in tags),
+            "trend_score": score,
+            "world_eligible": bool(
+                image_url
+                and price_usd > 0
+                and liquidity_usd >= _WORLD_MIN_LIQUIDITY_USD
+                and 1 <= len(symbol) <= 18
+            ),
+            "url": pair.get("url") or f"https://dexscreener.com/robinhood/{token_address}",
+        }
+
+        previous = best_by_token.get(address_key)
+        if previous is None or record["liquidity_usd"] > previous["liquidity_usd"]:
+            best_by_token[address_key] = record
+
+    parsed = sorted(
+        best_by_token.values(),
+        key=lambda item: (item["trend_score"], item["volume_24h"]),
+        reverse=True,
+    )
+    for rank, item in enumerate(parsed, start=1):
+        item["rank"] = rank
+    return parsed
+
+
+def _metadata(status: str, *, is_live: bool) -> Dict[str, Any]:
+    age = max(0, int(time.time() - _last_fetch_ts)) if _last_fetch_ts else None
+    return {
+        "status": status,
+        "is_live": is_live,
+        "fetched_at": _last_metadata.get("fetched_at"),
+        "age_seconds": age,
+        "cache_ttl_seconds": _CACHE_TTL_SECONDS,
+        "provider": "DexScreener",
+        "chain": "Robinhood Chain",
+        "method": "boost feeds plus chain-filtered pair discovery",
+    }
+
 
 async def get_robinhood_crypto_stats() -> List[Dict[str, Any]]:
-    """
-    Fetches real-time price, 24h % change, volume, and market cap for live Robinhood chain tokens.
-    Queries DexScreener's public APIs for `chainId == 'robinhood'`.
-    """
-    global _cache_stats, _last_fetch_ts
+    """Return a truthful, cached Robinhood Chain discovery snapshot."""
+    global _cache_stats, _last_fetch_ts, _last_metadata
     now = time.time()
-    
+
     if _cache_stats and (now - _last_fetch_ts) < _CACHE_TTL_SECONDS:
+        _last_metadata = _metadata("live-cache", is_live=True)
         return _cache_stats
 
     try:
+        headers = {"User-Agent": "CourageRobinhoodAgent/2.0"}
         async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
-            # 1. Fetch boosted & trending Robinhood chain token addresses from DexScreener
-            r1_task = client.get("https://api.dexscreener.com/token-boosts/latest/v1", headers={"User-Agent": "CourageRobinhoodAgent/1.0"})
-            r2_task = client.get("https://api.dexscreener.com/token-boosts/top/v1", headers={"User-Agent": "CourageRobinhoodAgent/1.0"})
-            r3_task = client.get("https://api.dexscreener.com/latest/dex/search?q=robinhood", headers={"User-Agent": "CourageRobinhoodAgent/1.0"})
-            
-            resps = await asyncio.gather(r1_task, r2_task, r3_task, return_exceptions=True)
-            
-            rh_addresses = set()
-            search_pairs = []
+            requests = [
+                client.get("https://api.dexscreener.com/token-boosts/latest/v1", headers=headers),
+                client.get("https://api.dexscreener.com/token-boosts/top/v1", headers=headers),
+                client.get("https://api.dexscreener.com/latest/dex/search?q=robinhood", headers=headers),
+            ]
+            responses = await asyncio.gather(*requests, return_exceptions=True)
 
-            for r in resps:
-                if isinstance(r, httpx.Response) and r.status_code == 200:
-                    try:
-                        j = r.json()
-                        if isinstance(j, list):
-                            for item in j:
-                                if item.get("chainId") == "robinhood" and item.get("tokenAddress"):
-                                    rh_addresses.add(item["tokenAddress"])
-                        elif isinstance(j, dict) and "pairs" in j:
-                            for pair in j.get("pairs", []):
-                                if pair.get("chainId") == "robinhood":
-                                    search_pairs.append(pair)
-                                    if pair.get("baseToken", {}).get("address"):
-                                        rh_addresses.add(pair["baseToken"]["address"])
-                    except Exception as ex:
-                        pass
+            source_by_address: Dict[str, set[str]] = {}
+            discovery_images: Dict[str, str] = {}
+            search_pairs: List[Dict[str, Any]] = []
+            discovery_labels = ("boosted_latest", "boosted_top")
 
-            # 2. Fetch full real-time price & volume for all Robinhood chain token addresses
-            fetched_pairs = []
-            if rh_addresses:
-                addr_list = list(rh_addresses)[:30]
-                addr_str = ",".join(addr_list)
-                details_resp = await client.get(f"https://api.dexscreener.com/latest/dex/tokens/{addr_str}", headers={"User-Agent": "CourageRobinhoodAgent/1.0"})
-                if details_resp.status_code == 200:
-                    fetched_pairs = details_resp.json().get("pairs", [])
-
-            all_pairs = fetched_pairs + search_pairs
-
-            # 3. Deduplicate & format real-time token stats
-            seen_symbols = set()
-            parsed = []
-
-            for pair in all_pairs:
-                if pair.get("chainId") != "robinhood":
+            for index, response in enumerate(responses):
+                if not isinstance(response, httpx.Response) or response.status_code != 200:
                     continue
-                
-                base_token = pair.get("baseToken", {})
-                symbol = base_token.get("symbol", "").upper()
-                name = base_token.get("name", symbol)
-                
-                if not symbol or symbol in seen_symbols:
+                try:
+                    payload = response.json()
+                except ValueError:
                     continue
 
-                price_usd = float(pair.get("priceUsd") or 0)
-                change_24h = float(pair.get("priceChange", {}).get("h24") or 0)
-                volume_24h = float(pair.get("volume", {}).get("h24") or 0)
-                market_cap = float(pair.get("marketCap") or pair.get("fdv") or 0)
-                
-                # Image URL from info or openGraph/cdn
-                info = pair.get("info", {})
-                image_url = info.get("imageUrl") or f"https://cdn.dexscreener.com/token-images/og/robinhood/{pair.get('baseToken', {}).get('address', '')}"
+                if index < 2 and isinstance(payload, list):
+                    source_label = discovery_labels[index]
+                    for item in payload:
+                        if item.get("chainId") != "robinhood" or not item.get("tokenAddress"):
+                            continue
+                        address_key = str(item["tokenAddress"]).lower()
+                        source_by_address.setdefault(address_key, set()).add(source_label)
+                        if item.get("icon"):
+                            discovery_images[address_key] = item["icon"]
+                elif index == 2 and isinstance(payload, dict):
+                    for pair in payload.get("pairs") or []:
+                        if pair.get("chainId") != "robinhood":
+                            continue
+                        search_pairs.append(pair)
+                        address = pair.get("baseToken", {}).get("address")
+                        if address:
+                            source_by_address.setdefault(str(address).lower(), set()).add("search_discovery")
 
-                parsed.append({
-                    "symbol": f"${symbol}",
-                    "name": name,
-                    "price": price_usd,
-                    "change_24h": change_24h,
-                    "high_24h": price_usd * 1.15,
-                    "low_24h": price_usd * 0.85,
-                    "volume_24h": volume_24h,
-                    "market_cap": market_cap,
-                    "image_url": image_url,
-                    "platform": "Robinhood Chain (DexScreener)",
-                    "is_trending": True,
-                    "url": pair.get("url", f"https://dexscreener.com/robinhood/{pair.get('baseToken', {}).get('address', '')}"),
-                })
-                seen_symbols.add(symbol)
+            addresses = list(source_by_address)[:_MAX_BATCH_ADDRESSES]
+            fetched_pairs: List[Dict[str, Any]] = []
+            if addresses:
+                address_csv = ",".join(addresses)
+                details = await client.get(
+                    f"https://api.dexscreener.com/tokens/v1/robinhood/{address_csv}",
+                    headers=headers,
+                )
+                if details.status_code == 200:
+                    details_payload = details.json()
+                    fetched_pairs = details_payload if isinstance(details_payload, list) else []
 
+            parsed = _parse_pairs(
+                [*fetched_pairs, *search_pairs],
+                source_by_address,
+                discovery_images,
+            )
             if parsed:
-                # Sort by volume or change_24h
-                parsed.sort(key=lambda x: (x["volume_24h"], x["change_24h"]), reverse=True)
                 _cache_stats = parsed
                 _last_fetch_ts = now
-                return parsed
+                _last_metadata = {
+                    **_metadata("live", is_live=True),
+                    "fetched_at": _utc_now_iso(),
+                }
+                return _cache_stats
 
-    except Exception as e:
-        print(f"[ROBINHOOD_SERVICE] DexScreener fetch exception: {e}")
+    except Exception as exc:
+        print(f"[ROBINHOOD_SERVICE] DexScreener fetch exception: {exc}")
 
-    return _cache_stats if _cache_stats else _get_fallback_robinhood_stats()
+    if _cache_stats:
+        _last_metadata = _metadata("stale-cache", is_live=False)
+        return _cache_stats
+
+    _last_metadata = _metadata("unavailable", is_live=False)
+    return []
+
+
+def get_robinhood_cache_metadata() -> Dict[str, Any]:
+    """Return a copy so API callers cannot mutate the shared state."""
+    return {**_last_metadata, "age_seconds": _metadata(
+        _last_metadata.get("status", "empty"),
+        is_live=bool(_last_metadata.get("is_live")),
+    )["age_seconds"]}
+
 
 async def get_top_robinhood_movers(limit: int = 5) -> Dict[str, List[Dict[str, Any]]]:
-    """
-    Returns top gainers and top dumpers on Robinhood chain via DexScreener.
-    """
     stats = await get_robinhood_crypto_stats()
-    if not stats:
-        return {"gainers": [], "dumpers": []}
-
-    sorted_by_change = sorted(stats, key=lambda x: x.get("change_24h", 0), reverse=True)
-    gainers = [s for s in sorted_by_change if s.get("change_24h", 0) > 0][:limit]
-    dumpers = [s for s in reversed(sorted_by_change) if s.get("change_24h", 0) < 0][:limit]
-
+    sorted_by_change = sorted(stats, key=lambda item: item.get("change_24h", 0), reverse=True)
+    gainers = [item for item in sorted_by_change if item.get("change_24h", 0) > 0][:limit]
+    dumpers = [item for item in reversed(sorted_by_change) if item.get("change_24h", 0) < 0][:limit]
     return {
         "gainers": gainers,
         "dumpers": dumpers,
         "top_gainer": gainers[0] if gainers else None,
     }
 
+
 async def get_robinhood_token_info(ticker: str = "DOGGO") -> Dict[str, Any]:
-    """
-    Returns specific Robinhood chain token details dynamically from DexScreener.
-    """
-    symbol = ticker.upper().replace("$", "").strip()
-    stats_list = await get_robinhood_crypto_stats()
-    matched = next((s for s in stats_list if s["symbol"].replace("$", "").upper() == symbol), None)
-    
+    symbol = _normalise_symbol(ticker).replace("$", "")
+    stats = await get_robinhood_crypto_stats()
+    matched = next(
+        (item for item in stats if item["symbol"].replace("$", "") == symbol),
+        None,
+    )
     if matched:
         return matched
-
-    try:
-        async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
-            search_url = f"https://api.dexscreener.com/latest/dex/search?q={symbol}"
-            s_resp = await client.get(search_url, headers={"User-Agent": "CourageRobinhoodAgent/1.0"})
-            if s_resp.status_code == 200:
-                pairs = s_resp.json().get("pairs", [])
-                rh_pair = next((p for p in pairs if p.get("chainId") == "robinhood" and p.get("baseToken", {}).get("symbol", "").upper() == symbol), None)
-                if not rh_pair and pairs:
-                    rh_pair = pairs[0]
-                
-                if rh_pair:
-                    base_token = rh_pair.get("baseToken", {})
-                    price_usd = float(rh_pair.get("priceUsd") or 0)
-                    return {
-                        "symbol": f"${base_token.get('symbol', symbol).upper()}",
-                        "name": base_token.get("name", symbol),
-                        "price": price_usd,
-                        "change_24h": float(rh_pair.get("priceChange", {}).get("h24") or 0),
-                        "volume_24h": float(rh_pair.get("volume", {}).get("h24") or 0),
-                        "market_cap": float(rh_pair.get("marketCap") or rh_pair.get("fdv") or 0),
-                        "platform": "Robinhood Chain (DexScreener)",
-                        "url": rh_pair.get("url", ""),
-                    }
-    except Exception as e:
-        print(f"[ROBINHOOD_SERVICE] DexScreener search failed for {symbol}: {e}")
-
     return {
         "symbol": f"${symbol}",
         "name": symbol,
         "price": 0.0,
         "change_24h": 0.0,
-        "platform": "Robinhood Chain (DexScreener)",
+        "platform": "Robinhood Chain",
+        "provider": "DexScreener",
+        "status": "unavailable",
     }
-
-def _get_fallback_robinhood_stats() -> List[Dict[str, Any]]:
-    """Fallback DexScreener Robinhood chain stats if offline."""
-    return [
-        {"symbol": "$DOGGO", "name": "Dancing Dog", "price": 0.002273, "change_24h": 57.08, "volume_24h": 10730891.0, "market_cap": 2273784.0, "platform": "Robinhood Chain (DexScreener)", "is_trending": True},
-        {"symbol": "$LPAD", "name": "Launchpad.meme", "price": 0.0008303, "change_24h": -31.78, "volume_24h": 1672037.0, "market_cap": 817872.0, "platform": "Robinhood Chain (DexScreener)", "is_trending": True},
-        {"symbol": "$LONGCAT", "name": "LongCat", "price": 0.0005044, "change_24h": 82.1, "volume_24h": 1158410.0, "market_cap": 504422.0, "platform": "Robinhood Chain (DexScreener)", "is_trending": True},
-        {"symbol": "$RUFUS", "name": "RUFUS", "price": 0.0003806, "change_24h": 13.5, "volume_24h": 256887.0, "market_cap": 380653.0, "platform": "Robinhood Chain (DexScreener)", "is_trending": True},
-        {"symbol": "$PENGUIN", "name": "Nietzschean Penguin", "price": 0.0001882, "change_24h": 23.0, "volume_24h": 88401.0, "market_cap": 150473.0, "platform": "Robinhood Chain (DexScreener)", "is_trending": True},
-        {"symbol": "$BANGERCAT", "name": "Banger cat", "price": 0.00002912, "change_24h": -42.1, "volume_24h": 25002.0, "market_cap": 29129.0, "platform": "Robinhood Chain (DexScreener)", "is_trending": True},
-    ]
