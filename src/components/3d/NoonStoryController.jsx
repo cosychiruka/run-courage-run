@@ -191,29 +191,46 @@ export function NoonStoryController({ eventLine = '' }) {
 
       {/* Courage — 2D animated character in Html billboard */}
       <group ref={courageRef}>
+        {/* Character — transform Html scales with camera */}
         <Html transform center eps={0.001} style={{ pointerEvents: 'none' }}>
           <CourageRunningAnimationComplete isSniffing={phase >= 3 && phase <= 5} />
-          {/* Speech bubble: show during chase or chill */}
-          {phase >= 2 && phase <= 5 && seqRef.current === 1 && (
+        </Html>
+        {/* Speech bubble — separate Html WITHOUT transform = always crisp */}
+        {phase >= 2 && phase <= 5 && seqRef.current === 1 && (
+          <Html
+            position={[0, 3.5, 0]}
+            center
+            occlude={false}
+            zIndexRange={[100, 200]}
+            style={{ pointerEvents: 'none' }}
+          >
             <div style={{
-              position: 'absolute', top: '-70px', left: '50%', transform: 'translateX(-50%)',
-              backgroundColor: '#ffffff', color: '#111111', fontWeight: 900, fontSize: '1.2rem',
-              padding: '10px 15px', borderRadius: '20px', border: '3px solid #000000',
-              whiteSpace: 'nowrap', WebkitTextStroke: '0px transparent', zIndex: 100,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              background: '#ffffff',
+              color: '#111111',
+              fontWeight: 900,
+              fontSize: '18px',
+              padding: '10px 20px',
+              borderRadius: '30px',
+              border: '3px solid #000',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.7)',
               fontFamily: '"Comic Sans MS", cursive, sans-serif',
+              position: 'relative',
+              userSelect: 'none',
             }}>
               {phase === 2 ? 'VROOOM!' : 'Sniff sniff...'}
               <div style={{
                 position: 'absolute', bottom: '-12px', left: '50%',
                 transform: 'translateX(-50%) rotate(45deg)',
-                width: '14px', height: '14px', backgroundColor: '#ffffff',
-                borderBottom: '3px solid #000000', borderLeft: '3px solid #000000',
+                width: '13px', height: '13px',
+                background: '#ffffff',
+                borderBottom: '3px solid #000',
+                borderLeft: '3px solid #000',
                 borderRadius: '2px',
               }} />
             </div>
-          )}
-        </Html>
+          </Html>
+        )}
       </group>
     </group>
   );

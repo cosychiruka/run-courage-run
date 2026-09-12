@@ -265,41 +265,46 @@ function EveningStoryController({ eventLine = '' }) {
       <MemoWindmill position={[7.5, -0.6, -8]} rotation={[0, -Math.PI / 6, 0]} />
       <MemoTruck position={[4, 0.1, 4]} rotation={[0, -Math.PI / 4, 0]} />
       <group ref={courageRef}>
+        {/* Character — transform Html scales with camera */}
         <Html transform center eps={0.001} style={{ pointerEvents: 'none' }}>
-           <CourageRunningAnimationComplete />
-           {/* Thought bubble: LLM line overrides HELP! — toggle, never both */}
-           {(phase === 4 || eventLine) && (
-             <div style={{
-               position: 'absolute', top: '-90px', left: '50%', transform: 'translateX(-50%)',
-               backgroundColor: eventLine ? 'rgba(20,0,40,0.92)' : '#ffffff',
-               color: eventLine ? '#e0ccff' : '#111111',
-               fontWeight: 900,
-               fontSize: eventLine ? '1.1rem' : '1.8rem',
-               padding: eventLine ? '10px 18px' : '12px 22px',
-               borderRadius: '40px',
-               border: eventLine ? '2px solid rgba(150,0,255,0.6)' : '3px solid #000000',
-               WebkitTextStroke: '0px transparent',
-               zIndex: 100,
-               boxShadow: eventLine
-                 ? '0 4px 20px rgba(120,0,255,0.5)'
-                 : '0 6px 16px rgba(0,0,0,0.3)',
-               fontFamily: '"Comic Sans MS", cursive, sans-serif',
-               maxWidth: '220px', whiteSpace: 'normal', textAlign: 'center',
-               transition: 'all 0.3s ease',
-             }}>
-               {eventLine || 'HELP!'}
-               <div style={{
-                 position: 'absolute', bottom: '-14px', left: '50%',
-                 transform: 'translateX(-50%) rotate(45deg)',
-                 width: '16px', height: '16px',
-                 backgroundColor: eventLine ? 'rgba(20,0,40,0.92)' : '#ffffff',
-                 borderBottom: eventLine ? '2px solid rgba(150,0,255,0.6)' : '3px solid #000000',
-                 borderLeft:  eventLine ? '2px solid rgba(150,0,255,0.6)' : '3px solid #000000',
-                 borderRadius: '2px',
-               }} />
-             </div>
-           )}
+          <CourageRunningAnimationComplete />
         </Html>
+        {/* Speech bubble — separate Html WITHOUT transform so it renders at native pixel clarity */}
+        {(phase === 4 || eventLine) && (
+          <Html
+            position={[0, 3.5, 0]}
+            center
+            occlude={false}
+            zIndexRange={[100, 200]}
+            style={{ pointerEvents: 'none' }}
+          >
+            <div style={{
+              background: '#ffffff',
+              color: '#111111',
+              fontWeight: 900,
+              fontSize: '18px',
+              padding: '10px 20px',
+              borderRadius: '30px',
+              border: '3px solid #000',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.7)',
+              fontFamily: '"Comic Sans MS", cursive, sans-serif',
+              position: 'relative',
+              userSelect: 'none',
+            }}>
+              {eventLine || 'HELP!'}
+              <div style={{
+                position: 'absolute', bottom: '-12px', left: '50%',
+                transform: 'translateX(-50%) rotate(45deg)',
+                width: '13px', height: '13px',
+                background: '#ffffff',
+                borderBottom: '3px solid #000',
+                borderLeft: '3px solid #000',
+                borderRadius: '2px',
+              }} />
+            </div>
+          </Html>
+        )}
       </group>
       <group>
          <Ghost courageRef={courageRef} offsetPosition={[-1, 0.5, -1]} offsetTime={0} visible={phase === 4 || phase === 5} phase={phase} />
@@ -404,38 +409,46 @@ function SunriseStoryController({ selfieFlyTexture = null, selfieFlyLabel = '', 
       <MemoWindmill position={[7.5, -0.6, -8]} rotation={[0, -Math.PI / 6, 0]} />
       <MemoTruck position={[4, 0.1, 4]} rotation={[0, -Math.PI / 4, 0]} />
       <group ref={courageRef}>
+        {/* Character — transform Html scales with camera */}
         <Html transform center eps={0.001} style={{ pointerEvents: 'none' }}>
-           <CourageRunningAnimationComplete />
-           {/* Thought bubble: 'HELP!' only (LLM narration moved to screen center card) */}
-           {((phase === 1 || phase === 2) && seqRef.current === 0) && (
-             <div style={{
-               position: 'absolute', top: '-90px', left: '50%', transform: 'translateX(-50%)',
-               backgroundColor: '#ffffff',
-               color: '#111111',
-               fontWeight: 900,
-               fontSize: '1.8rem',
-               padding: '12px 22px',
-               borderRadius: '40px',
-               border: '3px solid #000000',
-               WebkitTextStroke: '0px transparent',
-               zIndex: 100,
-               boxShadow: '0 6px 16px rgba(0,0,0,0.3)',
-               fontFamily: '"Comic Sans MS", cursive, sans-serif',
-               maxWidth: '220px', whiteSpace: 'nowrap', textAlign: 'center',
-             }}>
-               HELP!
-               <div style={{
-                 position: 'absolute', bottom: '-14px', left: '50%',
-                 transform: 'translateX(-50%) rotate(45deg)',
-                 width: '16px', height: '16px',
-                 backgroundColor: '#ffffff',
-                 borderBottom: '3px solid #000000',
-                 borderLeft: '3px solid #000000',
-                 borderRadius: '2px',
-               }} />
-             </div>
-           )}
+          <CourageRunningAnimationComplete />
         </Html>
+        {/* Speech bubble — separate Html WITHOUT transform so it renders at native pixel clarity */}
+        {((phase === 1 || phase === 2) && seqRef.current === 0) && (
+          <Html
+            position={[0, 3.5, 0]}
+            center
+            occlude={false}
+            zIndexRange={[100, 200]}
+            style={{ pointerEvents: 'none' }}
+          >
+            <div style={{
+              background: '#ffffff',
+              color: '#111111',
+              fontWeight: 900,
+              fontSize: '18px',
+              padding: '10px 20px',
+              borderRadius: '30px',
+              border: '3px solid #000',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.7)',
+              fontFamily: '"Comic Sans MS", cursive, sans-serif',
+              position: 'relative',
+              userSelect: 'none',
+            }}>
+              HELP!
+              <div style={{
+                position: 'absolute', bottom: '-12px', left: '50%',
+                transform: 'translateX(-50%) rotate(45deg)',
+                width: '13px', height: '13px',
+                background: '#ffffff',
+                borderBottom: '3px solid #000',
+                borderLeft: '3px solid #000',
+                borderRadius: '2px',
+              }} />
+            </div>
+          </Html>
+        )}
       </group>
       <group>
          <GiantFly courageRef={courageRef} sequenceRef={seqRef} sequenceStartTime={startTimeRef.current} offsetPosition={[-1, 0.5, -1]} offsetTime={0} visible={phase > 0} phase={phase} />

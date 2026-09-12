@@ -2067,7 +2067,7 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   white-space: nowrap;
   font-family: 'Comic Sans MS', sans-serif;
   font-size: 0.65rem;
-  color: #eb57c1;
+  color: white;
   letter-spacing: 1px;
   animation: tickerScroll 35s linear infinite;
 }

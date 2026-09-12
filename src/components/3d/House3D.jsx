@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { Instances, Instance, Html } from '@react-three/drei';
-import robinhoodSvg from '../../assets/images/robinhood-feather.svg';
 
 function Window({ position, rotation = [0, 0, 0], scale = 1 }) {
   const windowMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#fffb80', emissive: '#ffb52e', emissiveIntensity: 2.5 }), []);
@@ -213,7 +212,7 @@ export function House({ position = [0, 0, 0], rotation = [0, 0, 0], doorOpen = f
       <Window position={[1.2, 4.5, 2.15]} scale={0.8} />
       <Window position={[0, 7.0, 2.15]} scale={0.5} />
 
-      {/* Robinhood Crypto / Nowhere sign on front gable — Html overlay for click + glitch */}
+      {/* Robinhood Crypto / Nowhere sign on front gable */}
       <Html 
         position={[0, 8.2, 2.4]} 
         center 
@@ -233,42 +232,34 @@ export function House({ position = [0, 0, 0], rotation = [0, 0, 0], doorOpen = f
           }}
           style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
-            background: glitching
-              ? 'rgba(204,255,0,0.9)'
-              : 'rgba(10,5,20,0.88)',
-            border: `2px solid ${glitchMode ? (hasVisited ? '#e5ff80' : '#ccff00') : (hasVisited ? '#ccff00' : '#ccff00')}`,
+            background: glitching ? 'rgba(255,255,255,0.92)' : 'rgba(10,5,20,0.88)',
+            border: '2px solid rgba(255,255,255,0.35)',
             borderRadius: '12px',
             padding: '8px 16px',
             cursor: 'pointer',
             textDecoration: 'none',
             minWidth: '130px',
             textAlign: 'center',
-            boxShadow: glitching
-              ? '0 0 18px 6px #ccff00, 0 0 40px 10px #ccff00'
-              : '0 0 12px rgba(204,255,0,0.45)',
+            boxShadow: 'none',
             transition: 'all 0.2s',
-            filter: glitching ? 'hue-rotate(180deg) brightness(2)' : 'none',
             userSelect: 'none',
           }}
         >
           {glitchMode ? (
             <span style={{ 
-              fontSize: '24px', 
-              fontWeight: 900, 
+              fontSize: '24px', fontWeight: 900, 
               fontFamily: 'Arial Black, Arial', 
-              color: '#ccff00', 
-              letterSpacing: '0.5px', 
-              lineHeight: 1.1 
+              color: glitching ? '#111111' : '#ffffff', 
+              letterSpacing: '0.5px', lineHeight: 1.1 
             }}>
               📍 NoWhere
             </span>
           ) : (
             <>
-              <img src={robinhoodSvg} alt="Robinhood Crypto" style={{ width: '36px', height: '36px', objectFit: 'contain', display: 'block' }} />
+              <span style={{ fontSize: '26px', lineHeight: 1 }}>🪶</span>
               <span style={{ 
-                fontSize: '11px', 
-                fontWeight: 700, 
-                color: '#ccff00', 
+                fontSize: '11px', fontWeight: 700, 
+                color: glitching ? '#111111' : '#ffffff', 
                 fontFamily: 'Arial, sans-serif', 
                 letterSpacing: '0.5px' 
               }}>
