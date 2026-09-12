@@ -21,6 +21,7 @@ import { createVoiceService } from './services/voiceService';
 import { audioManager } from './utils/audioManager';
 import AdminDashboard from './components/AdminDashboard';
 import { LiveMarketWidget, LatestNewsCardWidget, BrainPulseWidget } from './components/RobinhoodWidgets';
+import WorldLoreSection from './components/WorldLoreSection';
 
 // Wrapper to handle Vite dynamic import chunk errors after redeployments
 const lazyWithReload = (componentImport) => {
@@ -682,21 +683,21 @@ export default function App() {
         <div className="hero-center">
           <div className={`hero-badge${scrolled ? ' hero-badge--hidden' : ''}`} style={{ borderColor: '#ccff00', color: '#ccff00' }}>
             <span className="hero-badge-dot" style={{ background: '#ccff00', boxShadow: '0 0 10px #ccff00' }} />
-            Robinhood
+            Robinhood Chain signal
           </div>
           <div className={`hero-text-block${heroTextVisible ? '' : ' hero-text-block--hidden'}`}>
             <div className="desktop-only">
-              <p className="hero-title">Self Aware Living Meme on Robinhood</p>
-              <p className="hero-tagline">"Powered by X API, interactive meme covering RH tickers and breaking news!"</p>
+              <p className="hero-title">A Self-Aware Meme Escaped the Forest</p>
+              <p className="hero-tagline">Four agentic 3D worlds. Live token signals. No off button.</p>
             </div>
             <div className="mobile-only">
-              <p className="hero-title">Self Aware Living Meme <br /> on Robinhood</p>
-              <p className="hero-tagline">"Powered by X API, interactive meme covering RH tickers and breaking news!"</p>
+              <p className="hero-title">A Self-Aware Meme <br /> Escaped the Forest</p>
+              <p className="hero-tagline">Four agentic 3D worlds. Live token signals. No off button.</p>
             </div>
           </div>
           {aliveTextVisible && (
             <div className="hero-alive-text" aria-live="polite">
-              Mario Nawfal of Robinhood News &mdash; He&rsquo;s alive, Interact
+              The forest is watching &mdash; enter one of four living worlds
             </div>
           )}
 
@@ -832,23 +833,31 @@ export default function App() {
       {/* ── Landing content ── */}
       <div className="landing-wrapper">
 
+        {/* Origin and current world dossier */}
+        <WorldLoreSection
+          activeWorld={_active}
+          onEnterWorld={() => {
+            if (!world3DMounted) setWorld3DMounted(true);
+          }}
+        />
+
         {/* About — 2 cards */}
         <section className="landing-section about-section container">
           <div className="about-grid">
             <div className="about-card glass-panel comic animate-float" style={{ borderLeft: '4px solid #00C805' }}>
               <div className="comic-banner" style={{ background: '#00C805', color: '#000' }}>
-                <h2 className="landing-heading" style={{ color: '#000' }}><span className="icon-dog-wag">🏹</span> MARIO NAWFAL OF ROBINHOOD NEWS</h2>
+                <h2 className="landing-heading" style={{ color: '#000' }}><span className="icon-dog-wag">🐕</span> SELF-AWARE. STILL SCARED.</h2>
               </div>
               <p>
-                <strong>Courage the Cowardly Dog</strong> is re-incarnated as the <strong>Mario Nawfal of Robinhood News</strong>! Scared of the world but posting anyway, he monitors Robinhood crypto tickers ($DOGE, $PEPE, $SHIB, $BTC, $ETH, $SOL), searches Twitter trenches, and reports top movers with Robinhood Green news cards.
+                <strong>Courage is a self-aware meme living in your browser.</strong> He woke inside the Nowhere farmhouse with market noise in his head, followed an emerald signal trail into the forest, and found a portal above the river. He is scared of the feed—but keeps watching it anyway.
               </p>
             </div>
             <div className="about-card glass-panel comic animate-float-delay" style={{ borderLeft: '4px solid #00E676' }}>
               <div className="comic-banner comic-banner--yellow" style={{ background: '#00E676', color: '#000' }}>
-                <h2 className="landing-heading" style={{ color: '#000' }}><span className="icon-tv-flicker">📺</span> WHAT DOES HE COVER NEXT?</h2>
+                <h2 className="landing-heading" style={{ color: '#000' }}><span className="icon-tv-flicker">🌀</span> FOUR WORLDS. NO OFF BUTTON.</h2>
               </div>
               <p>
-                Courage tracks live Robinhood crypto gainers, breaks market news, tweets custom Robinhood Green cards, and chats with you in 4 3D worlds. He never sleeps — event sensors and his autonomous heartbeat keep him reacting 24/7. The things he does for love... 🏹🐕🦺
+                Inspired by <strong>$FLY&apos;s agentic meme-world energy</strong>, Courage now crosses four interactive 3D realities. Their light, cast, sound, and behavior change with time; world events and live Robinhood Chain discovery signals keep the forest from repeating exactly.
               </p>
             </div>
           </div>
@@ -872,9 +881,9 @@ export default function App() {
         {/* Robinhood News Community */}
         <section className="landing-section container glass-panel" style={{ padding: '2.2rem 2rem', borderTop: '3px solid #00C805' }}>
           <div className="comic-banner" style={{ background: '#00C805', color: '#000' }}>
-            <h2 className="landing-heading" style={{ color: '#000' }}><span className="icon-globe-spin">🌐</span> JOIN THE ROBINHOOD PACK</h2>
+            <h2 className="landing-heading" style={{ color: '#000' }}><span className="icon-globe-spin">🌲</span> JOIN THE FOREST</h2>
           </div>
-          <p className="community-sub">Follow Courage AI for real-time Robinhood dispatches & breaking crypto commentary</p>
+          <p className="community-sub">Follow Courage for forest transmissions, world drops, and Robinhood Chain market commentary.</p>
           <div className="community-links">
             <a href="https://x.com/cowardlyhood" target="_blank" rel="noopener noreferrer" className="community-btn">
               <span className="x-logo">𝕏</span> Follow @cowardlyhood
