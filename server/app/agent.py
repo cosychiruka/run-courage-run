@@ -2,7 +2,7 @@
 agent.py — Courage AI tool-calling agent.
 
 Features:
-- Tiered model: llama-3.1-8b-instant for simple chat, llama-3.3-70b-versatile for tool calls
+- Configured OpenAI-compatible provider with separate default and fallback models
 - ws_emit callback: streams tool_call / tool_result events to the frontend in real-time
 - Context isolation: history is passed in per-connection, never shared
 - Clean text: all tool-call XML artifacts are stripped before the final reply
@@ -45,7 +45,7 @@ def _track_llm_usage(usage: dict):
         _token_redis.incrby(f"llm:calls:{today}", 1)
         _token_redis.expire(f"llm:tokens:{today}", 86400)
         _token_redis.expire(f"llm:calls:{today}", 86400)
-        # Backward-compatible dashboard keys while the UI still says "Groq".
+        # Backward-compatible keys for deployments created before provider migration.
         _token_redis.incrby(f"groq:tokens:{today}", tokens)
         _token_redis.incrby(f"groq:calls:{today}", 1)
         _token_redis.expire(f"groq:tokens:{today}", 86400)

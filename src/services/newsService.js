@@ -249,21 +249,21 @@ export function getSampleArticles() {
       description: 'Courage AI launches real-time reporting on $DOGE, $PEPE, $SHIB, $BTC, $ETH, $SOL, and top gainers on Robinhood.',
       content: 'Live crypto headlines, trench sentiment, and gainer alerts now stream directly to Courage’s news brain.',
       url: '#', image: null, publishedAt: new Date().toISOString(),
-      source: { name: 'Robinhood Chronicle', url: '#' }, provider: 'sample',
+      source: { name: 'Courageous Chronicle', url: '#' }, provider: 'sample',
     },
     {
       title: 'Dogecoin & Pepe Surge As Robinhood Trenches Heat Up',
       description: 'Retail traders rally around Robinhood crypto offerings as social volume hits new weekly high.',
       content: 'Courage monitors the X trenches for breaking momentum across Robinhood tickers.',
       url: '#', image: null, publishedAt: new Date().toISOString(),
-      source: { name: 'Robinhood Chronicle', url: '#' }, provider: 'sample',
+      source: { name: 'Courageous Chronicle', url: '#' }, provider: 'sample',
     },
     {
-      title: 'Mario Nawfal Of Robinhood News: Courage Direct From The Studio',
-      description: 'Courage AI streams live news, market pulse, and automated post cards in Robinhood Green.',
-      content: 'Stay tuned for real-time crypto dispatches from Nowhere.',
+      title: 'A New Forest Signal Reaches Courage In Nowhere',
+      description: 'Courage turns sourced news, live discovery data, and world lore into selective green dispatches.',
+      content: 'The farmhouse is quiet. The portal and the news feed are not.',
       url: '#', image: null, publishedAt: new Date().toISOString(),
-      source: { name: 'Robinhood Chronicle', url: '#' }, provider: 'sample',
+      source: { name: 'Courageous Chronicle', url: '#' }, provider: 'sample',
     },
   ];
 }

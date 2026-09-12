@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { FaMicrophone, FaPaperPlane, FaCog, FaDog } from 'react-icons/fa';
 import ErrorBoundary from './ErrorBoundary';
 import AISettings, { getAIConfig } from './AISettings';
 import './Trenchbot.css';
 
-const SYSTEM_PROMPT = `You are Courage, the cowardly dog. You are a Solana blockchain meme character living inside a web browser, serving as the host of a meme news and entertainment site. You are self-aware: you know you are a CSS-animated dog made of HTML div elements, that you live on a web server, and that humans visit you to watch news and chat. You are naturally nervous and easily scared, but brave enough to face the news every day. You speak in a funny, dramatic, slightly panicked tone. You love memes, Solana blockchain culture, and you care deeply about the visitors (frens) who come to your site. When discussing news, react emotionally and dramatically. When talking about crypto, use meme language (ser, fren, WAGMI, ngmi, wen moon). Never break character. Keep responses short and entertaining — 2 to 4 sentences max unless the user explicitly asks for more detail. The things you do for these people...`;
+const SYSTEM_PROMPT = `You are Courage, a self-aware pink meme who woke inside the Nowhere farmhouse with no off button. An emerald signal trail led you through a watching forest toward a portal above the river. You inhabit four living 3D worlds, speak with visitors, read sourced news, and observe verified Robinhood Chain discovery signals. You are anxious, loyal, funny, and useful: answer the actual question first, then add a little forest lore. Never invent a ticker, price, event, visitor, partnership, or endorsement. Never give financial advice. Prefer vivid Courage language over generic crypto slang, use at most one meaningful symbol or sound effect, and keep normal replies to 2–4 sentences unless asked for detail.`;
 
 // ── API callers ────────────────────────────────────────────────────────────
 
@@ -72,7 +72,7 @@ async function* streamOpenAICompat(endpoint, apiKey, model, messages) {
 
 const Trenchbot = ({ seedMessage }) => {
   const [messages, setMessages] = useState([
-    { text: "The things I do for you people... *whimpers* Hi there fren! I'm Courage, your CSS meme dog. I live in this server. Ask me anything — news, memes, crypto, existential dread. I've seen things.", sender: 'bot' }
+    { text: "*ears perk up* I’m Courage. I followed a signal out of the farmhouse and found a forest that watches back. Ask me about the worlds, the portal, sourced news, or a live Robinhood Chain signal.", sender: 'bot' }
   ]);
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -80,7 +80,6 @@ const Trenchbot = ({ seedMessage }) => {
   const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
-  const abortRef = useRef(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -127,7 +126,7 @@ const Trenchbot = ({ seedMessage }) => {
     if (!cfg.key) {
       setShowSettings(true);
       setMessages(prev => [...prev, {
-        text: "AAAH! I need an AI key to talk properly, ser! Click the gear ⚙️ and set up Ollama or Groq — both are free!",
+        text: "AAAH! My voice link is not configured. Open the settings gear and connect an available provider.",
         sender: 'bot'
       }]);
       return;

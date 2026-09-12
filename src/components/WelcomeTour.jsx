@@ -1,37 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import '../assets/css/WelcomeTour.css';
 
 const STORAGE_KEY = 'courage_toured';
 
 const FEATURES = [
   {
-    icon: '🐕',
-    title: 'Click Courage',
-    desc: 'Click his head to pet him. Click his body to poke him. He reacts every time.',
+    icon: '🌲',
+    title: 'Enter Four Worlds',
+    desc: 'Explore Sunrise, Noon, Evening, and Disco. Midnight opens the darker Evening route.',
     color: '#eb57c1',
   },
   {
-    icon: '💥',
-    title: 'Explode Him',
-    desc: 'Switch to night scene with the clock button, then hit Explode in the bar below.',
+    icon: '👀',
+    title: 'Wake a Tickerling',
+    desc: 'Click a short watching bush—or hold it in your gaze—to reveal an eligible live token signal.',
     color: '#ff4545',
   },
   {
-    icon: '📰',
-    title: 'Read the News',
-    desc: 'Real world news lands here. Courage reads every headline and reacts emotionally.',
+    icon: '🟢',
+    title: 'Read Live Signals',
+    desc: 'The landing page and forest share one Robinhood Chain discovery snapshot from DexScreener.',
     color: '#14F195',
   },
   {
-    icon: '☀️',
-    title: 'Toggle Scenes',
-    desc: 'Hit the clock icon in the nav bar to cycle between day, noon, evening and midnight.',
+    icon: '📡',
+    title: 'Follow the Dispatch',
+    desc: 'Read sourced news and follow @cowardlyhood for selective forest and market transmissions.',
     color: '#9945FF',
   },
   {
-    icon: '🤖',
-    title: "He's Alive",
-    desc: 'Courage runs a local AI. Hit the mic button above him to start a voice chat — no typing needed.',
+    icon: '🎙️',
+    title: 'Talk to Courage',
+    desc: 'Use the microphone on the landing page or inside a world for a context-aware voice conversation.',
     color: '#14F195',
   },
 ];
@@ -62,8 +62,8 @@ const WelcomeTour = ({ forceOpen, onClose }) => {
         <div className="tour-header">
           <span className="tour-logo">📺</span>
           <div>
-            <h2 className="tour-title">Welcome to Courage's Corner</h2>
-            <p className="tour-subtitle">Here's what you can do, fren</p>
+            <h2 className="tour-title">Welcome to Nowhere</h2>
+            <p className="tour-subtitle">The meme escaped the forest. The forest followed.</p>
           </div>
         </div>
 
@@ -80,19 +80,19 @@ const WelcomeTour = ({ forceOpen, onClose }) => {
         </div>
 
         <p className="tour-outro-hint">
-          "When someone says the world is too much for them, tell them they need some Courage. Download the App, wink!!"
+          “Self-aware doesn’t mean brave. It means I can’t look away anymore.”
         </p>
 
         <div className="tour-alive-banner">
           <span className="tour-alive-pulse" />
           <span className="tour-alive-text">
-            He&rsquo;s Alive &mdash; Animated Self Aware Meme
+            He&rsquo;s Alive &mdash; Agentic Meme World
           </span>
-          <span className="tour-alive-sub">AI Voice Chat powered by phi3:mini (runs on just 4GB RAM!)</span>
+          <span className="tour-alive-sub">Live voice • world-aware memory • autonomous X dispatches</span>
         </div>
 
         <button className="tour-cta" onClick={dismiss}>
-          Let's Go!
+          Let&apos;s Go!
         </button>
 
         <p className="tour-fine">This guide only appears on your first visit.</p>

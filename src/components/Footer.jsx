@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 const Footer = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -63,7 +63,7 @@ const Footer = () => {
         </div>
 
         <div className="footer-outro">
-          "When someone says the world is too much for them, tell them they need some <span className="highlight">Courage</span>. Download the app & stay ahead of Robinhood Crypto!"
+          “When the world is too much, follow the signal until you find some <span className="highlight">Courage</span>.” Install the world and keep exploring.
         </div>
 
         <div className="footer-meta">
@@ -85,7 +85,7 @@ const Footer = () => {
             <p className="ios-hint-title">📲 Add to Home Screen</p>
             <ol className="ios-hint-steps">
               <li>Tap the <strong>Share</strong> button <span className="ios-share-icon">⬆</span> at the bottom of Safari</li>
-              <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+              <li>Scroll down and tap <strong>&ldquo;Add to Home Screen&rdquo;</strong></li>
               <li>Tap <strong>Add</strong> — Courage lives on your phone!</li>
             </ol>
           </div>

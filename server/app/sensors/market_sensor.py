@@ -1,34 +1,70 @@
-"""
-market_sensor.py — Polls $RCR every 60s and emits MARKET_SURGE on big moves.
-Runs as background task. Zero impact on heartbeat.
-"""
+"""Poll the shared Robinhood Chain snapshot and emit verified short-window moves."""
 
 import asyncio
-import time
-from app.hustle_service import get_rcr_stats
-from app.events import emit_event
 
-LAST_PRICE = None
-SURGE_THRESHOLD = 0.04  # 4% move triggers instant reaction
+from app.events import emit_event
+from app.robinhood_service import (
+    get_robinhood_cache_metadata,
+    get_robinhood_crypto_stats,
+)
+
+
+LAST_PRICES: dict[str, float] = {}
+SURGE_THRESHOLD = 0.04
+POLL_SECONDS = 60
+
+
+def _select_market_event(
+    stats: list[dict], previous_prices: dict[str, float]
+) -> tuple[dict | None, dict[str, float]]:
+    """Return the strongest eligible short-window move and the next baseline."""
+    candidates = []
+    next_prices: dict[str, float] = {}
+
+    for token in stats:
+        token_id = str(token.get("id") or "")
+        current = float(token.get("price") or 0)
+        if not token_id or current <= 0 or not token.get("world_eligible"):
+            continue
+
+        next_prices[token_id] = current
+        previous = previous_prices.get(token_id)
+        if not previous:
+            continue
+
+        change = (current - previous) / previous
+        if abs(change) >= SURGE_THRESHOLD:
+            candidates.append((abs(change), change, token))
+
+    if not candidates:
+        return None, next_prices
+
+    _, change, token = max(candidates, key=lambda item: item[0])
+    return {
+        "symbol": token.get("symbol"),
+        "price": token.get("price"),
+        "change_percent": round(change * 100, 2),
+        "volume_24h": token.get("volume_24h"),
+        "provider": "DexScreener",
+        "chain": "Robinhood Chain",
+    }, next_prices
+
 
 async def market_sensor_loop():
-    global LAST_PRICE
+    """Emit at most one strongest move per poll, and only from a live snapshot."""
+    global LAST_PRICES
+
     while True:
         try:
-            stats = await get_rcr_stats()
-            current = stats.get("price", 0)
+            stats = await get_robinhood_crypto_stats()
+            metadata = get_robinhood_cache_metadata()
 
-            if LAST_PRICE and current > 0:
-                change = (current - LAST_PRICE) / LAST_PRICE
-                if abs(change) >= SURGE_THRESHOLD:
-                    await emit_event("MARKET_SURGE", {
-                        "price": current,
-                        "change_percent": round(change * 100, 2),
-                        "volume": stats.get("volume_24h", 0)
-                    })
+            if metadata.get("is_live"):
+                event, next_prices = _select_market_event(stats, LAST_PRICES)
+                if event:
+                    await emit_event("MARKET_SURGE", event)
+                LAST_PRICES = next_prices
+        except Exception as exc:
+            print(f"[MARKET_SENSOR] Error: {exc}")
 
-            LAST_PRICE = current
-        except Exception as e:
-            print(f"[MARKET_SENSOR] Error: {e}")
-
-        await asyncio.sleep(60)  # 60-second tick
+        await asyncio.sleep(POLL_SECONDS)

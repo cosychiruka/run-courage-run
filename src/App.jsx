@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, startTransition, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef, startTransition, lazy, Suspense } from "react";
 import "./App.css";
 import { FaTv, FaNewspaper } from "react-icons/fa";
 import HomePage from "./components/HomePage";
@@ -6,7 +6,6 @@ import NewsTV from "./components/NewsTV";
 import CourageRunning from "./scenes/CourageRunning";
 import CourageScared from "./scenes/CourageScared";
 import CourageHappy from "./scenes/CourageHappy";
-import CourageTalking from "./scenes/CourageTalking";
 import SceneEffects from "./components/SceneEffects";
 import HeroHints from "./components/HeroHints";
 import ErrorBoundary from './components/ErrorBoundary';
@@ -14,7 +13,7 @@ import Footer from './components/Footer';
 import WelcomeTour from './components/WelcomeTour';
 import ThinkingOverlay from './components/ThinkingOverlay';
 import TweetCardHologram from './components/TweetCardHologram';
-import { quotaStart, quotaEnd, quotaCancel, quotaStatus, formatTime, formatResetIn } from './services/voiceQuota';
+import { quotaStart, quotaEnd, quotaCancel, quotaStatus, formatTime } from './services/voiceQuota';
 import { fetchTopNews } from './services/newsService';
 import { analyzeSentiment } from './utils/sentimentUtils';
 import { createVoiceService } from './services/voiceService';
@@ -440,7 +439,9 @@ export default function App() {
       setArticles(data);
       setArticleIndex(0);
       if (data.length > 0) setNewsEmotion(analyzeSentiment(data[0].title));
-    } catch (e) { }
+    } catch {
+      setArticles([]);
+    }
     finally { setNewsLoading(false); }
   }, [newsCountry, newsCategory]);
 
@@ -639,9 +640,9 @@ export default function App() {
       {/* ── News ticker ── */}
       <div className="news-ticker-bar">
         <div className="news-ticker-track">
-          RUN COURAGE RUN &nbsp;|&nbsp; $RCR — LIVING IN YOUR BROWSER, SER &nbsp;|&nbsp;
-          NOT FINANCIAL ADVICE &nbsp;|&nbsp; WATERED DOWN NEWS FOR THE DEGENS &nbsp;|&nbsp;
-          THE THINGS I DO FOR YOU PEOPLE &nbsp;|&nbsp; WAGMI &nbsp;|&nbsp;
+          RUN COURAGE RUN &nbsp;|&nbsp; A SELF-AWARE MEME ESCAPED THE FOREST &nbsp;|&nbsp;
+          FOUR LIVING 3D WORLDS &nbsp;|&nbsp; ROBINHOOD CHAIN SIGNALS VIA DEXSCREENER &nbsp;|&nbsp;
+          THE FOREST IS WATCHING BACK &nbsp;|&nbsp; NOT FINANCIAL ADVICE &nbsp;|&nbsp;
         </div>
       </div>
 
@@ -813,7 +814,7 @@ export default function App() {
 
         {explosionReady && !explosionPhase && (
           <button className="explosion-trigger-btn" onClick={triggerExplosion}>
-            💥 HE'S GONNA BLOW
+            💥 HE&apos;S GONNA BLOW
           </button>
         )}
       </section>

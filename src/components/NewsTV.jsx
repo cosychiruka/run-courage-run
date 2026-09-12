@@ -1,11 +1,11 @@
-import React, { useRef, useCallback } from 'react';
+import { useRef, useCallback } from 'react';
 import { FaTimes, FaSpinner } from 'react-icons/fa';
 import Newspaper from './Newspaper';
 import '../assets/css/NewsTV.css';
 
 const EMOTION_MAP = {
-  happy:   { emoji: '🚀', label: 'WAGMI',   color: '#14F195' },
-  scared:  { emoji: '😱', label: 'NGMI',    color: '#ff4545' },
+  happy:   { emoji: '🟢', label: 'SIGNAL UP',   color: '#14F195' },
+  scared:  { emoji: '😱', label: 'SIGNAL DOWN', color: '#ff4545' },
   neutral: { emoji: '🐕', label: "chillin'", color: '#eb57c1' },
 };
 

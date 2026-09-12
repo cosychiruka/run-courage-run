@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaRobot, FaBrain, FaBolt, FaHistory, FaChartLine,
   FaUsers, FaDog, FaNewspaper, FaGamepad, FaList,
-  FaTrash, FaSync, FaCheckCircle, FaClock, FaCopy, FaDownload,
-  FaMicrophone, FaSitemap, FaPlay, FaPause, FaTwitter, FaTerminal, FaExternalLinkAlt
+  FaTrash, FaSync, FaCheckCircle, FaClock, FaDownload,
+  FaMicrophone, FaSitemap, FaPlay, FaTwitter, FaExternalLinkAlt
 } from 'react-icons/fa';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -15,7 +15,7 @@ const TABS = [
   { id: 'token',     label: 'Robinhood Pulse', icon: FaChartLine },
   { id: 'trenches',  label: 'Trenches',      icon: FaUsers     },
   { id: 'posters',   label: 'News Posters',  icon: FaNewspaper },
-  { id: 'moments',   label: 'Game Moments',  icon: FaGamepad   },
+  { id: 'moments',   label: 'Community Signals',  icon: FaGamepad   },
   { id: 'queue',     label: '🔄 Queue Inspector',   icon: FaList      },
   { id: 'voice',     label: '🎤 Voice Live',        icon: FaMicrophone },
   { id: 'rag',       label: '🧬 RAG Memory Graph',  icon: FaSitemap    },
@@ -557,7 +557,7 @@ const AdminDashboard = () => {
   const [voiceData, setVoiceData] = useState({ active: false, sessions: [], count: 0 });
   const [ragData, setRagData] = useState({ vectors: [] });
   const [selectedMemory, setSelectedMemory] = useState(null);
-  const [robinhoodData, setRobinhoodData] = useState({ stats: [], movers: { top_gainers: [], top_dumpers: [] } });
+  const [robinhoodData, setRobinhoodData] = useState({ stats: [], movers: { gainers: [], dumpers: [] } });
 
   // ── Fetch helpers — merge into existing state to avoid flicker ───────────────
   const loadStatus = useCallback(async () => {
@@ -824,13 +824,15 @@ const AdminDashboard = () => {
         <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
           <FaRobot size={48} color="#ff00ff" />
         </motion.div>
-        <p>Waking up Courage's Brain...</p>
+        <p>Waking up Courage&apos;s Brain...</p>
       </div>
     );
   }
 
-  const rcr = status?.rcr_stats || {};
-  const groq = status?.groq_circuit_breaker || {};
+  const robinhoodSignals = status?.robinhood_stats || [];
+  const topSignal = status?.robinhood_top_gainer || null;
+  const robinhoodMeta = status?.robinhood_metadata || {};
+  const groq = status?.llm_circuit_breaker || status?.groq_circuit_breaker || {};
 
   return (
     <div style={styles.root}>
@@ -912,10 +914,10 @@ const AdminDashboard = () => {
                     onClick={() => setActiveTab('trenches')} />
                 </div>
 
-                {/* Token stats */}
+                {/* Robinhood Chain discovery status */}
                 <div style={styles.grid3}>
-                  <StatCard label="$COURAGE PRICE" value={rcr.price ? `$${Number(rcr.price).toFixed(6)}` : '—'} sub={rcr.symbol} />
-                  <StatCard label="MARKET CAP" value={rcr.market_cap ? `$${Number(rcr.market_cap).toLocaleString()}` : '—'} sub="USD" color="#ff9900" />
+                  <StatCard label="CHAIN SIGNALS" value={robinhoodSignals.length} sub={robinhoodMeta.status || 'unavailable'} />
+                  <StatCard label="TOP POSITIVE MOVE" value={topSignal?.symbol || '—'} sub={topSignal ? `${Number(topSignal.change_24h || 0).toFixed(2)}% · 24h` : 'No current signal'} color="#ff9900" />
                   <StatCard label="X SPEND TODAY" value={`$${(status?.x_spend_today || 0).toFixed(3)}`} sub={`Total: $${(status?.x_spend_total || 0).toFixed(2)}`} color="#aaa" />
                 </div>
 
@@ -925,7 +927,7 @@ const AdminDashboard = () => {
                     <h3 style={styles.cardTitle}><FaDog style={{ marginRight: 8 }} />Sub-Agent Status</h3>
                     <AgentRow name="Brain (auto-tick)" data={agents.brain} />
                     <AgentRow name="News Dog" data={agents.news_dog} />
-                    <AgentRow name="Game Sensor" data={agents.game_sensor} />
+                    <AgentRow name="Community Sensor" data={agents.community_sensor || agents.game_sensor} />
                     <AgentRow name="Engagement Dog" data={agents.engagement_dog} />
                   </div>
 
@@ -934,13 +936,13 @@ const AdminDashboard = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       <button style={styles.btnPink} onClick={triggerTick}>⚡ FORCE BRAIN TICK</button>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        <button style={{ ...styles.btnSmall, padding: '10px' }} onClick={triggerTrenchScan}>🔍 TRENCH SCAN</button>
+                        <button style={{ ...styles.btnSmall, padding: '10px' }} onClick={triggerTrenchScan}>🔍 COMMUNITY SCAN</button>
                         <button style={{ ...styles.btnSmall, padding: '10px' }} onClick={triggerMarketPulse}>📈 MARKET PULSE</button>
                       </div>
-                      <button style={{ ...styles.btnSmall, opacity: 0.7 }} onClick={resetBreaker}>Reset Groq Circuit Breaker</button>
+                      <button style={{ ...styles.btnSmall, opacity: 0.7 }} onClick={resetBreaker}>Reset LLM Circuit Breaker</button>
                     </div>
                     <div style={{ marginTop: 20, padding: 12, background: '#0a0a0a', borderRadius: 8 }}>
-                      <p style={{ fontSize: '0.75rem', opacity: 0.6, margin: 0 }}>Groq Status</p>
+                      <p style={{ fontSize: '0.75rem', opacity: 0.6, margin: 0 }}>LLM Provider Status</p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
                         <Led status={groq.active ? 'stale' : 'active'} />
                         <span style={{ fontWeight: 'bold', color: groq.active ? '#ff4444' : '#00ffaa' }}>
@@ -1060,7 +1062,7 @@ const AdminDashboard = () => {
                 </p>
                 <div style={{ ...styles.feedScroll, maxHeight: '65vh' }}>
                   {history.length === 0 && (
-                    <p style={{ opacity: 0.4 }}>No decisions logged yet — autonomous loop hasn't run.</p>
+                    <p style={{ opacity: 0.4 }}>No decisions logged yet — autonomous loop hasn&apos;t run.</p>
                   )}
                   {history.slice(0, histLimit).map((h, i) => (
                     <motion.div
@@ -1109,10 +1111,10 @@ const AdminDashboard = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                   <div>
                     <h2 style={{ ...styles.cardTitle, color: '#00C805', fontSize: '1.5rem', margin: 0 }}>
-                      🟢 ROBINHOOD CRYPTO MARKET PULSE
+                      🟢 ROBINHOOD CHAIN DISCOVERY PULSE
                     </h2>
                     <p style={{ opacity: 0.5, fontSize: '0.8rem', margin: '4px 0 0' }}>
-                      Live stats for crypto supported on Robinhood • Updates automatically
+                      Chain-filtered DexScreener discovery • Signals are not endorsements
                     </p>
                   </div>
                   <button style={{ ...styles.btnSmall, borderColor: '#00C805', color: '#00C805' }} onClick={loadRobinhoodCrypto}>
@@ -1125,43 +1127,43 @@ const AdminDashboard = () => {
                   {(robinhoodData.stats || []).map(coin => {
                     const isPositive = (coin.change_24h || 0) >= 0;
                     return (
-                      <div key={coin.ticker || coin.symbol} className="glass-card" style={{ padding: '1.25rem', borderLeft: `4px solid ${isPositive ? '#00C805' : '#ff4444'}` }}>
+                      <div key={coin.id || coin.symbol} className="glass-card" style={{ padding: '1.25rem', borderLeft: `4px solid ${isPositive ? '#00C805' : '#ff4444'}` }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                           <span style={{ fontWeight: 'bold', fontSize: '1.2rem', fontFamily: 'Bangers, cursive', letterSpacing: 1, color: '#fff' }}>
-                            {coin.ticker}
+                            {coin.symbol}
                           </span>
                           <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: isPositive ? '#00C805' : '#ff4444', background: isPositive ? '#00C80515' : '#ff444415', padding: '2px 8px', borderRadius: 6 }}>
                             {isPositive ? '+' : ''}{Number(coin.change_24h || 0).toFixed(2)}%
                           </span>
                         </div>
                         <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#00C805', fontFamily: 'monospace' }}>
-                          ${Number(coin.price_usd || 0) < 0.01 ? Number(coin.price_usd || 0).toFixed(6) : Number(coin.price_usd || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          ${Number(coin.price || 0) < 0.01 ? Number(coin.price || 0).toFixed(6) : Number(coin.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: '0.7rem', opacity: 0.5 }}>
                           <span>Vol: ${coin.volume_24h ? (coin.volume_24h / 1e6).toFixed(1) + 'M' : '—'}</span>
-                          <span>MCap: ${coin.market_cap ? (coin.market_cap / 1e9).toFixed(2) + 'B' : '—'}</span>
+                          <span>Liq: ${coin.liquidity_usd ? Number(coin.liquidity_usd).toLocaleString() : '—'}</span>
                         </div>
                       </div>
                     );
                   })}
                 </div>
 
-                {/* Top Movers (Gainers & Dumpers) */}
+                {/* Snapshot positive and negative moves */}
                 <div style={styles.grid2}>
                   <div className="glass-card" style={styles.card}>
-                    <h3 style={{ ...styles.cardTitle, color: '#00C805' }}>🚀 Top Robinhood Gainers (24h)</h3>
-                    {(robinhoodData.movers?.top_gainers || []).length === 0 ? (
-                      <p style={{ opacity: 0.4, fontSize: '0.85rem' }}>Loading top gainers...</p>
+                    <h3 style={{ ...styles.cardTitle, color: '#00C805' }}>🟢 Positive Moves (24h)</h3>
+                    {(robinhoodData.movers?.gainers || []).length === 0 ? (
+                      <p style={{ opacity: 0.4, fontSize: '0.85rem' }}>No positive snapshot signal.</p>
                     ) : (
-                      (robinhoodData.movers?.top_gainers || []).map((g, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      (robinhoodData.movers?.gainers || []).map((g) => (
+                        <div key={g.id || g.symbol} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                           <div>
-                            <strong style={{ color: '#fff', fontSize: '1rem' }}>{g.ticker}</strong>
+                            <strong style={{ color: '#fff', fontSize: '1rem' }}>{g.symbol}</strong>
                             <span style={{ fontSize: '0.75rem', opacity: 0.5, marginLeft: 8 }}>{g.name}</span>
                           </div>
                           <div style={{ textAlign: 'right' }}>
                             <div style={{ color: '#00C805', fontWeight: 'bold' }}>+{(g.change_24h || 0).toFixed(2)}%</div>
-                            <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>${Number(g.price_usd || 0) < 0.01 ? Number(g.price_usd || 0).toFixed(6) : Number(g.price_usd || 0).toFixed(2)}</div>
+                            <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>${Number(g.price || 0) < 0.01 ? Number(g.price || 0).toFixed(6) : Number(g.price || 0).toFixed(2)}</div>
                           </div>
                         </div>
                       ))
@@ -1169,19 +1171,19 @@ const AdminDashboard = () => {
                   </div>
 
                   <div className="glass-card" style={styles.card}>
-                    <h3 style={{ ...styles.cardTitle, color: '#ff4444' }}>🔻 Top Robinhood Dip Opportunities</h3>
-                    {(robinhoodData.movers?.top_dumpers || []).length === 0 ? (
-                      <p style={{ opacity: 0.4, fontSize: '0.85rem' }}>Loading dip opportunities...</p>
+                    <h3 style={{ ...styles.cardTitle, color: '#ff4444' }}>🔻 Negative Moves (24h)</h3>
+                    {(robinhoodData.movers?.dumpers || []).length === 0 ? (
+                      <p style={{ opacity: 0.4, fontSize: '0.85rem' }}>No negative snapshot signal.</p>
                     ) : (
-                      (robinhoodData.movers?.top_dumpers || []).map((d, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      (robinhoodData.movers?.dumpers || []).map((d) => (
+                        <div key={d.id || d.symbol} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                           <div>
-                            <strong style={{ color: '#fff', fontSize: '1rem' }}>{d.ticker}</strong>
+                            <strong style={{ color: '#fff', fontSize: '1rem' }}>{d.symbol}</strong>
                             <span style={{ fontSize: '0.75rem', opacity: 0.5, marginLeft: 8 }}>{d.name}</span>
                           </div>
                           <div style={{ textAlign: 'right' }}>
                             <div style={{ color: '#ff4444', fontWeight: 'bold' }}>{(d.change_24h || 0).toFixed(2)}%</div>
-                            <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>${Number(d.price_usd || 0) < 0.01 ? Number(d.price_usd || 0).toFixed(6) : Number(d.price_usd || 0).toFixed(2)}</div>
+                            <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>${Number(d.price || 0) < 0.01 ? Number(d.price || 0).toFixed(6) : Number(d.price || 0).toFixed(2)}</div>
                           </div>
                         </div>
                       ))
@@ -1205,7 +1207,7 @@ const AdminDashboard = () => {
                 </div>
                 <div style={{ ...styles.feedScroll, maxHeight: '65vh' }}>
                   {trenches.tweets.length === 0 && (
-                    <p style={{ opacity: 0.4 }}>No trench tweets captured yet — sensor hasn't fired.</p>
+                    <p style={{ opacity: 0.4 }}>No trench tweets captured yet — sensor hasn&apos;t fired.</p>
                   )}
                   {trenches.tweets.slice(0, trenchLimit).map((t, i) => (
                     <div key={t.tweet_id || i} style={{
@@ -1260,7 +1262,7 @@ const AdminDashboard = () => {
               </div>
             )}
 
-            {/* ── GAME MOMENTS ─────────────────────────────────────────────── */}
+            {/* ── COMMUNITY SIGNALS ────────────────────────────────────────── */}
             {activeTab === 'moments' && (
               <div style={styles.grid2}>
                 <div className="glass-card" style={styles.card}>
@@ -1272,7 +1274,7 @@ const AdminDashboard = () => {
                     {moments.total_pending || 0} pending — will be used next brain tick
                   </p>
                   {(moments.pending || []).length === 0 ? (
-                    <p style={{ opacity: 0.4, fontSize: '0.85rem' }}>No pending game moments right now.</p>
+                    <p style={{ opacity: 0.4, fontSize: '0.85rem' }}>No pending community signals right now.</p>
                   ) : (
                     moments.pending.map((m, i) => (
                       <div key={i} style={{ ...styles.timelineItem, borderLeftColor: '#ff9900' }}>
@@ -1286,7 +1288,7 @@ const AdminDashboard = () => {
                 <div className="glass-card" style={styles.card}>
                   <h3 style={styles.cardTitle}><FaHistory style={{ marginRight: 8 }} />Recent History</h3>
                   {(moments.history || []).length === 0 ? (
-                    <p style={{ opacity: 0.4, fontSize: '0.85rem' }}>No history yet — game sensor hasn't captured any moments.</p>
+                    <p style={{ opacity: 0.4, fontSize: '0.85rem' }}>No history yet — the community sensor hasn&apos;t captured a signal.</p>
                   ) : (
                     moments.history.map((m, i) => (
                       <div key={i} style={{ ...styles.timelineItem, borderLeftColor: '#ff00ff' }}>
@@ -1322,7 +1324,7 @@ const AdminDashboard = () => {
                 </div>
 
                 <div style={styles.grid2}>
-                  {/* Left: Game Moments Sensor Queue */}
+                  {/* Left: grouped community-sensor queue */}
                   <div className="glass-card" style={styles.card}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                       <h3 style={{ ...styles.cardTitle, margin: 0, color: '#ff9900' }}><FaClock style={{ marginRight: 8 }} />Game Sensor Queue</h3>
@@ -1332,7 +1334,7 @@ const AdminDashboard = () => {
                       {(queueData?.pending_game_moments || []).length === 0 && (
                         <div style={{ textAlign: 'center', padding: '3rem 1rem', opacity: 0.3 }}>
                           <FaGamepad style={{ fontSize: '2.5rem', marginBottom: '1rem' }} />
-                          <p>No pending game moments. Homestead is quiet.</p>
+                          <p>No pending community signals. The forest feed is quiet.</p>
                         </div>
                       )}
                       {(queueData?.pending_game_moments || []).map((m, i) => (
@@ -1735,8 +1737,8 @@ const AdminDashboard = () => {
                     Courage uses <strong>Sensors</strong> to watch X/Twitter. These are the primary source of your <strong>Search Costs</strong>.
                   </p>
                   <ul style={{ fontSize: '0.8rem', opacity: 0.7, paddingLeft: 20 }}>
-                    <li style={{ marginBottom: 8 }}><strong>Trench Sensor</strong>: Scans $RCR cashtags for community sentiment.</li>
-                    <li style={{ marginBottom: 8 }}><strong>Game Sensor</strong>: Scans for player activity at the Homestead.</li>
+                    <li style={{ marginBottom: 8 }}><strong>Community Sensor</strong>: Watches relevant Courage, Robinhood Chain, $FLY, and agentic-world conversation.</li>
+                    <li style={{ marginBottom: 8 }}><strong>Market Sensor</strong>: Compares eligible live Robinhood Chain signals between cached DexScreener snapshots.</li>
                     <li><strong>Pulse Control</strong>: Both sensors follow your <strong>Dashboard Slider</strong>. Set it higher (e.g., 25m) to slash search costs.</li>
                   </ul>
 
@@ -1746,7 +1748,7 @@ const AdminDashboard = () => {
                   </p>
                   <ul style={{ fontSize: '0.8rem', opacity: 0.7, paddingLeft: 20 }}>
                     <li style={{ marginBottom: 8 }}><strong>The Layered Cooldown</strong>: Courage checks your <strong>Slider</strong> VS his own <strong>AI Suggested Frequency</strong>. He always picks the <strong>most restrictive</strong> (longest) one.</li>
-                    <li><strong>Character Laziness</strong>: If his reflection says "I'm talking too much," he'll wait 30m even if your slider is at 5m.</li>
+                    <li><strong>Editorial restraint</strong>: If reflection detects repetition, the next cycle waits or chooses a different content pillar.</li>
                   </ul>
                 </div>
 
@@ -1754,26 +1756,26 @@ const AdminDashboard = () => {
                 <div>
                   <h3 style={{ color: '#ff9900', borderBottom: '1px solid #ff990033', paddingBottom: 8 }}>🔄 GROUPING (Smart Savings)</h3>
                   <div style={{ background: 'rgba(255,153,0,0.05)', padding: '1rem', borderRadius: 12, border: '1px dashed #ff990044', fontSize: '0.8rem' }}>
-                    <p style={{ margin: 0, fontWeight: 'bold', color: '#ff9900' }}>GAME MOMENTS ARE GROUPED</p>
+                    <p style={{ margin: 0, fontWeight: 'bold', color: '#ff9900' }}>COMMUNITY SIGNALS ARE GROUPED</p>
                     <p style={{ opacity: 0.8, marginTop: 8 }}>
-                      Courage no longer wakes up for every player visit. He lets them pile up in memory, then reacts to <strong>ALL of them in one single post</strong> during his next pulse. 
+                      Relevant X activity accumulates in memory so Courage can choose one thoughtful response during the next pulse instead of reacting to every match.
                       <br/><br/>
-                      <em>1 Post vs 10 Posts = Massive $ Savings.</em>
+                      <em>Grouping protects both the editorial signal and the X budget.</em>
                     </p>
                   </div>
 
                   <h3 style={{ color: '#ff4444', borderBottom: '1px solid #ff444433', paddingBottom: 8, marginTop: '2rem' }}>⚡ THE URGENT BYPASS</h3>
                   <p style={{ fontSize: '0.85rem', opacity: 0.8, lineHeight: 1.6 }}>
-                    Only rare, high-impact events can "wake up" the brain instantly:
+                    Only rare, high-impact events can wake the brain outside its regular rhythm:
                   </p>
                   <ul style={{ fontSize: '0.8rem', opacity: 0.7, paddingLeft: 20 }}>
-                    <li style={{ marginBottom: 8 }}><strong>Market Surges</strong>: If $RCR or SOL pumps, he wakes up instantly to hype it.</li>
-                    <li><strong>High-Signal News</strong>: Alien sightings or classified gov leaks override all cooldowns.</li>
+                    <li style={{ marginBottom: 8 }}><strong>Verified Market Moves</strong>: A short-window move in an eligible live Robinhood Chain signal can request a cooldown-protected tick.</li>
+                    <li><strong>High-Signal News</strong>: Important sourced stories are prioritized, but never override a hard spend cap.</li>
                   </ul>
 
                   <h3 style={{ color: '#aaa', borderBottom: '1px solid #333', paddingBottom: 8, marginTop: '2rem' }}>📰 NEWS VS TWITTER</h3>
                   <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>
-                    <strong>News</strong> provides the knowledge for his "Courageous Chronicle" art. <strong>Twitter</strong> provides the social loop. He weaves them together to become the "Mario Nawfal of Nowhere."
+                    <strong>News</strong> supplies sourced context for Courageous Chronicle art. <strong>X</strong> supplies the community loop. The forest, portal, and living worlds keep every dispatch recognizably Courage.
                   </p>
                 </div>
               </div>

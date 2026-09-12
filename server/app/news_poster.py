@@ -60,18 +60,17 @@ async def generate_news_poster_image(news: dict) -> Image.Image:
     banner_color = "#00C805" if is_crypto else "#D32F2F"
     draw.rectangle((0, 0, WIDTH, 95), fill=banner_color)
     
-    # Exact text from design
-    draw_text_with_shadow("RobinhoodNewsRobinhoodNewsRobinhoodNews", (30, 18), title_font, "#FFFFFF" if not is_crypto else "#000000")
+    draw_text_with_shadow("COURAGEOUS CHRONICLE // NOWHERE", (30, 18), title_font, "#FFFFFF" if not is_crypto else "#000000")
 
     # EXTRA! + TITLE + MORNING FINAL
     accent_color = "black" if not is_crypto else "#00C805"
     draw_text_with_shadow("EXTRA! EXTRA!", (50, 110), banner_font, accent_color)
     draw_text_with_shadow("The Courageous Chronicle", (340, 105), title_font, accent_color)
-    draw_text_with_shadow("ROBINHOOD EDITION", (870, 115), banner_font, accent_color)
+    draw_text_with_shadow("FOREST EDITION", (870, 115), banner_font, accent_color)
 
     # Subtitle
     sub_color = "#555555" if not is_crypto else "#00E676"
-    draw_text_with_shadow("Mario Nawfal of Robinhood Crypto News", (410, 175), small_font, sub_color)
+    draw_text_with_shadow("SOURCED NEWS • ROBINHOOD CHAIN SIGNALS", (410, 175), small_font, sub_color)
 
     # Robinhood Green separator (Courage signature)
     draw.line((40, 210, 1160, 210), fill="#00C805", width=10)
@@ -105,13 +104,13 @@ async def generate_news_poster_image(news: dict) -> Image.Image:
     draw_text_with_shadow(story, (510, 330), body_font, story_color, max_width=620)
 
     # Source + time
-    source_line = f"Robinhood News • {news.get('time_ago', 'now')}"
+    source_line = f"{news.get('source') or 'Sourced News'} • {news.get('time_ago', 'now')}"
     draw_text_with_shadow(source_line, (70, 630), small_font, "#666666" if not is_crypto else "#00E676")
 
     # ── COURAGE BOTTOM BAR ──
     bar_color = "#00C805" if is_crypto else "#8E24AA"
     draw.rectangle((0, 640, WIDTH, HEIGHT), fill=bar_color)
-    draw_text_with_shadow("THE THINGS I DO FOR YOU PEOPLE... — COURAGE (ROBINHOOD NEWS)", (50, 652), small_font, "black" if is_crypto else "white")
+    draw_text_with_shadow("SIGNAL RECEIVED — COURAGE, LIVE FROM NOWHERE", (50, 652), small_font, "black" if is_crypto else "white")
 
     # Crypto flair: tiny chart emoji in corner
     if is_crypto:

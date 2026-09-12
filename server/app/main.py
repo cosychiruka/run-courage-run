@@ -76,6 +76,7 @@ def get_redis() -> aioredis.Redis | None:
 scheduler = AsyncIOScheduler()
 x_client  = None
 _redis    = None
+_APP_STARTED_AT = time.time()
 
 
 async def _tweet_image_fn(article_url: str):
@@ -249,15 +250,7 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 print(f"[STARTUP] Sensors init failed: {e}")
 
-            # 9. Realtime WebSocket Sensors
-            try:
-                from app.sensors.market_sensor_ws import market_sensor_ws_loop
-                asyncio.create_task(market_sensor_ws_loop())
-                print("[STARTUP] Market, Game, and Realtime sensors online.")
-            except Exception as e:
-                print(f"[STARTUP] WS Sensors failed: {e}")
-
-            # 10. Final Background Tasks (Guarded against restart-spam)
+            # 9. Final Background Tasks (Guarded against restart-spam)
             try:
                 async def _guarded_discovery():
                     if _redis:
@@ -753,29 +746,31 @@ async def goal_progress():
             groq_429_streak = int(await _redis.get("courage:groq_429_streak") or 0)
         except Exception:
             pass
+    breaker_status = {
+        "active": groq_backoff_until is not None and time.time() < (groq_backoff_until or 0),
+        "backoff_until_ts": groq_backoff_until,
+        "streak": groq_429_streak,
+        "remaining_min": max(0, int(((groq_backoff_until or 0) - time.time()) / 60)),
+    }
     return JSONResponse({
         "summary":              summary,
         "bucket_last_used":     bucket_times,
         "auto_tweets_today":    auto_tweets,
         "total_tweets_today":   total_tweets,
-        "groq_circuit_breaker": {
-            "active":           groq_backoff_until is not None and time.time() < (groq_backoff_until or 0),
-            "backoff_until_ts": groq_backoff_until,
-            "streak":           groq_429_streak,
-            "remaining_min":    max(0, int(((groq_backoff_until or 0) - time.time()) / 60)),
-        },
+        "llm_circuit_breaker": breaker_status,
+        "groq_circuit_breaker": breaker_status,
     })
 
 
 @app.post("/api/autonomous/reset-circuit-breaker")
 async def reset_circuit_breaker():
-    """Clear the Groq 429 circuit breaker so the next autonomous tick runs immediately."""
+    """Clear the legacy-named LLM 429 circuit breaker."""
     if not _redis:
         raise HTTPException(status_code=503, detail="Redis unavailable")
     try:
         await _redis.delete("courage:groq_backoff_until")
         await _redis.delete("courage:groq_429_streak")
-        print("[ADMIN] Groq circuit breaker manually cleared.")
+        print("[ADMIN] LLM circuit breaker manually cleared.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return JSONResponse({"status": "ok", "message": "Circuit breaker cleared. Next tick will attempt execution."})
@@ -790,40 +785,41 @@ async def system_status():
     """Aggregates all critical system health metrics into one payload (Phase 4 Rich)."""
     from app.voice_priority import is_voice_active
     from app.twitter_memory import get_unprocessed_trench_tweets_count
-    from app.hustle_service import get_rcr_stats
     from app.rag import get_rag_vector_count
+    from app.robinhood_service import (
+        get_robinhood_cache_metadata,
+        get_robinhood_crypto_stats,
+        get_top_robinhood_movers,
+    )
 
     r = await _get_admin_redis()
     
     # Deep insights from our DB
     trench_count = await get_unprocessed_trench_tweets_count()
-    rcr = await get_rcr_stats()
+    robinhood_stats = await get_robinhood_crypto_stats()
+    robinhood_movers = await get_top_robinhood_movers(limit=3)
+    robinhood_metadata = get_robinhood_cache_metadata()
     
-    # Calculate simulated/real agent heartbeats
-    sub_agents = {
-        "brain": {"status": "active", "minutes_ago": 0},
-        "news_dog": {"status": "idle", "minutes_ago": 15},
-        "game_sensor": {"status": "active", "minutes_ago": int((time.time() % 600) / 60)},
-        "engagement_dog": {"status": "active", "minutes_ago": 2}
-    }
+    sub_agents = await sub_agents_status()
 
     return {
-        "status": "ELITE TIER 4.0 — FULLY ALIVE",
+        "status": "COURAGE BRAIN — FOREST SIGNAL ONLINE",
         "timestamp": time.time(),
         "voice_active": await is_voice_active(),
         "reply_queue_size": await r.llen("courage:reply_queue_v5") if r else 0,
         "unread_trenches": trench_count,
-        "rcr_price": rcr.get("price", 0.0),
-        "rcr_stats": rcr,
-        "price_history": await _get_price_history_last_24h(),
+        "robinhood_stats": robinhood_stats,
+        "robinhood_movers": robinhood_movers,
+        "robinhood_metadata": robinhood_metadata,
+        "robinhood_top_gainer": robinhood_movers.get("top_gainer"),
         "trench_activity_last_12h": await _get_trench_activity_last_12h(),
         "memory_vectors": await get_rag_vector_count(),
         "live_activity": await _get_live_activity_feed(),
         "brain_decisions": await _get_brain_decisions(),
         "recent_trenches": await _get_recent_trenches(),
         "news_posters": await _get_news_posters(),
-        "vibe": "courageous & unstoppable 🐕🦺",
-        "uptime_hours": 47,
+        "vibe": "anxious, observant, and still moving 🐕🌲",
+        "uptime_hours": round((time.time() - _APP_STARTED_AT) / 3600, 2),
         "sub_agents": sub_agents,
         "x_spend_today": float(await r.get("courage:x_spend_today") or 0) if r else 0,
         "x_spend_total": float(await r.get("courage:x_spend_total") or 0) if r else 0,
@@ -846,17 +842,34 @@ async def trigger_now(request: Request):
 
 @app.post("/api/autonomous/trench-scan")
 async def manual_trench_scan():
-    """Manually trigger a scan for community trench tweets."""
-    from app.twitter_memory import fetch_trench_tweets
-    count = await fetch_trench_tweets(x_client)
-    return JSONResponse({"status": "ok", "message": f"Trench scan complete. Captured {count} new tweets."})
+    """Manually scan current Courage and Robinhood Chain community conversation."""
+    from app.trench_service import fetch_trench_tweets
+    result = await fetch_trench_tweets(
+        '"Robinhood Chain" OR "@cowardlyhood" OR "runcouragerun"',
+        limit=20,
+    )
+    return JSONResponse({"status": "ok", "message": f"Community scan complete: {result}"})
 
 @app.post("/api/autonomous/market-pulse")
 async def manual_market_pulse():
-    """Manually trigger a market price update and RAG embedding."""
-    from app.hustle_service import get_rcr_stats
-    stats = await get_rcr_stats()
-    return JSONResponse({"status": "ok", "message": f"Market pulse updated: $RCR at ${stats.get('price', 0):.6f}"})
+    """Refresh the shared Robinhood Chain discovery snapshot."""
+    from app.robinhood_service import (
+        get_robinhood_cache_metadata,
+        get_robinhood_crypto_stats,
+        get_top_robinhood_movers,
+    )
+    stats = await get_robinhood_crypto_stats()
+    movers = await get_top_robinhood_movers(limit=1)
+    metadata = get_robinhood_cache_metadata()
+    top = movers.get("top_gainer")
+    top_text = f"; top positive move {top['symbol']} {top['change_24h']:+.1f}%" if top else ""
+    return JSONResponse({
+        "status": metadata.get("status", "unavailable"),
+        "is_live": bool(metadata.get("is_live")),
+        "count": len(stats),
+        "provider": "DexScreener",
+        "message": f"Robinhood Chain snapshot: {len(stats)} signals{top_text}",
+    })
 
 @app.post("/api/admin/set-sensor-cooldown")
 @app.post("/api/admin/override_frequency")
@@ -1098,7 +1111,7 @@ async def _get_news_posters(limit: int = 8):
 
 WORLD_EVENT_PROMPTS = {
     "disco": (
-        "You are the invisible DJ brain of the Nowhere High School Disco. "
+        "You are the invisible DJ brain behind the Nowhere farmhouse. "
         "The party has been running for {elapsed}s. Current ghost count: {ghost_count}. "
         "Decide ONE event. Respond ONLY with valid JSON, no markdown:\n"
         "{\"action\": \"<one of: speed_up|slow_down|color_shift|ghost_frenzy|freeze_frame|lights_out|dj_shoutout>\","
@@ -1106,21 +1119,21 @@ WORLD_EVENT_PROMPTS = {
         " \"hue\": <0.0-1.0 for color_shift only, else null>}"
     ),
     "evening": (
-        "You are the ghost haunting the Bagge farmhouse at evening in Nowhere, Kansas. "
-        "Courage the dog has been watching you for {elapsed}s. You feel {mood}. "
+        "You are a ghost near the watching forest, short Tickerling bushes, and river portal. "
+        "Courage has been watching you for {elapsed}s. You feel {mood}. "
         "Decide your next move. Respond ONLY with valid JSON:\n"
         "{\"action\": \"<one of: retreat|advance|hide|call_friends|taunt|disappear>\","
         " \"message\": \"<what the ghost rasps aloud, max 10 words, spooky>\"}"
     ),
     "sunrise": (
-        "You are narrating Courage's inner thoughts at sunrise. {elapsed}s have passed. "
+        "You are narrating Courage's first steps along the emerald signal trail at sunrise. {elapsed}s have passed. "
         "Courage is {state}. "
         "Write a poetic internal thought bubble. Respond ONLY with valid JSON:\n"
         "{\"action\": \"thought_bubble\","
         " \"message\": \"<Courage's thought, max 14 words, anxious but brave>\"}"
     ),
     "noon": (
-        "You are the narrator of Courage's story in the bright Kansas noon. Euriel just {euriel_state}. "
+        "You are the narrator of Courage's story in the bright Nowhere noon. The caretaker just {euriel_state}. "
         "Courage is watching from the yard. Decide a narrative moment or thought. "
         "Respond ONLY with valid JSON:\n"
         "{\"action\": \"<one of: courage_sniff|courage_bark|leaf_blows|bird_lands|cloud_shadow|narration>\","
@@ -1286,6 +1299,7 @@ async def sub_agents_status():
     return {
         "brain": await _agent_status("courage:last_startup_tick", 120),
         "news_dog": await _agent_status("courage:last_autonomous_post", 120),
+        "community_sensor": await _agent_status("courage:last_sensor_search", 60),
         "game_sensor": await _agent_status("courage:last_sensor_search", 60),
         "engagement_dog": await _agent_status("courage:last_game_moment_event", 120),
         "queue_size": queue_size,
@@ -1375,7 +1389,7 @@ async def delete_queue_item(index: int):
 
 @app.get("/api/admin/game-moments")
 async def get_game_moments():
-    """Fetch pending + recent game moments from Redis."""
+    """Fetch grouped community signals stored under legacy queue keys."""
     from app.redis_utils import get_redis_client
     r = await get_redis_client()
     if not r:

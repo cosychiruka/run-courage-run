@@ -1,7 +1,4 @@
-"""
-game_sensor.py — Watches for "Become a Monster" + Courage game activity (even without $RCR).
-Emits GAME_MOMENT so Courage can shout out players.
-"""
+"""Watch relevant X conversation and group it for Courage's next heartbeat."""
 
 import asyncio
 import time
@@ -42,10 +39,10 @@ async def game_sensor_loop():
             continue
 
         try:
-            # Search for Robinhood crypto topics, direct mentions & game moments
+            # Search Courage's actual story and ecosystem instead of generic token chatter.
             query = (
-                '"Robinhood crypto" OR "Robinhood listing" OR "$DOGE" OR "$PEPE" OR "$SHIB" '
-                'OR "@cowardlyhood" OR "runcouragerun" -is:retweet lang:en'
+                '"Robinhood Chain" OR "agentic meme" OR "$FLY" OR "@cowardlyhood" '
+                'OR "runcouragerun" OR "hood courage" -is:retweet lang:en'
             )
             tweets = x.search_recent(query=query, max_results=10)
 
@@ -61,8 +58,8 @@ async def game_sensor_loop():
 
             for t in tweets.data or []:
                 if any(kw in t.text.lower() for kw in [
-                    "robinhood", "doge", "pepe", "shib", "crypto", "courage", "runcouragerun",
-                    "@cowardlyhood", "homestead", "cowardly dog",
+                    "robinhood chain", "agentic meme", "$fly", "courage", "runcouragerun",
+                    "hood courage", "@cowardlyhood", "homestead", "tickerling", "portal",
                 ]):
                     # PHASE 5.9: Debounce events to prevent LLM spam (max 1 every 30s)
                     last_event = await _redis.get("courage:last_game_moment_event") if _redis else None

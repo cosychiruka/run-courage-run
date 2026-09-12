@@ -6,7 +6,7 @@ import { fetchRobinhoodTokenSnapshot, getCachedTokenSnapshot, resolveTokenLogoUr
 
 const API_BASE = getBackendUrl();
 
-// ── Widget 1: Live Robinhood & Trending Crypto Pulse (Sorted Live Data) ────────────────
+// ── Widget 1: Robinhood Chain discovery pulse (sorted live data) ─────────────
 export const LiveMarketWidget = () => {
   const [data, setData] = useState(getCachedTokenSnapshot);
   const [loading, setLoading] = useState(false);
@@ -47,7 +47,7 @@ export const LiveMarketWidget = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ margin: 0, fontFamily: 'Bangers, cursive', color: '#ccff00', fontSize: '2rem', letterSpacing: '1.5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <FaChartLine color="#ccff00" /> 🔥 LIVE TRENDING TOKENS & ROBINHOOD CRYPTO PULSE
+            <FaChartLine color="#ccff00" /> 🟢 LIVE ROBINHOOD CHAIN DISCOVERY PULSE
           </h2>
           <p style={{ margin: '4px 0 0', opacity: 0.7, fontSize: '0.85rem', color: '#ccc' }}>
             Robinhood Chain discovery pulse via DexScreener · {data?.metadata?.status || 'connecting'}
@@ -81,14 +81,14 @@ export const LiveMarketWidget = () => {
       }}>
         {sortedStats.length === 0 ? (
           <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '2rem', opacity: 0.5, color: '#888' }}>
-            Connecting to Live Crypto & Robinhood Market Stream...
+            Waiting for a Robinhood Chain discovery snapshot...
           </div>
         ) : (
           sortedStats.map((coin) => {
             const isPos = (coin.change_24h || 0) >= 0;
             return (
               <motion.div
-                key={coin.ticker || coin.symbol}
+                key={coin.id || coin.symbol}
                 whileHover={{ scale: 1.03, translateY: -4 }}
                 transition={{ type: 'spring', stiffness: 300 }}
                 style={{
@@ -113,7 +113,7 @@ export const LiveMarketWidget = () => {
                       />
                     )}
                     <span style={{ fontFamily: 'Bangers, cursive', fontSize: '1.3rem', letterSpacing: '1px', color: '#fff' }}>
-                      {coin.ticker || coin.symbol}
+                      {coin.symbol}
                     </span>
                     {coin.is_boosted && (
                       <span style={{ fontSize: '0.65rem', background: '#ffaa0022', color: '#ffaa00', border: '1px solid #ffaa0044', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold' }}>
@@ -135,9 +135,9 @@ export const LiveMarketWidget = () => {
                 </div>
 
                 <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ccff00', fontFamily: 'monospace' }}>
-                  ${Number(coin.price_usd || coin.price || 0) < 0.01
-                    ? Number(coin.price_usd || coin.price || 0).toFixed(6)
-                    : Number(coin.price_usd || coin.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ${Number(coin.price || 0) < 0.01
+                    ? Number(coin.price || 0).toFixed(6)
+                    : Number(coin.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', opacity: 0.6, marginTop: '4px', color: '#aaa' }}>
@@ -232,7 +232,7 @@ export const LatestNewsCardWidget = () => {
               🟢 AUTOMATED NEWS POSTER PIPELINE
             </span>
             <h3 style={{ margin: '8px 0 4px', fontSize: '1.2rem', color: '#fff' }}>
-              Mario Nawfal Style News Dispatch
+              Courage Forest News Dispatch
             </h3>
             <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.75, color: '#ccc', lineHeight: 1.5 }}>
               Courage automatically transforms breaking Robinhood crypto news & X trench discussions into custom green news cards ready for Twitter dispatch.
@@ -330,9 +330,9 @@ export const BrainPulseWidget = () => {
         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '16px', border: '1px solid rgba(204,255,0,0.2)' }}>
           <div style={{ fontSize: '0.7rem', opacity: 0.5, textTransform: 'uppercase', color: '#aaa' }}>PERSONA VIBE</div>
           <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#ccff00', fontFamily: 'Bangers, cursive' }}>
-            MARIO NAWFAL
+            FOREST SIGNAL
           </div>
-          <div style={{ fontSize: '0.7rem', opacity: 0.6, marginTop: 4 }}>Robinhood Breaking News</div>
+          <div style={{ fontSize: '0.7rem', opacity: 0.6, marginTop: 4 }}>Lore + sourced market context</div>
         </div>
 
         <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '16px', border: '1px solid rgba(204,255,0,0.2)' }}>

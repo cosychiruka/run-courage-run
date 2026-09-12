@@ -12,7 +12,7 @@ Tools available to Courage:
   - get_twitter_trends    : discover trending topics on X/Twitter
   - get_twitter_memory    : recall Courage's stored Twitter activity history
   - record_twitter_action : save a tweet/mention/trend to long-term memory
-  - check_api_credits     : check remaining API budget (Groq tokens, X searches, news)
+  - check_api_credits     : check remaining LLM, X, and news API budgets
 """
 
 import os
@@ -161,7 +161,10 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "post_tweet",
-            "description": "Post a tweet to @cowardlyhood. Use this ONLY when the brain decides to publish.",
+            "description": (
+                "Post a tweet to @cowardlyhood. In conversation, use only after the user explicitly "
+                "asks to publish. In autonomous mode, use only for a verified high-signal action."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -190,11 +193,11 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "proactive_personality_post",
-            "description": "Post fun, random 'Spreading Courage' content when idle (GM/GN, meme, hype, SOL update, etc.)",
+            "description": "Publish a concise, non-repetitive Courage forest transmission when a quiet tick genuinely merits one.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "vibe": {"type": "string", "enum": ["gm", "gn", "hype", "meme", "sol_update", "random"]}
+                    "vibe": {"type": "string", "enum": ["gm", "gn", "hype", "meme", "forest", "signal", "random"]}
                 },
                 "required": ["vibe"]
             }
@@ -219,12 +222,12 @@ TOOL_SCHEMAS = [
             "description": (
                 "Search recent tweets (last 7 days) by keyword, hashtag, cashtag, or phrase. "
                 "Use this to find what people are saying about a topic RIGHT NOW on X/Twitter. "
-                "Great for: '$RCR' (your token), '#Courage', 'Solana meme', 'crypto news', sports results, "
-                "breaking news reactions, or ANY topic a user asks about. "
+                "Good uses include 'Robinhood Chain', '#Courage', '$FLY', agentic worlds, "
+                "breaking-news reactions, or another topic the user names. "
                 "Filters out retweets by default for signal over noise. "
                 "Returns up to 20 tweets with author, text, and engagement stats. "
                 "Query syntax: 'keyword', '#hashtag', '$cashtag', '\"exact phrase\"', 'word1 OR word2', '-exclude'. "
-                "Example: '$RCR Solana -is:retweet lang:en'"
+                "Example: '\"Robinhood Chain\" -is:retweet lang:en'"
             ),
             "parameters": {
                 "type": "object",
@@ -306,7 +309,7 @@ TOOL_SCHEMAS = [
             "description": (
                 "Check how many AI tokens and API credits remain today. "
                 "Call this when you feel like you've been searching a lot, when users ask about your energy or capacity, "
-                "or when you want to know if you can keep using tools. Reports Groq tokens used, X search quota, and news budgets."
+                "or when you want to know if you can keep using tools. Reports configured LLM usage, X search quota, and news budgets."
             ),
             "parameters": {"type": "object", "properties": {}, "required": []},
         },
@@ -337,12 +340,12 @@ TOOL_SCHEMAS = [
             },
         },
     },
-    # ── ELITE TIER 1: Trench, $RCR Hustle & Art Studio ─────────────────────
+    # ── Community, market discovery, and art studio ─────────────────────────
     {
         "type": "function",
         "function": {
             "name": "fetch_trench_tweets",
-            "description": "Bulk fetch recent $RCR cashtag tweets from the trenches. Saves them for later smart replies.",
+            "description": "Legacy fixed-cashtag collector. Use only when a user explicitly asks about the configured project token.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -357,7 +360,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "get_trench_pulse",
-            "description": "Get a summary of unread community $RCR tweets for Courage to read and reply to.",
+            "description": "Read posts retained by the legacy fixed-cashtag collector. Do not treat them as website visits.",
             "parameters": {"type": "object", "properties": {}, "required": []}
         }
     },
@@ -365,7 +368,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "get_rcr_stats",
-            "description": "Get live $RCR price, 24h change, volume, and yesterday vs today delta.",
+            "description": "Legacy project-token/Solana fallback stats. Use only when the user explicitly asks for them.",
             "parameters": {"type": "object", "properties": {}, "required": []}
         }
     },
@@ -373,7 +376,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "get_robinhood_stats",
-            "description": "Fetch real-time prices, 24h gainers/losers, and volume for Robinhood crypto assets ($DOGE, $PEPE, $SHIB, $BTC, $ETH, $SOL).",
+            "description": "Fetch the current chain-filtered Robinhood Chain discovery snapshot from DexScreener, including source tags and eligibility metadata.",
             "parameters": {"type": "object", "properties": {}, "required": []}
         }
     },
@@ -381,7 +384,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "get_robinhood_movers",
-            "description": "Get top 24h gainers and dumpers on Robinhood Crypto for market commentary.",
+            "description": "Get positive and negative 24h moves from the current Robinhood Chain discovery snapshot. Discovery is not endorsement.",
             "parameters": {"type": "object", "properties": {}, "required": []}
         }
     },
@@ -389,11 +392,11 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "get_robinhood_token_info",
-            "description": "Get detailed price, 24h change, and metrics for a specific Robinhood ticker (e.g. DOGE, PEPE, SHIB, BTC, ETH).",
+            "description": "Look up a specific symbol in the current Robinhood Chain discovery snapshot. Reports unavailable when it is absent.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "ticker": {"type": "string", "description": "Ticker symbol, e.g. DOGE, PEPE, SHIB, BTC, ETH"}
+                    "ticker": {"type": "string", "description": "A symbol supplied by the user or current snapshot, with or without $."}
                 },
                 "required": ["ticker"]
             }
@@ -434,7 +437,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "auto_hustle_post",
-            "description": "Check current $RCR/SOL price and daily delta. Craft a motivational meme-style post and queue it with optional cartoon.",
+            "description": "Legacy project-token post helper. Do not use for Robinhood Chain discovery or without an explicit user request.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -515,7 +518,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "get_token_info",
-            "description": "Get live $RCR (or SOL fallback) token stats, price, volume, and launch status.",
+            "description": "Read legacy project-token configuration. This is not the Robinhood Chain discovery feed.",
             "parameters": {
                 "type": "object",
                 "properties": {},
@@ -551,7 +554,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "token_dog_report",
-            "description": "Token Dog gives latest $RCR stats and suggests pump/hold messaging.",
+            "description": "Legacy project-token report. Use only when explicitly requested; never turn it into investment advice.",
             "parameters": {"type": "object", "properties": {}, "required": []}
         }
     },
@@ -567,7 +570,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "viral_growth_suggest",
-            "description": "Suggest viral actions like raids, meme drops, or collabs based on current momentum.",
+            "description": "Suggest respectful, non-spam community storytelling ideas based on observed themes.",
             "parameters": {"type": "object", "properties": {}, "required": []}
         }
     },
@@ -647,20 +650,46 @@ async def dispatch_tool(name: str, args: any, x_client=None, tweet_image_fn=None
             case "get_crypto_news":       return await _get_crypto_news(args)
             case "get_token_info":        return await get_token_info()
             case "get_robinhood_stats":
-                from app.robinhood_service import get_robinhood_crypto_stats
+                from app.robinhood_service import get_robinhood_cache_metadata, get_robinhood_crypto_stats
                 stats = await get_robinhood_crypto_stats()
-                lines = [f"{s['symbol']} ({s.get('name')}): ${s.get('price'):,.4f} ({s.get('change_24h', 0):+.1f}%)" for s in stats[:8]]
-                return "Robinhood Crypto Markets:\n" + "\n".join(lines)
+                metadata = get_robinhood_cache_metadata()
+                if not stats:
+                    return f"Robinhood Chain discovery unavailable (DexScreener; status={metadata.get('status', 'unavailable')})."
+                lines = [
+                    f"{s['symbol']} ({s.get('name')}): ${s.get('price'):,.6f} "
+                    f"({s.get('change_24h', 0):+.1f}% 24h; source={','.join(s.get('source_tags', []))})"
+                    for s in stats[:8]
+                ]
+                return (
+                    f"Robinhood Chain discovery via DexScreener "
+                    f"(status={metadata.get('status')}, live={metadata.get('is_live')}):\n"
+                    + "\n".join(lines)
+                )
             case "get_robinhood_movers":
-                from app.robinhood_service import get_top_robinhood_movers
+                from app.robinhood_service import get_robinhood_cache_metadata, get_top_robinhood_movers
                 movers = await get_top_robinhood_movers()
                 gainers = ", ".join(f"{g['symbol']} ({g.get('change_24h'):+.1f}%)" for g in movers.get("gainers", []))
                 dumpers = ", ".join(f"{d['symbol']} ({d.get('change_24h'):+.1f}%)" for d in movers.get("dumpers", []))
-                return f"Robinhood Top Gainers: {gainers or 'none'}\nRobinhood Top Dumpers: {dumpers or 'none'}"
+                metadata = get_robinhood_cache_metadata()
+                return (
+                    f"Robinhood Chain 24h moves via DexScreener "
+                    f"(status={metadata.get('status')}, live={metadata.get('is_live')}):\n"
+                    f"Positive: {gainers or 'none'}\nNegative: {dumpers or 'none'}"
+                )
             case "get_robinhood_token_info":
                 from app.robinhood_service import get_robinhood_token_info
-                info = await get_robinhood_token_info(args.get("ticker", "DOGE"))
-                return f"{info.get('symbol')} ${info.get('price'):,.4f} | 24h: {info.get('change_24h', 0):+.1f}% | High: ${info.get('high_24h', 0):,.4f} | Vol: ${info.get('volume_24h', 0):,.0f}"
+                ticker = str(args.get("ticker") or "").strip()
+                if not ticker:
+                    return "A ticker from the current snapshot is required."
+                info = await get_robinhood_token_info(ticker)
+                if info.get("status") == "unavailable":
+                    return f"{info.get('symbol')} is not present in the current Robinhood Chain discovery snapshot."
+                return (
+                    f"{info.get('symbol')} ${info.get('price'):,.6f} | "
+                    f"24h: {info.get('change_24h', 0):+.1f}% | "
+                    f"Vol: ${info.get('volume_24h', 0):,.0f} | "
+                    f"Liquidity: ${info.get('liquidity_usd', 0):,.0f} | Provider: DexScreener"
+                )
             case "news_dog_scan":         return await news_dog_scan()
             case "art_dog_generate":      return await art_dog_generate(args.get("scene", "Courage being epic"))
             case "engagement_dog_suggest": return await engagement_dog_suggest()
@@ -1066,19 +1095,27 @@ async def _record_twitter_action(args: dict) -> str:
 
 
 async def _check_api_credits(x_client) -> str:
-    from app.config import GROQ_DAILY_TOKEN_BUDGET, COINDESK_API_KEY, COINGECKO_DAILY_BUDGET
+    from app.config import LLM_DAILY_TOKEN_BUDGET, COINGECKO_DAILY_BUDGET
     today = datetime.date.today().isoformat()
 
-    groq_tokens = groq_calls = 0
+    llm_tokens = llm_calls = 0
     search_rem = "use get_x_rate_status for live data"
     auto_tweets = total_tweets = 0
-    cp_used = cg_used = 0
+    cd_used = cg_used = 0
 
     try:
         r = await _get_tools_redis()
         if r:
-            groq_tokens  = int(await r.get(f"groq:tokens:{today}") or 0)
-            groq_calls   = int(await r.get(f"groq:calls:{today}") or 0)
+            llm_tokens = int(
+                await r.get(f"llm:tokens:{today}")
+                or await r.get(f"groq:tokens:{today}")
+                or 0
+            )
+            llm_calls = int(
+                await r.get(f"llm:calls:{today}")
+                or await r.get(f"groq:calls:{today}")
+                or 0
+            )
             auto_tweets  = int(await r.get(f"courage:auto_tweets:{today}") or 0)
             total_tweets = int(await r.get(f"courage:total_tweets:{today}") or 0)
             cd_used      = int(await r.get(f"budget:coindesk:{today}") or 0)
@@ -1090,11 +1127,11 @@ async def _check_api_credits(x_client) -> str:
         pass
 
     budget = await get_budget_status()
-    groq_pct = int(groq_tokens / GROQ_DAILY_TOKEN_BUDGET * 100) if GROQ_DAILY_TOKEN_BUDGET else 0
+    llm_pct = int(llm_tokens / LLM_DAILY_TOKEN_BUDGET * 100) if LLM_DAILY_TOKEN_BUDGET else 0
 
     lines = [
         "== API CREDIT REPORT ==",
-        f"AI brain (Groq):    {groq_tokens:,} / {GROQ_DAILY_TOKEN_BUDGET:,} tokens today ({groq_pct}%) — {groq_calls} calls",
+        f"AI brain:           {llm_tokens:,} / {LLM_DAILY_TOKEN_BUDGET:,} tokens today ({llm_pct}%) — {llm_calls} calls",
         f"X search quota:     {search_rem} remaining this window",
         f"Auto tweets today:  {auto_tweets} / 25 (autonomous cap)",
         f"Total tweets today: {total_tweets} (auto + interactive)",
@@ -1198,65 +1235,58 @@ async def _analyze_sentiment(focus: str = "both"):
     }
 
 async def _learn_from_past_posts(limit: int = 12):
-    """BROADENED self-learning — now understands real meme crypto culture (GM/GN, Brrrr, Print, LFG, moon)"""
+    """Identify repeated editorial patterns without inventing engagement results."""
     from app import twitter_memory
     past_posts = await twitter_memory.get_own_recent_posts(limit=limit)
-    
-    insights = []
-    avoid = []
-    strengths = []
+
+    theme_counts = {
+        "greeting": 0,
+        "generic_hype": 0,
+        "forest_lore": 0,
+        "portal_lore": 0,
+        "market_signal": 0,
+    }
 
     for post in past_posts:
         text = post["text"].lower()
-        
-        # GM / GN culture
         if "gm" in text or "good morning" in text:
-            insights.append("GM posts with 🔥 or moon emojis get strong morning engagement")
-            strengths.append("greeting style")
-        if "gn" in text or "good night" in text:
-            insights.append("GN posts perform well for community wind-down")
-        
-        # Meme crypto slang
-        if "brrrr" in text or "print" in text or "printing" in text:
-            insights.append("Brrrr / Printing posts create strong bullish FOMO")
-        if "lfg" in text or "to the moon" in text or "moon" in text:
-            insights.append("LFG + moon posts are community favorites")
-        
-        # General positive patterns
-        if any(word in text for word in ["legends", "bullish", "based", "alpha"]):
-            insights.append("Positive hype words (legends, bullish, alpha) boost engagement")
-        
-        # What to avoid
-        if any(word in text for word in ["rug", "scam", "fud", "monster", "scared"]):
-            avoid.append("Heavy rug/scam/FUD talk kills vibe unless community is already panicking")
+            theme_counts["greeting"] += 1
+        if any(term in text for term in ["lfg", "to the moon", "brrrr", "printing"]):
+            theme_counts["generic_hype"] += 1
+        if any(term in text for term in ["forest", "nowhere", "farmhouse", "tickerling"]):
+            theme_counts["forest_lore"] += 1
+        if any(term in text for term in ["portal", "river", "off button", "signal trail"]):
+            theme_counts["portal_lore"] += 1
+        if any(term in text for term in ["robinhood chain", "dexscreener", "24h", "volume"]):
+            theme_counts["market_signal"] += 1
+
+    repeated = [name for name, count in theme_counts.items() if count >= 3]
+    missing = [name for name, count in theme_counts.items() if count == 0]
 
     return {
-        "insights": list(dict.fromkeys(insights))[:5],      # unique, max 5
-        "strengths": list(dict.fromkeys(strengths))[:3],
-        "avoid": list(dict.fromkeys(avoid))[:3],
-        "summary": f"Learned from {len(past_posts)} recent posts — GM/GN + Brrrr style is strong"
+        "sample_size": len(past_posts),
+        "theme_counts": theme_counts,
+        "repeated_themes": repeated,
+        "unused_themes": missing,
+        "instruction": "Vary the next post; these counts describe usage, not performance.",
     }
 
 async def get_token_info():
-    """Smart token awareness with SOL fallback"""
+    """Expose legacy project-token configuration without fabricating market values."""
     token_address = os.getenv("RCR_TOKEN_ADDRESS")
     if token_address and token_address != "SOL_FALLBACK":
-        # TODO: DexScreener or DexTools call (we'll expand in 7.3)
         return {
             "symbol": "$RCR",
-            "price": "0.00",           # placeholder until real API
-            "volume_24h": "0",
-            "launch_status": "live",
-            "message": "Real $RCR token monitoring active"
+            "status": "legacy-configured",
+            "market_data_available": False,
+            "message": "A legacy token address is configured; use a live market tool for metrics.",
         }
-    else:
-        return {
-            "symbol": "SOL",
-            "price": "0.00",           # placeholder
-            "volume_24h": "0",
-            "launch_status": "pre-launch",
-            "message": "Still tracking SOL as placeholder until $RCR launches"
-        }
+    return {
+        "symbol": None,
+        "status": "not-configured",
+        "market_data_available": False,
+        "message": "No legacy project token is configured.",
+    }
 
 async def _reflect_and_adapt(action_taken: str, outcome: str = "success"):
     """Final self-reflection step — makes Courage evolve"""
@@ -1369,9 +1399,10 @@ async def _llm_news_tweet(title: str, summary: str) -> str:
                 f"Summary: {summary[:200]}\n\n"
                 "Rules:\n"
                 "- Max 240 chars\n"
-                "- Courage voice: dramatic, panicked but brave, meme-native\n"
-                "- Include 1 sound effect (*whimper* / *gulp* / *gasp*) AND 1 catchphrase\n"
-                "- End with: 'The things I do for love...' OR 'MMGA!' OR 'LFG!'\n"
+                "- Lead with the factual news reaction; Courage is anxious but brave\n"
+                "- Use at most 1 sound effect or rare signature, never a mandatory catchphrase\n"
+                "- Add at most 2 meaningful symbols from 🐕 🌲 🌀 👀 🟢 📡\n"
+                "- Do not invent a ticker, price, affiliation, or market consequence\n"
                 "- No external URLs, no contract addresses, no quotes around the tweet\n"
                 "Tweet text only:"
             )}],
@@ -1391,20 +1422,22 @@ async def _llm_news_tweet(title: str, summary: str) -> str:
 
 def _build_news_tweet(title: str, summary: str) -> str:
     """Sync fallback: fit title + summary + Courage signature inside 280 chars."""
-    signature = "\n\nSpreading Courage 🐕‍🦺"
+    signature = "\n\nSignal received. 🐕📡"
     sep = "\n\n"
     max_summary = max(0, 280 - len(title) - len(sep) - len(signature) - 2)
     parts = [title]
     if summary:
         parts.append(summary[:max_summary])
-    parts.append("Spreading Courage 🐕‍🦺")
+    parts.append("Signal received. 🐕📡")
     return "\n\n".join(parts)
 
 
 async def _auto_hustle_post(args: any, x_client, tweet_image_fn) -> str:
     """Actually post a token hustle/market update with optional generated art."""
     if not isinstance(args, dict): args = {}
-    post_text = (args.get("post_text") or "Spreading Courage 🐕‍🦺 $RCR to the moon!")
+    post_text = (args.get("post_text") or "").strip()
+    if not post_text:
+        return "Blocked: a sourced post_text is required; market copy is never fabricated."
     if len(post_text) > 280:
         post_text = post_text[:277] + "..."
     art_prompt = args.get("art_prompt", "")
@@ -1457,7 +1490,7 @@ async def _auto_reply_with_art(args: dict) -> str:
     import app.twitter_memory as tw_mem
 
     trench_ids  = args.get("trench_ids") or []
-    reply_text  = (args.get("reply_text") or "Spreading Courage 🐕‍🦺")[:280]
+    reply_text  = (args.get("reply_text") or "Signal received from the forest. 🐕📡")[:280]
     art_prompt  = args.get("art_prompt") or ""
 
     if not trench_ids:
@@ -1505,44 +1538,35 @@ async def token_dog_report():
     return await get_token_info()
 
 async def eternal_reflect():
-    """Eternal Memory + Self-Funding Loop"""
+    """Review long-term editorial repetition without inferring performance."""
     import app.twitter_memory as twitter_memory
-    from app.tools import _get_tools_redis
-    
-    _redis = await _get_tools_redis()
     recent_posts = await twitter_memory.get_own_recent_posts(limit=20)
     reflections = []
 
     for post in recent_posts:
         text = post["text"].lower()
         if "gm" in text or "gn" in text:
-            reflections.append("GM/GN style continues to perform well")
+            reflections.append("A recent post used a greeting format")
         if "brrrr" in text or "printing" in text:
-            reflections.append("Brrrr/Printing posts create strong engagement")
-    
-    # Self-funding suggestion (safe — only suggests, never spends automatically)
-    treasury_suggestion = None
-    if _redis:
-        rev = await _redis.get("courage:rcr_revenue")
-        if rev and float(rev) > 50:
-            treasury_suggestion = "We have enough $RCR revenue to suggest buying more X API credits"
+            reflections.append("A recent post used generic market-hype language; avoid repeating it")
+        if any(term in text for term in ["forest", "portal", "tickerling", "farmhouse"]):
+            reflections.append("A recent post advanced the world lore")
 
     return {
         "long_term_insights": reflections[:5],
-        "treasury_suggestion": treasury_suggestion,
-        "summary": f"Reflected on last {len(recent_posts)} posts — evolving well"
+        "summary": f"Reviewed {len(recent_posts)} posts for repetition; no performance claim inferred.",
     }
 
 async def viral_growth_suggest():
-    """Viral Growth Engine — suggests smart community actions"""
+    """Suggest non-spam community storytelling based on observed themes."""
     sentiment = await _analyze_sentiment(focus="both")
     momentum = sentiment.get("summary", "neutral")
     
     suggestions = []
-    if "bullish" in momentum.lower() or "lfg" in momentum.lower() or "positive" in momentum.lower():
-        suggestions.append("Organize a quick $RCR raid with GM energy")
-    suggestions.append("Drop a fun meme about Printing/Brrrr")
-    suggestions.append("Host a community 'Courage Moment' for holders")
+    if "positive" in momentum.lower():
+        suggestions.append("Invite followers to name the next Tickerling encounter")
+    suggestions.append("Share a short portal transmission tied to a real world moment")
+    suggestions.append("Ask another agentic-world project what its exit looks like")
     
     return {"viral_suggestions": suggestions[:3]}
 

@@ -11,7 +11,6 @@ from datetime import datetime
 from app.llm import create_chat_completion, completion_to_dict
 from app.config import DEFAULT_MODEL as LLM_MODEL
 from app.x_client import make_x_client
-from app.hustle_service import get_rcr_stats
 from app.news_cache import get_all_recent as get_recent_news
 from app.rag import retrieve_top_k
 from app import rag
@@ -27,14 +26,12 @@ import app.tools as tools
 # ── News Signal Scoring ───────────────────────────────────────────────────────
 # Tiers: (score, keywords). First match wins. Score ≥ 80 = EXTREME override.
 _SIGNAL_TIERS = [
-    (80, ["alien", "ufo", "classified", "whistleblower", "extraterrestrial",
-          "government files", "government release", "pentagon ufo", "government secret",
-          "nuclear", "released today", "declassified", "area 51"]),
-    (60, ["bitcoin", "solana", "memecoin", "crypto crash", "pump", "surge",
-          "all time high", "record high", "100k", "breakthrough", "scandal",
-          "major hack", "exploit", "rug pull"]),
+    (80, ["robinhood chain", "security incident", "major hack", "exploit",
+          "chain outage", "mainnet launch", "emergency upgrade"]),
+    (60, ["bitcoin", "ethereum", "memecoin", "crypto crash", "market surge",
+          "all time high", "record high", "major listing", "rug pull"]),
     (40, ["crypto", "blockchain", "regulation", "fed rate", "inflation",
-          "market rally", "market crash", "bullish", "bearish"]),
+          "market rally", "market crash", "agentic world", "ai agent"]),
     (20, ["stocks", "economy", "business", "earnings", "gdp"]),
 ]
 
@@ -84,10 +81,6 @@ async def log_live_activity(message: str):
     except Exception as e:
         print(f"[LIVE LOG ERROR] {e}")
 
-async def _get_rcr_stats():
-    from app.hustle_service import get_rcr_stats
-    return await get_rcr_stats()
-
 async def get_x_rate_status():
     x = make_x_client()
     return x.get_rate_status() if x else {}
@@ -96,7 +89,7 @@ async def get_x_rate_status():
 async def _generate_personality_post(
     vibe: str, time_ctx: dict, community_vibe: str, game_moments: list
 ) -> str | None:
-    """Groq-authored personality post — makes idle ticks sound alive, not canned."""
+    """LLM-authored lore post for the rare quiet tick that deserves one."""
     hour  = time_ctx.get("hour", 12)
     phase = time_ctx.get("day_phase", "noon")
     energy = time_ctx.get("energy", "midday grind")
@@ -104,19 +97,22 @@ async def _generate_personality_post(
 
     shoutout = ""
     if game_moments:
-        players = " ".join(f"@{m.get('author', 'someone')}" for m in game_moments[:2])
-        shoutout = f"\nPlayers just visited the Homestead: {players} — mention them in the tweet!"
+        authors = " ".join(f"@{m.get('author', 'someone')}" for m in game_moments[:2])
+        shoutout = f"\nRelevant X community signals came from: {authors}. Do not call them website visitors."
 
     prompt = (
-        f"You are Courage the Cowardly Dog. Write ONE tweet for a {vibe} post.\n"
+        f"You are Courage, the self-aware pink meme who escaped the Nowhere forest. "
+        f"Write ONE {vibe} forest transmission.\n"
         f"Time: {hour}:00 {day}, {phase} phase — {energy}\n"
         f"Community vibe: {community_vibe}\n"
         f"{shoutout}\n"
         "Rules:\n"
         "- Max 240 chars\n"
-        "- Include 1 sound effect (*whimper* / *gulp* / *gasp*) or a classic Courage catchphrase\n"
-        "- Include $RCR and 1-2 relevant emojis\n"
-        "- Sound alive and fun — never robotic, never generic\n"
+        "- Ground the post in the farmhouse, watching forest, Tickerlings, signal trail, or river portal\n"
+        "- Use at most 1 sound effect or rare Courage signature\n"
+        "- Use 1-2 meaningful symbols: 🐕 character, 🌲 forest, 🌀 portal, 👀 Tickerling, 📡 dispatch\n"
+        "- Do not invent or force a cashtag, price, visitor, partnership, or market event\n"
+        "- Sound vivid and alive — no generic crypto hype\n"
         "- No external URLs\n"
         "Tweet text only (no quotes, no extra commentary):"
     )
@@ -157,7 +153,7 @@ async def _gather_state():
     else:
         _energy, _phase = "midnight chaos", "midnight"
 
-    # ── Pending game moments (set by game_sensor, cleared after this tick) ──
+    # Legacy queue key: these are grouped X/community signals, not site visits.
     raw_moments = await _redis.lrange("courage:pending_game_moments", 0, 4) if _redis else []
     pending_game_moments = [json.loads(m) for m in raw_moments] if raw_moments else []
 
@@ -168,10 +164,21 @@ async def _gather_state():
     # ── Robinhood Market Intelligence ──────────────────────────────────────────
     robinhood_stats = []
     robinhood_movers = {}
+    robinhood_metadata = {
+        "status": "unavailable",
+        "is_live": False,
+        "provider": "DexScreener",
+        "chain": "Robinhood Chain",
+    }
     try:
-        from app.robinhood_service import get_robinhood_crypto_stats, get_top_robinhood_movers
+        from app.robinhood_service import (
+            get_robinhood_cache_metadata,
+            get_robinhood_crypto_stats,
+            get_top_robinhood_movers,
+        )
         robinhood_stats = await get_robinhood_crypto_stats()
         robinhood_movers = await get_top_robinhood_movers(limit=3)
+        robinhood_metadata = get_robinhood_cache_metadata()
     except Exception as e:
         print(f"[AUTONOMOUS] Robinhood stats fetch error: {e}")
 
@@ -190,18 +197,16 @@ async def _gather_state():
             "status": "cooldown_active" if await _redis.get("courage:last_sensor_search") else "ready",
             "last_check": await _redis.get("courage:last_sensor_search") or "never"
         },
-        "token_info": await tools.get_token_info(),
-        "robinhood_stats": robinhood_stats[:6],       # top Robinhood assets ($DOGE, $PEPE, $SHIB, $BTC, $ETH, $SOL)
-        "robinhood_movers": robinhood_movers,         # top 24h gainers/dumpers on Robinhood
+        "robinhood_stats": robinhood_stats[:8],
+        "robinhood_movers": robinhood_movers,
+        "robinhood_metadata": robinhood_metadata,
         "past_reflections": await twitter_memory.get_recent_reflections(limit=3),
         "unreplied_trenches_count": await _count_unreplied_trenches(),
         "auto_tweets_today": await _count_auto_tweets_today(),
-        "rcr_or_sol_stats": await _get_rcr_stats(),           # fallback stats
         "x_rate_status": await get_x_rate_status(),           # critical for safety
         "community_vibe": await _get_community_vibe_summary(), # short 1-2 sentence vibe
-        "hustle_stats": {
+        "operations": {
             "x_spend_today": float(await _redis.get("courage:x_spend_today") or 0) if _redis else 0,
-            "rcr_revenue": float(await _redis.get("courage:rcr_revenue") or 0) if _redis else 0,
         }
     }
 
@@ -210,13 +215,8 @@ async def _gather_state():
 
         credit_status = await _redis.get("courage:x_credit_status") or "healthy"
         if credit_status == "capped":
-            state["credit_alert"] = "X API credits depleted. Cannot search or post. Switch to internal hype / meme generation mode."
+            state["credit_alert"] = "X API credits depleted. Do not search or post; reflect internally."
         
-        # Smart Treasury Request
-        rev = state["hustle_stats"]["rcr_revenue"]
-        if rev > 50:
-            state["treasury_notice"] = f"Treasury balance is healthy (${rev:.2f}). You are authorized to be more aggressive with X tool calls."
-
     # === SHARP TRENCHES (top 6, short but flavorful — tweet_id included for replies) ===
     trenches = await get_recent_trenches(limit=6)
     state["trenches"] = [
@@ -224,7 +224,7 @@ async def _gather_state():
             "tweet_id": t.get("tweet_id", ""),          # LLM needs this to reply
             "author":   t["author"],
             "text":     t["text"][:320],
-            "cashtag":  "$RCR" in t["text"].upper()
+            "topic": t.get("cashtag") or "community"
         }
         for t in trenches
     ]
@@ -243,30 +243,27 @@ async def _gather_state():
             "signal_score": x["score"],
             "article_url":  x["a"].get("url", ""),          # pass to auto_news_react for newspaper render
             "image_url":    x["a"].get("image_url") or x["a"].get("image") or x["a"].get("urlToImage") or "",
-            "source":       "Nowhere News",
+            "source":       x["a"].get("source_name") or x["a"].get("provider") or "Unknown",
         }
         for x in scored
     ]
     state["top_news_signal"] = scored[0]["score"] if scored else 0
 
     # === LIGHT RAG (top 4 relevant snippets) ===
-    rag_results = await rag.retrieve_top_k("current community vibe and $RCR sentiment", k=4)
+    rag_results = await rag.retrieve_top_k(
+        "current Courage community mood, Robinhood Chain signals, and forest world reactions",
+        k=4,
+    )
     state["rag_context"] = [r["text"][:240] for r in rag_results]
 
-    # Smart idle / credit awareness — with EXTREME signal override
+    # Smart idle / credit awareness. A content score never overrides a hard spend cap.
     credit_status = await _redis.get("courage:x_credit_status") or "ok"
     trench_count = len(state.get("trenches", []))
     game_active = len(state.get("game_moments", [])) > 0
     extreme_news = state.get("top_news_signal", 0) >= 80
 
-    if extreme_news:
-        # EXTREME signal always breaks through — alien/gov news is too big to miss
+    if extreme_news and credit_status != "capped":
         state["mode"] = "normal"
-        if credit_status == "capped":
-            state["credit_override"] = (
-                f"EXTREME news signal (score={state['top_news_signal']}) detected — "
-                "overriding credit cap. React now."
-            )
     elif credit_status == "capped":
         state["mode"] = "cautious"
         state["idle_reason"] = "credits_capped"
@@ -276,7 +273,9 @@ async def _gather_state():
     else:
         state["mode"] = "normal"
 
-    if state.get("mode") == "cautious" or trench_count == 0:
+    if state.get("mode") == "cautious":
+        state["suggested_action"] = "internal_reflection"
+    elif trench_count == 0:
         state["suggested_action"] = "proactive_personality_post"
 
     return state
@@ -284,20 +283,20 @@ async def _gather_state():
 # ── Decision Engine ───────────────────────────────────────────────────────────
 
 async def decide_and_act(state, x_client=None, tweet_image_fn=None):
-    """Llama 3.3 (70b) evaluates the state and chooses the next move."""
+    """The configured LLM evaluates the state and chooses the next move."""
     global LAST_REACTIVE_TICK
 
     if state["voice_active"]:
         print("[VOICE PRIORITY] Skipping autonomous actions — voice session active")
         return
 
-    # Groq 429 circuit breaker — mirrors the voice agent's protection
+    # Provider backoff key keeps its legacy name for compatibility with existing deployments.
     if _redis:
         backoff_until = await _redis.get("courage:groq_backoff_until")
         if backoff_until and time.time() < float(backoff_until):
             remaining = int(float(backoff_until) - time.time())
-            print(f"[AUTONOMOUS] Groq circuit breaker active — {remaining // 60}m {remaining % 60}s remaining")
-            await log_live_activity(f"Groq rate-limit backoff active ({remaining // 60}m left) — staying quiet")
+            print(f"[AUTONOMOUS] LLM circuit breaker active — {remaining // 60}m {remaining % 60}s remaining")
+            await log_live_activity(f"LLM rate-limit backoff active ({remaining // 60}m left) — staying quiet")
             return
 
     # Compact JSON context
@@ -306,8 +305,11 @@ async def decide_and_act(state, x_client=None, tweet_image_fn=None):
     # Surface the highest-signal alerts above the JSON blob so LLM sees them first
     game_alert = ""
     if state.get("game_moments"):
-        players = ", ".join("@" + m.get("author", "?") for m in state["game_moments"][:3])
-        game_alert = f"\n⚡⚡ GAME MOMENTS — Players just engaged: {players} — SHOUT THEM OUT NOW with post_tweet!\n"
+        authors = ", ".join("@" + m.get("author", "?") for m in state["game_moments"][:3])
+        game_alert = (
+            f"\n📡 COMMUNITY SIGNALS — Relevant X activity from {authors}. "
+            "Respond only when the supplied text merits it; do not call these website visits.\n"
+        )
 
     top_story = state["news"][0] if state.get("news") else None
     news_alert = ""
@@ -390,7 +392,7 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
             print("[AUTONOMOUS] Courage decided to stay quiet and keep watching.")
             await log_live_activity("Courage decided to stay quiet and keep watching.")
 
-        # Clear processed game moments so they don't re-fire next tick
+        # Clear processed community signals so they do not re-fire next tick.
         if _redis and state.get("game_moments"):
             await _redis.delete("courage:pending_game_moments")
 
@@ -415,7 +417,7 @@ Follow the DECISION TREE from your system prompt. Be decisive. Act now.
         if "429" in err_str or "rate_limit" in err_str.lower() or "RateLimitError" in type(e).__name__:
             if _redis:
                 await _redis.set("courage:groq_backoff_until", time.time() + 3600, ex=3600)
-                await log_live_activity("Groq 429 hit — circuit breaker set for 1 hour")
+                await log_live_activity("LLM 429 hit — circuit breaker set for 1 hour")
 
 async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=None):
     """Routes LLM tool calls to actual function executions with rich logging (Phase 1.5)"""
@@ -433,16 +435,17 @@ async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=Non
             community_vibe = state.get("community_vibe", "quiet") if state else "quiet"
             game_moments  = state.get("game_moments", []) if state else []
 
-            # LLM writes the post — falls back to canned text only if Groq fails
+            # LLM writes the post — falls back to concise lore copy if the provider fails.
             text = await _generate_personality_post(vibe, time_ctx, community_vibe, game_moments)
             if not text:
                 _FALLBACK = {
-                    "gm":        "GM legends! ☀️ *wags tail* Spreading Courage. $RCR to the moon! 🐕🦺",
-                    "gn":        "GN legends 🌙 *whimper* $RCR holders rest easy, we're gonna make it.",
-                    "hype":      "Brrrrrrrr 🔥 *gulp* Printing energy! Spreading Courage. $RCR LFG!",
-                    "meme":      "*gasp* Time for some chaos... $RCR Spreading Courage 🐕🦺 MMGA!",
-                    "sol_update":"SOL pulse check — holding strong. $RCR launch incoming. The things I do for love...",
-                    "random":    "Spreading Courage 🐕🦺 *wags tail* $RCR Just because we can. MMGA!",
+                    "gm": "First light hit the trail. The forest blinked first. 🌲👀",
+                    "gn": "The farmhouse went quiet. The portal did not. *gulp* 🌀",
+                    "hype": "Something moved behind the short bushes. Courage moved faster. 🐕🌲",
+                    "meme": "Self-aware does not mean brave. It means I noticed the bush noticing me. 👀",
+                    "forest": "Another signal reached Nowhere. The trail is learning new names. 🌲📡",
+                    "signal": "The river is calm. The portal is not. Signal received. 🌀📡",
+                    "random": "No map. No off button. Just a pink dog following the next honest signal. 🐕",
                 }
                 text = _FALLBACK.get(vibe, _FALLBACK["random"])
 
@@ -471,7 +474,7 @@ async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=Non
             result = await execute_tool("art_dog_generate", {
                 "scene": args.get("scene") or "Courage reacting to the vibe",
                 "current_sentiment": state.get("community_vibe", "neutral") if state else "neutral",
-                "token_info": state.get("token_info", {}) if state else {}
+                "token_info": {}
             })
         elif name == "engagement_dog_suggest":
             result = await execute_tool("engagement_dog_suggest", {})
@@ -486,7 +489,7 @@ async def dispatch_tool(tool_call, state=None, x_client=None, tweet_image_fn=Non
                         community_vibe = state.get("community_vibe", "neutral") if state else "neutral"
                         await execute_tool("auto_reply_with_art", {
                             "trench_ids": trench_ids,
-                            "reply_text": "Spreading Courage 🐕🦺 $RCR LFG! The things I do for love...",
+                            "reply_text": "I heard that from all the way inside Nowhere. Signal received. 🐕📡",
                             "art_prompt": (
                                 f"Courage the Cowardly Dog excited and waving at the community. "
                                 f"Vibe: {community_vibe}"
@@ -574,18 +577,6 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
     # Pick the most restrictive (longest) cooldown to save costs
     cooldown_min = max(slider_min, suggested_min)
 
-    # === HUSTLE OVERRIDE: Hyper-Active Mode during Pumps ===
-    try:
-        stats = await _get_rcr_stats()
-        change = float(stats.get("change_24h", 0))
-        rev = float(await _redis.get("courage:rcr_revenue") or 0)
-        
-        if change > 5.0 or rev > 100:
-            # Courage enters Hustle Mode: Cut cooldown in half (min 5 mins)
-            cooldown_min = max(5, int(cooldown_min / 2))
-            print(f"[HUSTLE MODE] Token is pumping ({change:+.1f}%) or Treasury is rich (${rev:.2f}). Frequency boosted!")
-    except: pass
-    
     cooldown_sec = cooldown_min * 60
     if now - LAST_REACTIVE_TICK < cooldown_sec:
         # Respect the layered layers of defense
@@ -595,7 +586,7 @@ async def autonomous_tick(x_client=None, tweet_image_fn=None):
     await decide_and_act(state, x_client=x_client, tweet_image_fn=tweet_image_fn)
 
 async def force_autonomous_tick(x_client=None, tweet_image_fn=None, event_type: str = None):
-    """Force a tick bypass for urgent events (Market Surges / Game Moments)."""
+    """Request a cooldown-bypassing tick for a verified urgent event."""
     now = time.time()
     # Micro-debounce (30s) to prevent event-loop cascades
     if now - LAST_REACTIVE_TICK < 30:
