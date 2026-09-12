@@ -6,27 +6,19 @@ import { getBackendUrl } from '../services/newsService';
 const API_BASE = getBackendUrl();
 
 const DEFAULT_TICKERS = [
-  { symbol: "$PEPE", name: "Pepe", price: 0.0000098, change_24h: 14.2, platform: "Robinhood Crypto", is_trending: true, image_url: "https://assets.coingecko.com/coins/images/29850/large/pepe-token.png" },
-  { symbol: "$DOGE", name: "Dogecoin", price: 0.125, change_24h: 6.4, platform: "Robinhood Crypto", is_trending: true, image_url: "https://assets.coingecko.com/coins/images/5/large/dogecoin.png" },
-  { symbol: "$SOL", name: "Solana", price: 148.5, change_24h: 5.8, platform: "Robinhood Crypto", is_trending: true, image_url: "https://assets.coingecko.com/coins/images/4128/large/solana.png" },
-  { symbol: "$SHIB", name: "Shiba Inu", price: 0.0000185, change_24h: 4.1, platform: "Robinhood Crypto", is_trending: true, image_url: "https://assets.coingecko.com/coins/images/11939/large/shiba.png" },
-  { symbol: "$BTC", name: "Bitcoin", price: 64200.0, change_24h: 2.4, platform: "Robinhood Crypto", is_trending: false, image_url: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png" },
-  { symbol: "$ETH", name: "Ethereum", price: 3450.0, change_24h: 3.1, platform: "Robinhood Crypto", is_trending: false, image_url: "https://assets.coingecko.com/coins/images/279/large/ethereum.png" },
-  { symbol: "$AVAX", name: "Avalanche", price: 24.8, change_24h: 4.6, platform: "Robinhood Crypto", is_trending: false, image_url: "https://assets.coingecko.com/coins/images/12559/large/Avalanche_Circle_RedWhite_Trans.png" },
-  { symbol: "$LINK", name: "Chainlink", price: 11.2, change_24h: 1.8, platform: "Robinhood Crypto", is_trending: false, image_url: "https://assets.coingecko.com/coins/images/877/large/chainlink-new-logo.png" },
-  { symbol: "$UNI", name: "Uniswap", price: 6.85, change_24h: -1.2, platform: "Robinhood Crypto", is_trending: false, image_url: "https://assets.coingecko.com/coins/images/12504/large/uniswap-uni.png" },
-  { symbol: "$LTC", name: "Litecoin", price: 65.4, change_24h: 0.9, platform: "Robinhood Crypto", is_trending: false, image_url: "https://assets.coingecko.com/coins/images/2/large/litecoin.png" },
+  { symbol: "$LONGCAT", name: "LongCat", price: 0.0003155, change_24h: 476.0, volume_24h: 1276685.0, market_cap: 315579.0, platform: "Robinhood Chain (DexScreener)", is_trending: true, image_url: "https://cdn.dexscreener.com/cms/images/ZdN9d0VtFRojnp5a?width=800&height=800&quality=95&format=auto" },
+  { symbol: "$CHUMP", name: "Chump Coin", price: 0.04124, change_24h: -8.7, volume_24h: 1240003.0, market_cap: 41248569.0, platform: "Robinhood Chain (DexScreener)", is_trending: true, image_url: "https://cdn.dexscreener.com/cms/images/4cJVmRdL_zSKVHcY?width=800&height=800&quality=95&format=auto" },
+  { symbol: "$DOGGO", name: "Dancing Dog", price: 0.002273, change_24h: 57.08, volume_24h: 10730891.0, market_cap: 2273784.0, platform: "Robinhood Chain (DexScreener)", is_trending: true, image_url: "https://cdn.dexscreener.com/cms/images/hQ8W8tah1PaTq2YI" },
+  { symbol: "$LPAD", name: "Launchpad.meme", price: 0.0008303, change_24h: -31.78, volume_24h: 1672037.0, market_cap: 817872.0, platform: "Robinhood Chain (DexScreener)", is_trending: true },
+  { symbol: "$RUFUS", name: "RUFUS", price: 0.0003806, change_24h: 13.5, volume_24h: 256887.0, market_cap: 380653.0, platform: "Robinhood Chain (DexScreener)", is_trending: true },
+  { symbol: "$PENGUIN", name: "Nietzschean Penguin", price: 0.0001882, change_24h: 23.0, volume_24h: 88401.0, market_cap: 150473.0, platform: "Robinhood Chain (DexScreener)", is_trending: true },
 ];
 
 // ── Widget 1: Live Robinhood & Trending Crypto Pulse (Sorted Live Data) ────────────────
 export const LiveMarketWidget = () => {
   const [data, setData] = useState(() => {
     try {
-      const cached = localStorage.getItem('courage_robinhood_tickers');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed.stats && parsed.stats.length > 0) return parsed;
-      }
+      localStorage.removeItem('courage_robinhood_tickers');
     } catch (e) {}
     return { stats: DEFAULT_TICKERS, movers: { top_gainers: [] } };
   });
@@ -40,7 +32,6 @@ export const LiveMarketWidget = () => {
         const json = await res.json();
         if (json.stats && json.stats.length > 0) {
           setData(json);
-          try { localStorage.setItem('courage_robinhood_tickers', JSON.stringify(json)); } catch (e) {}
         }
       }
     } catch (err) {
