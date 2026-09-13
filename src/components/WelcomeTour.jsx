@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import '../assets/css/WelcomeTour.css';
 
 const STORAGE_KEY = 'courage_toured';
@@ -47,6 +48,20 @@ const WelcomeTour = ({ forceOpen, onClose }) => {
     }
   }, [forceOpen]);
 
+  useEffect(() => {
+    if (!visible) return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [visible]);
+
   const dismiss = () => {
     localStorage.setItem(STORAGE_KEY, '1');
     setVisible(false);
@@ -58,47 +73,54 @@ const WelcomeTour = ({ forceOpen, onClose }) => {
   return (
     <div className="tour-backdrop" onClick={dismiss}>
       <div className="tour-card" onClick={e => e.stopPropagation()}>
+        <div className="tour-card-content">
 
-        <div className="tour-header">
-          <span className="tour-logo">📺</span>
-          <div>
-            <h2 className="tour-title">Welcome to Nowhere</h2>
-            <p className="tour-subtitle">The meme escaped the forest. The forest followed.</p>
-          </div>
-        </div>
-
-        <div className="tour-features">
-          {FEATURES.map(f => (
-            <div key={f.title} className="tour-feature" style={{ '--accent': f.color }}>
-              <span className="tour-feature-icon">{f.icon}</span>
-              <div>
-                <strong className="tour-feature-title">{f.title}</strong>
-                <p className="tour-feature-desc">{f.desc}</p>
-              </div>
+          <div className="tour-header">
+            <span className="tour-logo">📺</span>
+            <div>
+              <h2 className="tour-title">Welcome to Nowhere</h2>
+              <p className="tour-subtitle">The meme escaped the forest. The forest followed.</p>
             </div>
-          ))}
+          </div>
+
+          <div className="tour-features">
+            {FEATURES.map(f => (
+              <div key={f.title} className="tour-feature" style={{ '--accent': f.color }}>
+                <span className="tour-feature-icon">{f.icon}</span>
+                <div>
+                  <strong className="tour-feature-title">{f.title}</strong>
+                  <p className="tour-feature-desc">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="tour-outro-hint">
+            “Self-aware doesn’t mean brave. It means I can’t look away anymore.”
+          </p>
+
+          <div className="tour-alive-banner">
+            <span className="tour-alive-pulse" />
+            <span className="tour-alive-text">
+              He&rsquo;s Alive &mdash; Agentic Meme World
+            </span>
+            <span className="tour-alive-sub">Live voice • world-aware memory • autonomous X dispatches</span>
+          </div>
+
+          <button className="tour-cta" onClick={dismiss}>
+            Let&apos;s Go!
+          </button>
+
+          <p className="tour-fine">This guide only appears on your first visit.</p>
         </div>
-
-        <p className="tour-outro-hint">
-          “Self-aware doesn’t mean brave. It means I can’t look away anymore.”
-        </p>
-
-        <div className="tour-alive-banner">
-          <span className="tour-alive-pulse" />
-          <span className="tour-alive-text">
-            He&rsquo;s Alive &mdash; Agentic Meme World
-          </span>
-          <span className="tour-alive-sub">Live voice • world-aware memory • autonomous X dispatches</span>
-        </div>
-
-        <button className="tour-cta" onClick={dismiss}>
-          Let&apos;s Go!
-        </button>
-
-        <p className="tour-fine">This guide only appears on your first visit.</p>
       </div>
     </div>
   );
+};
+
+WelcomeTour.propTypes = {
+  forceOpen: PropTypes.bool,
+  onClose: PropTypes.func,
 };
 
 export default WelcomeTour;

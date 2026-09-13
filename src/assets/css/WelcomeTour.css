@@ -8,11 +8,13 @@
   background: rgba(0, 0, 0, 0.78);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  z-index: 2000;
+  z-index: 20000;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  overflow: hidden;
+  overscroll-behavior: contain;
   animation: tourFadeIn 0.4s ease-out;
 }
 
@@ -25,17 +27,44 @@
   background: rgba(16, 18, 26, 0.94);
   border: 1.5px solid rgba(235, 87, 193, 0.45);
   border-radius: 20px;
-  padding: 2rem 2rem 1.4rem;
-  max-width: 480px;
-  width: 100%;
-  max-height: 85dvh;
+  padding: 0;
+  width: min(100%, 480px);
+  max-height: calc(100dvh - 2rem);
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   box-shadow:
     0 0 40px rgba(235, 87, 193, 0.18),
     0 0 80px rgba(153, 69, 255, 0.1),
     0 20px 60px rgba(0, 0, 0, 0.6);
   animation: tourCardIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+}
+
+.tour-card-content {
+  width: 100%;
+  min-width: 0;
+  padding: 2rem 2rem 1.4rem;
+}
+
+.tour-card::-webkit-scrollbar {
+  width: 6px;
+  height: 0;
+}
+
+.tour-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tour-card::-webkit-scrollbar-thumb {
+  background: rgba(235, 87, 193, 0.45);
+  border-radius: 999px;
+}
+
+.tour-card {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(235, 87, 193, 0.45) transparent;
 }
 
 @keyframes tourCardIn {
@@ -94,10 +123,12 @@
   gap: 0.75rem;
 }
 
-.tour-feature:hover {
-  transform: translateY(-5px) scale(1.02);
-  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05), 0 8px 25px rgba(0, 0, 0, 0.4);
-  border-color: var(--accent);
+@media (hover: hover) and (pointer: fine) {
+  .tour-feature:hover {
+    transform: translateY(-4px);
+    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05), 0 8px 25px rgba(0, 0, 0, 0.4);
+    border-color: var(--accent);
+  }
 }
 
 .tour-feature-icon {
@@ -195,11 +226,12 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg, transparent, rgba(20, 241, 149, 0.06), transparent);
+  background-size: 200% 100%;
   animation: aliveSweep 2.4s linear infinite;
 }
 @keyframes aliveSweep {
-  from { transform: translateX(-100%); }
-  to   { transform: translateX(100%); }
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
 }
 .tour-alive-pulse {
   display: inline-block;
@@ -240,9 +272,17 @@
 
 /* ── Responsive ── */
 @media (max-width: 480px) {
+  .tour-backdrop {
+    padding: 0.5rem;
+  }
+
   .tour-card {
+    max-height: calc(100dvh - 1rem);
+    border-radius: 16px;
+  }
+
+  .tour-card-content {
     padding: 1.2rem 1rem 1rem;
-    max-height: 90dvh;
   }
   .tour-features {
     grid-template-columns: 1fr;
