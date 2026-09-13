@@ -3,12 +3,7 @@ image_gen.py — Fal.ai image generation for Courage.
 Phase 6.2: Smarter Art Prompts with high-fidelity character locking.
 """
 
-import os
-import fal
-import asyncio
 from app.config import FAL_API_KEY, COURAGE_BASE_IMAGE_URL
-
-fal.config.api_key = FAL_API_KEY
 
 async def create_courage_art(prompt: str, sentiment: str = "neutral"):
     """Accurate Courage character + sentiment-aware prompt (Phase 6.2)"""
@@ -30,8 +25,12 @@ async def create_courage_art(prompt: str, sentiment: str = "neutral"):
     enhanced_prompt = f"{base_character}. {prompt}. Current mood: {sentiment}. Style: fun, meme energy, highly expressive face, perfect cartoon proportions."
     
     try:
-        # Use flux-general or image-to-image for character consistency
-        result = await fal.run_async(
+        # fal-client is the lightweight caller SDK. The full `fal` package is
+        # for deploying Python workloads and adds an unnecessary build stack.
+        from fal_client import AsyncClient
+
+        client = AsyncClient(key=FAL_API_KEY)
+        result = await client.run(
             "fal-ai/flux/dev/image-to-image",
             arguments={
                 "image_url": COURAGE_BASE_IMAGE_URL,

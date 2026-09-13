@@ -223,7 +223,7 @@ Use [`.env.example`](.env.example) as the source of truth. Key groups are:
 | 1 GB memory | `VOICE_MEMORY_MODE=low`, `WHISPER_BEAM_SIZE=1`, quantized `KOKORO_MODEL_PATH`, `RAG_MODE=lexical` |
 | News | `COINDESK_API_KEY`; optional `FIRECRAWL_API_KEY` for full-article extraction |
 | X | `X_AUTOMATION_ENABLED`, `X_EXPECTED_USERNAME`, `X_BEARER_TOKEN`, OAuth consumer/access credentials, `X_DAILY_SEARCH_SPEND_CAP` |
-| Art | `FAL_API_KEY`, `COURAGE_BASE_IMAGE_URL` |
+| Art | `FAL_API_KEY`, `COURAGE_BASE_IMAGE_URL`; hosted generation uses the lightweight `fal-client` caller SDK |
 | Browser | `VITE_BACKEND_URL`, `VITE_BACKEND_WS` |
 
 Never commit `.env`, model binaries, generated posters, screenshots, build output, or local
