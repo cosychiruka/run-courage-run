@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import { Instance, Instances, RoundedBox } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useDisposableThreeResources } from './useDisposableThreeResource';
 
 const WHEEL_POSITIONS = [
   [-1.08, 0.68, 1.58],
@@ -100,6 +101,7 @@ export function Truck({
     rubber: new THREE.MeshStandardMaterial({ color: '#17191d', roughness: 0.9, metalness: 0 }),
     tail: new THREE.MeshStandardMaterial({ color: '#8f151f', emissive: '#d51d29', emissiveIntensity: 0.5, roughness: 0.35 }),
   }), []);
+  useDisposableThreeResources(materials);
 
   useFrame((_, delta) => {
     timeRef.current += delta;

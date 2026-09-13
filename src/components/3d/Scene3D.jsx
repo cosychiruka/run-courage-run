@@ -10,6 +10,8 @@ import CourageRunningAnimationComplete from './CourageRunningAnimationComplete';
 import { NoonStoryController } from './NoonStoryController';
 import { TickerlingForest } from './TickerlingForest';
 import { ForestPortal } from './ForestPortal';
+import { WORLD_HOUSE_ROOT_Y, WORLD_TRUCK_ROOT_Y, WORLD_WINDMILL_ROOT_Y } from './worldGround';
+import { useDisposableThreeResource } from './useDisposableThreeResource';
 
 const MemoHouse = memo(House);
 const MemoWindmill = memo(Windmill);
@@ -39,6 +41,12 @@ function GiantFly({ courageRef, sequenceRef, sequenceStartTime, offsetTime = 0, 
 
   const wingGeo = useMemo(() => new THREE.CircleGeometry(0.6, 16), []);
   const eyeMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ff3c00' }), []);
+  useDisposableThreeResource(bodyMat);
+  useDisposableThreeResource(wingMat);
+  useDisposableThreeResource(selfieMat);
+  useDisposableThreeResource(haloMat);
+  useDisposableThreeResource(wingGeo);
+  useDisposableThreeResource(eyeMat);
 
   useFrame((state) => {
     if (groupRef.current && courageRef.current) {
@@ -171,6 +179,9 @@ function Ghost({ courageRef, offsetTime = 0, offsetPosition = [0, 0, 0], visible
 
   const eyeGeo = useMemo(() => new THREE.CircleGeometry(0.08, 16), []);
   const eyeMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#111122' }), []);
+  useDisposableThreeResource(ghostMat);
+  useDisposableThreeResource(eyeGeo);
+  useDisposableThreeResource(eyeMat);
 
   useFrame((state) => {
     if (groupRef.current && courageRef.current) {
@@ -263,9 +274,9 @@ function EveningStoryController({ eventLine = '' }) {
 
   return (
     <group>
-      <group ref={houseRef}><MemoHouse position={[-2.5, -0.2, 0]} doorOpen={doorOpen} /></group>
-      <MemoWindmill position={[7.5, -0.6, -8]} rotation={[0, -Math.PI / 6, 0]} />
-      <MemoTruck position={[4, 0.1, 4]} rotation={[0, -Math.PI / 4, 0]} />
+      <group ref={houseRef}><MemoHouse position={[-2.5, WORLD_HOUSE_ROOT_Y, 0]} doorOpen={doorOpen} /></group>
+      <MemoWindmill position={[7.5, WORLD_WINDMILL_ROOT_Y, -8]} rotation={[0, -Math.PI / 6, 0]} />
+      <MemoTruck position={[4, WORLD_TRUCK_ROOT_Y, 4]} rotation={[0, -Math.PI / 4, 0]} />
       <group ref={courageRef}>
         {/* Character — transform Html scales with camera */}
         <Html transform center eps={0.001} style={{ pointerEvents: 'none' }}>
@@ -407,9 +418,9 @@ function SunriseStoryController({ selfieFlyTexture = null, selfieFlyLabel = '', 
 
   return (
     <group>
-      <group ref={houseRef}><MemoHouse position={[-2.5, -0.2, 0]} doorOpen={doorOpen} /></group>
-      <MemoWindmill position={[7.5, -0.6, -8]} rotation={[0, -Math.PI / 6, 0]} />
-      <MemoTruck position={[4, 0.1, 4]} rotation={[0, -Math.PI / 4, 0]} />
+      <group ref={houseRef}><MemoHouse position={[-2.5, WORLD_HOUSE_ROOT_Y, 0]} doorOpen={doorOpen} /></group>
+      <MemoWindmill position={[7.5, WORLD_WINDMILL_ROOT_Y, -8]} rotation={[0, -Math.PI / 6, 0]} />
+      <MemoTruck position={[4, WORLD_TRUCK_ROOT_Y, 4]} rotation={[0, -Math.PI / 4, 0]} />
       <group ref={courageRef}>
         {/* Character — transform Html scales with camera */}
         <Html transform center eps={0.001} style={{ pointerEvents: 'none' }}>

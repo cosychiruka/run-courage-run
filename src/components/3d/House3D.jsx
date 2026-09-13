@@ -1,10 +1,14 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { Instances, Instance, Html } from '@react-three/drei';
+import { useDisposableThreeResource } from './useDisposableThreeResource';
 
 function Window({ position, rotation = [0, 0, 0], scale = 1 }) {
   const windowMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#fffb80', emissive: '#ffb52e', emissiveIntensity: 2.5 }), []);
   const frameMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#1a1025', roughness: 0.8 }), []);
+  const lightTarget = useMemo(() => new THREE.Object3D(), []);
+  useDisposableThreeResource(windowMaterial);
+  useDisposableThreeResource(frameMaterial);
   
   const width = 1 * scale;
   const height = 1.3 * scale;
@@ -32,7 +36,7 @@ function Window({ position, rotation = [0, 0, 0], scale = 1 }) {
       <mesh material={frameMaterial} position={[0, 0, 0.02]}>
         <boxGeometry args={[width, 0.08, 0.06]} />
       </mesh>
-      <spotLight position={[0, 0, -0.2]} target={new THREE.Object3D()} angle={Math.PI/3} penumbra={0.6} intensity={25 * scale} distance={15} color="#ffd438" castShadow />
+      <spotLight position={[0, 0, -0.2]} target={lightTarget} angle={Math.PI/3} penumbra={0.6} intensity={25 * scale} distance={15} color="#ffd438" castShadow />
     </group>
   );
 }
@@ -40,6 +44,7 @@ function Window({ position, rotation = [0, 0, 0], scale = 1 }) {
 // Optimized WoodPlanks with pre-calculated static positions to prevent re-render hitches
 const MemoWoodPlanks = React.memo(({ positions }) => {
   const woodMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#8a62bf', roughness: 0.9, flatShading: true }), []);
+  useDisposableThreeResource(woodMaterial);
   return (
     <Instances limit={1000} material={woodMaterial} castShadow receiveShadow>
       <boxGeometry args={[1, 1, 1]} />
@@ -49,9 +54,11 @@ const MemoWoodPlanks = React.memo(({ positions }) => {
     </Instances>
   );
 });
+MemoWoodPlanks.displayName = 'MemoWoodPlanks';
 
 const MemoRoofPlanks = React.memo(({ positions }) => {
   const roofMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#664a8a', roughness: 0.9, flatShading: true }), []);
+  useDisposableThreeResource(roofMaterial);
   return (
     <Instances limit={1000} material={roofMaterial} castShadow receiveShadow>
       <boxGeometry args={[1, 1, 1]} />
@@ -61,12 +68,17 @@ const MemoRoofPlanks = React.memo(({ positions }) => {
     </Instances>
   );
 });
+MemoRoofPlanks.displayName = 'MemoRoofPlanks';
 
 export function House({ position = [0, 0, 0], rotation = [0, 0, 0], doorOpen = false }) {
   const woodMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#8a62bf', roughness: 0.9, flatShading: true }), []);
   const doorMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#160d1f', roughness: 0.8 }), []);
   const windowMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#fffb80', emissive: '#ffb52e', emissiveIntensity: 2.5 }), []);
   const brassMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#ffb52e', roughness: 0.3, metalness: 0.8 }), []);
+  useDisposableThreeResource(woodMaterial);
+  useDisposableThreeResource(doorMaterial);
+  useDisposableThreeResource(windowMaterial);
+  useDisposableThreeResource(brassMaterial);
 
   const [glitchMode, setGlitchMode] = useState(false);
   const [glitching, setGlitching] = useState(false);

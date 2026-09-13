@@ -90,17 +90,11 @@ export default function NoonWorld3D({ visible, onReady, onClose }) {
   const playTrack = useCallback(async (idx) => {
     const track = NOON_TRACKS[idx];
     await audioManager.loadTrack(track.id, track.url);
-    await audioManager.playTrack(track.id, { loop: false, volume: 0.4 });
-    // Wire auto-advance on ended
-    const t = audioManager.tracks.get(track.id);
-    if (t?.source) {
-      t.source.onended = () => {
-        if (audioManager.currentTrack === track.id) {
-          const next = (idx + 1) % NOON_TRACKS.length;
-          setCurrentTrackIdx(next);
-        }
-      };
-    }
+    await audioManager.playTrack(track.id, {
+      loop: false,
+      volume: 0.4,
+      onEnded: () => setCurrentTrackIdx((idx + 1) % NOON_TRACKS.length),
+    });
   }, []);
 
   useEffect(() => {

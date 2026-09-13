@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import { RoundedBox } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useDisposableThreeResources } from './useDisposableThreeResource';
 
 function Arm({ side, shoulderRef, elbowRef, materials }) {
   const direction = side === 'left' ? -1 : 1;
@@ -108,6 +109,7 @@ export function Euriel({
     eye: new THREE.MeshStandardMaterial({ color: '#f3eadf', roughness: 0.55, metalness: 0 }),
     pupil: new THREE.MeshBasicMaterial({ color: '#251915' }),
   }), []);
+  useDisposableThreeResources(materials);
 
   useFrame(({ clock }, delta) => {
     if (!groupRef.current || !bodyRef.current) return;

@@ -2,6 +2,7 @@ import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Instances, Instance } from '@react-three/drei';
 import * as THREE from 'three';
+import { useDisposableThreeResource } from './useDisposableThreeResource';
 
 export function Windmill({ position = [0, 0, 0], rotation = [0, 0, 0] }) {
   const bladesRef = useRef(null);
@@ -49,6 +50,8 @@ export function Windmill({ position = [0, 0, 0], rotation = [0, 0, 0] }) {
 
   const metalMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#443c52', roughness: 0.8, metalness: 0.5 }), []);
   const bladeMaterial = useMemo(() => new THREE.MeshStandardMaterial({ color: '#5b4a6b', roughness: 0.7, metalness: 0.2 }), []);
+  useDisposableThreeResource(metalMaterial);
+  useDisposableThreeResource(bladeMaterial);
 
   return (
     <group ref={outerRef} position={[position[0], position[1] + 20, position[2]]} rotation={rotation}>

@@ -95,12 +95,12 @@ single source of truth for its local Y coordinate.
 
 - Trees calculate their trunk centers from the shared surface plus a small root
   depth.
-- Hero and distant bushes share one root height instead of approximating a
-  sphere equation.
+- Hero and distant bushes share a shallow planted root height instead of
+  approximating a sphere equation.
 - The river and signal trail sit just above the shared surface to avoid
   z-fighting.
-- Story assets keep their established center-of-scene offsets because the flat
-  terrain preserves the former sphere's top height.
+- The farmhouse, windmill, truck, and caretaker use named contact anchors from
+  the same module; terrain-era per-component Y offsets are not allowed.
 
 Do not introduce per-tree Y nudges. If a future ground profile changes, update
 the shared ground contract and every surface layer together.
@@ -165,9 +165,11 @@ The default experience keeps the existing low-cost renderer settings:
 - hidden world canvases use `frameloop="demand"`;
 - token art is fetched only for the currently emerged face;
 - one snapshot and in-flight request are shared across world consumers;
-- hero foliage is instanced inside each interactive bush;
+- all interactive-bush foliage shares one instanced draw group;
 - distant foliage, tree trunks, crowns, and signal shards are instanced;
 - portal particles use one points geometry; and
+- world Exit invalidates pending media playback, closes the Web Audio graph,
+  and disposes manually-created Three.js resources on unmount; and
 - no post-processing pipeline or real volumetric fog pass was added.
 
 Mobile reduces the environment while preserving the encounter:
@@ -230,13 +232,16 @@ Before merging a world change:
    market normalization contract.
 4. Run `npm run build`.
 5. Open Sunrise, Noon, Evening, and Disco at the default camera distance and
-   confirm tree trunks meet the flat ground.
+   confirm the farmhouse, trees, bushes, truck wheels, windmill legs, and
+   caretaker feet meet the flat ground.
 6. Orbit to the river clearing and inspect the portal from both sides.
 7. Click a hero bush before and after live data arrives; it may show `TUNING...`
    but must never show a fabricated ticker.
 8. Confirm the first view does not trigger an encounter without interaction.
-9. Check a narrow viewport and a low-end physical phone.
-10. Verify no temporary screenshots, browser profiles, or generated build output
+9. Exit while music is starting and after it is playing; audio must stop and
+   remain stopped, including after repeated open/close cycles.
+10. Check a narrow viewport and a low-end physical phone.
+11. Verify no temporary screenshots, browser profiles, or generated build output
     are staged.
 
 The repository-wide ESLint command currently includes legacy and duplicated

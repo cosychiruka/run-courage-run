@@ -100,16 +100,11 @@ export default function SunriseWorld3D({ visible, onReady, onClose }) {
   const playTrack = useCallback(async (idx) => {
     const track = SUNRISE_TRACKS[idx];
     await audioManager.loadTrack(track.id, track.url);
-    await audioManager.playTrack(track.id, { loop: false, volume: 0.4 });
-    const t = audioManager.tracks.get(track.id);
-    if (t?.source) {
-      t.source.onended = () => {
-        if (audioManager.currentTrack === track.id) {
-          const next = (idx + 1) % SUNRISE_TRACKS.length;
-          setCurrentTrackIdx(next);
-        }
-      };
-    }
+    await audioManager.playTrack(track.id, {
+      loop: false,
+      volume: 0.4,
+      onEnded: () => setCurrentTrackIdx((idx + 1) % SUNRISE_TRACKS.length),
+    });
   }, []);
 
   useEffect(() => {

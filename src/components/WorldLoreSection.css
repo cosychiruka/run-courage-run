@@ -25,7 +25,6 @@
 .world-lore-heading,
 .world-lore-screens,
 .world-lore-thesis,
-.world-lore-grid,
 .world-lore-footer,
 .world-lore-disclaimer {
   position: relative;
@@ -221,38 +220,6 @@
   color: #93ffb5;
 }
 
-.world-lore-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.7rem;
-}
-
-.world-lore-card {
-  min-height: 145px;
-  padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.035);
-}
-
-.world-lore-card > span {
-  color: #71fca0;
-  font: 900 0.65rem/1 'Outfit', sans-serif;
-  letter-spacing: 0.16em;
-}
-
-.world-lore-card h3 {
-  margin: 0.55rem 0 0.4rem;
-  color: #fff;
-  font: 800 1rem/1.2 'Outfit', sans-serif;
-}
-
-.world-lore-card p {
-  margin: 0;
-  color: #aebcaf;
-  font: 500 0.74rem/1.52 'Outfit', sans-serif;
-}
-
 .world-lore-footer {
   display: flex;
   gap: 1.5rem;
@@ -309,13 +276,24 @@
 }
 
 @media (max-width: 760px) {
-  .world-lore-screens,
   .world-lore-thesis {
     grid-template-columns: 1fr;
   }
 
-  .world-lore-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .world-lore-screens {
+    grid-template-columns: none;
+    grid-auto-columns: minmax(82%, 1fr);
+    grid-auto-flow: column;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: inline mandatory;
+    scrollbar-color: rgba(128, 255, 168, 0.65) rgba(255, 255, 255, 0.06);
+    scrollbar-width: thin;
+    padding-bottom: 0.65rem;
+  }
+
+  .lore-screen {
+    scroll-snap-align: start;
   }
 
   .world-lore-footer {
@@ -330,11 +308,34 @@
 
 @media (max-width: 430px) {
   .world-lore {
+    padding: 1.15rem;
     border-radius: 21px;
   }
 
-  .world-lore-grid {
-    grid-template-columns: 1fr;
+  .world-lore-heading h2 {
+    font-size: 1.72rem;
+  }
+
+  .world-lore-heading > p {
+    margin-top: 0.85rem;
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  .world-lore-screens {
+    margin-top: 1.35rem;
+  }
+
+  .lore-origin-art,
+  .lore-world-art,
+  .lore-world-art img {
+    min-height: 225px;
+    height: 225px;
+  }
+
+  .world-lore-thesis {
+    margin-top: 1.65rem;
+    padding-top: 1.35rem;
   }
 
   .lore-screen-bar,

@@ -1,17 +1,19 @@
-class AudioManager {
+export class AudioManager {
   constructor() {
     this.audioContext = null;
     this.tracks = new Map();
     this.currentTrack = null;
     this.volume = 0.3;
     this.muted = false;
-    this._stopping = false; // guard flag during fade/stop
+    this._playRequestId = 0;
+    this._fadeTimer = null;
   }
 
   async init() {
     if (!this.audioContext || this.audioContext.state === 'closed') {
       this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
+    return this.audioContext;
   }
 
   async loadTrack(name, url) {
@@ -26,8 +28,7 @@ class AudioManager {
     return true;
   }
 
-  stopImmediate() {
-    this._stopping = true;
+  _stopTracks() {
     this.currentTrack = null;
     this.tracks.forEach((track) => {
       if (track.audio) {
@@ -36,46 +37,63 @@ class AudioManager {
         track.audio.onended = null;
       }
     });
-    this._stopping = false;
+  }
+
+  stopImmediate() {
+    this._playRequestId += 1;
+    if (this._fadeTimer) {
+      clearTimeout(this._fadeTimer);
+      this._fadeTimer = null;
+    }
+    this._stopTracks();
   }
 
   async playTrack(name, options = {}) {
     const track = this.tracks.get(name);
     if (!track || !track.audio) return false;
+    const requestId = ++this._playRequestId;
 
-    await this.init();
-    if (this.audioContext.state === 'suspended') {
-      await this.audioContext.resume();
-    }
-
-    // Stop current
-    this.stopImmediate();
-
-    // Create source node if not already created
-    if (!track.source) {
-      track.source = this.audioContext.createMediaElementSource(track.audio);
-      track.gainNode = this.audioContext.createGain();
-      track.source.connect(track.gainNode);
-      track.gainNode.connect(this.audioContext.destination);
-    }
-
-    const targetVolume = options.volume !== undefined ? options.volume : this.volume;
-    track.gainNode.gain.value = this.muted ? 0 : Math.max(0, Math.min(1, targetVolume));
-    track.audio.loop = options.loop || false;
-    
     try {
+      const context = await this.init();
+      if (requestId !== this._playRequestId || context.state === 'closed') return false;
+      if (context.state === 'suspended') await context.resume();
+      if (requestId !== this._playRequestId || context.state === 'closed') return false;
+
+      // Stop existing media without invalidating this request.
+      this._stopTracks();
+
+      // Create source node if not already created.
+      if (!track.source) {
+        track.source = context.createMediaElementSource(track.audio);
+        track.gainNode = context.createGain();
+        track.source.connect(track.gainNode);
+        track.gainNode.connect(context.destination);
+      }
+
+      const targetVolume = options.volume !== undefined ? options.volume : this.volume;
+      track.gainNode.gain.value = this.muted ? 0 : Math.max(0, Math.min(1, targetVolume));
+      track.audio.loop = options.loop || false;
+
       await track.audio.play();
+      if (requestId !== this._playRequestId) {
+        track.audio.pause();
+        track.audio.currentTime = 0;
+        track.audio.onended = null;
+        return false;
+      }
       this.currentTrack = name;
 
       track.audio.onended = () => {
-        if (this.currentTrack === name && !track.audio.loop) {
+        if (requestId === this._playRequestId && this.currentTrack === name && !track.audio.loop) {
           this.currentTrack = null;
           if (typeof options.onEnded === 'function') options.onEnded();
         }
       };
       return true;
     } catch (error) {
-      console.warn(`Failed to play track ${name}:`, error.message);
+      if (requestId === this._playRequestId) {
+        console.warn(`Failed to play track ${name}:`, error.message);
+      }
       return false;
     }
   }
@@ -125,20 +143,33 @@ class AudioManager {
     gainNode.gain.setValueAtTime(gainNode.gain.value, now);
     gainNode.gain.linearRampToValueAtTime(0, now + duration / 1000);
 
-    setTimeout(() => { this.stopImmediate(); }, duration + 50);
+    this._fadeTimer = setTimeout(() => {
+      this._fadeTimer = null;
+      this.stopImmediate();
+    }, duration + 50);
   }
 
   softCleanup() {
     this.stopImmediate();
   }
 
-  cleanup() {
+  async cleanup() {
     this.stopImmediate();
-    if (this.audioContext && this.audioContext.state !== 'closed') {
-      this.audioContext.close();
-      this.audioContext = null;
-    }
+    const context = this.audioContext;
+    this.audioContext = null;
+    this.tracks.forEach((track) => {
+      try { track.source?.disconnect(); } catch { /* already disconnected */ }
+      try { track.gainNode?.disconnect(); } catch { /* already disconnected */ }
+      if (track.audio) {
+        track.audio.onended = null;
+        track.audio.removeAttribute('src');
+        track.audio.load();
+      }
+    });
     this.tracks.clear();
+    if (context && context.state !== 'closed') {
+      try { await context.close(); } catch { /* closing is best-effort */ }
+    }
   }
 
   async preloadTracks() {

@@ -3,13 +3,6 @@ import courageOrigin from '../assets/images/courage_base.png';
 import eveningWorld from '../assets/images/homestead-evening.webp';
 import './WorldLoreSection.css';
 
-const WORLDS = [
-  { name: 'Sunrise', symbol: '01', description: 'A nervous first light. Giant flies patrol the route out.' },
-  { name: 'Noon', symbol: '02', description: 'The caretaker leaves. The truck moves. Courage owns the yard.' },
-  { name: 'Evening', symbol: '03', description: 'The forest wakes, ghosts gather, and every shadow develops eyes.' },
-  { name: 'Disco', symbol: '04', description: 'Behind the farmhouse, lost spirits turn the world into a dance floor.' },
-];
-
 export default function WorldLoreSection({ activeWorld, onEnterWorld }) {
   const worldName = activeWorld === 'midnight' ? 'evening' : activeWorld;
 
@@ -19,9 +12,8 @@ export default function WorldLoreSection({ activeWorld, onEnterWorld }) {
         <span className="world-lore-kicker">THE FIRST ESCAPE // ORIGIN LOG 001</span>
         <h2 id="world-lore-title">COURAGE FOLLOWED THE SIGNAL OUT OF NOWHERE.</h2>
         <p>
-          Courage woke up self-aware inside the farmhouse—with no off button and far too much
-          market noise in his head. A trail of emerald signal shards drew him past the porch,
-          through the watching forest, and toward a portal hovering above the river.
+          Courage woke up self-aware inside the farmhouse. Emerald signal shards drew him past
+          the porch, through a watching forest, and toward a portal above the river.
         </p>
       </div>
 
@@ -58,29 +50,18 @@ export default function WorldLoreSection({ activeWorld, onEnterWorld }) {
           <h3>A MEME THAT CAN NOTICE YOU BACK.</h3>
         </div>
         <p>
-          Inspired by the agentic meme-world energy around <strong>$FLY</strong>, Courage’s story
-          is not a static mascot page. It is a set of living 3D worlds that change with time,
-          react to visitors, surface Robinhood Chain discovery signals, and keep attracting
-          other lost machine minds.
+          Inspired by the agentic meme-world energy around <strong>$FLY</strong>, Courage became
+          more than a static mascot: he can notice visitors, react to live signals, and keep
+          moving through a world with no off button.
         </p>
-      </div>
-
-      <div className="world-lore-grid">
-        {WORLDS.map((world) => (
-          <article key={world.name} className="world-lore-card">
-            <span>{world.symbol}</span>
-            <h3>{world.name}</h3>
-            <p>{world.description}</p>
-          </article>
-        ))}
       </div>
 
       <div className="world-lore-footer">
         <div>
           <strong>THE FOREST NOW WATCHES BACK.</strong>
           <span>
-            Short, dense bushes hide blinking Tickerlings. Click one—or hold it in your gaze
-            while exploring—and a live eligible token signal may jump out wearing its logo.
+            Short bushes hide blinking Tickerlings. Click one—or hold it in your gaze—and an
+            eligible live token signal may jump out wearing its logo.
           </span>
         </div>
         <button type="button" onClick={onEnterWorld}>

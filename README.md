@@ -106,6 +106,7 @@ Important paths:
 | `src/components/3d/Scene3D.jsx` | Shared terrain, atmosphere, forest, river, and portal |
 | `src/components/3d/worldGround.js` | Flat homestead surface and shared asset-grounding contract |
 | `src/components/3d/TickerlingForest.jsx` | Bush encounters and token-logo faces |
+| `src/utils/audioManager.js` | Race-safe world music playback and full Exit teardown |
 | `src/services/tokenService.js` | Shared browser snapshot/cache contract |
 | `server/app/robinhood_service.py` | DexScreener normalization, ranking, and eligibility |
 | `server/app/system_prompt.py` | Canonical character, lore, symbols, truth rules |
@@ -210,7 +211,7 @@ databases.
 Run the focused checks used for the current experience:
 
 ```powershell
-npx eslint src/components/RobinhoodWidgets.jsx src/components/WorldLoreSection.jsx src/components/3d/Terrain3D.jsx src/components/3d/ForestPortal.jsx src/components/3d/TickerlingForest.jsx src/components/3d/worldGround.js src/hooks/useTrendingTokens.js src/services/newsService.js src/services/tokenService.js src/utils/sentimentUtils.js
+npx eslint src/components/RobinhoodWidgets.jsx src/components/WorldLoreSection.jsx src/components/3d/Terrain3D.jsx src/components/3d/ForestPortal.jsx src/components/3d/TickerlingForest.jsx src/components/3d/worldGround.js src/components/3d/useDisposableThreeResource.js src/hooks/useTrendingTokens.js src/services/newsService.js src/services/tokenService.js src/utils/audioManager.js src/utils/sentimentUtils.js
 python -m unittest server.tests.test_robinhood_service_unit server.tests.test_market_sensor server.tests.test_system_prompt server.tests.test_x_client server.tests.test_llm -v
 python -m py_compile server/app/system_prompt.py server/app/autonomous_loop.py server/app/tools.py server/app/robinhood_service.py server/app/sensors/market_sensor.py server/app/sensors/game_sensor.py server/app/main.py
 npm run build

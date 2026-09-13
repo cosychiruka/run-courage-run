@@ -12,6 +12,7 @@ import WorldVoiceButton from '../WorldVoiceButton';
 import WorldEventBanner from '../WorldEventBanner';
 import { useWorldEvents, registerPresence } from '../../hooks/useWorldEvents';
 import { captureAndShareSelfie } from '../../utils/screenshotUtils';
+import { useDisposableThreeResource } from './useDisposableThreeResource';
 
 const MemoHouse = React.memo(House);
 
@@ -29,6 +30,8 @@ function ReadySignal({ onReady }) {
 function HayStack({ position, rotation = [0, 0, 0] }) {
   const geo = useMemo(() => new THREE.BoxGeometry(1.4, 1.0, 1.4), []);
   const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#cca355', roughness: 1 }), []);
+  useDisposableThreeResource(geo);
+  useDisposableThreeResource(mat);
   return (
     <group position={position} rotation={rotation}>
       <mesh position={[0, 0.5, 0]} geometry={geo} material={mat} />
@@ -55,6 +58,8 @@ function StrawGround({ position }) {
   }, []);
   const mat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#e8c982' }), []);
   const geo = useMemo(() => new THREE.CylinderGeometry(0.015, 0.015, 0.6, 4), []);
+  useDisposableThreeResource(mat);
+  useDisposableThreeResource(geo);
 
   return (
     <group position={position}>
@@ -78,6 +83,9 @@ function Speaker({ position, rotation }) {
   const matBox = useMemo(() => new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.8 }), []);
   const matTweeter = useMemo(() => new THREE.MeshStandardMaterial({ color: '#333333' }), []);
   const matWoofer = useMemo(() => new THREE.MeshStandardMaterial({ color: '#00ffcc', emissive: '#00ffcc', emissiveIntensity: 0.5 }), []);
+  useDisposableThreeResource(matBox);
+  useDisposableThreeResource(matTweeter);
+  useDisposableThreeResource(matWoofer);
   return (
     <group position={position} rotation={rotation} ref={groupRef}>
       <mesh position={[0, 1, 0]} material={matBox}>
@@ -100,6 +108,7 @@ function DiscoBall3D({ position }) {
   const lightRef3 = useRef();
 
   const facetMat = useMemo(() => new THREE.MeshStandardMaterial({ metalness: 0.9, roughness: 0.1 }), []);
+  useDisposableThreeResource(facetMat);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -212,9 +221,10 @@ function TextileBanner({ position, rotation }) {
     drawGhost(100, 80);
     drawGhost(924, 80);
 
-    texRef.current.image = canvas;
-    texRef.current.needsUpdate = true;
-    return () => { texRef.current?.dispose(); };
+    const texture = texRef.current;
+    texture.image = canvas;
+    texture.needsUpdate = true;
+    return () => { texture.dispose(); };
   }, []);
   return (
     <mesh position={position} rotation={rotation}>
@@ -282,6 +292,11 @@ function DancingGhost({ position, offsetTime = 0, patternIdx = 0, selfieTexture 
   const haloMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ff00ff', wireframe: true }), []);
   const eyeGeo = useMemo(() => new THREE.CircleGeometry(0.08, 16), []);
   const eyeMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#111122' }), []);
+  useDisposableThreeResource(ghostMat);
+  useDisposableThreeResource(selfieMat);
+  useDisposableThreeResource(haloMat);
+  useDisposableThreeResource(eyeGeo);
+  useDisposableThreeResource(eyeMat);
   const basePos = useMemo(() => [...position], [position]);
   const scale = isSelfie ? 1.35 : 1.0;
 
@@ -517,8 +532,7 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
 
     return () => {
       cancelled = true;
-      // We don't call softCleanup here anymore because it kills the NEXT track's play attempt
-      // instead we rely on playTrack's internal stopImmediate().
+      audioManager.softCleanup();
     };
   }, [visible, audioLoaded, currentTrackIdx, isPlaying]);
 
@@ -532,7 +546,7 @@ export default function DiscoWorld3D({ visible, onReady, onClose }) {
         <div className="disco-music-panel">
           <div style={{ fontSize: '2rem' }}>💿</div>
           <div className="disco-music-info">
-            <span className="disco-music-label">DJ Courage's Playlist</span>
+            <span className="disco-music-label">DJ Courage&apos;s Playlist</span>
             <span className="disco-music-title">{DISCO_TRACKS[currentTrackIdx].title}</span>
           </div>
           <div className="disco-music-controls">

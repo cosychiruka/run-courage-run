@@ -7,19 +7,17 @@ import * as THREE from 'three';
 import { useTrendingTokens } from '../../hooks/useTrendingTokens';
 import { resolveTokenLogoUrl } from '../../services/tokenService';
 import './TickerlingForest.css';
-import { WORLD_GROUND_Y } from './worldGround';
-
-const BUSH_ROOT_Y = WORLD_GROUND_Y - 0.38;
+import { WORLD_BUSH_ROOT_Y } from './worldGround';
 
 const HERO_BUSHES = [
-  { id: 'porch-west', position: [-9.2, BUSH_ROOT_Y, 3.2], scale: 1.08, tint: 0 },
-  { id: 'road-east', position: [9.4, BUSH_ROOT_Y, 4.6], scale: 1.15, tint: 1 },
-  { id: 'windmill-path', position: [10.8, BUSH_ROOT_Y, -5.8], scale: 0.95, tint: 2 },
-  { id: 'back-fence', position: [-10.6, BUSH_ROOT_Y, -5.5], scale: 1.02, tint: 1 },
-  { id: 'north-glade', position: [-5.7, BUSH_ROOT_Y, -11.8], scale: 0.9, tint: 2 },
-  { id: 'river-turn', position: [6.8, BUSH_ROOT_Y, -12.4], scale: 0.96, tint: 0 },
-  { id: 'far-west', position: [-15.2, BUSH_ROOT_Y, -8.8], scale: 0.82, tint: 0 },
-  { id: 'far-east', position: [15.6, BUSH_ROOT_Y, -9.7], scale: 0.84, tint: 2 },
+  { id: 'porch-west', position: [-9.2, WORLD_BUSH_ROOT_Y, 3.2], scale: 1.08, tint: 0 },
+  { id: 'road-east', position: [9.4, WORLD_BUSH_ROOT_Y, 4.6], scale: 1.15, tint: 1 },
+  { id: 'windmill-path', position: [10.8, WORLD_BUSH_ROOT_Y, -5.8], scale: 0.95, tint: 2 },
+  { id: 'back-fence', position: [-10.6, WORLD_BUSH_ROOT_Y, -5.5], scale: 1.02, tint: 1 },
+  { id: 'north-glade', position: [-5.7, WORLD_BUSH_ROOT_Y, -11.8], scale: 0.9, tint: 2 },
+  { id: 'river-turn', position: [6.8, WORLD_BUSH_ROOT_Y, -12.4], scale: 0.96, tint: 0 },
+  { id: 'far-west', position: [-15.2, WORLD_BUSH_ROOT_Y, -8.8], scale: 0.82, tint: 0 },
+  { id: 'far-east', position: [15.6, WORLD_BUSH_ROOT_Y, -9.7], scale: 0.84, tint: 2 },
 ];
 
 const CLUMPS = [
@@ -208,23 +206,15 @@ function TickerlingBush({ bush, index, active, activationKey, token, colors, reg
       }}
     >
       <group ref={leafRef} scale={baseScale}>
-        <Instances limit={CLUMPS.length} castShadow receiveShadow>
-          <icosahedronGeometry args={[1, 1]} />
-          <meshStandardMaterial
+        {CLUMPS.map((clump, clumpIndex) => (
+          <Instance
+            key={clumpIndex}
             color={colors.leaf[bush.tint]}
-            roughness={0.94}
-            metalness={0}
-            flatShading
+            position={clump.position}
+            scale={clump.scale}
+            rotation={clump.rotation}
           />
-          {CLUMPS.map((clump, clumpIndex) => (
-            <Instance
-              key={clumpIndex}
-              position={clump.position}
-              scale={clump.scale}
-              rotation={clump.rotation}
-            />
-          ))}
-        </Instances>
+        ))}
       </group>
 
       <group ref={eyeRigRef} position={[0, 0.58, 0.58]}>
@@ -289,7 +279,7 @@ function FarBushRing({ bushCount, colors }) {
           key: `${bushIndex}-${clumpIndex}`,
           position: [
             centerX + offset * scale,
-            BUSH_ROOT_Y + (clumpIndex === 1 ? 0.42 : 0.18),
+            WORLD_BUSH_ROOT_Y + (clumpIndex === 1 ? 0.42 : 0.18),
             centerZ,
           ],
           scale: [0.88 * scale, (clumpIndex === 1 ? 0.68 : 0.52) * scale, 0.72 * scale],
@@ -424,19 +414,23 @@ export function TickerlingForest({ scene = 'evening' }) {
   return (
     <group name="tickerling-forest">
       <FarBushRing bushCount={isMobile ? 10 : 18} colors={colors} />
-      {bushes.map((bush, index) => (
-        <TickerlingBush
-          key={bush.id}
-          bush={bush}
-          index={index}
-          colors={colors}
-          active={encounter.id === bush.id}
-          activationKey={encounter.key}
-          token={assignments.get(bush.id)}
-          register={register}
-          trigger={trigger}
-        />
-      ))}
+      <Instances limit={bushes.length * CLUMPS.length} castShadow receiveShadow>
+        <icosahedronGeometry args={[1, 1]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.94} metalness={0} flatShading />
+        {bushes.map((bush, index) => (
+          <TickerlingBush
+            key={bush.id}
+            bush={bush}
+            index={index}
+            colors={colors}
+            active={encounter.id === bush.id}
+            activationKey={encounter.key}
+            token={assignments.get(bush.id)}
+            register={register}
+            trigger={trigger}
+          />
+        ))}
+      </Instances>
     </group>
   );
 }

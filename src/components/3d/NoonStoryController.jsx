@@ -1,12 +1,19 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
+import PropTypes from 'prop-types';
 import * as THREE from 'three';
 import { House } from './House3D';
 import { Truck } from './Truck3D';
 import { Windmill } from './Windmill3D';
 import { Euriel } from './Euriel3D';
 import CourageRunningAnimationComplete from './CourageRunningAnimationComplete';
+import {
+  WORLD_ACTOR_ROOT_Y,
+  WORLD_HOUSE_ROOT_Y,
+  WORLD_TRUCK_ROOT_Y,
+  WORLD_WINDMILL_ROOT_Y,
+} from './worldGround';
 
 const MemoHouse = React.memo(House);
 const MemoWindmill = React.memo(Windmill);
@@ -23,9 +30,8 @@ export function NoonStoryController({ eventLine = '' }) {
   const seqRef = useRef(0);
   const startTimeRef = useRef(null);
   const scratchVec1 = useMemo(() => new THREE.Vector3(), []);
-  const truckTarget = useMemo(() => new THREE.Vector3(), []);
 
-  useFrame((state, delta) => {
+  useFrame((state) => {
     if (startTimeRef.current === null) startTimeRef.current = state.clock.elapsedTime;
     const t = state.clock.elapsedTime - startTimeRef.current;
 
@@ -73,7 +79,7 @@ export function NoonStoryController({ eventLine = '' }) {
         const walkT = THREE.MathUtils.smoothstep((t - 5) / 5, 0, 1);
         eurielRef.current.position.set(
           THREE.MathUtils.lerp(-2.8, 3.5, walkT),
-          -0.1,
+          WORLD_ACTOR_ROOT_Y,
           THREE.MathUtils.lerp(2.5, 4.5, walkT)
         );
         eurielRef.current.rotation.y = Math.PI * 0.3;
@@ -83,7 +89,7 @@ export function NoonStoryController({ eventLine = '' }) {
         const walkT = THREE.MathUtils.smoothstep((t - 45) / 5, 0, 1);
         eurielRef.current.position.set(
           THREE.MathUtils.lerp(3.5, -2.8, walkT),
-          -0.1,
+          WORLD_ACTOR_ROOT_Y,
           THREE.MathUtils.lerp(4.5, 2.5, walkT)
         );
         eurielRef.current.rotation.y = -Math.PI * 0.7;
@@ -96,22 +102,22 @@ export function NoonStoryController({ eventLine = '' }) {
     if (truckGroupRef.current) {
       if (p < 2 || p >= 5) {
         // Parked beside house
-        truckGroupRef.current.position.set(4, 0.1, 4);
+        truckGroupRef.current.position.set(4, WORLD_TRUCK_ROOT_Y, 4);
         truckGroupRef.current.rotation.y = Math.PI / 2; // face +X
       } else if (p === 2) {
         // Drive away along +X — accelerating
         const driveT = Math.pow((t - 10) / 5, 1.5);
         const nextX = THREE.MathUtils.lerp(4, 55, driveT);
-        truckGroupRef.current.position.set(nextX, 0.1 + Math.sin(t * 20) * 0.05, 4);
+        truckGroupRef.current.position.set(nextX, WORLD_TRUCK_ROOT_Y + Math.sin(t * 20) * 0.05, 4);
         truckGroupRef.current.rotation.y = Math.PI / 2;
       } else if (p === 3) {
         // Fully off-screen — push far beyond canvas edge
-        truckGroupRef.current.position.set(500, 0.1, 4);
+        truckGroupRef.current.position.set(500, WORLD_TRUCK_ROOT_Y, 4);
       } else if (p === 4) {
         // Drive back from +X — decelerating
         const driveT = 1 - Math.pow((45 - t) / 5, 1.5);
         const nextX = THREE.MathUtils.lerp(55, 4, driveT);
-        truckGroupRef.current.position.set(nextX, 0.1 + Math.sin(t * 20) * 0.05, 4);
+        truckGroupRef.current.position.set(nextX, WORLD_TRUCK_ROOT_Y + Math.sin(t * 20) * 0.05, 4);
         truckGroupRef.current.rotation.y = -Math.PI / 2; // face -X while returning
       }
     }
@@ -176,8 +182,8 @@ export function NoonStoryController({ eventLine = '' }) {
 
   return (
     <group>
-      <group ref={houseRef}><MemoHouse position={[-2.5, -0.2, 0]} doorOpen={doorOpen} /></group>
-      <MemoWindmill position={[7.5, -0.6, -8]} rotation={[0, -Math.PI / 6, 0]} />
+      <group ref={houseRef}><MemoHouse position={[-2.5, WORLD_HOUSE_ROOT_Y, 0]} doorOpen={doorOpen} /></group>
+      <MemoWindmill position={[7.5, WORLD_WINDMILL_ROOT_Y, -8]} rotation={[0, -Math.PI / 6, 0]} />
 
       {/* Euriel Character */}
       <group ref={eurielRef}>
@@ -201,7 +207,7 @@ export function NoonStoryController({ eventLine = '' }) {
           <CourageRunningAnimationComplete isSniffing={phase >= 3 && phase <= 5} />
         </Html>
         {/* Speech bubble — separate Html WITHOUT transform = always crisp */}
-        {phase >= 2 && phase <= 5 && seqRef.current === 1 && (
+        {(eventLine || (phase >= 2 && phase <= 5 && seqRef.current === 1)) && (
           <Html
             position={[0, 3.5, 0]}
             center
@@ -223,7 +229,7 @@ export function NoonStoryController({ eventLine = '' }) {
               position: 'relative',
               userSelect: 'none',
             }}>
-              {phase === 2 ? 'VROOOM!' : 'Sniff sniff...'}
+              {eventLine || (phase === 2 ? 'VROOOM!' : 'Sniff sniff...')}
               <div style={{
                 position: 'absolute', bottom: '-12px', left: '50%',
                 transform: 'translateX(-50%) rotate(45deg)',
@@ -240,3 +246,7 @@ export function NoonStoryController({ eventLine = '' }) {
     </group>
   );
 }
+
+NoonStoryController.propTypes = {
+  eventLine: PropTypes.string,
+};

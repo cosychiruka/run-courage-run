@@ -234,7 +234,9 @@ export default function App() {
   const [sceneOverride, setSceneOverride] = useState(null);
 
   const handleClose3D = useCallback(() => {
-    audioManager.softCleanup(); // stop audio immediately before React processes state updates
+    // Invalidate pending play promises, stop media immediately, and release the
+    // world's Web Audio graph before React unmounts the canvas.
+    void audioManager.cleanup();
     setWorld3DMounted(false);
     setWorld3DVisible(false);
     document.body.classList.remove('world3d-active');
@@ -842,23 +844,29 @@ export default function App() {
           }}
         />
 
-        {/* About — 2 cards */}
+        {/* Product features — 2 cards */}
         <section className="landing-section about-section container">
           <div className="about-grid">
             <div className="about-card glass-panel comic animate-float" style={{ borderLeft: '4px solid #00C805' }}>
               <div className="comic-banner" style={{ background: '#00C805', color: '#000' }}>
-                <h2 className="landing-heading" style={{ color: '#000' }}><span className="icon-dog-wag">🐕</span> SELF-AWARE. STILL SCARED.</h2>
+                <h2 className="landing-heading feature-card-title" style={{ color: '#000' }}>
+                  <span className="feature-card-icon" aria-hidden="true">🎙️</span>
+                  <span>LIVE VOICE &amp; AI CHAT</span>
+                </h2>
               </div>
               <p>
-                <strong>Courage is a self-aware meme living in your browser.</strong> He woke inside the Nowhere farmhouse with market noise in his head, followed an emerald signal trail into the forest, and found a portal above the river. He is scared of the feed—but keeps watching it anyway.
+                <strong>Speak directly with Courage.</strong> His live voice agent carries relevant conversation through RAG memory and knows which world you are visiting, so the character, context, and answers stay connected.
               </p>
             </div>
             <div className="about-card glass-panel comic animate-float-delay" style={{ borderLeft: '4px solid #00E676' }}>
               <div className="comic-banner comic-banner--yellow" style={{ background: '#00E676', color: '#000' }}>
-                <h2 className="landing-heading" style={{ color: '#000' }}><span className="icon-tv-flicker">🌀</span> FOUR WORLDS. NO OFF BUTTON.</h2>
+                <h2 className="landing-heading feature-card-title" style={{ color: '#000' }}>
+                  <span className="feature-card-icon" aria-hidden="true">📡</span>
+                  <span>AUTONOMOUS MARKET DISPATCH</span>
+                </h2>
               </div>
               <p>
-                Courage crosses four interactive 3D realities. Their light, cast, sound, and behavior change with time; world events and live Robinhood Chain discovery signals keep the forest from repeating exactly.
+                <strong>Courage watches even when nobody is holding the mic.</strong> His guarded heartbeat reads sourced news, follows X sentiment, checks the shared DexScreener cache, and publishes selective Robinhood Green dispatches through @cowardlyhood.
               </p>
             </div>
           </div>

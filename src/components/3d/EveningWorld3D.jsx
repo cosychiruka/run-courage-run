@@ -81,16 +81,11 @@ export default function EveningWorld3D({ visible, onReady, onClose }) {
   const playTrack = useCallback(async (idx) => {
     const track = EVENING_TRACKS[idx];
     await audioManager.loadTrack(track.id, track.url);
-    await audioManager.playTrack(track.id, { loop: false, volume: 0.35 });
-    const t = audioManager.tracks.get(track.id);
-    if (t?.source) {
-      t.source.onended = () => {
-        if (audioManager.currentTrack === track.id) {
-          const next = (idx + 1) % EVENING_TRACKS.length;
-          setCurrentTrackIdx(next);
-        }
-      };
-    }
+    await audioManager.playTrack(track.id, {
+      loop: false,
+      volume: 0.35,
+      onEnded: () => setCurrentTrackIdx((idx + 1) % EVENING_TRACKS.length),
+    });
   }, []);
 
   useEffect(() => {
