@@ -35,6 +35,11 @@ from app.config import (
     FRONTEND_ORIGIN,
     PUBLIC_BASE_URL,
     REDIS_URL,
+    VOICE_AGENT_TIMEOUT_SECONDS,
+    VOICE_MAX_TOOL_ROUNDS,
+    VOICE_STT_TIMEOUT_SECONDS,
+    VOICE_TTS_MODE,
+    VOICE_TTS_TIMEOUT_SECONDS,
 )
 from app.news_cache import init_db
 from app.voice import get_voice_status, load_models, transcribe, synthesise
@@ -605,6 +610,57 @@ async def voice_ws(ws: WebSocket, session: str = ""):
 
     audio_buffer = bytearray()
 
+    def _voice_log(stage: str, detail: str = ""):
+        suffix = f" {detail}" if detail else ""
+        print(f"[VOICE:{_session_id[:8]}] {stage}{suffix}", flush=True)
+
+    async def _deliver_reply(reply: str, *, degraded: bool = False):
+        """Deliver a reply without letting server-side TTS strand the client."""
+        if VOICE_TTS_MODE == "browser":
+            await ws.send_text(json.dumps({
+                "type": "done",
+                "reply": reply,
+                "audio_mode": "browser",
+                "degraded": degraded,
+            }))
+            _voice_log("reply delivered", "tts=browser")
+            return
+
+        tts_started = time.perf_counter()
+        _voice_log("tts started", "engine=kokoro")
+        try:
+            wav = await asyncio.wait_for(
+                synthesise(reply),
+                timeout=VOICE_TTS_TIMEOUT_SECONDS,
+            )
+            await ws.send_bytes(wav)
+            await ws.send_text(json.dumps({
+                "type": "done",
+                "reply": reply,
+                "audio_mode": "server",
+                "degraded": degraded,
+            }))
+            _voice_log(
+                "tts completed",
+                f"seconds={time.perf_counter() - tts_started:.2f} bytes={len(wav)}",
+            )
+        except asyncio.TimeoutError:
+            _voice_log("tts timeout", f"limit={VOICE_TTS_TIMEOUT_SECONDS}s; falling back=browser")
+            await ws.send_text(json.dumps({
+                "type": "done",
+                "reply": reply,
+                "audio_mode": "browser",
+                "degraded": True,
+            }))
+        except Exception as exc:
+            _voice_log("tts failed", f"error={type(exc).__name__}; falling back=browser")
+            await ws.send_text(json.dumps({
+                "type": "done",
+                "reply": reply,
+                "audio_mode": "browser",
+                "degraded": True,
+            }))
+
     # ── Helper: emit a JSON message to this specific client ───────────────────────
     async def ws_emit(msg: dict):
         try:
@@ -665,45 +721,61 @@ async def voice_ws(ws: WebSocket, session: str = ""):
                     world_context = data.get("world_context", None)
 
                     # 1. Transcribe
+                    turn_started = time.perf_counter()
+                    _voice_log("stt started", f"bytes={len(raw_audio)}")
                     try:
-                        transcript = await transcribe(raw_audio)
-                    except Exception as e:
-                        await ws.send_text(json.dumps({"type": "error", "message": str(e)}))
+                        transcript = await asyncio.wait_for(
+                            transcribe(raw_audio),
+                            timeout=VOICE_STT_TIMEOUT_SECONDS,
+                        )
+                        _voice_log("stt completed", f"seconds={time.perf_counter() - turn_started:.2f}")
+                    except asyncio.TimeoutError:
+                        _voice_log("stt timeout", f"limit={VOICE_STT_TIMEOUT_SECONDS}s")
+                        await ws.send_text(json.dumps({"type": "error", "message": "I took too long to hear that. Please try a shorter recording."}))
+                        continue
+                    except Exception as exc:
+                        _voice_log("stt failed", f"error={type(exc).__name__}")
+                        await ws.send_text(json.dumps({"type": "error", "message": "I couldn't understand that recording. Please try again."}))
                         continue
 
                     if not transcript.strip():
-                        err_wav = await synthesise("Oh no... I couldn't quite hear that. Try again?")
-                        await ws.send_bytes(err_wav)
-                        await ws.send_text(json.dumps({"type": "done", "reply": ""}))
+                        await _deliver_reply("Oh no... I couldn't quite hear that. Try again?", degraded=True)
                         continue
 
                     await ws.send_text(json.dumps({"type": "transcript", "text": transcript}))
                     await ws.send_text(json.dumps({"type": "thinking"}))
 
                     # 2. Agent (with optional world context and live tool-event streaming)
+                    agent_started = time.perf_counter()
+                    _voice_log("agent started")
+                    degraded = False
                     try:
-                        reply = await run_agent(
-                            user_message=transcript,
-                            history=history,
-                            x_client=x_client,
-                            tweet_image_fn=_tweet_image_fn,
-                            world_context=world_context,
-                            ws_emit=ws_emit,
+                        reply = await asyncio.wait_for(
+                            run_agent(
+                                user_message=transcript,
+                                history=history,
+                                x_client=x_client,
+                                tweet_image_fn=_tweet_image_fn,
+                                world_context=world_context,
+                                ws_emit=ws_emit,
+                                max_tool_rounds=VOICE_MAX_TOOL_ROUNDS,
+                            ),
+                            timeout=VOICE_AGENT_TIMEOUT_SECONDS,
                         )
-                    except Exception as e:
-                        err_msg = "The things I do for you people... something went wrong on my end."
-                        await ws.send_text(json.dumps({"type": "error", "message": str(e)}))
-                        reply = err_msg
+                        _voice_log("agent completed", f"seconds={time.perf_counter() - agent_started:.2f}")
+                    except asyncio.TimeoutError:
+                        degraded = True
+                        reply = "Aah! My brain got lost in the forest. Ask me once more, but keep it short."
+                        _voice_log("agent timeout", f"limit={VOICE_AGENT_TIMEOUT_SECONDS}s")
+                    except Exception as exc:
+                        degraded = True
+                        reply = "The things I do for you people... my brain tripped over a root. Try me again?"
+                        _voice_log("agent failed", f"error={type(exc).__name__}")
 
-                    # 3. TTS
-                    try:
-                        wav = await synthesise(reply)
-                        await ws.send_bytes(wav)
-                    except Exception as e:
-                        await ws.send_text(json.dumps({"type": "error", "message": f"TTS: {e}"}))
-
-                    # 4. Done + update history
-                    await ws.send_text(json.dumps({"type": "done", "reply": reply}))
+                    # 3. Speak and finish. Browser speech is the default on 1 GB;
+                    # Kokoro remains available with an automatic browser fallback.
+                    await _deliver_reply(reply, degraded=degraded)
+                    _voice_log("turn completed", f"seconds={time.perf_counter() - turn_started:.2f}")
 
                     history.extend([
                         {"role": "user",      "content": transcript},

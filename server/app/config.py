@@ -47,6 +47,19 @@ FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", PUBLIC_BASE_URL).rstrip("/")
 VOICE_MEMORY_MODE = os.getenv("VOICE_MEMORY_MODE", "low").strip().lower()
 if VOICE_MEMORY_MODE not in {"low", "resident"}:
     VOICE_MEMORY_MODE = "low"
+# A 1 GB/1 vCPU deployment cannot reliably keep local STT and TTS inference in
+# the same process. In low-memory mode the browser therefore speaks the reply by
+# default, while Kokoro remains available as an explicit opt-in for larger hosts.
+VOICE_TTS_MODE = os.getenv(
+    "VOICE_TTS_MODE",
+    "browser" if VOICE_MEMORY_MODE == "low" else "kokoro",
+).strip().lower()
+if VOICE_TTS_MODE not in {"browser", "kokoro"}:
+    VOICE_TTS_MODE = "browser" if VOICE_MEMORY_MODE == "low" else "kokoro"
+VOICE_STT_TIMEOUT_SECONDS   = max(10, int(os.getenv("VOICE_STT_TIMEOUT_SECONDS", "45")))
+VOICE_AGENT_TIMEOUT_SECONDS = max(10, int(os.getenv("VOICE_AGENT_TIMEOUT_SECONDS", "40")))
+VOICE_TTS_TIMEOUT_SECONDS   = max(10, int(os.getenv("VOICE_TTS_TIMEOUT_SECONDS", "45")))
+VOICE_MAX_TOOL_ROUNDS       = max(1, min(8, int(os.getenv("VOICE_MAX_TOOL_ROUNDS", "4"))))
 WHISPER_MODEL       = os.getenv("WHISPER_MODEL", "tiny.en")
 WHISPER_BEAM_SIZE   = max(1, int(os.getenv("WHISPER_BEAM_SIZE", "1")))
 KOKORO_MODEL_PATH   = os.getenv("KOKORO_MODEL_PATH", "kokoro-v1.0.int8.onnx")

@@ -200,11 +200,14 @@ The Docker image downloads the required Whisper/Kokoro assets during its build.
 
 For Sliplane, deploy `server/Dockerfile` with repository-root build context and expose port 8000.
 That combined image serves the frontend and API on the same origin and bakes in Whisper, a
-quantized Kokoro model, and FFmpeg. The 1 GB deployment profile uses `VOICE_MEMORY_MODE=low`:
-Whisper and Kokoro load one at a time behind a single inference lock, then release native memory.
-`RAG_MODE=lexical` also keeps sentence-transformers and PyTorch out of the production image.
-This favors survival over first-response speed. `/health` reports voice state and whether the
-cache backend is Redis or memory; confirm one real microphone round after every deployment.
+quantized Kokoro model, and FFmpeg. The 1 GB deployment profile uses `VOICE_MEMORY_MODE=low`
+and `VOICE_TTS_MODE=browser`: Whisper loads only for transcription, then the visitor's browser
+speaks Courage's answer without loading a second neural model into the web process. Kokoro is
+still available with `VOICE_TTS_MODE=kokoro` on a larger host and automatically falls back to
+browser speech if synthesis fails or times out. Every STT, agent, and TTS stage has a bounded
+deadline and emits timing-only runtime logs. `RAG_MODE=lexical` also keeps sentence-transformers
+and PyTorch out of the production image. `/health` reports voice and TTS mode plus the cache
+backend; confirm one real microphone round after every deployment.
 
 Redis is optional for a single Sliplane instance. Leave `REDIS_URL` blank to use the shared
 in-process fallback plus SQLite. Only configure it when the referenced Redis service exists in
@@ -220,7 +223,7 @@ Use [`.env.example`](.env.example) as the source of truth. Key groups are:
 | --- | --- |
 | LLM | `LLM_PROVIDER`, `OPENROUTER_API_KEY`, `DEFAULT_MODEL`, `FALLBACK_MODEL`, `LLM_DAILY_TOKEN_BUDGET` |
 | Runtime | `REDIS_URL`, `DB_PATH`, `PUBLIC_BASE_URL`, `FRONTEND_ORIGIN`, `BACKGROUND_AUTOMATION_ENABLED`, `AUTONOMOUS_INTERVAL_MINUTES` |
-| 1 GB memory | `VOICE_MEMORY_MODE=low`, `WHISPER_BEAM_SIZE=1`, quantized `KOKORO_MODEL_PATH`, `RAG_MODE=lexical` |
+| 1 GB memory | `VOICE_MEMORY_MODE=low`, `VOICE_TTS_MODE=browser`, `WHISPER_BEAM_SIZE=1`, `VOICE_AGENT_TIMEOUT_SECONDS`, `VOICE_MAX_TOOL_ROUNDS`, `RAG_MODE=lexical` |
 | News | `COINDESK_API_KEY`; optional `FIRECRAWL_API_KEY` for full-article extraction |
 | X | `X_AUTOMATION_ENABLED`, `X_EXPECTED_USERNAME`, `X_BEARER_TOKEN`, OAuth consumer/access credentials, `X_DAILY_SEARCH_SPEND_CAP` |
 | Art | `FAL_API_KEY`, `COURAGE_BASE_IMAGE_URL`; hosted generation uses the lightweight `fal-client` caller SDK |

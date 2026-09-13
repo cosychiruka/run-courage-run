@@ -35,6 +35,7 @@ const MIN_AUDIO_BYTES = 8000;
 
 const MAX_RECONNECT_ATTEMPTS = 3;
 const RECONNECT_BASE_DELAY_MS = 1000;
+const TURN_TIMEOUT_MS = 60000;
 
 export function createVoiceService({ onState, onTranscript, onReply, onAudio, onError, onToolCall, onTweetCard } = {}) {
   let ws = null;
@@ -47,6 +48,9 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
   let _isConnecting = false;    // guard against concurrent connect() calls
   let _reconnectAttempts = 0;
   let _reconnectTimer = null;
+  let _activeSource = null;
+  let _activeUtterance = null;
+  let _turnTimer = null;
 
   // Chunks buffered while WS is not yet open (e.g., brief reconnect gap)
   const _pendingChunks = [];
@@ -95,6 +99,7 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
       };
 
       ws.onclose = (e) => {
+        _clearTurnTimeout();
         connected = false;
         _isConnecting = false;
         console.log('[Voice] WebSocket closed:', e.code, e.reason);
@@ -119,6 +124,7 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
       ws.onmessage = async (event) => {
         // Binary = TTS WAV audio
         if (event.data instanceof ArrayBuffer) {
+          _clearTurnTimeout();
           await _playWav(event.data);
           onAudio?.();
           onState?.('idle');
@@ -142,13 +148,21 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
               onToolCall?.({ type: 'result', tool: msg.tool, summary: msg.summary });
               break;
             case 'done':
+              _clearTurnTimeout();
               onReply?.(msg.reply);
-              // Don't set idle — WAV audio follows and sets idle via onended
+              if (msg.audio_mode === 'browser') {
+                await _playBrowserSpeech(msg.reply);
+              } else if (msg.audio_mode !== 'server') {
+                // Compatibility with text-only responses from older backends.
+                onState?.('idle');
+              }
               break;
             case 'cancelled':
+              _clearTurnTimeout();
               onState?.('idle');
               break;
             case 'error':
+              _clearTurnTimeout();
               onError?.(msg.message);
               onState?.('idle');
               break;
@@ -183,6 +197,20 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
     }, delay);
   }
 
+  function _clearTurnTimeout() {
+    clearTimeout(_turnTimer);
+    _turnTimer = null;
+  }
+
+  function _armTurnTimeout() {
+    _clearTurnTimeout();
+    _turnTimer = setTimeout(() => {
+      onError?.('Courage got lost while thinking. Please try again.');
+      onState?.('idle');
+      _turnTimer = null;
+    }, TURN_TIMEOUT_MS);
+  }
+
   // ── WAV playback via Web Audio API ─────────────────────────────────────────
 
   function _playWav(arrayBuffer) {
@@ -195,9 +223,13 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
         const decoded = await audioCtx.decodeAudioData(arrayBuffer);
         await new Promise((resolve) => {
           const src = audioCtx.createBufferSource();
+          _activeSource = src;
           src.buffer = decoded;
           src.connect(audioCtx.destination);
-          src.onended = resolve;
+          src.onended = () => {
+            _activeSource = null;
+            resolve();
+          };
           src.start();
         });
       } catch (e) {
@@ -205,6 +237,58 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
         onError?.(`Audio playback error: ${e.message}`);
       }
     })();
+  }
+
+  function _playBrowserSpeech(text) {
+    const cleanText = String(text || '').replace(/\*.*?\*/g, '').trim();
+    if (!cleanText || typeof window === 'undefined' || !window.speechSynthesis || !window.SpeechSynthesisUtterance) {
+      onError?.('Voice playback is unavailable in this browser.');
+      onState?.('idle');
+      return Promise.resolve();
+    }
+
+    window.speechSynthesis.cancel();
+    onState?.('speaking');
+
+    return new Promise((resolve) => {
+      const utterance = new window.SpeechSynthesisUtterance(cleanText);
+      _activeUtterance = utterance;
+      utterance.lang = 'en-US';
+      utterance.rate = 1.04;
+      utterance.pitch = 1.14;
+
+      const voices = window.speechSynthesis.getVoices();
+      const preferredNames = /daniel|david|guy|mark|male/i;
+      utterance.voice = voices.find((voice) => /^en(-|_)/i.test(voice.lang) && preferredNames.test(voice.name))
+        || voices.find((voice) => /^en(-|_)/i.test(voice.lang))
+        || null;
+
+      let settled = false;
+      const speechDeadline = Math.max(15000, Math.min(90000, cleanText.length * 90));
+      const watchdog = setTimeout(() => {
+        window.speechSynthesis.cancel();
+        onError?.('Voice playback timed out, but Courage’s reply is on screen.');
+        finish();
+      }, speechDeadline);
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(watchdog);
+        if (_activeUtterance === utterance) _activeUtterance = null;
+        onState?.('idle');
+        resolve();
+      };
+      utterance.onstart = () => onAudio?.();
+      utterance.onend = finish;
+      utterance.onerror = (event) => {
+        console.error('[Voice] Browser speech error:', event.error);
+        if (event.error !== 'canceled' && event.error !== 'interrupted') {
+          onError?.('Voice playback failed, but Courage’s reply is on screen.');
+        }
+        finish();
+      };
+      window.speechSynthesis.speak(utterance);
+    });
   }
 
   // ── MediaRecorder (microphone capture) ─────────────────────────────────────
@@ -321,6 +405,7 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
     const ctx = worldContext ?? _worldContext;
     if (ws?.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'voice_end', ...(ctx ? { world_context: ctx } : {}) }));
+      _armTurnTimeout();
     } else {
       onError?.('Connection lost — please try again.');
       onState?.('idle');
@@ -344,9 +429,18 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
     _userDestroyed = true;
     clearInterval(pingInterval);
     clearTimeout(_reconnectTimer);
+    _clearTurnTimeout();
     _pendingChunks.length = 0;
     if (mediaRecorder?.state === 'recording') mediaRecorder.stop();
     stream?.getTracks().forEach(t => t.stop());
+    if (_activeSource) {
+      try { _activeSource.stop(); } catch { /* already stopped */ }
+      _activeSource = null;
+    }
+    if (_activeUtterance && typeof window !== 'undefined') {
+      window.speechSynthesis?.cancel();
+      _activeUtterance = null;
+    }
     ws?.close(1000, 'user destroy');
     audioCtx?.close();
     ws = null;

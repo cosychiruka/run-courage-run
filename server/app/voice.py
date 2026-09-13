@@ -15,25 +15,24 @@ import asyncio
 import gc
 import ctypes
 import sys
-import soundfile as sf
 from pathlib import Path
-from typing import AsyncIterator
+from typing import Any, AsyncIterator
 
 from faster_whisper import WhisperModel
-from kokoro_onnx import Kokoro
 
 from app.config import (
     KOKORO_MODEL_PATH,
     KOKORO_VOICE,
     KOKORO_VOICES_PATH,
     VOICE_MEMORY_MODE,
+    VOICE_TTS_MODE,
     WHISPER_BEAM_SIZE,
     WHISPER_MODEL,
 )
 
 # ── Shared model instances (resident or loaded per turn) ────────────────
 _whisper: WhisperModel | None = None
-_kokoro:  Kokoro | None       = None
+_kokoro:  Any | None          = None
 _loading = False
 _available = False
 _model_lock = asyncio.Lock()
@@ -62,9 +61,13 @@ def _load_whisper() -> WhisperModel:
     return _whisper
 
 
-def _load_kokoro() -> Kokoro:
+def _load_kokoro():
     global _kokoro
     if _kokoro is None:
+        # Keep ONNX Runtime and Kokoro out of the 1 GB browser-TTS process unless
+        # server synthesis is explicitly enabled.
+        from kokoro_onnx import Kokoro
+
         _kokoro = Kokoro(KOKORO_MODEL_PATH, KOKORO_VOICES_PATH)
     return _kokoro
 
@@ -92,6 +95,12 @@ def load_models():
     global _available, _loading
     _loading = True
 
+    if VOICE_MEMORY_MODE == "low" and VOICE_TTS_MODE == "browser":
+        _available = True
+        _loading = False
+        print("[VOICE] Low-memory mode ready; Whisper loads per turn and replies use browser speech.")
+        return
+
     if VOICE_MEMORY_MODE == "low":
         missing = [
             path for path in (KOKORO_MODEL_PATH, KOKORO_VOICES_PATH)
@@ -113,15 +122,18 @@ def load_models():
         print(f"[VOICE] ERROR: Failed to load Whisper model: {e}")
         print("[VOICE] Voice transcription will not be available.")
         
-    print("[VOICE] Loading Kokoro TTS...")
-    try:
-        _load_kokoro()
-        print("[VOICE] Kokoro TTS loaded successfully.")
-    except Exception as e:
-        print(f"[VOICE] ERROR: Failed to load Kokoro TTS: {e}")
-        print("[VOICE] Voice synthesis will not be available.")
+    if VOICE_TTS_MODE == "kokoro":
+        print("[VOICE] Loading Kokoro TTS...")
+        try:
+            _load_kokoro()
+            print("[VOICE] Kokoro TTS loaded successfully.")
+        except Exception as e:
+            print(f"[VOICE] ERROR: Failed to load Kokoro TTS: {e}")
+            print("[VOICE] Voice synthesis will not be available.")
         
-    _available = _whisper is not None and _kokoro is not None
+    _available = _whisper is not None and (
+        VOICE_TTS_MODE == "browser" or _kokoro is not None
+    )
     if _available:
         print("[VOICE] All models ready.")
         print("[VOICE] Memory usage optimized.")
@@ -138,6 +150,7 @@ def get_voice_status() -> dict:
     return {
         "ready": _available and not _loading,
         "mode": VOICE_MEMORY_MODE,
+        "tts_mode": VOICE_TTS_MODE,
         "loading": _loading,
         "busy": _model_lock.locked(),
         "resident": {
@@ -209,6 +222,8 @@ async def synthesise(text: str, voice: str = KOKORO_VOICE) -> bytes:
     text = _clean_for_tts(text)
 
     def _run():
+        import soundfile as sf
+
         try:
             samples, sr = _load_kokoro().create(text, voice=voice, speed=1.1, lang="en-us")
             buf = io.BytesIO()
