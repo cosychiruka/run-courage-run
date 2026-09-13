@@ -41,7 +41,7 @@ async def game_sensor_loop():
         try:
             # Search Courage's actual story and ecosystem instead of generic token chatter.
             query = (
-                '"Robinhood Chain" OR "agentic meme" OR "$FLY" OR "@cowardlyhood" '
+                '"Robinhood Chain" OR "agentic meme" OR "@cowardlyhood" '
                 'OR "runcouragerun" OR "hood courage" -is:retweet lang:en'
             )
             tweets = x.search_recent(query=query, max_results=10)
@@ -58,7 +58,7 @@ async def game_sensor_loop():
 
             for t in tweets.data or []:
                 if any(kw in t.text.lower() for kw in [
-                    "robinhood chain", "agentic meme", "$fly", "courage", "runcouragerun",
+                    "robinhood chain", "agentic meme", "courage", "runcouragerun",
                     "hood courage", "@cowardlyhood", "homestead", "tickerling", "portal",
                 ]):
                     # PHASE 5.9: Debounce events to prevent LLM spam (max 1 every 30s)

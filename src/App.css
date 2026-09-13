@@ -2820,6 +2820,256 @@ div:where(.swal2-container) div:where(.swal2-popup) {
   margin-bottom: 3rem;
 }
 
+/* Landing market pulse: the shared snapshot can stay broad, but this surface is concise. */
+.market-pulse-card {
+  background: rgba(10, 15, 10, 0.85);
+  backdrop-filter: blur(16px);
+  border: 2px solid #ccff00;
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 0 0 30px rgba(204, 255, 0, 0.25);
+  margin-bottom: 2rem;
+}
+
+.market-pulse-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.market-pulse-title {
+  margin: 0;
+  font-family: 'Bangers', cursive;
+  color: #ccff00;
+  font-size: 2rem;
+  letter-spacing: 1.5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.market-pulse-subtitle {
+  margin: 4px 0 0;
+  opacity: 0.7;
+  font-size: 0.85rem;
+  color: #ccc;
+}
+
+.market-pulse-refresh {
+  background: rgba(204, 255, 0, 0.15);
+  border: 1px solid #ccff00;
+  color: #ccff00;
+  padding: 0.6rem 1.2rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.market-pulse-refresh:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.market-token-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1.25rem;
+}
+
+.market-token-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2rem;
+  opacity: 0.5;
+  color: #888;
+}
+
+.market-token-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.market-token-card--positive {
+  border: 1px solid rgba(204, 255, 0, 0.4);
+  box-shadow: 0 4px 15px rgba(204, 255, 0, 0.1);
+}
+
+.market-token-card--negative {
+  border: 1px solid rgba(255, 68, 68, 0.4);
+  box-shadow: 0 4px 15px rgba(255, 68, 68, 0.1);
+}
+
+.market-token-topline,
+.market-token-identity,
+.market-token-meta {
+  display: flex;
+  align-items: center;
+}
+
+.market-token-topline,
+.market-token-meta {
+  justify-content: space-between;
+}
+
+.market-token-identity {
+  gap: 6px;
+  min-width: 0;
+}
+
+.market-token-logo {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.market-token-symbol {
+  font-family: 'Bangers', cursive;
+  font-size: 1.3rem;
+  letter-spacing: 1px;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.market-token-boosted {
+  font-size: 0.65rem;
+  background: #ffaa0022;
+  color: #ffaa00;
+  border: 1px solid #ffaa0044;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.market-token-change {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.market-token-change--positive {
+  background: rgba(204, 255, 0, 0.2);
+  color: #ccff00;
+  border: 1px solid #ccff0044;
+}
+
+.market-token-change--negative {
+  background: rgba(255, 68, 68, 0.2);
+  color: #ff4444;
+  border: 1px solid #ff444444;
+}
+
+.market-token-price {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ccff00;
+  font-family: monospace;
+}
+
+.market-token-meta {
+  font-size: 0.7rem;
+  opacity: 0.6;
+  margin-top: 4px;
+  color: #aaa;
+  gap: 8px;
+}
+
+@media (max-width: 620px) {
+  .market-pulse-card {
+    padding: 1rem;
+    border-radius: 18px;
+    overflow: hidden;
+  }
+
+  .market-pulse-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    margin-bottom: 1rem;
+    gap: 0.75rem;
+  }
+
+  .market-pulse-title {
+    align-items: flex-start;
+    font-size: 1.4rem;
+    line-height: 1.08;
+    letter-spacing: 1px;
+  }
+
+  .market-pulse-title svg {
+    flex: 0 0 auto;
+    margin-top: 2px;
+  }
+
+  .market-pulse-subtitle {
+    font-size: 0.72rem;
+    line-height: 1.35;
+  }
+
+  .market-pulse-refresh {
+    width: 100%;
+    padding: 0.55rem 0.8rem;
+  }
+
+  .market-token-grid {
+    grid-template-columns: none;
+    grid-template-rows: repeat(2, minmax(0, auto));
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(170px, 72vw);
+    gap: 0.6rem;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: inline mandatory;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(204, 255, 0, 0.65) rgba(255, 255, 255, 0.06);
+    padding: 0 0 0.75rem;
+  }
+
+  .market-token-card {
+    scroll-snap-align: start;
+    padding: 0.8rem;
+    gap: 5px;
+  }
+
+  .market-token-symbol {
+    font-size: 1.05rem;
+  }
+
+  .market-token-boosted {
+    display: none;
+  }
+
+  .market-token-change {
+    font-size: 0.67rem;
+    padding: 2px 5px;
+  }
+
+  .market-token-price {
+    font-size: 1.05rem;
+  }
+
+  .market-token-meta {
+    font-size: 0.62rem;
+  }
+}
+
 .section-title {
   text-align: center;
   margin-bottom: 1.5rem !important;

@@ -1737,7 +1737,7 @@ const AdminDashboard = () => {
                     Courage uses <strong>Sensors</strong> to watch X/Twitter. These are the primary source of your <strong>Search Costs</strong>.
                   </p>
                   <ul style={{ fontSize: '0.8rem', opacity: 0.7, paddingLeft: 20 }}>
-                    <li style={{ marginBottom: 8 }}><strong>Community Sensor</strong>: Watches relevant Courage, Robinhood Chain, $FLY, and agentic-world conversation.</li>
+                    <li style={{ marginBottom: 8 }}><strong>Community Sensor</strong>: Watches relevant Courage, Robinhood Chain, and agentic-world conversation.</li>
                     <li style={{ marginBottom: 8 }}><strong>Market Sensor</strong>: Compares eligible live Robinhood Chain signals between cached DexScreener snapshots.</li>
                     <li><strong>Pulse Control</strong>: Both sensors follow your <strong>Dashboard Slider</strong>. Set it higher (e.g., 25m) to slash search costs.</li>
                   </ul>

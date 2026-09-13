@@ -222,7 +222,7 @@ TOOL_SCHEMAS = [
             "description": (
                 "Search recent tweets (last 7 days) by keyword, hashtag, cashtag, or phrase. "
                 "Use this to find what people are saying about a topic RIGHT NOW on X/Twitter. "
-                "Good uses include 'Robinhood Chain', '#Courage', '$FLY', agentic worlds, "
+                "Good uses include 'Robinhood Chain', '#Courage', agentic worlds, "
                 "breaking-news reactions, or another topic the user names. "
                 "Filters out retweets by default for signal over noise. "
                 "Returns up to 20 tweets with author, text, and engagement stats. "

@@ -11,9 +11,8 @@ find an off button. An original trail of emerald signal shards leads him out of
 the house, through a forest that watches back, and to a portal hovering above a
 river.
 
-The experience takes inspiration from the agentic meme-world energy around
-`$FLY`: the character is not presented as a static mascot. The browser contains
-four interactive worlds with their own light, cast, music, events, and behavior.
+The character is not presented as a static mascot. The browser contains four
+interactive worlds with their own light, cast, music, events, and behavior.
 
 The four world states are:
 
@@ -142,6 +141,9 @@ server/app/robinhood_service.py
 Discovery source tags are retained. A result from a text search is not called
 "trending." Only entries discovered through boost feeds receive the `boosted`
 and `trending` flags. This is discovery metadata, not investment advice.
+The shared caches retain the full normalized snapshot for every consumer. The
+landing widget alone caps its rendered view at ten signals; below 620px those
+cards become a two-row horizontal rail instead of a long single-card column.
 
 Current world eligibility requires all of the following:
 

@@ -684,16 +684,16 @@ export default function App() {
         <div className="hero-center">
           <div className={`hero-badge${scrolled ? ' hero-badge--hidden' : ''}`} style={{ borderColor: '#ccff00', color: '#ccff00' }}>
             <span className="hero-badge-dot" style={{ background: '#ccff00', boxShadow: '0 0 10px #ccff00' }} />
-            Robinhood Chain signal
+            Robinhood
           </div>
           <div className={`hero-text-block${heroTextVisible ? '' : ' hero-text-block--hidden'}`}>
             <div className="desktop-only">
-              <p className="hero-title">A Self-Aware Meme Escaped the Forest</p>
-              <p className="hero-tagline">Four agentic 3D worlds. Live token signals. No off button.</p>
+              <p className="hero-title">Self Aware Living Meme on Robinhood</p>
+              <p className="hero-tagline">&quot;Powered by X API, interactive meme covering RH tickers and breaking news!&quot;</p>
             </div>
             <div className="mobile-only">
-              <p className="hero-title">A Self-Aware Meme <br /> Escaped the Forest</p>
-              <p className="hero-tagline">Four agentic 3D worlds. Live token signals. No off button.</p>
+              <p className="hero-title">Self Aware Living Meme <br /> on Robinhood</p>
+              <p className="hero-tagline">&quot;Powered by X API, interactive meme covering RH tickers and breaking news!&quot;</p>
             </div>
           </div>
           {aliveTextVisible && (
@@ -858,14 +858,14 @@ export default function App() {
                 <h2 className="landing-heading" style={{ color: '#000' }}><span className="icon-tv-flicker">🌀</span> FOUR WORLDS. NO OFF BUTTON.</h2>
               </div>
               <p>
-                Inspired by <strong>$FLY&apos;s agentic meme-world energy</strong>, Courage now crosses four interactive 3D realities. Their light, cast, sound, and behavior change with time; world events and live Robinhood Chain discovery signals keep the forest from repeating exactly.
+                Courage crosses four interactive 3D realities. Their light, cast, sound, and behavior change with time; world events and live Robinhood Chain discovery signals keep the forest from repeating exactly.
               </p>
             </div>
           </div>
         </section>
 
         {/* Live Robinhood Crypto Market Pulse Widget */}
-        <section className="landing-section container">
+        <section id="market-pulse" className="landing-section container">
           <LiveMarketWidget />
         </section>
 

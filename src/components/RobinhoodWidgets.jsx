@@ -10,6 +10,7 @@ import {
 } from '../services/tokenService';
 
 const API_BASE = getBackendUrl();
+const LANDING_TOKEN_LIMIT = 10;
 
 // ── Widget 1: Robinhood Chain discovery pulse (sorted live data) ─────────────
 export const LiveMarketWidget = () => {
@@ -42,114 +43,74 @@ export const LiveMarketWidget = () => {
     if (b.is_trending !== a.is_trending) return b.is_trending ? 1 : -1;
     return (b.change_24h || 0) - (a.change_24h || 0);
   });
+  const visibleStats = sortedStats.slice(0, LANDING_TOKEN_LIMIT);
 
   return (
-    <div className="glass-card-v2" style={{
-      background: 'rgba(10, 15, 10, 0.85)',
-      backdropFilter: 'blur(16px)',
-      border: '2px solid #ccff00',
-      borderRadius: '24px',
-      padding: '2rem',
-      boxShadow: '0 0 30px rgba(204, 255, 0, 0.25)',
-      marginBottom: '2rem'
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+    <div className="glass-card-v2 market-pulse-card">
+      <div className="market-pulse-header">
         <div>
-          <h2 style={{ margin: 0, fontFamily: 'Bangers, cursive', color: '#ccff00', fontSize: '2rem', letterSpacing: '1.5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h2 className="market-pulse-title">
             <FaChartLine color="#ccff00" /> 🟢 LIVE ROBINHOOD CHAIN DISCOVERY PULSE
           </h2>
-          <p style={{ margin: '4px 0 0', opacity: 0.7, fontSize: '0.85rem', color: '#ccc' }}>
+          <p className="market-pulse-subtitle">
             Robinhood Chain discovery pulse via DexScreener · {data?.metadata?.status || 'connecting'}
           </p>
         </div>
         <button
+          className="market-pulse-refresh"
           onClick={() => fetchStats(true)}
           disabled={loading}
-          style={{
-            background: 'rgba(204, 255, 0, 0.15)',
-            border: '1px solid #ccff00',
-            color: '#ccff00',
-            padding: '0.6rem 1.2rem',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.2s'
-          }}
         >
           <FaSync className={loading ? 'spin' : ''} /> {loading ? 'FETCHING...' : 'REFRESH PULSE'}
         </button>
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-        gap: '1.25rem'
-      }}>
+      <div className="market-token-grid" aria-label={`Top ${LANDING_TOKEN_LIMIT} token signals`}>
         {sortedStats.length === 0 ? (
-          <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '2rem', opacity: 0.5, color: '#888' }}>
+          <div className="market-token-empty">
             Waiting for a Robinhood Chain discovery snapshot...
           </div>
         ) : (
-          sortedStats.map((coin) => {
+          visibleStats.map((coin) => {
             const isPos = (coin.change_24h || 0) >= 0;
             return (
               <motion.div
                 key={coin.id || coin.symbol}
+                className={`market-token-card market-token-card--${isPos ? 'positive' : 'negative'}`}
                 whileHover={{ scale: 1.03, translateY: -4 }}
                 transition={{ type: 'spring', stiffness: 300 }}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: `1px solid ${isPos ? 'rgba(204, 255, 0, 0.4)' : 'rgba(255, 68, 68, 0.4)'}`,
-                  borderRadius: '16px',
-                  padding: '1.25rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  boxShadow: `0 4px 15px ${isPos ? 'rgba(204, 255, 0, 0.1)' : 'rgba(255, 68, 68, 0.1)'}`
-                }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div className="market-token-topline">
+                  <div className="market-token-identity">
                     {coin.logo_url && (
                       <img
                         src={resolveTokenLogoUrl(coin)}
                         alt=""
-                        style={{ width: '20px', height: '20px', borderRadius: '50%' }}
+                        className="market-token-logo"
                         onError={(event) => { event.currentTarget.style.display = 'none'; }}
                       />
                     )}
-                    <span style={{ fontFamily: 'Bangers, cursive', fontSize: '1.3rem', letterSpacing: '1px', color: '#fff' }}>
+                    <span className="market-token-symbol">
                       {coin.symbol}
                     </span>
                     {coin.is_boosted && (
-                      <span style={{ fontSize: '0.65rem', background: '#ffaa0022', color: '#ffaa00', border: '1px solid #ffaa0044', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold' }}>
+                      <span className="market-token-boosted">
                         🔥 BOOSTED
                       </span>
                     )}
                   </div>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold',
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    background: isPos ? 'rgba(204, 255, 0, 0.2)' : 'rgba(255, 68, 68, 0.2)',
-                    color: isPos ? '#ccff00' : '#ff4444',
-                    border: `1px solid ${isPos ? '#ccff0044' : '#ff444444'}`
-                  }}>
+                  <span className={`market-token-change market-token-change--${isPos ? 'positive' : 'negative'}`}>
                     {isPos ? '+' : ''}{Number(coin.change_24h || 0).toFixed(2)}%
                   </span>
                 </div>
 
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ccff00', fontFamily: 'monospace' }}>
+                <div className="market-token-price">
                   ${Number(coin.price || 0) < 0.01
                     ? Number(coin.price || 0).toFixed(6)
                     : Number(coin.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', opacity: 0.6, marginTop: '4px', color: '#aaa' }}>
+                <div className="market-token-meta">
                   <span>Vol: ${coin.volume_24h ? (coin.volume_24h / 1e6).toFixed(1) + 'M' : '—'}</span>
                   <span>MCap: ${coin.market_cap ? (coin.market_cap / 1e9).toFixed(2) + 'B' : '—'}</span>
                 </div>

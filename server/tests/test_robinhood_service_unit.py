@@ -9,7 +9,7 @@ from server.app.robinhood_service import _parse_pairs
 def make_pair(
     address,
     *,
-    symbol="FLY",
+    symbol="HOOD",
     price="0.0042",
     liquidity=25_000,
     volume=8_000,
@@ -45,7 +45,7 @@ class RobinhoodSnapshotTests(unittest.TestCase):
         )
 
         self.assertEqual(len(records), 1)
-        self.assertEqual(records[0]["symbol"], "$FLY")
+        self.assertEqual(records[0]["symbol"], "$HOOD")
         self.assertEqual(records[0]["source_tags"], ["boosted_top"])
         self.assertTrue(records[0]["is_boosted"])
         self.assertTrue(records[0]["world_eligible"])
@@ -115,7 +115,7 @@ class RobinhoodSnapshotConcurrencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_concurrent_consumers_share_one_refresh(self):
         calls = 0
-        expected = [{"symbol": "$FLY"}]
+        expected = [{"symbol": "$HOOD"}]
 
         async def fake_refresh():
             nonlocal calls

@@ -41,7 +41,8 @@ source tags, applies a minimum display-quality filter, and serves eligible logos
 bounded image proxy. The backend snapshot, concurrent refresh, browser memory, browser storage,
 market widget, and every world reuse one cache pipeline. A search-discovered token is not called
 trending; only boost-feed records receive a boosted/trending flag. This is discovery metadata,
-not vetting or financial advice.
+not vetting or financial advice. The shared cache keeps the full normalized snapshot; the landing
+page sorts it and renders at most ten signals, using a compact two-row swipe rail on phones.
 
 ### Voice, memory, news, and X
 
@@ -67,10 +68,9 @@ It defines:
 - source, market, financial-safety, and public-action boundaries; and
 - separate voice and autonomous decision behavior.
 
-`$FLY` is acknowledged only as creative inspiration for the agentic meme-world direction. It
-is not treated as a partner, endorsement, or automatic subject for unrelated posts. Fixed
-project cashtags and legacy Solana helpers remain compatibility utilities, not Courage's
-default identity or posting mission.
+Creative-origin attribution lives once in the public lore rather than being repeated by the
+agent. Fixed project cashtags and legacy Solana helpers remain compatibility utilities, not
+Courage's default identity or posting mission.
 
 See [`docs/AGENT_BRAIN.md`](docs/AGENT_BRAIN.md) for the decision contract and
 [`docs/WORLD_EXPERIENCE.md`](docs/WORLD_EXPERIENCE.md) for scene, Tickerling, data, performance,
@@ -223,5 +223,5 @@ global cleanup inside feature work.
 ## Brand boundary
 
 Run Courage Run is an independent, fan-made meme experience. It is not affiliated with or
-endorsed by Robinhood, Warner Bros., Cartoon Network, `$FLY`, DexScreener, or token issuers.
+endorsed by Robinhood, Warner Bros., Cartoon Network, DexScreener, or token issuers.
 Market discovery is informational and is not financial advice.
