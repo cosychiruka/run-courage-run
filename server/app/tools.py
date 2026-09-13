@@ -32,24 +32,15 @@ from app.news_cache import (
     get_cached_tweet_search,
     cache_tweet_search,
 )
-from app.config import REDIS_URL
 import app.twitter_memory as tw_mem
 
 # ── Module-level tweet card buffer (populated on each search_tweets call) ──────
 _last_tweet_cards: list[dict] = []
 
 # ── Async Redis singleton for tools (credits, covered URLs, tweet counter) ─────
-_tools_redis = None
-
 async def _get_tools_redis():
-    global _tools_redis
-    if _tools_redis is None:
-        try:
-            import redis.asyncio as aioredis
-            _tools_redis = aioredis.from_url(REDIS_URL, decode_responses=True)
-        except Exception:
-            pass
-    return _tools_redis
+    from app.redis_utils import get_redis_client
+    return await get_redis_client()
 
 # ── Tweet content safety ───────────────────────────────────────────────────────
 # Solana base58 addresses are 32-44 chars of [1-9A-HJ-NP-Za-km-z]

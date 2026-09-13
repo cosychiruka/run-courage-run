@@ -51,6 +51,7 @@ page sorts it and renders at most ten signals, using a compact two-row swipe rai
 - `faster-whisper` transcribes locally; the configured OpenRouter model runs the tool-capable
   agent; Kokoro synthesizes the reply locally.
 - Each voice connection has isolated history, with optional short-lived Redis restoration.
+  Without Redis, one shared in-process fallback powers voice priority, counters, and caches.
 - CoinDesk crypto news is cached once for the app, agent tools, heartbeat, and sourced
   Courageous Chronicle cards. CoinDesk RSS is the keyless fallback.
 - The autonomous heartbeat combines time, news priority, live Robinhood Chain metadata,
@@ -201,9 +202,15 @@ For Sliplane, deploy `server/Dockerfile` with repository-root build context and 
 That combined image serves the frontend and API on the same origin and bakes in Whisper, a
 quantized Kokoro model, and FFmpeg. The 1 GB deployment profile uses `VOICE_MEMORY_MODE=low`:
 Whisper and Kokoro load one at a time behind a single inference lock, then release native memory.
-`RAG_MODE=lexical` also avoids holding a sentence-transformer in RAM. This favors survival over
-first-response speed. `/health` reports `voice.ready`, `voice.mode`, `voice.busy`, and current
-model residency; confirm one real microphone round after every deployment.
+`RAG_MODE=lexical` also keeps sentence-transformers and PyTorch out of the production image.
+This favors survival over first-response speed. `/health` reports voice state and whether the
+cache backend is Redis or memory; confirm one real microphone round after every deployment.
+
+Redis is optional for a single Sliplane instance. Leave `REDIS_URL` blank to use the shared
+in-process fallback plus SQLite. Only configure it when the referenced Redis service exists in
+the same reachable network. A bad internal hostname adds connection failures without improving
+durability. Persistent cross-redeploy history requires a valid Redis service or a mounted data
+volume for the SQLite data directory.
 
 ## Configuration
 

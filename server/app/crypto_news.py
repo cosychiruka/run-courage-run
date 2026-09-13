@@ -16,27 +16,19 @@ import datetime
 import asyncio
 import httpx
 
-from app.config import REDIS_URL, COINDESK_API_KEY
+from app.config import COINDESK_API_KEY
 
 CRYPTO_CACHE_KEY = "courage_crypto_news"
 CRYPTO_CACHE_TTL = 1800  # 30 minutes
 COINDESK_DAILY_BUDGET = 1000
 
-# Module-level Redis singleton (lazy init)
-_redis = None
 _memory_cache: tuple[float, list[dict]] | None = None
 _refresh_lock = asyncio.Lock()
 
 
 async def _get_redis():
-    global _redis
-    if _redis is None:
-        try:
-            import redis.asyncio as aioredis
-            _redis = aioredis.from_url(REDIS_URL, decode_responses=True)
-        except Exception as e:
-            print(f"[CRYPTO] Redis init failed: {e}")
-    return _redis
+    from app.redis_utils import get_redis_client
+    return await get_redis_client()
 
 
 # ── Normalisers ────────────────────────────────────────────────────────────────

@@ -29,6 +29,7 @@ aiosqlite
 
 # AI Brain
 openai
-groq
 fal
-sentence-transformers
+
+# RAG defaults to lexical retrieval on the 1 GB production image. Installing
+# sentence-transformers would also pull PyTorch/CUDA wheels and add gigabytes.

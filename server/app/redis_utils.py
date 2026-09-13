@@ -4,6 +4,7 @@ Ensures Courage works perfectly in both Sliplane (Prod) and Local (no Docker) en
 """
 
 import asyncio
+import fnmatch
 import json
 import time
 from app.config import REDIS_URL
@@ -109,6 +110,24 @@ class MockRedis:
     async def scard(self, name):
         return len(self._data.get(name, set()))
 
+    async def sadd(self, name, *values):
+        bucket = self._data.setdefault(name, set())
+        before = len(bucket)
+        bucket.update(str(value) for value in values)
+        return len(bucket) - before
+
+    async def srem(self, name, *values):
+        bucket = self._data.get(name, set())
+        removed = 0
+        for value in values:
+            if str(value) in bucket:
+                bucket.remove(str(value))
+                removed += 1
+        return removed
+
+    async def keys(self, pattern="*"):
+        return [key for key in self._data if fnmatch.fnmatch(key, pattern)]
+
     async def publish(self, channel, message):
         if channel in self._pubsub:
             for ps in self._pubsub[channel]:
@@ -130,6 +149,10 @@ class MockSyncRedis:
         val = int(self._data.get(key, 0)) + amount
         self._data[key] = str(val)
         return val
+    def incr(self, key, amount=1):
+        return self.incrby(key, amount)
+    def expire(self, key, seconds):
+        return key in self._data
     def hset(self, name, mapping=None, **kwargs):
         if name not in self._data: self._data[name] = {}
         if mapping: self._data[name].update(mapping)
@@ -145,10 +168,26 @@ class MockSyncRedis:
 # Global singletons
 _client = None
 _sync_client = None
+_async_backend = "uninitialized"
+_sync_backend = "uninitialized"
+
+
+def get_redis_status():
+    """Return a credential-safe cache status for health and startup logs."""
+    return {
+        "configured": bool(REDIS_URL),
+        "async_backend": _async_backend,
+        "sync_backend": _sync_backend,
+    }
 
 async def get_redis_client():
-    global _client
+    global _client, _async_backend
     if _client is not None:
+        return _client
+
+    if not REDIS_URL:
+        _client = MockRedis()
+        _async_backend = "memory"
         return _client
 
     try:
@@ -157,16 +196,23 @@ async def get_redis_client():
         client = aioredis.from_url(REDIS_URL, decode_responses=True, socket_connect_timeout=2)
         await asyncio.wait_for(client.ping(), timeout=2.0)
         _client = client
-        print(f"[REDIS] Connected to {REDIS_URL}")
+        _async_backend = "redis"
+        print("[REDIS] Connected to configured Redis service.")
     except Exception as e:
         print(f"[REDIS] Connection failed ({e}). Falling back to Memory.")
         _client = MockRedis()
+        _async_backend = "memory"
     
     return _client
 
 def get_sync_redis_client():
-    global _sync_client
+    global _sync_client, _sync_backend
     if _sync_client is not None:
+        return _sync_client
+
+    if not REDIS_URL:
+        _sync_client = MockSyncRedis()
+        _sync_backend = "memory"
         return _sync_client
 
     try:
@@ -174,10 +220,12 @@ def get_sync_redis_client():
         client = redis.from_url(REDIS_URL, decode_responses=True, socket_connect_timeout=2)
         client.ping()
         _sync_client = client
-        print(f"[REDIS-SYNC] Connected to {REDIS_URL}")
+        _sync_backend = "redis"
+        print("[REDIS-SYNC] Connected to configured Redis service.")
     except Exception as e:
         print(f"[REDIS-SYNC] Connection failed ({e}). Falling back to Memory.")
         _sync_client = MockSyncRedis()
+        _sync_backend = "memory"
     
     return _sync_client
 

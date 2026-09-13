@@ -6,7 +6,7 @@ Atomic, rate-limit safe.
 import time
 import asyncio
 import aiosqlite
-from app.config import DB_PATH, REDIS_URL, X_DAILY_SEARCH_SPEND_CAP
+from app.config import DB_PATH, X_DAILY_SEARCH_SPEND_CAP
 from app.x_client import make_x_client
 import app.twitter_memory as tw_mem
 from app.redis_utils import get_redis_client, track_x_search_cost

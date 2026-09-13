@@ -46,8 +46,8 @@ from app.goal_tracker import init_goal_db
 from app.crypto_news import crypto_discovery_round
 from app.autonomous_loop import autonomous_tick
 import aiosqlite
-import redis.asyncio as aioredis
 from app.engagement_queue import process_reply_queue
+from app.redis_utils import get_redis_status
 
 # ── Shared HTTP client (persistent pool, not per-request) ─────────────────────
 _http_client: httpx.AsyncClient | None = None
@@ -71,9 +71,8 @@ def get_http_client() -> httpx.AsyncClient:
     return _http_client
 
 # ── Redis client (for presence) ───────────────────────────────────────────────
-def get_redis() -> aioredis.Redis | None:
-    from app.redis_utils import _client
-    return _client
+def get_redis():
+    return _redis
 
 # ── Scheduler + shared state ───────────────────────────────────────────────────
 scheduler = AsyncIOScheduler()
@@ -162,7 +161,8 @@ async def lifespan(app: FastAPI):
                 _redis = await get_redis_client()
                 if _redis:
                     await _redis.delete("active_voice_sessions")
-                    print("[STARTUP] Redis connected (sessions cleared).")
+                    cache_backend = get_redis_status()["async_backend"]
+                    print(f"[STARTUP] Cache backend ready: {cache_backend} (sessions cleared).")
             except Exception as e:
                 _redis = None
                 print(f"[STARTUP] Redis unavailable ({e}) — pulse falling back to memory.")
@@ -293,7 +293,7 @@ async def lifespan(app: FastAPI):
             print(f"BRAIN:       OpenRouter ({DEFAULT_MODEL})")
             print(f"AUTOMATION:  {'ENABLED' if BACKGROUND_AUTOMATION_ENABLED else 'DISABLED'}")
             print(f"X:           {'CONNECTED' if x_client else 'DISABLED'}")
-            print(f"REDIS:       {REDIS_URL.split('@')[-1] if '@' in REDIS_URL else REDIS_URL}")
+            print(f"CACHE:       {get_redis_status()['async_backend'].upper()}")
             print(f"FRONTEND:    {FRONTEND_ORIGIN}")
             print("="*50 + "\n")
 
@@ -350,6 +350,7 @@ async def health():
         "status": "ok",
         "timestamp": time.time(),
         "voice": get_voice_status(),
+        "cache": get_redis_status(),
     }
 
 # ── App End ──
@@ -623,6 +624,12 @@ async def voice_ws(ws: WebSocket, session: str = ""):
     try:
         while True:
             msg = await ws.receive()
+
+            # Starlette can return the disconnect frame instead of raising
+            # WebSocketDisconnect. Stop before the next receive call so a
+            # normal browser close does not become a noisy runtime error.
+            if msg.get("type") == "websocket.disconnect":
+                break
 
             # Binary — accumulate audio chunks
             if "bytes" in msg and msg["bytes"]:

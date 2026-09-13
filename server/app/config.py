@@ -21,8 +21,10 @@ OPENROUTER_TITLE   = os.getenv("OPENROUTER_TITLE", "Run Courage Run")
 # GROQ_MODEL_FAST  = os.getenv("GROQ_MODEL_FAST", "llama-3.1-8b-instant")        # legacy fast model
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
-DB_PATH   = os.getenv("DB_PATH",   os.path.join(BASE_DIR, "data", "courage.db"))
+# Redis is optional. An empty value selects the process-local fallback without
+# attempting DNS/network connections (the production default for one instance).
+REDIS_URL = os.getenv("REDIS_URL", "").strip()
+DB_PATH   = os.getenv("DB_PATH", "").strip() or os.path.join(BASE_DIR, "data", "courage.db")
 
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
 

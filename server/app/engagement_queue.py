@@ -4,15 +4,11 @@ engagement_queue.py — Redis-backed queue for safe bulk replies (max 8 every 15
 
 import asyncio
 import time
-from app.config import REDIS_URL
-import redis.asyncio as aioredis
 from app.tools import dispatch_tool  # for post_tweet
 import json
 from datetime import datetime
 from app.image_gen import create_courage_art_realtime
 from app.twitter_memory import save_posted_tweet
-
-_queue_redis = None
 
 async def _get_queue_redis():
     from app.redis_utils import get_redis_client

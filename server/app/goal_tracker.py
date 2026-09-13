@@ -15,13 +15,10 @@ import datetime
 from datetime import timezone
 import aiosqlite
 
-from app.config import DB_PATH, REDIS_URL
+from app.config import DB_PATH
 
 BIRTHDAY = datetime.datetime(2026, 5, 1, tzinfo=timezone.utc)
 BUCKET_TIMES_KEY = "courage:bucket_times"
-
-_redis = None
-
 
 async def _get_redis():
     from app.redis_utils import get_redis_client

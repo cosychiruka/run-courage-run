@@ -5,10 +5,6 @@ Used by sensors to wake Courage immediately (P2 priority).
 
 import json
 import time
-from app.config import REDIS_URL
-import redis.asyncio as aioredis
-
-_redis = None
 
 async def _get_event_redis():
     from app.redis_utils import get_redis_client
