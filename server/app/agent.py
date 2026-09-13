@@ -330,7 +330,6 @@ async def run_agent(
 
 # ── Tool display labels ────────────────────────────────────────────────────────
 _TOOL_LABELS = {
-    "get_news":             "📰 Fetching news articles...",
     "fetch_article":        "📄 Reading full article...",
     "get_x_rate_status":    "🐦 Checking Twitter rate limits...",
     "get_my_tweets":        "🐦 Reading my recent tweets...",

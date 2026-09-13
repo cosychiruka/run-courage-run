@@ -33,14 +33,11 @@ from app.config import (
     BACKGROUND_AUTOMATION_ENABLED,
     DB_PATH,
     FRONTEND_ORIGIN,
+    PUBLIC_BASE_URL,
     REDIS_URL,
 )
-from app.news_cache import (
-    init_db, discovery_round, get_recent_articles,
-    get_cached_articles, fetch_pair, search_newsapi, search_gnews,
-    get_budget_status,
-)
-from app.voice import load_models, transcribe, synthesise
+from app.news_cache import init_db
+from app.voice import get_voice_status, load_models, transcribe, synthesise
 from app.agent import run_agent, _init_token_tracker
 from app.x_client import make_x_client
 # from app.tweet_image import render_news_card, render_card_for_url
@@ -90,7 +87,7 @@ async def _tweet_image_fn(article_url: str):
     from app.news_cache import get_all_recent
     from app.crypto_news import get_cached_crypto_headlines
     
-    # Check general news
+    # Check the persisted crypto Chronicle cache first.
     articles = await get_all_recent(limit=100)
     article = next((a for a in articles if a.get("url") == article_url), None)
     
@@ -122,7 +119,11 @@ async def _load_voice_models_bg():
     try:
         print("[STARTUP] Loading voice models (background)...")
         await asyncio.to_thread(load_models)
-        print("[STARTUP] Voice models ready.")
+        status = get_voice_status()
+        if status["ready"]:
+            print("[STARTUP] Voice models ready.")
+        else:
+            print(f"[STARTUP] Voice models incomplete: {status}")
     except Exception as e:
         print(f"[STARTUP] Voice model loading failed: {e}")
         print("[STARTUP] Voice features will be unavailable.")
@@ -182,7 +183,6 @@ async def lifespan(app: FastAPI):
             # opening the app cannot silently spend APIs, search X, or publish.
             if BACKGROUND_AUTOMATION_ENABLED:
                 try:
-                    scheduler.add_job(discovery_round,       "interval", minutes=60,  id="discovery")
                     scheduler.add_job(crypto_discovery_round,"interval", minutes=60,  id="crypto_discovery")
                     scheduler.add_job(prune_twitter_memory,  "interval", weeks=1,     id="memory_prune")
                     scheduler.add_job(
@@ -276,8 +276,7 @@ async def lifespan(app: FastAPI):
                         except Exception as e:
                             print(f"[STARTUP] Cooldown check failed: {e}")
                     
-                    print("[STARTUP] Firing initial news + crypto discovery...")
-                    asyncio.create_task(discovery_round())
+                    print("[STARTUP] Firing initial crypto discovery...")
                     asyncio.create_task(crypto_discovery_round())
 
                 if BACKGROUND_AUTOMATION_ENABLED:
@@ -336,8 +335,9 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:4173",
         "http://127.0.0.1:4173",
-        "https://runcouragerun.fun",
-        "https://www.runcouragerun.fun",
+        PUBLIC_BASE_URL,
+        "https://hoodcourage.xyz",
+        "https://www.hoodcourage.xyz",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -346,7 +346,11 @@ app.add_middleware(
 
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
-    return {"status": "ok", "timestamp": time.time()}
+    return {
+        "status": "ok",
+        "timestamp": time.time(),
+        "voice": get_voice_status(),
+    }
 
 # ── App End ──
 
@@ -475,50 +479,36 @@ async def get_news(
     limit: int = 10,
     fresh: bool = False,
 ):
-    """
-    Returns news for Courage News Net.
-    Defaults to Robinhood Crypto RSS feed, with fallback to crypto headlines.
-    """
+    """Return sourced crypto headlines for Courage News Net."""
     from app.crypto_news import get_crypto_headlines
 
-    if category == "crypto" or country == "crypto" or category == "memes" or category == "bitcoin" or category == "ethereum":
-        articles = await get_crypto_headlines(limit)
-        if articles:
-            return JSONResponse(articles)
-
-    if not fresh:
-        cached = await get_cached_articles(country, category)
-        if cached:
-            return JSONResponse(cached[:limit])
-
-        stored = await get_recent_articles(limit, country, category)
-        if stored:
-            return JSONResponse(stored)
-
-    articles = await fetch_pair(country, category, limit)
-    if not articles:
-        articles = await get_crypto_headlines(limit)
-
-    return JSONResponse(articles)
+    del country, category, fresh  # Kept for backwards-compatible callers.
+    return JSONResponse(await get_crypto_headlines(max(1, min(limit, 20))))
 
 
 @app.get("/api/news/search")
 async def search_news(q: str, limit: int = 10):
-    """
-    Keyword search across NewsAPI (primary) and GNews (fallback), both budgeted.
-    Results are NOT cached — search is on-demand only.
-    """
-    # Try NewsAPI first (higher quality search)
-    results = await search_newsapi(q, limit)
-    if not results:
-        results = await search_gnews(q, limit)
+    """Search the shared sourced-crypto cache without spending another API call."""
+    from app.news_cache import get_all_recent
+
+    needle = q.casefold().strip()
+    articles = await get_all_recent(limit=100)
+    results = [
+        article for article in articles
+        if needle and needle in " ".join(
+            str(article.get(field, ""))
+            for field in ("title", "description", "full_content", "source_name")
+        ).casefold()
+    ][:max(1, min(limit, 20))]
     return JSONResponse(results)
 
 
 @app.get("/api/news/budget")
 async def news_budget():
-    """Returns today's API usage counters for monitoring."""
-    return JSONResponse(await get_budget_status())
+    """Return today's crypto-news API usage counters for monitoring."""
+    from app.crypto_news import get_crypto_budget_status
+
+    return JSONResponse(await get_crypto_budget_status())
 
 
 @app.post("/api/render_card")
@@ -874,7 +864,7 @@ async def manual_trench_scan():
     """Manually scan current Courage and Robinhood Chain community conversation."""
     from app.trench_service import fetch_trench_tweets
     result = await fetch_trench_tweets(
-        '"Robinhood Chain" OR "@cowardlyhood" OR "runcouragerun"',
+        '"Robinhood Chain" OR "@cowardlyhood" OR "hoodcourage"',
         limit=20,
     )
     return JSONResponse({"status": "ok", "message": f"Community scan complete: {result}"})

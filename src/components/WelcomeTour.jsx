@@ -25,7 +25,7 @@ const FEATURES = [
   {
     icon: '📡',
     title: 'Follow the Dispatch',
-    desc: 'Read sourced news and follow @cowardlyhood for selective forest and market transmissions.',
+    desc: 'Read sourced crypto news and follow @cowardlyhood for selective forest and market transmissions.',
     color: '#9945FF',
   },
   {

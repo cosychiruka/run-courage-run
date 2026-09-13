@@ -68,7 +68,7 @@ const Newspaper = ({
             <div className="newspaper-col_2 newspaper-b_t newspaper-b_r newspaper-b_l newspaper-p_t">
               <h3>Dispatches from Nowhere</h3>
               <p className="newspaper-al_l newspaper-p_l newspaper-indent">
-                Set your GNews API key in AI Settings to load real news...
+                The sourced crypto feed is temporarily unavailable. Try again shortly...
               </p>
             </div>
           </div>

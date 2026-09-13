@@ -4,12 +4,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Public deployment identity. Keep outbound links and provider attribution on
+# the canonical domain while allowing local/dev overrides.
+PUBLIC_BASE_URL     = os.getenv("PUBLIC_BASE_URL", "https://hoodcourage.xyz").rstrip("/")
+
 # LLM configuration. OpenRouter is the production provider.
 LLM_PROVIDER       = os.getenv("LLM_PROVIDER", "openrouter").lower()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-DEFAULT_MODEL      = os.getenv("DEFAULT_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
-FALLBACK_MODEL     = os.getenv("FALLBACK_MODEL", "meta-llama/llama-3.3-70b-instruct")
-OPENROUTER_REFERER = os.getenv("OPENROUTER_REFERER", "https://github.com/cosychiruka/run-courage-run")
+DEFAULT_MODEL      = os.getenv("DEFAULT_MODEL", "nvidia/nemotron-3-super-120b-a12b:free")
+FALLBACK_MODEL     = os.getenv("FALLBACK_MODEL", "qwen/qwen3-30b-a3b-instruct-2507")
+OPENROUTER_REFERER = os.getenv("OPENROUTER_REFERER", PUBLIC_BASE_URL)
 OPENROUTER_TITLE   = os.getenv("OPENROUTER_TITLE", "Run Courage Run")
 
 # GROQ_API_KEY     = os.getenv("GROQ_API_KEY", "")  # Legacy - now using OpenRouter
@@ -20,9 +24,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 DB_PATH   = os.getenv("DB_PATH",   os.path.join(BASE_DIR, "data", "courage.db"))
 
-GNEWS_API_KEY     = os.getenv("GNEWS_API_KEY",    "")
-GUARDIAN_API_KEY  = os.getenv("GUARDIAN_API_KEY", "test")
-NEWSAPI_KEY       = os.getenv("NEWSAPI_KEY") or os.getenv("NEWS_API_KEY", "")  # .env uses NEWS_API_KEY
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
 
 BACKGROUND_AUTOMATION_ENABLED = os.getenv("BACKGROUND_AUTOMATION_ENABLED", "false").strip().lower() in {"1", "true", "yes", "on"}
@@ -39,24 +40,23 @@ X_CLIENT_SECRET       = os.getenv("X_CLIENT_SECRET", "")
 _bt_raw = os.getenv("X_BEARER_TOKEN", "")
 X_BEARER_TOKEN = _up.unquote(_bt_raw) if _bt_raw else ""
 
-FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", PUBLIC_BASE_URL).rstrip("/")
 
-WHISPER_MODEL = "tiny.en"   # fast, lightweight, 39MB — good for 2GB RAM
-KOKORO_VOICE  = "af_bella"  # more cartoonish voice
+VOICE_MEMORY_MODE = os.getenv("VOICE_MEMORY_MODE", "low").strip().lower()
+if VOICE_MEMORY_MODE not in {"low", "resident"}:
+    VOICE_MEMORY_MODE = "low"
+WHISPER_MODEL       = os.getenv("WHISPER_MODEL", "tiny.en")
+WHISPER_BEAM_SIZE   = max(1, int(os.getenv("WHISPER_BEAM_SIZE", "1")))
+KOKORO_MODEL_PATH   = os.getenv("KOKORO_MODEL_PATH", "kokoro-v1.0.int8.onnx")
+KOKORO_VOICES_PATH  = os.getenv("KOKORO_VOICES_PATH", "voices-v1.0.bin")
+KOKORO_VOICE        = os.getenv("KOKORO_VOICE", "af_bella")
+RAG_MODE            = os.getenv("RAG_MODE", "lexical").strip().lower()
 
-# ── Daily API budgets (leave 20% buffer below hard limits) ────────────────────
-# GNews:   100 req/day free tier  → stop at 80
-# NewsAPI: 100 req/day dev tier   → stop at 80
-# Guardian: 5000/day              → effectively unlimited, no counter needed
-GNEWS_DAILY_BUDGET        = int(os.getenv("GNEWS_DAILY_BUDGET",        "80"))
-NEWSAPI_DAILY_BUDGET      = int(os.getenv("NEWSAPI_DAILY_BUDGET",      "80"))
+# ── Daily API budgets ─────────────────────────────────────────────────────────
 LLM_DAILY_TOKEN_BUDGET    = int(os.getenv("LLM_DAILY_TOKEN_BUDGET", "500000"))
 # GROQ_DAILY_TOKEN_BUDGET   = LLM_DAILY_TOKEN_BUDGET  # Legacy - now using OpenRouter
 
-CRYPTOPANIC_API_KEY         = os.getenv("CRYPTOPANIC_API_KEY", "") # Deprecated
 COINDESK_API_KEY            = os.getenv("COINDESK_API_KEY",    "")
-COINGECKO_API_KEY           = os.getenv("COINGECKO_API_KEY", "")
-COINGECKO_DAILY_BUDGET      = int(os.getenv("COINGECKO_DAILY_BUDGET", "100"))
 AUTONOMOUS_INTERVAL_MINUTES = int(os.getenv("AUTONOMOUS_INTERVAL_MINUTES", "60"))
 X_DAILY_SEARCH_SPEND_CAP    = float(os.getenv("X_DAILY_SEARCH_SPEND_CAP", "5.0"))
 

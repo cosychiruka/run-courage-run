@@ -1,42 +1,40 @@
 """
-rag.py — Lightweight RAG using sentence-transformers + SQLite.
-Atomic, runs on CPU, no LangChain bloat.
-Every trench tweet and token snapshot gets embedded automatically.
+rag.py — SQLite memory with low-RAM lexical retrieval or optional semantic embeddings.
 """
 
 import time
 import aiosqlite
 import asyncio
-try:
-    import numpy as np
-    from sentence_transformers import SentenceTransformer
-    HAS_RAG_DEPS = True
-except ImportError:
-    HAS_RAG_DEPS = False
-    print("[RAG] Dependencies missing. RAG will be disabled.")
+import re
 
-from app.config import DB_PATH
+from app.config import DB_PATH, RAG_MODE
 
 _model = None
 
 async def _get_model():
-    if not HAS_RAG_DEPS: return None
+    if RAG_MODE != "semantic":
+        return None
     global _model
     if _model is None:
-        # Run in executor to avoid blocking the event loop during load
-        loop = asyncio.get_event_loop()
-        _model = await loop.run_in_executor(None, lambda: SentenceTransformer('all-MiniLM-L6-v2', device='cpu'))
+        try:
+            from sentence_transformers import SentenceTransformer
+            _model = await asyncio.to_thread(
+                SentenceTransformer, 'all-MiniLM-L6-v2', device='cpu'
+            )
+        except ImportError:
+            print("[RAG] sentence-transformers is unavailable; using lexical retrieval.")
     return _model
 
 async def embed_and_store(content: str, source: str, metadata: dict = None):
     """Embed text and store in rag_vectors table."""
-    if not HAS_RAG_DEPS: return
     model = await _get_model()
-    # model.encode can be slow, but for single items it's usually okay. 
-    # For bulk, we'd use an executor.
-    loop = asyncio.get_event_loop()
-    embedding_numpy = await loop.run_in_executor(None, lambda: model.encode(content, convert_to_numpy=True).astype(np.float32))
-    embedding = embedding_numpy.tobytes()
+    embedding = b""
+    if model is not None:
+        import numpy as np
+        embedding_numpy = await asyncio.to_thread(
+            lambda: model.encode(content, convert_to_numpy=True).astype(np.float32)
+        )
+        embedding = embedding_numpy.tobytes()
 
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
@@ -48,11 +46,16 @@ async def embed_and_store(content: str, source: str, metadata: dict = None):
     print(f"[RAG] Embedded {source} item")
 
 async def retrieve_top_k(query: str, k: int = 5, source_filter: str = None) -> list[dict]:
-    """Simple cosine similarity retrieval (fast on small DB)."""
-    if not HAS_RAG_DEPS: return []
+    """Use semantic retrieval when enabled, otherwise low-memory lexical scoring."""
     model = await _get_model()
-    loop = asyncio.get_event_loop()
-    query_emb = await loop.run_in_executor(None, lambda: model.encode(query, convert_to_numpy=True).astype(np.float32))
+    query_emb = None
+    np = None
+    if model is not None:
+        import numpy as np_module
+        np = np_module
+        query_emb = await asyncio.to_thread(
+            lambda: model.encode(query, convert_to_numpy=True).astype(np.float32)
+        )
 
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -63,19 +66,19 @@ async def retrieve_top_k(query: str, k: int = 5, source_filter: str = None) -> l
         return []
 
     results = []
+    query_terms = set(re.findall(r"[a-z0-9$@]+", query.casefold()))
     for row in rows:
         if source_filter and row["source"] != source_filter:
             continue
-        emb = np.frombuffer(row["embedding"], dtype=np.float32)
-        
-        # Cosine similarity
-        norm_query = np.linalg.norm(query_emb)
-        norm_emb = np.linalg.norm(emb)
-        if norm_query == 0 or norm_emb == 0:
-            similarity = 0
+        if query_emb is not None and row["embedding"]:
+            emb = np.frombuffer(row["embedding"], dtype=np.float32)
+            norm_query = np.linalg.norm(query_emb)
+            norm_emb = np.linalg.norm(emb)
+            similarity = 0 if norm_query == 0 or norm_emb == 0 else np.dot(query_emb, emb) / (norm_query * norm_emb)
         else:
-            similarity = np.dot(query_emb, emb) / (norm_query * norm_emb)
-            
+            content_terms = set(re.findall(r"[a-z0-9$@]+", row["content"].casefold()))
+            similarity = len(query_terms & content_terms) / max(1, len(query_terms))
+
         results.append({"content": row["content"], "similarity": float(similarity), **dict(row)})
 
     results.sort(key=lambda x: x["similarity"], reverse=True)

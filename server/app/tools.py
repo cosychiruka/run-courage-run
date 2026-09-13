@@ -2,7 +2,7 @@
 tools.py — All agent tools: schema definitions (OpenAI-compatible JSON) + dispatch logic.
 
 Tools available to Courage:
-  - get_news              : fetch news by category (5 per category)
+  - get_crypto_news       : fetch cached, sourced crypto headlines
   - fetch_article         : scrape full article text
   - get_x_rate_status     : check Twitter API rate limits
   - get_my_tweets         : fetch @cowardlyhood's recent posts
@@ -27,11 +27,10 @@ from pathlib import Path
 from typing import Optional
 
 from app.news_cache import (
-    get_cached_articles, fetch_full_article, save_full_content,
-    save_articles, cache_articles,
-    fetch_pair,
-    get_cached_tweet_search, cache_tweet_search,
-    get_budget_status,
+    fetch_full_article,
+    save_full_content,
+    get_cached_tweet_search,
+    cache_tweet_search,
 )
 from app.config import REDIS_URL
 import app.twitter_memory as tw_mem
@@ -74,30 +73,7 @@ def _check_tweet_safety(text: str) -> str | None:
 # ── Tool schema definitions ────────────────────────────────────────────────────
 
 TOOL_SCHEMAS = [
-    # ── News ──────────────────────────────────────────────────────────────────
-    {
-        "type": "function",
-        "function": {
-            "name": "get_news",
-            "description": (
-                "Retrieve recent news articles for a SINGLE country+category pair. "
-                "Returns up to 10 articles by default — set limit lower if you only need a few. "
-                "Call this MULTIPLE times with different categories to get broad coverage: "
-                "general, technology, business, sports, science, health, entertainment. "
-                "Always call this before discussing any news topic — never invent headlines."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "country":  {"type": "string",  "default": "us",      "description": "ISO country code, e.g. 'us', 'gb'"},
-                    "category": {"type": "string",  "default": "general", "description": "One of: general, technology, business, sports, science, health, entertainment"},
-                    "limit":    {"type": "integer", "default": 10,        "description": "Number of articles to return (1-10)"},
-                    "refresh":  {"type": "boolean", "default": False,     "description": "Force fresh API fetch even if cache is warm"},
-                },
-                "required": [],
-            },
-        },
-    },
+    # ── Crypto news ───────────────────────────────────────────────────────────
     {
         "type": "function",
         "function": {
@@ -319,13 +295,13 @@ TOOL_SCHEMAS = [
         "function": {
             "name": "get_crypto_news",
             "description": (
-                "Fetch recent crypto and blockchain news headlines. "
-                "Sources: CryptoPanic (real-time aggregation) and CoinGecko (includes thumbnail images). "
+                "Fetch recent sourced crypto and blockchain news headlines from the shared cache. "
+                "CoinDesk API is primary and CoinDesk RSS is the keyless fallback. "
                 "Use this for MACRO crypto stories: Bitcoin/Ethereum price moves, SEC regulatory rulings, "
                 "DeFi ecosystem events, major exchange news, market sentiment shifts. "
                 "NEVER use this to promote specific tokens, projects, or contract addresses. "
                 "React to these stories as Courage would — dramatic, brave, in character. "
-                "Some CoinGecko articles include image_url — pass that to post_tweet's image_url param when tweeting."
+                "When an article has image_url, pass it to post_tweet's image_url parameter when tweeting."
             ),
             "parameters": {
                 "type": "object",
@@ -464,7 +440,7 @@ TOOL_SCHEMAS = [
                     "news_summary": {"type": "string", "description": "First 1-2 sentences of the article"},
                     "article_url":  {"type": "string", "description": "Original article URL — triggers newspaper design"},
                     "image_url":    {"type": "string", "description": "Article thumbnail URL for the newspaper photo"},
-                    "source":       {"type": "string", "description": "Source name, e.g. 'The Guardian'"},
+                    "source":       {"type": "string", "description": "Crypto-news source name, e.g. 'CoinDesk News'"},
                     "poster_url":   {"type": "string", "description": "Pre-generated poster URL (optional override)"},
                 },
                 "required": ["news_title", "news_summary"]
@@ -635,7 +611,6 @@ async def dispatch_tool(name: str, args: any, x_client=None, tweet_image_fn=None
             args = {}
 
         match name:
-            case "get_news":              return await _get_news(args)
             case "fetch_article":         return await _fetch_article(args)
             case "get_x_rate_status":     return await _get_x_rate_status(x_client)
             case "get_my_tweets":         return await _get_my_tweets(args, x_client)
@@ -766,38 +741,6 @@ async def dispatch_tool(name: str, args: any, x_client=None, tweet_image_fn=None
 
 
 # ── Individual tool implementations ───────────────────────────────────────────
-
-async def _get_news(args: dict) -> str:
-    country  = args.get("country",  "us")
-    category = args.get("category", "general")
-    refresh  = args.get("refresh",  False)
-    limit    = max(1, min(int(args.get("limit", 10)), 10))
-
-    articles = None
-    if not refresh:
-        articles = await get_cached_articles(country, category)
-
-    if not articles:
-        try:
-            articles = await fetch_pair(country, category, max_results=limit)
-            if articles:
-                await save_articles(articles, country, category)
-                await cache_articles(articles, country, category)
-        except Exception as e:
-            return f"News fetch failed: {e}"
-
-    if not articles:
-        return f"No news articles available right now for {country}/{category}."
-
-    out = f"Found {len(articles[:limit])} articles ({country.upper()}/{category}):\n\n"
-    for i, a in enumerate(articles[:limit], 1):
-        source = a.get("source", {}).get("name") or a.get("source_name", "Unknown")
-        out += f"[{i}] {a.get('title', 'No title')}\n"
-        out += f"    Source: {source}\n"
-        out += f"    URL: {a.get('url', '')}\n"
-        out += f"    {a.get('description', '')[:200]}\n\n"
-    return out.strip()
-
 
 async def _fetch_article(args: dict) -> str:
     url = args.get("url", "")
@@ -1095,13 +1038,13 @@ async def _record_twitter_action(args: dict) -> str:
 
 
 async def _check_api_credits(x_client) -> str:
-    from app.config import LLM_DAILY_TOKEN_BUDGET, COINGECKO_DAILY_BUDGET
+    from app.config import LLM_DAILY_TOKEN_BUDGET
     today = datetime.date.today().isoformat()
 
     llm_tokens = llm_calls = 0
     search_rem = "use get_x_rate_status for live data"
     auto_tweets = total_tweets = 0
-    cd_used = cg_used = 0
+    cd_used = 0
 
     try:
         r = await _get_tools_redis()
@@ -1119,14 +1062,12 @@ async def _check_api_credits(x_client) -> str:
             auto_tweets  = int(await r.get(f"courage:auto_tweets:{today}") or 0)
             total_tweets = int(await r.get(f"courage:total_tweets:{today}") or 0)
             cd_used      = int(await r.get(f"budget:coindesk:{today}") or 0)
-            cg_used      = int(await r.get(f"budget:coingecko:{today}") or 0)
             rate_raw     = await r.hgetall("rate:/tweets/search/recent")
             if rate_raw:
                 search_rem = rate_raw.get("remaining", search_rem)
     except Exception:
         pass
 
-    budget = await get_budget_status()
     llm_pct = int(llm_tokens / LLM_DAILY_TOKEN_BUDGET * 100) if LLM_DAILY_TOKEN_BUDGET else 0
 
     lines = [
@@ -1135,11 +1076,8 @@ async def _check_api_credits(x_client) -> str:
         f"X search quota:     {search_rem} remaining this window",
         f"Auto tweets today:  {auto_tweets} / 25 (autonomous cap)",
         f"Total tweets today: {total_tweets} (auto + interactive)",
-        f"GNews:     {budget['gnews']['used']}/{budget['gnews']['limit']} calls today",
-        f"NewsAPI:   {budget['newsapi']['used']}/{budget['newsapi']['limit']} calls today",
-        f"Guardian:  unlimited",
-        f"CoinDesk:  {cd_used} calls today",
-        f"CoinGecko:   {cg_used} / {COINGECKO_DAILY_BUDGET} calls today",
+        f"CoinDesk API:        {cd_used} calls today (RSS fallback is keyless)",
+        "DexScreener:         shared cached Robinhood Chain discovery (no key)",
     ]
     return "\n".join(lines)
 
@@ -1315,7 +1253,7 @@ async def _auto_news_react(args: any, x_client, tweet_image_fn) -> str:
     news_summary = args.get("news_summary") or ""
     article_url  = args.get("article_url") or ""
     image_url    = args.get("image_url") or ""
-    source       = args.get("source") or "The Guardian"
+    source       = args.get("source") or "CoinDesk News"
     poster_url   = args.get("poster_url")   # pre-supplied override
 
     # ── Path 1: Newspaper design (The Courageous Chronicle) ───────────────

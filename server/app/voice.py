@@ -12,6 +12,9 @@ Flow:
 import io
 import tempfile
 import asyncio
+import gc
+import ctypes
+import sys
 import soundfile as sf
 from pathlib import Path
 from typing import AsyncIterator
@@ -19,57 +22,129 @@ from typing import AsyncIterator
 from faster_whisper import WhisperModel
 from kokoro_onnx import Kokoro
 
-from app.config import WHISPER_MODEL, KOKORO_VOICE
+from app.config import (
+    KOKORO_MODEL_PATH,
+    KOKORO_VOICE,
+    KOKORO_VOICES_PATH,
+    VOICE_MEMORY_MODE,
+    WHISPER_BEAM_SIZE,
+    WHISPER_MODEL,
+)
 
-# ── Singleton model instances (loaded once at startup) ────────────────────────
+# ── Shared model instances (resident or loaded per turn) ────────────────
 _whisper: WhisperModel | None = None
 _kokoro:  Kokoro | None       = None
+_loading = False
+_available = False
+_model_lock = asyncio.Lock()
+
+
+def _trim_native_memory():
+    """Return released native allocations to Linux when the allocator supports it."""
+    gc.collect()
+    if sys.platform.startswith("linux"):
+        try:
+            ctypes.CDLL("libc.so.6").malloc_trim(0)
+        except Exception:
+            pass
+
+
+def _load_whisper() -> WhisperModel:
+    global _whisper
+    if _whisper is None:
+        _whisper = WhisperModel(
+            WHISPER_MODEL,
+            device="cpu",
+            compute_type="int8",
+            cpu_threads=1,
+            num_workers=1,
+        )
+    return _whisper
+
+
+def _load_kokoro() -> Kokoro:
+    global _kokoro
+    if _kokoro is None:
+        _kokoro = Kokoro(KOKORO_MODEL_PATH, KOKORO_VOICES_PATH)
+    return _kokoro
+
+
+def _unload_whisper():
+    global _whisper
+    if _whisper is not None:
+        try:
+            _whisper.model.unload_model()
+        except Exception:
+            pass
+        _whisper = None
+        _trim_native_memory()
+
+
+def _unload_kokoro():
+    global _kokoro
+    if _kokoro is not None:
+        _kokoro = None
+        _trim_native_memory()
 
 
 def load_models():
-    """Call once at app startup to pre-load both models into memory."""
-    global _whisper, _kokoro
+    """Validate low-memory assets or preload both models in resident mode."""
+    global _available, _loading
+    _loading = True
+
+    if VOICE_MEMORY_MODE == "low":
+        missing = [
+            path for path in (KOKORO_MODEL_PATH, KOKORO_VOICES_PATH)
+            if not Path(path).is_file()
+        ]
+        _available = not missing
+        _loading = False
+        if missing:
+            print(f"[VOICE] Missing low-memory voice assets: {', '.join(missing)}")
+        else:
+            print("[VOICE] Low-memory mode ready; models will load one at a time per turn.")
+        return
+
     print("[VOICE] Loading Whisper...")
     try:
-        # Load Whisper with memory optimization
-        _whisper = WhisperModel(WHISPER_MODEL, device="cpu", compute_type="int8")
+        _load_whisper()
         print("[VOICE] Whisper loaded successfully.")
-        # Clear any cached data to free memory
-        import gc
-        gc.collect()
     except Exception as e:
         print(f"[VOICE] ERROR: Failed to load Whisper model: {e}")
         print("[VOICE] Voice transcription will not be available.")
         
     print("[VOICE] Loading Kokoro TTS...")
     try:
-        # Load Kokoro with memory optimization
-        _kokoro = Kokoro("kokoro-v1.0.onnx", "voices-v1.0.bin")
+        _load_kokoro()
         print("[VOICE] Kokoro TTS loaded successfully.")
-        # Clear any cached data to free memory
-        gc.collect()
     except Exception as e:
         print(f"[VOICE] ERROR: Failed to load Kokoro TTS: {e}")
         print("[VOICE] Voice synthesis will not be available.")
         
-    if _whisper is not None and _kokoro is not None:
+    _available = _whisper is not None and _kokoro is not None
+    if _available:
         print("[VOICE] All models ready.")
         print("[VOICE] Memory usage optimized.")
     else:
         print("[VOICE] WARNING: Some models failed to load - voice features limited.")
         print("[VOICE] Running with reduced functionality.")
+    _loading = False
 
 
-def _get_whisper() -> WhisperModel:
-    if _whisper is None:
-        raise RuntimeError("Voice models are still loading — please try again in a moment.")
-    return _whisper
-
-
-def _get_kokoro() -> Kokoro:
-    if _kokoro is None:
-        raise RuntimeError("Voice models are still loading — please try again in a moment.")
-    return _kokoro
+def get_voice_status() -> dict:
+    """Expose availability, residency, and low-memory serialization state."""
+    whisper_ready = _whisper is not None
+    kokoro_ready = _kokoro is not None
+    return {
+        "ready": _available and not _loading,
+        "mode": VOICE_MEMORY_MODE,
+        "loading": _loading,
+        "busy": _model_lock.locked(),
+        "resident": {
+            "whisper": whisper_ready,
+            "kokoro": kokoro_ready,
+        },
+    }
 
 
 # ── STT ────────────────────────────────────────────────────────────────────────
@@ -80,21 +155,27 @@ async def transcribe(audio_bytes: bytes) -> str:
     Runs faster-whisper in a thread to avoid blocking the event loop.
     """
     def _run():
-        with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as f:
-            f.write(audio_bytes)
-            tmp_path = f.name
+        tmp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as f:
+                f.write(audio_bytes)
+                tmp_path = f.name
 
-        segments, _info = _get_whisper().transcribe(
-            tmp_path,
-            language="en",
-            beam_size=5,
-            vad_filter=True,  # skip silence automatically
-        )
-        text = " ".join(seg.text for seg in segments).strip()
-        Path(tmp_path).unlink(missing_ok=True)
-        return text
+            segments, _info = _load_whisper().transcribe(
+                tmp_path,
+                language="en",
+                beam_size=WHISPER_BEAM_SIZE,
+                vad_filter=True,
+            )
+            return " ".join(seg.text for seg in segments).strip()
+        finally:
+            if tmp_path:
+                Path(tmp_path).unlink(missing_ok=True)
+            if VOICE_MEMORY_MODE == "low":
+                _unload_whisper()
 
-    return await asyncio.to_thread(_run)
+    async with _model_lock:
+        return await asyncio.to_thread(_run)
 
 
 # ── TTS ────────────────────────────────────────────────────────────────────────
@@ -128,12 +209,17 @@ async def synthesise(text: str, voice: str = KOKORO_VOICE) -> bytes:
     text = _clean_for_tts(text)
 
     def _run():
-        samples, sr = _get_kokoro().create(text, voice=voice, speed=1.1, lang="en-us")
-        buf = io.BytesIO()
-        sf.write(buf, samples, sr, format="WAV", subtype="PCM_16")
-        return buf.getvalue()
+        try:
+            samples, sr = _load_kokoro().create(text, voice=voice, speed=1.1, lang="en-us")
+            buf = io.BytesIO()
+            sf.write(buf, samples, sr, format="WAV", subtype="PCM_16")
+            return buf.getvalue()
+        finally:
+            if VOICE_MEMORY_MODE == "low":
+                _unload_kokoro()
 
-    return await asyncio.to_thread(_run)
+    async with _model_lock:
+        return await asyncio.to_thread(_run)
 
 
 async def synthesise_streaming(text: str, voice: str = KOKORO_VOICE) -> AsyncIterator[bytes]:

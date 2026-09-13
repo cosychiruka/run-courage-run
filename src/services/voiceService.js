@@ -9,11 +9,12 @@
  *   - Full error handling for: mic permission, WS errors, audio decode, timeouts
  */
 
+const _productionWs = typeof window !== 'undefined'
+  ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/voice`
+  : 'wss://hoodcourage.xyz/ws/voice';
+
 const _WS_BASE = import.meta.env.VITE_BACKEND_WS ||
-                 (typeof __VITE_BACKEND_WS__ !== 'undefined' ? __VITE_BACKEND_WS__ : null) ||
-                 (import.meta.env.PROD
-                   ? 'wss://runcouragerun.fun/ws/voice'
-                   : 'ws://localhost:8000/ws/voice');
+                 (import.meta.env.PROD ? _productionWs : 'ws://localhost:8000/ws/voice');
 
 /** Stable session ID — persists across page refreshes so conversation history survives. */
 function _getSessionId() {
@@ -172,7 +173,7 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
     _reconnectTimer = setTimeout(async () => {
       try {
         await connect();
-      } catch (e) {
+      } catch {
         if (_reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
           _scheduleReconnect();
         } else {
@@ -189,20 +190,21 @@ export function createVoiceService({ onState, onTranscript, onReply, onAudio, on
     if (!audioCtx || audioCtx.state === 'closed') {
       audioCtx = new AudioContext({ sampleRate: TTS_SAMPLE_RATE });
     }
-    return new Promise(async (resolve) => {
+    return (async () => {
       try {
         const decoded = await audioCtx.decodeAudioData(arrayBuffer);
-        const src = audioCtx.createBufferSource();
-        src.buffer = decoded;
-        src.connect(audioCtx.destination);
-        src.onended = resolve;
-        src.start();
+        await new Promise((resolve) => {
+          const src = audioCtx.createBufferSource();
+          src.buffer = decoded;
+          src.connect(audioCtx.destination);
+          src.onended = resolve;
+          src.start();
+        });
       } catch (e) {
         console.error('[Voice] Audio decode error:', e.message);
         onError?.(`Audio playback error: ${e.message}`);
-        resolve();
       }
-    });
+    })();
   }
 
   // ── MediaRecorder (microphone capture) ─────────────────────────────────────

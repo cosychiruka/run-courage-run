@@ -19,13 +19,13 @@ const PROVIDERS = {
     link: 'https://console.groq.com',
   },
   openrouter: {
-    label: 'OpenRouter (Free)',
+    label: 'OpenRouter',
     placeholder: 'Paste your OpenRouter API key...',
     isKey: true,
     models: [
-      'meta-llama/llama-3.2-3b-instruct:free',
-      'google/gemma-2-9b-it:free',
-      'mistralai/mistral-7b-instruct:free',
+      'nvidia/nemotron-3-super-120b-a12b:free',
+      'openrouter/free',
+      'qwen/qwen3-30b-a3b-instruct-2507',
     ],
     hint: 'Free models via openrouter.ai — choose :free models.',
     link: 'https://openrouter.ai/keys',
@@ -52,7 +52,6 @@ const AISettings = ({ onClose }) => {
   const [model, setModel] = useState(saved.model);
   const [saved_, setSaved] = useState(false);
   const [backendUrl, setBackendUrl] = useState(getBackendUrl());
-  const [guardianKey, setGuardianKey] = useState(getApiKey('guardian'));
 
   const pInfo = PROVIDERS[provider];
 
@@ -75,7 +74,6 @@ const AISettings = ({ onClose }) => {
     } else {
       saveApiKey(provider, value);
     }
-    saveApiKey('guardian', guardianKey);
     saveBackendUrl(backendUrl);
     setSaved(true);
     setTimeout(() => { setSaved(false); onClose && onClose(); }, 800);
@@ -131,17 +129,17 @@ const AISettings = ({ onClose }) => {
         ))}
       </select>
 
-      {/* ── News sources ── */}
+      {/* ── Hosted backend ── */}
       <div style={{ borderTop: '1px solid #333', margin: '12px 0 10px', paddingTop: '10px' }}>
         <p style={{ margin: '0 0 8px', fontSize: '0.65rem', color: '#888', fontFamily: 'Comic Sans MS' }}>
-          NEWS SOURCES
+          HOSTED BACKEND
         </p>
 
         {/* Backend URL */}
         <label style={labelStyle}>
           Backend Server URL{' '}
           <span style={{ color: '#9945FF', fontSize: '0.6rem' }}>
-            (runs all 3 news APIs + voice)
+            (crypto feed + agentic voice)
           </span>
         </label>
         <input
@@ -151,43 +149,6 @@ const AISettings = ({ onClose }) => {
           placeholder="http://localhost:8000"
           style={inputStyle}
         />
-
-        {/* Guardian key */}
-        <label style={labelStyle}>
-          Guardian API Key{' '}
-          <a href="https://open-platform.theguardian.com/access/" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195', fontSize: '0.6rem' }}>
-            (free — 5 000 req/day)
-          </a>
-        </label>
-        <input
-          type="password"
-          value={guardianKey}
-          onChange={e => setGuardianKey(e.target.value)}
-          placeholder="Paste Guardian key (or leave blank for test key)..."
-          style={inputStyle}
-        />
-
-        {/* GNews key */}
-        <label style={labelStyle}>
-          GNews API Key{' '}
-          <a href="https://gnews.io" target="_blank" rel="noopener noreferrer" style={{ color: '#14F195', fontSize: '0.6rem' }}>
-            (free — 100 req/day)
-          </a>
-        </label>
-        <input
-          type="password"
-          defaultValue={getApiKey('gnews')}
-          onBlur={e => saveApiKey('gnews', e.target.value)}
-          placeholder="GNews key — used by backend, NOT browser..."
-          style={inputStyle}
-        />
-
-        {/* NewsAPI notice */}
-        <p style={{ margin: '0 0 6px', fontSize: '0.6rem', color: '#666', fontFamily: 'Comic Sans MS', lineHeight: 1.4 }}>
-          NewsAPI key goes in <code style={{ color: '#eb57c1' }}>server/.env</code> as{' '}
-          <code style={{ color: '#eb57c1' }}>NEWSAPI_KEY</code> — browser CORS is blocked
-          on the developer plan, so it runs server-side only.
-        </p>
       </div>
 
       <button onClick={handleSave} style={saveBtnStyle}>

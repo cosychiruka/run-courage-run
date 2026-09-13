@@ -1,19 +1,12 @@
-"""
-news_cache.py — Multi-source news fetching with Redis + SQLite persistence.
-Now slimmed down to Guardian only (General news) to lose weight.
-Crypto news is handled by crypto_news.py (CoinDesk).
-"""
+"""Shared SQLite article storage and full-text retrieval for crypto news."""
 
 import hashlib
-import json
 import time
-import datetime
-import asyncio
 import aiosqlite
 import httpx
 from typing import Optional
 
-from app.config import DB_PATH, GUARDIAN_API_KEY, FIRECRAWL_API_KEY
+from app.config import DB_PATH, FIRECRAWL_API_KEY
 
 # ── Redis connection ───────────────────────────────────────────────────────────
 async def get_redis():
@@ -32,9 +25,9 @@ CREATE TABLE IF NOT EXISTS articles (
     source_name  TEXT,
     source_url   TEXT,
     full_content TEXT,
-    category     TEXT DEFAULT 'general',
-    country      TEXT DEFAULT 'us',
-    provider     TEXT DEFAULT 'guardian',
+    category     TEXT DEFAULT 'crypto',
+    country      TEXT DEFAULT 'crypto',
+    provider     TEXT DEFAULT 'coindesk',
     fetched_at   REAL NOT NULL
 )
 """
@@ -75,24 +68,14 @@ async def init_db():
             pass  # column already exists — normal on fresh deployments
         await db.commit()
 
-# ── Article normalisation ──────────────────────────────────────────────────────
-def _norm_guardian(item: dict) -> dict:
-    return {
-        "title":       item.get("webTitle", ""),
-        "description": item.get("fields", {}).get("trailText", ""),
-        "content":     item.get("fields", {}).get("bodyText", "") or item.get("fields", {}).get("trailText", ""),
-        "url":         item.get("webUrl", ""),
-        "image":       item.get("fields", {}).get("thumbnail"),
-        "publishedAt": item.get("webPublicationDate"),
-        "source":      {"name": "The Guardian", "url": "https://www.theguardian.com"},
-        "provider":    "guardian",
-    }
-
 # ── SQLite persistence ────────────────────────────────────────────────────────
-async def save_articles(articles: list[dict], country: str = "us", category: str = "general"):
+async def save_articles(articles: list[dict], country: str = "crypto", category: str = "crypto"):
     async with aiosqlite.connect(DB_PATH) as db:
         now = time.time()
         for a in articles:
+            source = a.get("source")
+            source_name = source.get("name") if isinstance(source, dict) else source
+            source_url = source.get("url") if isinstance(source, dict) else None
             await db.execute("""
                 INSERT INTO articles
                     (title, description, url, image_url, published_at,
@@ -103,21 +86,26 @@ async def save_articles(articles: list[dict], country: str = "us", category: str
                 a.get("title", ""),
                 a.get("description", ""),
                 a.get("url", ""),
-                a.get("image"),
-                a.get("publishedAt"),
-                a.get("source", {}).get("name"),
-                a.get("source", {}).get("url"),
+                a.get("image_url") or a.get("image"),
+                a.get("published_at") or a.get("publishedAt"),
+                a.get("source_name") or source_name,
+                a.get("source_url") or source_url,
                 category, country,
-                a.get("provider", "unknown"),
+                a.get("provider") or "coindesk",
                 now,
             ))
         await db.commit()
 
 async def get_all_recent(limit: int = 10) -> list[dict]:
-    """Fetch all recent news from SQLite articles table."""
+    """Fetch recent crypto articles, excluding legacy general-news rows."""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM articles ORDER BY fetched_at DESC LIMIT ?", (limit,)) as cur:
+        async with db.execute(
+            """SELECT * FROM articles
+               WHERE category='crypto' OR country='crypto'
+               ORDER BY fetched_at DESC LIMIT ?""",
+            (limit,),
+        ) as cur:
             rows = await cur.fetchall()
     return [dict(r) for r in rows]
 
@@ -126,10 +114,10 @@ async def get_latest_news_articles(limit: int = 10) -> list[dict]:
     return await get_all_recent(limit)
 
 async def get_varied_articles(
-    limit: int = 8, 
-    country: str = "us", 
-    category: Optional[str] = None,
-    exclude_urls: list[str] = [],
+    limit: int = 8,
+    country: str = "crypto",
+    category: Optional[str] = "crypto",
+    exclude_urls: Optional[list[str]] = None,
     random_sample: bool = True
 ) -> list[dict]:
     import random
@@ -147,53 +135,11 @@ async def get_varied_articles(
         async with db.execute(query, tuple(params)) as cur:
             rows = await cur.fetchall()
     all_articles = [dict(r) for r in rows]
-    filtered = [a for a in all_articles if a.get("url") not in exclude_urls]
+    excluded = set(exclude_urls or [])
+    filtered = [a for a in all_articles if a.get("url") not in excluded]
     if random_sample and len(filtered) > limit:
         return random.sample(filtered, limit)
     return filtered[:limit]
-
-# ── Redis cache helpers ────────────────────────────────────────────────────────
-CACHE_TTL = 7200
-
-async def cache_articles(articles: list[dict], country: str, category: str):
-    r = await get_redis()
-    if not r: return
-    try: await r.set(f"news:{country}:{category}", json.dumps(articles), ex=CACHE_TTL)
-    except: pass
-
-async def get_cached_articles(country: str = "us", category: str = "general") -> Optional[list[dict]]:
-    r = await get_redis()
-    if not r: return None
-    try:
-        raw = await r.get(f"news:{country}:{category}")
-        return json.loads(raw) if raw else None
-    except: return None
-
-# ── Guardian fetch ────────────────────────────────────────────────────────────
-# Maps our internal category names to Guardian's actual section slugs
-_GUARDIAN_SECTION_MAP = {
-    "general":    "news",
-    "technology": "technology",
-    "business":   "business",
-    "world":      "world",
-    "politics":   "us-news",   # Guardian uses 'us-news' for US political/government news
-    "science":    "science",
-    "environment":"environment",
-}
-
-async def fetch_from_guardian(category: str = "general", max_results: int = 10) -> list[dict]:
-    section = _GUARDIAN_SECTION_MAP.get(category, category)
-    params = {
-        "api-key":    GUARDIAN_API_KEY or "test",
-        "section":    section,
-        "page-size":  max_results,
-        "show-fields": "trailText,thumbnail,bodyText",
-        "order-by":   "newest",
-    }
-    async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.get("https://content.guardianapis.com/search", params=params)
-        r.raise_for_status()
-    return [_norm_guardian(i) for i in r.json().get("response", {}).get("results", [])]
 
 # ── Full article text ────────────────────────────────────────────────────────
 async def fetch_full_article(url: str) -> str:
@@ -218,33 +164,7 @@ async def save_full_content(url: str, content: str):
         await db.execute("UPDATE articles SET full_content=? WHERE url=?", (content, url))
         await db.commit()
 
-# ── Discovery round ───────────────────────────────────────────────────────────
-DISCOVERY_PAIRS = [
-    ("us", "general"),
-    ("us", "technology"),
-    ("us", "business"),
-    ("us", "world"),      # world news — government events, international incidents
-    ("us", "politics"),   # US politics → Guardian us-news section (alien files, gov releases)
-    ("us", "science"),    # science — space, UFO research, breakthroughs
-]
-
-async def discovery_round():
-    print("[DISCOVERY] Starting news round (Guardian only)...")
-    for country, category in DISCOVERY_PAIRS:
-        cached = await get_cached_articles(country, category)
-        if cached: continue
-        try:
-            articles = await fetch_from_guardian(category, max_results=20)
-            if articles:
-                await save_articles(articles, country, category)
-                await cache_articles(articles, country, category)
-                print(f"[DISCOVERY] Stored {len(articles)} articles from Guardian: {country}/{category}")
-            await asyncio.sleep(1)
-        except Exception as e:
-            print(f"[DISCOVERY ERROR] {country}/{category}: {e}")
-    print("[DISCOVERY] Round complete.")
-
-async def get_recent_articles(limit: int = 10, country: str = "us", category: str = "general") -> list[dict]:
+async def get_recent_articles(limit: int = 10, country: str = "crypto", category: str = "crypto") -> list[dict]:
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute("""
@@ -254,13 +174,6 @@ async def get_recent_articles(limit: int = 10, country: str = "us", category: st
         """, (country, category, limit)) as cur:
             rows = await cur.fetchall()
     return [dict(r) for r in rows]
-
-async def fetch_pair(country: str, category: str, max_results: int = 10) -> list[dict]:
-    try: return await fetch_from_guardian(category, max_results)
-    except: return []
-
-async def search_newsapi(query: str, max_results: int = 10) -> list[dict]: return []
-async def search_gnews(query: str, max_results: int = 10) -> list[dict]: return []
 
 async def cache_tweet_search(query: str, result: str, ttl: int = 900):
     r = await get_redis()
@@ -275,21 +188,3 @@ async def get_cached_tweet_search(query: str) -> Optional[str]:
     key = f"tweets:q:{hashlib.md5(query.lower().strip().encode()).hexdigest()[:14]}"
     try: return await r.get(key)
     except: return None
-
-async def get_budget_status() -> dict:
-    """Return current daily API usage across all news sources."""
-    from app.config import GNEWS_DAILY_BUDGET, NEWSAPI_DAILY_BUDGET
-    r = await get_redis()
-    today = datetime.date.today().isoformat()
-    gnews_used = newsapi_used = 0
-    if r:
-        try:
-            gnews_used   = int(await r.get(f"budget:gnews:{today}") or 0)
-            newsapi_used = int(await r.get(f"budget:newsapi:{today}") or 0)
-        except Exception:
-            pass
-    return {
-        "guardian": {"used": -1,          "limit": 5000},
-        "gnews":    {"used": gnews_used,   "limit": GNEWS_DAILY_BUDGET},
-        "newsapi":  {"used": newsapi_used, "limit": NEWSAPI_DAILY_BUDGET},
-    }

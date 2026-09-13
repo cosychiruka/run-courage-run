@@ -21,6 +21,9 @@ RUN npm run build
 
 # Stage 2: Final Python environment
 FROM python:3.11-slim
+ENV MALLOC_ARENA_MAX=2 \
+    OMP_NUM_THREADS=1 \
+    OMP_WAIT_POLICY=PASSIVE
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libsndfile1 \
@@ -36,8 +39,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Pre-download models (tiny.en = 39MB, much lighter than base.en = 150MB)
 RUN python -c "from faster_whisper import WhisperModel; WhisperModel('tiny.en', device='cpu', compute_type='int8')"
-RUN wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
-RUN wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
+RUN wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/kokoro-v1.0.int8.onnx
+RUN wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/voices-v1.0.bin
 
 # Copy backend code
 COPY server/ .

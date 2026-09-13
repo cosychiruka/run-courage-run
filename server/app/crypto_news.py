@@ -1,30 +1,31 @@
 """
 Primary:   CoinDesk News API (CCData-powered, rich snippets, includes images)
-Fallback:  CoinGecko Demo API (10,000/month free, secondary source)
+Fallback:  CoinDesk RSS (keyless)
 
 Normalized schema matches the existing `articles` table:
   title, description, url, image_url, source_name, published_at,
   category="crypto", country="crypto"
 
 Cache: Redis key "courage_crypto_news" (30-min TTL) + SQLite articles table
-Budget: Redis counters budget:coindesk:YYYY-MM-DD, budget:coingecko:YYYY-MM-DD
+Budget: Redis counter budget:coindesk:YYYY-MM-DD
 """
 
 import json
 import time
 import datetime
-from datetime import timezone
+import asyncio
 import httpx
 
-from app.config import DB_PATH, REDIS_URL, COINDESK_API_KEY, COINGECKO_API_KEY
+from app.config import REDIS_URL, COINDESK_API_KEY
 
 CRYPTO_CACHE_KEY = "courage_crypto_news"
 CRYPTO_CACHE_TTL = 1800  # 30 minutes
 COINDESK_DAILY_BUDGET = 1000
-COINGECKO_DAILY_BUDGET = 300
 
 # Module-level Redis singleton (lazy init)
 _redis = None
+_memory_cache: tuple[float, list[dict]] | None = None
+_refresh_lock = asyncio.Lock()
 
 
 async def _get_redis():
@@ -58,29 +59,7 @@ def _norm_coindesk(item: dict) -> dict:
         "published_at": published,
         "category":     "crypto",
         "country":      "crypto",
-    }
-
-
-def _norm_coingecko(item: dict) -> dict:
-    # updated_at is an epoch int on CoinGecko
-    published = item.get("updated_at", 0)
-    if isinstance(published, (int, float)) and published > 0:
-        published = datetime.datetime.utcfromtimestamp(published).isoformat()
-
-    author = item.get("author", {})
-    source = author.get("name", "CoinGecko") if isinstance(author, dict) else str(author or "CoinGecko")
-
-    image = item.get("thumb_2x") or item.get("image", {}).get("thumb", "") if isinstance(item.get("image"), dict) else item.get("thumb_2x", "")
-
-    return {
-        "title":        item.get("title", ""),
-        "description":  item.get("description", ""),
-        "url":          item.get("url", ""),
-        "image_url":    image or None,
-        "source_name":  source,
-        "published_at": published,
-        "category":     "crypto",
-        "country":      "crypto",
+        "provider":     "coindesk",
     }
 
 
@@ -145,45 +124,6 @@ async def _fetch_coindesk(limit: int = 20) -> list[dict]:
         return []
 
 
-async def _fetch_coingecko(limit: int = 20) -> list[dict]:
-    if COINGECKO_API_KEY.startswith("CG-"):
-        # Research confirmed: CoinGecko '/news' endpoint is a PAID-ONLY feature.
-        # Demo keys return 401 or 422. Skipping to avoid log noise.
-        return []
-
-    used = await _get_budget_count("coingecko")
-    if used >= COINGECKO_DAILY_BUDGET:
-        print(f"[CRYPTO] CoinGecko daily budget reached ({used}/{COINGECKO_DAILY_BUDGET})")
-        return []
-
-    headers = {"x-cg-demo-api-key": COINGECKO_API_KEY}
-    try:
-        async with httpx.AsyncClient(timeout=15) as client:
-            r = await client.get(
-                "https://api.coingecko.com/api/v3/news",
-                headers=headers,
-                params={"per_page": limit},
-            )
-            r.raise_for_status()
-            data = r.json()
-            # data["data"] is a list of news items
-            results = []
-            for item in data.get("data", []):
-                results.append({
-                    "title": item.get("title"),
-                    "url": item.get("url"),
-                    "source": item.get("author") or "CoinGecko",
-                    "image": item.get("thumb_2x") or item.get("thumb"),
-                    "publishedAt": datetime.datetime.fromtimestamp(item.get("updated_at", 0)).isoformat(),
-                })
-            return results
-
-    except Exception as e:
-        # User requested to keep CoinGecko even if unpaid; just return empty list on failure.
-        print(f"[CRYPTO] CoinGecko fetch skipped or failed: {e}")
-        return []
-
-
 async def _save_to_sqlite(articles: list[dict]):
     """Persist crypto articles into the shared articles table."""
     try:
@@ -234,6 +174,7 @@ async def _fetch_free_crypto_rss(limit: int = 20) -> list[dict]:
                                 "published_at": pub_date,
                                 "category": "crypto",
                                 "country": "crypto",
+                                "provider": "coindesk-rss",
                             })
     except Exception as e:
         print(f"[CRYPTO_RSS] Free RSS fetch failed: {e}")
@@ -244,6 +185,24 @@ async def _fetch_free_crypto_rss(limit: int = 20) -> list[dict]:
 
 async def get_crypto_headlines(limit: int = 10) -> list[dict]:
     """Fetch Robinhood crypto news from CoinDesk / RSS feeds with caching."""
+    global _memory_cache
+
+    now = time.time()
+    if _memory_cache and now - _memory_cache[0] < CRYPTO_CACHE_TTL:
+        return _memory_cache[1][:limit]
+
+    async with _refresh_lock:
+        # Another request may have refreshed while this one waited.
+        now = time.time()
+        if _memory_cache and now - _memory_cache[0] < CRYPTO_CACHE_TTL:
+            return _memory_cache[1][:limit]
+
+        return await _refresh_crypto_headlines(limit)
+
+
+async def _refresh_crypto_headlines(limit: int) -> list[dict]:
+    """Single-flight refresh shared by all callers in this server process."""
+    global _memory_cache
     r = await _get_redis()
 
     # 1. Cache hit
@@ -251,12 +210,15 @@ async def get_crypto_headlines(limit: int = 10) -> list[dict]:
         try:
             cached = await r.get(CRYPTO_CACHE_KEY)
             if cached:
-                return json.loads(cached)[:limit]
+                articles = json.loads(cached)
+                _memory_cache = (time.time(), articles)
+                return articles[:limit]
         except Exception:
             pass
 
     # 2. Fetch CoinDesk API (if key available) or Free RSS feed
     articles: list[dict] = []
+    restored_from_sqlite = False
     if COINDESK_API_KEY:
         try:
             articles = await _fetch_coindesk(20)
@@ -272,6 +234,15 @@ async def get_crypto_headlines(limit: int = 10) -> list[dict]:
             print(f"[CRYPTO] Free RSS failed: {e}")
 
     if not articles:
+        # Preserve the latest sourced data when both live CoinDesk paths fail.
+        try:
+            from app.news_cache import get_all_recent
+            articles = await get_all_recent(limit=max(limit, 20))
+            restored_from_sqlite = bool(articles)
+        except Exception:
+            articles = []
+
+    if not articles:
         return []
 
     # 3. Cache in Redis + persist to SQLite
@@ -280,26 +251,46 @@ async def get_crypto_headlines(limit: int = 10) -> list[dict]:
             await r.set(CRYPTO_CACHE_KEY, json.dumps(articles), ex=CRYPTO_CACHE_TTL)
         except Exception:
             pass
-    await _save_to_sqlite(articles)
+    if not restored_from_sqlite:
+        await _save_to_sqlite(articles)
+    _memory_cache = (time.time(), articles)
 
     return articles[:limit]
 
 
 async def get_cached_crypto_headlines() -> list[dict]:
     """
-    Pure Redis-only read — no API calls.
+    Pure in-process/Redis cache read — no API calls.
     Used by autonomous_loop.py state gathering so it never triggers API usage.
     """
+    global _memory_cache
+    if _memory_cache and time.time() - _memory_cache[0] < CRYPTO_CACHE_TTL:
+        return _memory_cache[1]
+
     r = await _get_redis()
     if not r:
         return []
     try:
         cached = await r.get(CRYPTO_CACHE_KEY)
         if cached:
-            return json.loads(cached)
+            articles = json.loads(cached)
+            _memory_cache = (time.time(), articles)
+            return articles
     except Exception:
         pass
     return []
+
+
+async def get_crypto_budget_status() -> dict:
+    """Return the only metered editorial-source counter still in use."""
+    return {
+        "coindesk": {
+            "used": await _get_budget_count("coindesk"),
+            "limit": COINDESK_DAILY_BUDGET,
+            "key_configured": bool(COINDESK_API_KEY),
+            "fallback": "CoinDesk RSS",
+        }
+    }
 
 
 async def crypto_discovery_round():
@@ -307,8 +298,10 @@ async def crypto_discovery_round():
     APScheduler job: force-refresh crypto news cache every 30 minutes.
     All exceptions are caught — this must never crash the server.
     """
+    global _memory_cache
     print("[CRYPTO DISCOVERY] Starting crypto discovery round...")
     try:
+        _memory_cache = None
         r = await _get_redis()
         if r:
             try:

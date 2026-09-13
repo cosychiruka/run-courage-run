@@ -1,6 +1,5 @@
 """
-news_poster.py — Pixel-perfect, high-quality newspaper generator.
-Guardian = classic style. CoinDesk = neon crypto mode.
+news_poster.py — High-quality crypto newspaper generator.
 Replaces tweet_image.py entirely.
 """
 
@@ -9,7 +8,7 @@ import httpx
 import time
 import os
 import io
-from app.config import DB_PATH, COURAGE_BASE_IMAGE_URL
+from app.config import COURAGE_BASE_IMAGE_URL, PUBLIC_BASE_URL
 
 async def generate_news_poster_image(news: dict) -> Image.Image:
     """
@@ -132,10 +131,10 @@ async def generate_news_poster_image(news: dict) -> Image.Image:
 async def generate_news_poster(news: dict) -> str:
     """Returns public URL to the finished poster."""
     img = await generate_news_poster_image(news)
-    filename = f"courage_news_{'crypto' if (news.get('is_crypto') or news.get('source', '').lower() == 'coindesk') else 'general'}_{int(time.time())}.png"
+    filename = f"courage_news_crypto_{int(time.time())}.png"
     os.makedirs("public/news_posters", exist_ok=True)
     img.save(f"public/news_posters/{filename}", quality=98, optimize=True)
-    return f"https://runcouragerun.life/public/news_posters/{filename}"
+    return f"{PUBLIC_BASE_URL}/public/news_posters/{filename}"
 
 async def generate_news_poster_bytes(news: dict) -> bytes:
     """Returns raw PNG bytes."""

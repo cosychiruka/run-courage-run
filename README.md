@@ -9,10 +9,11 @@
 Run Courage Run is an interactive, browser-native meme world built around Courage: an
 anxious pink dog who wakes inside the Nowhere farmhouse, follows an emerald signal trail,
 and finds a portal above the river. The landing page, four procedural 3D worlds, live voice
-agent, sourced news, Robinhood Chain discovery data, memory, and autonomous X loop all tell
+agent, sourced crypto news, Robinhood Chain discovery data, memory, and autonomous X loop all tell
 the same story.
 
-The project is currently served at `runcouragerun.fun`; `@cowardlyhood` is its X identity.
+The project is currently served at [`hoodcourage.xyz`](https://hoodcourage.xyz);
+`@cowardlyhood` is its X identity.
 
 ## What exists now
 
@@ -50,7 +51,8 @@ page sorts it and renders at most ten signals, using a compact two-row swipe rai
 - `faster-whisper` transcribes locally; the configured OpenRouter model runs the tool-capable
   agent; Kokoro synthesizes the reply locally.
 - Each voice connection has isolated history, with optional short-lived Redis restoration.
-- Guardian/crypto news is cached and can become a sourced Courageous Chronicle card.
+- CoinDesk crypto news is cached once for the app, agent tools, heartbeat, and sourced
+  Courageous Chronicle cards. CoinDesk RSS is the keyless fallback.
 - The autonomous heartbeat combines time, news priority, live Robinhood Chain metadata,
   community memory, rate limits, and voice priority before choosing one action or silence.
 - Relevant X conversation is grouped before the next heartbeat; it is not mislabeled as a
@@ -88,7 +90,7 @@ React 18 + Vite + React Three Fiber
                  v
 FastAPI + APScheduler
   |- voice WebSocket -> Whisper -> agent/tools -> Kokoro
-  |- sourced news cache and Chronicle renderer
+  |- sourced crypto-news cache and Chronicle renderer
   |- Robinhood Chain discovery + safe token-logo proxy
   |- autonomous heartbeat and grouped community sensor
   |- world-event director and presence endpoints
@@ -148,7 +150,12 @@ Production also verifies the authenticated handle against
 `X_EXPECTED_USERNAME=cowardlyhood` before enabling X. Set both switches to `true` only in the
 deployment that should run the heartbeat and read or post through that account.
 
-For full local voice, place `kokoro-v1.0.onnx` and `voices-v1.0.bin` in the backend working
+The server defaults to `nvidia/nemotron-3-super-120b-a12b:free`, which has been exercised with
+Courage's real multi-tool schema. `qwen/qwen3-30b-a3b-instruct-2507` is the low-cost paid
+fallback. Free OpenRouter capacity is provider-controlled, so fund the OpenRouter account before
+treating the fallback as production reliability rather than configuration only.
+
+For full local voice, place `kokoro-v1.0.int8.onnx` and `voices-v1.0.bin` in the backend working
 directory (`server/` when using the command below). `faster-whisper` downloads `tiny.en` on its
 first successful load. The backend remains healthy if voice models are absent, but voice calls
 will report that the models are unavailable.
@@ -190,6 +197,14 @@ docker compose -f server\docker-compose.yml up --build
 
 The Docker image downloads the required Whisper/Kokoro assets during its build.
 
+For Sliplane, deploy `server/Dockerfile` with repository-root build context and expose port 8000.
+That combined image serves the frontend and API on the same origin and bakes in Whisper, a
+quantized Kokoro model, and FFmpeg. The 1 GB deployment profile uses `VOICE_MEMORY_MODE=low`:
+Whisper and Kokoro load one at a time behind a single inference lock, then release native memory.
+`RAG_MODE=lexical` also avoids holding a sentence-transformer in RAM. This favors survival over
+first-response speed. `/health` reports `voice.ready`, `voice.mode`, `voice.busy`, and current
+model residency; confirm one real microphone round after every deployment.
+
 ## Configuration
 
 Use [`.env.example`](.env.example) as the source of truth. Key groups are:
@@ -197,8 +212,9 @@ Use [`.env.example`](.env.example) as the source of truth. Key groups are:
 | Group | Variables |
 | --- | --- |
 | LLM | `LLM_PROVIDER`, `OPENROUTER_API_KEY`, `DEFAULT_MODEL`, `FALLBACK_MODEL`, `LLM_DAILY_TOKEN_BUDGET` |
-| Runtime | `REDIS_URL`, `DB_PATH`, `FRONTEND_ORIGIN`, `BACKGROUND_AUTOMATION_ENABLED`, `AUTONOMOUS_INTERVAL_MINUTES` |
-| News | `GNEWS_API_KEY`, `GUARDIAN_API_KEY`, `NEWS_API_KEY`, `FIRECRAWL_API_KEY`, `COINDESK_API_KEY`, `COINGECKO_API_KEY` |
+| Runtime | `REDIS_URL`, `DB_PATH`, `PUBLIC_BASE_URL`, `FRONTEND_ORIGIN`, `BACKGROUND_AUTOMATION_ENABLED`, `AUTONOMOUS_INTERVAL_MINUTES` |
+| 1 GB memory | `VOICE_MEMORY_MODE=low`, `WHISPER_BEAM_SIZE=1`, quantized `KOKORO_MODEL_PATH`, `RAG_MODE=lexical` |
+| News | `COINDESK_API_KEY`; optional `FIRECRAWL_API_KEY` for full-article extraction |
 | X | `X_AUTOMATION_ENABLED`, `X_EXPECTED_USERNAME`, `X_BEARER_TOKEN`, OAuth consumer/access credentials, `X_DAILY_SEARCH_SPEND_CAP` |
 | Art | `FAL_API_KEY`, `COURAGE_BASE_IMAGE_URL` |
 | Browser | `VITE_BACKEND_URL`, `VITE_BACKEND_WS` |

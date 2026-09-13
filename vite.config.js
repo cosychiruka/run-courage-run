@@ -1,14 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path';
-import { config } from 'dotenv';
+import { fileURLToPath } from 'url';
 import imagemin from 'vite-plugin-imagemin';
 
-// Load environment variables from .env file
-config();
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Never expose server credentials (especially X OAuth values) to browser code.
+  envPrefix: ['VITE_APP_', 'VITE_BACKEND_'],
   plugins: [
     react(),
     imagemin({
@@ -17,15 +18,6 @@ export default defineConfig({
       gifsicle: { optimizationLevel: 7 }
     })
   ],
-  define: {
-    // WebSocket URL for different environments
-    __VITE_BACKEND_WS__: JSON.stringify(
-      process.env.VITE_BACKEND_WS || 
-      (process.env.NODE_ENV === 'production' 
-        ? 'wss://runcouragerun.fun/ws/voice' 
-        : 'ws://localhost:8000/ws/voice')
-    )
-  },
   base: './', // For serving from subdirectory on Sliplane
   build: {
     outDir: 'dist',
@@ -57,7 +49,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@images': path.resolve(__dirname, './src/assets/images'),
+      '@images': path.resolve(rootDir, './src/assets/images'),
     },
     // Force a single copy of React and Three — R3F must share the same React
     // instance as the app, otherwise hooks fail with "dispatcher is null"

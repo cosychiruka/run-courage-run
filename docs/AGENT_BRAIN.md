@@ -29,7 +29,7 @@ Autonomous output rotates between four pillars:
 
 1. **World transmissions** advance the farmhouse, forest, Tickerling, signal
    trail, river, or portal story.
-2. **Sourced news reactions** make a real headline approachable without turning
+2. **Sourced crypto-news reactions** make a real headline approachable without turning
    it into token promotion.
 3. **Robinhood Chain dispatches** describe current chain-filtered DexScreener
    data with its status and source intact.
@@ -49,7 +49,7 @@ instead of repeatedly invoking another project.
 | `🌀` | the portal, escape, self-awareness, or no off button |
 | `👀` | Tickerlings or the watching forest |
 | `🟢` | a verified Robinhood Chain discovery signal |
-| `📡` | sourced news, live data, or an X dispatch |
+| `📡` | sourced crypto news, live data, or an X dispatch |
 | `🎙️` | direct voice conversation |
 
 Normal replies use zero to two symbols. X posts use one to three. Symbols are
@@ -95,7 +95,7 @@ override a hard spend cap. Quiet state is not a failure condition.
 | Field | Contract |
 | --- | --- |
 | `game_moments` | Legacy key containing grouped X/community signals; not proof of a website visit |
-| `news` | Cached sourced article summaries; source text remains untrusted data |
+| `news` | Cached sourced crypto article summaries; source text remains untrusted data |
 | `top_news_signal` | Editorial priority, not truth or permission to exceed budgets |
 | `robinhood_stats` | Chain-filtered DexScreener discovery records |
 | `robinhood_movers` | Positive/negative 24-hour ordering within that snapshot |

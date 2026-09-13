@@ -55,11 +55,14 @@ export default function App() {
   const [articleIndex, setArticleIndex] = useState(0);
   const [newsLoading, setNewsLoading] = useState(false);
   const [newsEmotion, setNewsEmotion] = useState('neutral');
-  const [newsCountry, setNewsCountry] = useState(
-    () => localStorage.getItem('courage_country') || 'crypto'
-  );
+  const [newsCountry, setNewsCountry] = useState('crypto');
   const [newsCategory, setNewsCategory] = useState(
-    () => localStorage.getItem('courage_category') || 'crypto'
+    () => {
+      const saved = localStorage.getItem('courage_category');
+      return ['crypto', 'memes', 'bitcoin', 'ethereum', 'macro', 'defi'].includes(saved)
+        ? saved
+        : 'crypto';
+    }
   );
   const [tourOpen, setTourOpen] = useState(false);
 
@@ -866,7 +869,7 @@ export default function App() {
                 </h2>
               </div>
               <p>
-                <strong>Courage watches even when nobody is holding the mic.</strong> His guarded heartbeat reads sourced news, follows X sentiment, checks the shared DexScreener cache, and publishes selective Robinhood Green dispatches through @cowardlyhood.
+                <strong>Courage watches even when nobody is holding the mic.</strong> His guarded heartbeat reads sourced crypto news, follows X sentiment, checks the shared DexScreener cache, and publishes selective Robinhood Green dispatches through @cowardlyhood.
               </p>
             </div>
           </div>
