@@ -14,24 +14,25 @@ import tempfile
 import asyncio
 import gc
 import ctypes
+import json
+import os
 import sys
 from pathlib import Path
 from typing import Any, AsyncIterator
-
-from faster_whisper import WhisperModel
 
 from app.config import (
     KOKORO_MODEL_PATH,
     KOKORO_VOICE,
     KOKORO_VOICES_PATH,
     VOICE_MEMORY_MODE,
+    VOICE_STT_TIMEOUT_SECONDS,
     VOICE_TTS_MODE,
     WHISPER_BEAM_SIZE,
     WHISPER_MODEL,
 )
 
 # ── Shared model instances (resident or loaded per turn) ────────────────
-_whisper: WhisperModel | None = None
+_whisper: Any | None = None
 _kokoro:  Any | None          = None
 _loading = False
 _available = False
@@ -48,9 +49,13 @@ def _trim_native_memory():
             pass
 
 
-def _load_whisper() -> WhisperModel:
+def _load_whisper():
     global _whisper
     if _whisper is None:
+        # Resident mode is reserved for larger hosts. Importing faster-whisper
+        # lazily keeps its native runtime out of the 1 GB API process.
+        from faster_whisper import WhisperModel
+
         _whisper = WhisperModel(
             WHISPER_MODEL,
             device="cpu",
@@ -150,6 +155,7 @@ def get_voice_status() -> dict:
     return {
         "ready": _available and not _loading,
         "mode": VOICE_MEMORY_MODE,
+        "stt_execution": "subprocess" if VOICE_MEMORY_MODE == "low" else "resident",
         "tts_mode": VOICE_TTS_MODE,
         "loading": _loading,
         "busy": _model_lock.locked(),
@@ -162,11 +168,86 @@ def get_voice_status() -> dict:
 
 # ── STT ────────────────────────────────────────────────────────────────────────
 
+async def _stop_worker(process: asyncio.subprocess.Process | None):
+    """Terminate an STT child and escalate quickly if native code is wedged."""
+    if process is None or process.returncode is not None:
+        return
+    process.terminate()
+    try:
+        await asyncio.wait_for(process.wait(), timeout=2)
+    except asyncio.TimeoutError:
+        process.kill()
+        await process.wait()
+
+
+async def _transcribe_isolated(audio_bytes: bytes) -> str:
+    """Run Whisper in a disposable process so all native memory is reclaimed."""
+    process: asyncio.subprocess.Process | None = None
+    with tempfile.TemporaryDirectory(prefix="courage-stt-") as tmp_dir:
+        audio_path = Path(tmp_dir) / "input.webm"
+        result_path = Path(tmp_dir) / "result.json"
+        audio_path.write_bytes(audio_bytes)
+
+        worker_env = os.environ.copy()
+        worker_env.update({
+            "OMP_NUM_THREADS": "1",
+            "OPENBLAS_NUM_THREADS": "1",
+            "MKL_NUM_THREADS": "1",
+            "TOKENIZERS_PARALLELISM": "false",
+        })
+
+        try:
+            process = await asyncio.create_subprocess_exec(
+                sys.executable,
+                "-m",
+                "app.stt_worker",
+                "--audio",
+                str(audio_path),
+                "--output",
+                str(result_path),
+                "--model",
+                WHISPER_MODEL,
+                "--beam-size",
+                str(WHISPER_BEAM_SIZE),
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.PIPE,
+                env=worker_env,
+            )
+            try:
+                _stdout, stderr = await asyncio.wait_for(
+                    process.communicate(),
+                    timeout=VOICE_STT_TIMEOUT_SECONDS,
+                )
+            except asyncio.TimeoutError:
+                await _stop_worker(process)
+                raise
+
+            if process.returncode != 0:
+                detail = stderr.decode("utf-8", errors="replace").strip()[-800:]
+                raise RuntimeError(f"isolated STT failed ({process.returncode}): {detail}")
+            if not result_path.is_file():
+                raise RuntimeError("isolated STT returned no result")
+
+            payload = json.loads(result_path.read_text(encoding="utf-8"))
+            return str(payload.get("text", "")).strip()
+        except asyncio.CancelledError:
+            await _stop_worker(process)
+            raise
+        finally:
+            await _stop_worker(process)
+
 async def transcribe(audio_bytes: bytes) -> str:
     """
     Transcribe audio bytes (webm/ogg/wav) → text string.
-    Runs faster-whisper in a thread to avoid blocking the event loop.
+    On the 1 GB profile, runs faster-whisper in a disposable subprocess. A
+    timeout or cancellation kills that child, and normal exit returns every
+    byte of native model memory to the OS. Larger resident-mode hosts retain
+    the faster in-process implementation.
     """
+    if VOICE_MEMORY_MODE == "low":
+        async with _model_lock:
+            return await _transcribe_isolated(audio_bytes)
+
     def _run():
         tmp_path = None
         try:
@@ -184,9 +265,6 @@ async def transcribe(audio_bytes: bytes) -> str:
         finally:
             if tmp_path:
                 Path(tmp_path).unlink(missing_ok=True)
-            if VOICE_MEMORY_MODE == "low":
-                _unload_whisper()
-
     async with _model_lock:
         return await asyncio.to_thread(_run)
 

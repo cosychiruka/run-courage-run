@@ -48,9 +48,9 @@ page sorts it and renders at most ten signals, using a compact two-row swipe rai
 ### Voice, memory, news, and X
 
 - Browser audio streams over `/ws/voice`.
-- `faster-whisper` transcribes locally; the configured OpenRouter model runs the tool-capable
-  agent; the browser speaks the reply on the 1 GB production profile. Kokoro is an explicit
-  larger-host option.
+- `faster-whisper` transcribes locally in a disposable child process; the configured OpenRouter
+  model runs the tool-capable agent; the browser speaks the reply on the 1 GB production profile.
+  Kokoro is an explicit larger-host option.
 - Each voice connection has isolated history, with optional short-lived Redis restoration.
   Without Redis, one shared in-process fallback powers voice priority, counters, and caches.
 - CoinDesk crypto news is cached once for the app, agent tools, heartbeat, and sourced
@@ -203,11 +203,13 @@ larger-host Kokoro profile, pass `--build-arg INSTALL_KOKORO=true` and configure
 `VOICE_TTS_MODE=kokoro` at runtime.
 
 For Sliplane, deploy `server/Dockerfile` with repository-root build context and expose port 8000.
-That combined image serves the frontend and API on the same origin and bakes in Whisper and
-FFmpeg. It excludes Kokoro, ONNX Runtime, and their model files by default. The 1 GB deployment
-profile uses `VOICE_MEMORY_MODE=low`
-and `VOICE_TTS_MODE=browser`: Whisper loads only for transcription, then the visitor's browser
-speaks Courage's answer without loading a second neural model into the web process. An image
+That combined image serves the frontend and API on the same origin and bakes in Whisper. Audio
+decoding uses faster-whisper's bundled PyAV path, so the base runtime no longer installs the
+system FFmpeg/graphics dependency tree. It excludes Kokoro, ONNX Runtime, libsndfile, and their
+model files by default. The 1 GB deployment profile uses `VOICE_MEMORY_MODE=low` and
+`VOICE_TTS_MODE=browser`: Whisper runs in a disposable child process for transcription and is
+forcibly terminated on cancellation or timeout. The visitor's browser speaks Courage's answer
+without loading a second neural model into the web process. An image
 built with `INSTALL_KOKORO=true` can use `VOICE_TTS_MODE=kokoro` on a larger host and still falls
 back to browser speech if synthesis fails or times out. Every STT, agent, and TTS stage has a bounded
 deadline and emits timing-only runtime logs. `RAG_MODE=lexical` also keeps sentence-transformers
