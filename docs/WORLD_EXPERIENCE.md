@@ -36,7 +36,7 @@ Scene
 |- sky gradient, stars, sun, and clouds
 |- shared lighting
 `- terrain group
-   |- Terrain
+   |- Terrain (shared flat homestead surface)
    |- ForestPortal
    |  |- instanced tree trunks and crowns
    |  |- curved river strip
@@ -81,9 +81,30 @@ Assignments are stable for the browser session. They are shuffled from the
 eligible snapshot with a session seed and distributed across hero bushes.
 Refreshing upstream data does not cause constant random flicker.
 
-If live data is unavailable, the eyes continue to work and the encounter uses
-an original Courage signal rune with `SIGNAL LOST`. The application does not
-fabricate price, volume, trend, or token identity data.
+If a visitor clicks before the first snapshot arrives, the bush reacts
+immediately with an original Courage signal rune marked `TUNING...`. The same
+encounter restarts with a real assigned ticker as soon as the shared request
+finishes. If data remains unavailable, the application never fabricates price,
+volume, trend, or token identity data.
+
+## Grounding contract
+
+Sunrise, Noon, Evening/Midnight, and Disco reuse the same scene terrain. The
+playable homestead is a flat circular surface; horizon curvature belongs in the
+sky treatment, not in the asset placement surface. `worldGround.js` is the
+single source of truth for its local Y coordinate.
+
+- Trees calculate their trunk centers from the shared surface plus a small root
+  depth.
+- Hero and distant bushes share one root height instead of approximating a
+  sphere equation.
+- The river and signal trail sit just above the shared surface to avoid
+  z-fighting.
+- Story assets keep their established center-of-scene offsets because the flat
+  terrain preserves the former sphere's top height.
+
+Do not introduce per-tree Y nudges. If a future ground profile changes, update
+the shared ground contract and every surface layer together.
 
 ## Market data contract
 
@@ -98,11 +119,15 @@ server/app/robinhood_service.py
   - address deduplication
   - source attribution
   - liquidity and image eligibility
-  - 30 second process cache
+  - 60 second process cache
+  - one in-flight refresh shared by concurrent consumers
         |
         +--> GET /api/robinhood-crypto
         |       |
         |       `--> src/services/tokenService.js
+        |               |- one in-flight browser request
+        |               |- 30 second memory cache
+        |               |- 24 hour stale localStorage fallback
         |               |- market widget
         |               `- TickerlingForest
         |
@@ -137,7 +162,7 @@ The default experience keeps the existing low-cost renderer settings:
 - antialiasing remains disabled;
 - hidden world canvases use `frameloop="demand"`;
 - token art is fetched only for the currently emerged face;
-- one snapshot request is shared across world consumers;
+- one snapshot and in-flight request are shared across world consumers;
 - hero foliage is instanced inside each interactive bush;
 - distant foliage, tree trunks, crowns, and signal shards are instanced;
 - portal particles use one points geometry; and
@@ -202,9 +227,11 @@ Before merging a world change:
 3. Run `python -m unittest server.tests.test_robinhood_service_unit -v` for the
    market normalization contract.
 4. Run `npm run build`.
-5. Open at least Evening and Noon at the default camera distance.
+5. Open Sunrise, Noon, Evening, and Disco at the default camera distance and
+   confirm tree trunks meet the flat ground.
 6. Orbit to the river clearing and inspect the portal from both sides.
-7. Click a hero bush with live data, then repeat with the API unavailable.
+7. Click a hero bush before and after live data arrives; it may show `TUNING...`
+   but must never show a fabricated ticker.
 8. Confirm the first view does not trigger an encounter without interaction.
 9. Check a narrow viewport and a low-end physical phone.
 10. Verify no temporary screenshots, browser profiles, or generated build output

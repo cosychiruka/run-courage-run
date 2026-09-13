@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import { Instance, Instances } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { rootedCenterY, WORLD_GROUND_Y, WORLD_SURFACE_EPSILON } from './worldGround';
 
 const PORTAL_THEME = {
   evening: { river: '#0b5060', glow: '#4fffe5', accent: '#ff4ec7', canopy: '#102d29' },
@@ -30,11 +31,12 @@ function BackdropForest({ colors, treeCount }) {
       const x = side * (5.5 + random() * 21);
       const z = -15.5 - lane * 1.25 - random() * 4.5;
       const height = 4.8 + random() * 6;
+      const trunkY = rootedCenterY(height);
       return {
         key: index,
-        trunkPosition: [x, height * 0.5 - 0.3, z],
+        trunkPosition: [x, trunkY, z],
         trunkScale: [0.3 + height * 0.025, height, 0.3 + height * 0.025],
-        crownPosition: [x, height + 0.15, z],
+        crownPosition: [x, trunkY + height * 0.5 + 0.45, z],
         crownScale: [1.45 + random(), 2.3 + random() * 1.6, 1.45 + random()],
         rotation: [0, random() * Math.PI, 0],
       };
@@ -89,12 +91,12 @@ function River({ color }) {
       const halfWidth0 = 2.2 + index * 0.1;
       const halfWidth1 = 2.2 + (index + 1) * 0.1;
       positions.push(
-        center0 - halfWidth0, 0.04, z0,
-        center0 + halfWidth0, 0.04, z0,
-        center1 + halfWidth1, 0.02, z1,
-        center0 - halfWidth0, 0.04, z0,
-        center1 + halfWidth1, 0.02, z1,
-        center1 - halfWidth1, 0.02, z1,
+        center0 - halfWidth0, WORLD_GROUND_Y + WORLD_SURFACE_EPSILON, z0,
+        center0 + halfWidth0, WORLD_GROUND_Y + WORLD_SURFACE_EPSILON, z0,
+        center1 + halfWidth1, WORLD_GROUND_Y + WORLD_SURFACE_EPSILON, z1,
+        center0 - halfWidth0, WORLD_GROUND_Y + WORLD_SURFACE_EPSILON, z0,
+        center1 + halfWidth1, WORLD_GROUND_Y + WORLD_SURFACE_EPSILON, z1,
+        center1 - halfWidth1, WORLD_GROUND_Y + WORLD_SURFACE_EPSILON, z1,
       );
     }
     const buffer = new THREE.BufferGeometry();
@@ -139,7 +141,11 @@ function SignalTrail({ glow }) {
     const progress = index / 10;
     return {
       key: index,
-      position: [Math.sin(index * 0.72) * (0.4 + progress), 0.2, -5.8 - index * 1.12],
+      position: [
+        Math.sin(index * 0.72) * (0.4 + progress),
+        WORLD_GROUND_Y + 0.16,
+        -5.8 - index * 1.12,
+      ],
       scale: [0.24 - progress * 0.055, 0.08, 0.33 - progress * 0.07],
       rotation: [0, index * 0.68, 0],
     };

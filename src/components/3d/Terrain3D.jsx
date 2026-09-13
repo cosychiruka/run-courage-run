@@ -1,5 +1,8 @@
-import React, { useMemo, useEffect } from 'react';
+/* eslint-disable react/no-unknown-property -- React Three Fiber JSX maps props to Three.js objects. */
+import { useMemo, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import * as THREE from 'three';
+import { WORLD_GROUND_RADIUS, WORLD_GROUND_Y } from './worldGround';
 
 export function Terrain({ scene = 'evening' }) {
   const noiseBumpMap = useMemo(() => {
@@ -72,16 +75,20 @@ export function Terrain({ scene = 'evening' }) {
   if (scene === 'midnight') terrainColor = '#1a0d33';
 
   return (
-    <mesh receiveShadow position={[0, -99.5, 0]}>
-      <sphereGeometry args={[100, 32, 32]} />
+    <mesh receiveShadow position={[0, WORLD_GROUND_Y, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <circleGeometry args={[WORLD_GROUND_RADIUS, 64]} />
       <meshStandardMaterial
         color={terrainColor}
         map={noonGrassTex ?? undefined}
         roughness={1.0}
         metalness={0.0}
         bumpMap={noiseBumpMap}
-        bumpScale={0.12}
+        bumpScale={0.08}
       />
     </mesh>
   );
 }
+
+Terrain.propTypes = {
+  scene: PropTypes.oneOf(['evening', 'midnight', 'sunrise', 'noon']),
+};

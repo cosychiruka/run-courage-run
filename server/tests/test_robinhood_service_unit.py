@@ -1,5 +1,8 @@
 import unittest
+import asyncio
+from unittest.mock import patch
 
+from server.app import robinhood_service
 from server.app.robinhood_service import _parse_pairs
 
 
@@ -94,6 +97,40 @@ class RobinhoodSnapshotTests(unittest.TestCase):
         self.assertEqual(len(records), 1)
         self.assertEqual(records[0]["liquidity_usd"], 20_000)
         self.assertEqual(records[0]["rank"], 1)
+
+
+class RobinhoodSnapshotConcurrencyTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.original_stats = robinhood_service._cache_stats
+        self.original_fetch_ts = robinhood_service._last_fetch_ts
+        self.original_refresh_task = robinhood_service._refresh_task
+        robinhood_service._cache_stats = []
+        robinhood_service._last_fetch_ts = 0
+        robinhood_service._refresh_task = None
+
+    async def asyncTearDown(self):
+        robinhood_service._cache_stats = self.original_stats
+        robinhood_service._last_fetch_ts = self.original_fetch_ts
+        robinhood_service._refresh_task = self.original_refresh_task
+
+    async def test_concurrent_consumers_share_one_refresh(self):
+        calls = 0
+        expected = [{"symbol": "$FLY"}]
+
+        async def fake_refresh():
+            nonlocal calls
+            calls += 1
+            await asyncio.sleep(0)
+            return expected
+
+        with patch.object(robinhood_service, "_refresh_robinhood_crypto_stats", fake_refresh):
+            results = await asyncio.gather(*[
+                robinhood_service.get_robinhood_crypto_stats()
+                for _ in range(6)
+            ])
+
+        self.assertEqual(calls, 1)
+        self.assertTrue(all(result is expected for result in results))
 
 
 if __name__ == "__main__":

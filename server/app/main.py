@@ -330,7 +330,15 @@ async def block_wp_scans(request: Request, call_next):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_ORIGIN, "http://localhost:5173", "http://localhost:4173", "https://runcouragerun.fun", "https://www.runcouragerun.fun"],
+    allow_origins=[
+        FRONTEND_ORIGIN,
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:4173",
+        "http://127.0.0.1:4173",
+        "https://runcouragerun.fun",
+        "https://www.runcouragerun.fun",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -7,6 +7,7 @@ const STALE_LIMIT_MS = 24 * 60 * 60 * 1000;
 let memorySnapshot = null;
 let memoryTimestamp = 0;
 let inFlightRequest = null;
+const snapshotSubscribers = new Set();
 
 const emptySnapshot = (status = 'unavailable') => ({
   stats: [],
@@ -49,6 +50,19 @@ function storeSnapshot(snapshot) {
   }
 }
 
+function publishSnapshot(snapshot, { persist = false } = {}) {
+  memorySnapshot = snapshot;
+  memoryTimestamp = Date.now();
+  if (persist && snapshot.stats.length) storeSnapshot(snapshot);
+  snapshotSubscribers.forEach((subscriber) => subscriber(snapshot));
+  return snapshot;
+}
+
+export function subscribeTokenSnapshot(subscriber) {
+  snapshotSubscribers.add(subscriber);
+  return () => snapshotSubscribers.delete(subscriber);
+}
+
 export function getCachedTokenSnapshot() {
   if (memorySnapshot) return memorySnapshot;
   return readStoredSnapshot({ allowStale: true }) || emptySnapshot('idle');
@@ -65,7 +79,9 @@ export async function fetchRobinhoodTokenSnapshot({ force = false } = {}) {
   if (!force && memorySnapshot && now - memoryTimestamp < MEMORY_TTL_MS) {
     return memorySnapshot;
   }
-  if (!force && inFlightRequest) return inFlightRequest;
+  // A manual refresh may bypass the warm browser cache, but it must still join
+  // an existing request instead of producing a second backend/API refresh.
+  if (inFlightRequest) return inFlightRequest;
 
   inFlightRequest = (async () => {
     try {
@@ -79,14 +95,11 @@ export async function fetchRobinhoodTokenSnapshot({ force = false } = {}) {
         movers: payload.movers || { gainers: [], dumpers: [], top_gainer: null },
         metadata: payload.metadata || emptySnapshot().metadata,
       };
-      memorySnapshot = snapshot;
-      memoryTimestamp = Date.now();
-      if (snapshot.stats.length) storeSnapshot(snapshot);
-      return snapshot;
+      return publishSnapshot(snapshot, { persist: true });
     } catch (error) {
       const stale = memorySnapshot || readStoredSnapshot({ allowStale: true });
       if (stale) {
-        return {
+        const fallback = {
           ...stale,
           metadata: {
             ...stale.metadata,
@@ -94,9 +107,13 @@ export async function fetchRobinhoodTokenSnapshot({ force = false } = {}) {
             is_live: false,
           },
         };
+        snapshotSubscribers.forEach((subscriber) => subscriber(fallback));
+        return fallback;
       }
       console.warn('[TokenService] Robinhood Chain pulse unavailable:', error.message);
-      return emptySnapshot();
+      const unavailable = emptySnapshot();
+      snapshotSubscribers.forEach((subscriber) => subscriber(unavailable));
+      return unavailable;
     } finally {
       inFlightRequest = null;
     }
@@ -108,4 +125,3 @@ export async function fetchRobinhoodTokenSnapshot({ force = false } = {}) {
 export function getWorldEligibleTokens(snapshot) {
   return (snapshot?.stats || []).filter(token => token.world_eligible && token.logo_url);
 }
-

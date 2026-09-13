@@ -19,6 +19,7 @@ import httpx
 
 _cache_stats: List[Dict[str, Any]] = []
 _last_fetch_ts: float = 0
+_refresh_task: asyncio.Task | None = None
 _last_metadata: Dict[str, Any] = {
     "status": "empty",
     "is_live": False,
@@ -28,7 +29,7 @@ _last_metadata: Dict[str, Any] = {
     "chain": "Robinhood Chain",
 }
 
-_CACHE_TTL_SECONDS = 30
+_CACHE_TTL_SECONDS = 60
 _MAX_BATCH_ADDRESSES = 30
 _WORLD_MIN_LIQUIDITY_USD = 1_000
 
@@ -157,8 +158,8 @@ def _metadata(status: str, *, is_live: bool) -> Dict[str, Any]:
     }
 
 
-async def get_robinhood_crypto_stats() -> List[Dict[str, Any]]:
-    """Return a truthful, cached Robinhood Chain discovery snapshot."""
+async def _refresh_robinhood_crypto_stats() -> List[Dict[str, Any]]:
+    """Refresh once; callers coalesce through get_robinhood_crypto_stats."""
     global _cache_stats, _last_fetch_ts, _last_metadata
     now = time.time()
 
@@ -242,6 +243,22 @@ async def get_robinhood_crypto_stats() -> List[Dict[str, Any]]:
 
     _last_metadata = _metadata("unavailable", is_live=False)
     return []
+
+
+async def get_robinhood_crypto_stats() -> List[Dict[str, Any]]:
+    """Return one shared snapshot and coalesce concurrent DexScreener refreshes."""
+    global _last_metadata, _refresh_task
+
+    if _cache_stats and (time.time() - _last_fetch_ts) < _CACHE_TTL_SECONDS:
+        _last_metadata = _metadata("live-cache", is_live=True)
+        return _cache_stats
+
+    if _refresh_task is None or _refresh_task.done():
+        _refresh_task = asyncio.create_task(_refresh_robinhood_crypto_stats())
+
+    # One cancelled HTTP request must not cancel the refresh for every other
+    # widget, world, tool, or sensor waiting on the same shared snapshot.
+    return await asyncio.shield(_refresh_task)
 
 
 def get_robinhood_cache_metadata() -> Dict[str, Any]:

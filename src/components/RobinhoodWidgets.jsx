@@ -2,7 +2,12 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaChartLine, FaNewspaper, FaBrain, FaSync, FaExternalLinkAlt } from 'react-icons/fa';
 import { getBackendUrl } from '../services/newsService';
-import { fetchRobinhoodTokenSnapshot, getCachedTokenSnapshot, resolveTokenLogoUrl } from '../services/tokenService';
+import {
+  fetchRobinhoodTokenSnapshot,
+  getCachedTokenSnapshot,
+  resolveTokenLogoUrl,
+  subscribeTokenSnapshot,
+} from '../services/tokenService';
 
 const API_BASE = getBackendUrl();
 
@@ -11,10 +16,10 @@ export const LiveMarketWidget = () => {
   const [data, setData] = useState(getCachedTokenSnapshot);
   const [loading, setLoading] = useState(false);
 
-  const fetchStats = async () => {
+  const fetchStats = async (force = false) => {
     setLoading(true);
     try {
-      setData(await fetchRobinhoodTokenSnapshot({ force: true }));
+      setData(await fetchRobinhoodTokenSnapshot({ force }));
     } catch (err) {
       console.warn('Failed to fetch Robinhood stats:', err);
     } finally {
@@ -23,9 +28,13 @@ export const LiveMarketWidget = () => {
   };
 
   useEffect(() => {
+    const unsubscribe = subscribeTokenSnapshot(setData);
     fetchStats();
     const interval = setInterval(fetchStats, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, []);
 
   const rawStats = data?.stats || [];
@@ -54,7 +63,7 @@ export const LiveMarketWidget = () => {
           </p>
         </div>
         <button
-          onClick={fetchStats}
+          onClick={() => fetchStats(true)}
           disabled={loading}
           style={{
             background: 'rgba(204, 255, 0, 0.15)',

@@ -33,13 +33,15 @@ bundles are lazy-loaded and share a deliberately bounded procedural environment.
 Short, dense hero bushes blink and track the camera. A deliberate click/tap—or keeping a bush
 near the camera center after navigating—can trigger a Tickerling encounter. The face uses a
 session-stable token assignment from the same Robinhood Chain snapshot as the landing widget.
-If live art is unavailable, the world shows an original `SIGNAL LOST` face instead of inventing
-a token.
+If the first snapshot is still loading, the world briefly shows an original `TUNING...` face,
+then replays the encounter with the assigned ticker. It never invents a token.
 
 The backend fetches DexScreener boost feeds and chain-filtered pair discovery, retains the
 source tags, applies a minimum display-quality filter, and serves eligible logos through a
-bounded image proxy. A search-discovered token is not called trending; only boost-feed records
-receive a boosted/trending flag. This is discovery metadata, not vetting or financial advice.
+bounded image proxy. The backend snapshot, concurrent refresh, browser memory, browser storage,
+market widget, and every world reuse one cache pipeline. A search-discovered token is not called
+trending; only boost-feed records receive a boosted/trending flag. This is discovery metadata,
+not vetting or financial advice.
 
 ### Voice, memory, news, and X
 
@@ -102,6 +104,7 @@ Important paths:
 | --- | --- |
 | `src/App.jsx` | Active landing application and world entry points |
 | `src/components/3d/Scene3D.jsx` | Shared terrain, atmosphere, forest, river, and portal |
+| `src/components/3d/worldGround.js` | Flat homestead surface and shared asset-grounding contract |
 | `src/components/3d/TickerlingForest.jsx` | Bush encounters and token-logo faces |
 | `src/services/tokenService.js` | Shared browser snapshot/cache contract |
 | `server/app/robinhood_service.py` | DexScreener normalization, ranking, and eligibility |
@@ -207,9 +210,9 @@ databases.
 Run the focused checks used for the current experience:
 
 ```powershell
-npx eslint src/components/RobinhoodWidgets.jsx src/components/WorldLoreSection.jsx src/components/3d/TickerlingForest.jsx src/services/newsService.js src/services/tokenService.js src/utils/sentimentUtils.js
+npx eslint src/components/RobinhoodWidgets.jsx src/components/WorldLoreSection.jsx src/components/3d/Terrain3D.jsx src/components/3d/ForestPortal.jsx src/components/3d/TickerlingForest.jsx src/components/3d/worldGround.js src/hooks/useTrendingTokens.js src/services/newsService.js src/services/tokenService.js src/utils/sentimentUtils.js
 python -m unittest server.tests.test_robinhood_service_unit server.tests.test_market_sensor server.tests.test_system_prompt server.tests.test_x_client server.tests.test_llm -v
-python -m py_compile server/app/system_prompt.py server/app/autonomous_loop.py server/app/tools.py server/app/sensors/market_sensor.py server/app/sensors/game_sensor.py server/app/main.py
+python -m py_compile server/app/system_prompt.py server/app/autonomous_loop.py server/app/tools.py server/app/robinhood_service.py server/app/sensors/market_sensor.py server/app/sensors/game_sensor.py server/app/main.py
 npm run build
 ```
 

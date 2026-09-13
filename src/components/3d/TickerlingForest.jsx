@@ -7,16 +7,19 @@ import * as THREE from 'three';
 import { useTrendingTokens } from '../../hooks/useTrendingTokens';
 import { resolveTokenLogoUrl } from '../../services/tokenService';
 import './TickerlingForest.css';
+import { WORLD_GROUND_Y } from './worldGround';
+
+const BUSH_ROOT_Y = WORLD_GROUND_Y - 0.38;
 
 const HERO_BUSHES = [
-  { id: 'porch-west', position: [-9.2, -0.35, 3.2], scale: 1.08, tint: 0 },
-  { id: 'road-east', position: [9.4, -0.4, 4.6], scale: 1.15, tint: 1 },
-  { id: 'windmill-path', position: [10.8, -0.55, -5.8], scale: 0.95, tint: 2 },
-  { id: 'back-fence', position: [-10.6, -0.52, -5.5], scale: 1.02, tint: 1 },
-  { id: 'north-glade', position: [-5.7, -0.72, -11.8], scale: 0.9, tint: 2 },
-  { id: 'river-turn', position: [6.8, -0.75, -12.4], scale: 0.96, tint: 0 },
-  { id: 'far-west', position: [-15.2, -1.15, -8.8], scale: 0.82, tint: 0 },
-  { id: 'far-east', position: [15.6, -1.25, -9.7], scale: 0.84, tint: 2 },
+  { id: 'porch-west', position: [-9.2, BUSH_ROOT_Y, 3.2], scale: 1.08, tint: 0 },
+  { id: 'road-east', position: [9.4, BUSH_ROOT_Y, 4.6], scale: 1.15, tint: 1 },
+  { id: 'windmill-path', position: [10.8, BUSH_ROOT_Y, -5.8], scale: 0.95, tint: 2 },
+  { id: 'back-fence', position: [-10.6, BUSH_ROOT_Y, -5.5], scale: 1.02, tint: 1 },
+  { id: 'north-glade', position: [-5.7, BUSH_ROOT_Y, -11.8], scale: 0.9, tint: 2 },
+  { id: 'river-turn', position: [6.8, BUSH_ROOT_Y, -12.4], scale: 0.96, tint: 0 },
+  { id: 'far-west', position: [-15.2, BUSH_ROOT_Y, -8.8], scale: 0.82, tint: 0 },
+  { id: 'far-east', position: [15.6, BUSH_ROOT_Y, -9.7], scale: 0.84, tint: 2 },
 ];
 
 const CLUMPS = [
@@ -134,7 +137,7 @@ function TokenMonsterFace({ active, token, glowColor }) {
           <span className="tickerling-pupil tickerling-pupil-left" />
           <span className="tickerling-pupil tickerling-pupil-right" />
           <span className="tickerling-mouth" />
-          <span className="tickerling-name">{token?.symbol || 'SIGNAL LOST'}</span>
+          <span className="tickerling-name">{token?.symbol || 'TUNING...'}</span>
         </div>
       </Html>
     </group>
@@ -280,12 +283,15 @@ function FarBushRing({ bushCount, colors }) {
       const radius = 23 + (bushIndex % 3) * 3.2;
       const centerX = Math.sin(angle) * radius;
       const centerZ = Math.cos(angle) * radius;
-      const groundY = 0.2 - (radius * radius) / 210;
       const scale = 0.72 + (bushIndex % 4) * 0.06;
       [-0.72, 0, 0.72].forEach((offset, clumpIndex) => {
         generated.push({
           key: `${bushIndex}-${clumpIndex}`,
-          position: [centerX + offset * scale, groundY + (clumpIndex === 1 ? 0.42 : 0.18), centerZ],
+          position: [
+            centerX + offset * scale,
+            BUSH_ROOT_Y + (clumpIndex === 1 ? 0.42 : 0.18),
+            centerZ,
+          ],
           scale: [0.88 * scale, (clumpIndex === 1 ? 0.68 : 0.52) * scale, 0.72 * scale],
           rotation: [0, angle + clumpIndex * 0.4, (clumpIndex - 1) * 0.1],
         });
@@ -322,12 +328,13 @@ export function TickerlingForest({ scene = 'evening' }) {
   const isMobile = useMemo(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent), []);
   const bushes = useMemo(() => HERO_BUSHES.slice(0, isMobile ? 4 : HERO_BUSHES.length), [isMobile]);
   const colors = THEME[scene] || THEME.evening;
-  const { tokens } = useTrendingTokens(true);
+  const { tokens, refresh } = useTrendingTokens(true);
   const [seed] = useState(createSessionSeed);
   const assignments = useMemo(() => assignTokens(tokens, seed, bushes), [bushes, seed, tokens]);
   const [encounter, setEncounter] = useState({ id: null, key: 0 });
   const bushRefs = useRef([]);
   const clearTimerRef = useRef(null);
+  const awaitingTokenRef = useRef(null);
   const explorationUntilRef = useRef(0);
   const attentionRef = useRef({ id: null, dwell: 0, sampledAt: 0 });
   const projectedRef = useRef(new THREE.Vector3());
@@ -336,13 +343,28 @@ export function TickerlingForest({ scene = 'evening' }) {
     bushRefs.current[index] = node;
   }, []);
 
-  const trigger = useCallback((id) => {
+  const reveal = useCallback((id) => {
     window.clearTimeout(clearTimerRef.current);
     setEncounter((current) => ({ id, key: current.key + 1 }));
     clearTimerRef.current = window.setTimeout(() => {
       setEncounter((current) => ({ id: null, key: current.key }));
     }, 2_150);
   }, []);
+
+  const trigger = useCallback((id) => {
+    reveal(id);
+    if (!assignments.has(id)) {
+      awaitingTokenRef.current = id;
+      void refresh({ force: true });
+    }
+  }, [assignments, refresh, reveal]);
+
+  useEffect(() => {
+    const pendingId = awaitingTokenRef.current;
+    if (!pendingId || !assignments.has(pendingId)) return;
+    awaitingTokenRef.current = null;
+    reveal(pendingId);
+  }, [assignments, reveal]);
 
   useEffect(() => {
     const markExploring = () => { explorationUntilRef.current = performance.now() + 8_000; };
