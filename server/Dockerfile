@@ -21,6 +21,7 @@ RUN npm run build
 
 # Stage 2: Final Python environment
 FROM python:3.11-slim
+ARG INSTALL_KOKORO=false
 ENV MALLOC_ARENA_MAX=2 \
     OMP_NUM_THREADS=1 \
     OMP_WAIT_POLICY=PASSIVE
@@ -33,14 +34,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install Python deps
-COPY server/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install the 1 GB dependency set by default. Larger hosts can explicitly build
+# with --build-arg INSTALL_KOKORO=true to add local neural TTS.
+COPY server/requirements.txt server/requirements-kokoro.txt ./
+RUN if [ "$INSTALL_KOKORO" = "true" ]; then \
+      pip install --no-cache-dir -r requirements-kokoro.txt; \
+    else \
+      pip install --no-cache-dir -r requirements.txt; \
+    fi
 
-# Pre-download models (tiny.en = 39MB, much lighter than base.en = 150MB)
+# Pre-download Whisper (tiny.en = 39MB). Kokoro's package and large model files
+# are excluded from the default image and added only for an explicit larger-host build.
 RUN python -c "from faster_whisper import WhisperModel; WhisperModel('tiny.en', device='cpu', compute_type='int8')"
-RUN wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/kokoro-v1.0.int8.onnx
-RUN wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/voices-v1.0.bin
+RUN if [ "$INSTALL_KOKORO" = "true" ]; then \
+      wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/kokoro-v1.0.int8.onnx && \
+      wget https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/voices-v1.0.bin; \
+    fi
 
 # Copy backend code
 COPY server/ .

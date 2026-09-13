@@ -1,12 +1,12 @@
 """
-voice.py — Voice pipeline: Whisper STT → Agent → Kokoro TTS
+voice.py — Local voice engines for Whisper STT and optional Kokoro TTS
 
 Flow:
   1. Receive raw audio bytes (webm/ogg from browser MediaRecorder)
   2. Transcribe with faster-whisper (local, fast, accurate)
   3. Run through Courage agent (tools, news, etc.)
-  4. Synthesise speech with kokoro-onnx
-  5. Yield PCM audio chunks for streaming back to browser
+  4. Return text for browser speech on the 1 GB profile, or optionally
+     synthesise speech with kokoro-onnx on a larger host
 """
 
 import io

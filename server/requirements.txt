@@ -8,9 +8,6 @@ pydantic
 
 # Voice pipeline
 faster-whisper
-kokoro-onnx
-soundfile
-numpy
 
 # Twitter / X
 tweepy>=4.14

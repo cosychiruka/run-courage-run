@@ -49,7 +49,8 @@ page sorts it and renders at most ten signals, using a compact two-row swipe rai
 
 - Browser audio streams over `/ws/voice`.
 - `faster-whisper` transcribes locally; the configured OpenRouter model runs the tool-capable
-  agent; Kokoro synthesizes the reply locally.
+  agent; the browser speaks the reply on the 1 GB production profile. Kokoro is an explicit
+  larger-host option.
 - Each voice connection has isolated history, with optional short-lived Redis restoration.
   Without Redis, one shared in-process fallback powers voice priority, counters, and caches.
 - CoinDesk crypto news is cached once for the app, agent tools, heartbeat, and sourced
@@ -90,7 +91,7 @@ React 18 + Vite + React Three Fiber
                  |
                  v
 FastAPI + APScheduler
-  |- voice WebSocket -> Whisper -> agent/tools -> Kokoro
+  |- voice WebSocket -> Whisper -> agent/tools -> browser speech
   |- sourced crypto-news cache and Chronicle renderer
   |- Robinhood Chain discovery + safe token-logo proxy
   |- autonomous heartbeat and grouped community sensor
@@ -156,10 +157,11 @@ Courage's real multi-tool schema. `qwen/qwen3-30b-a3b-instruct-2507` is the low-
 fallback. Free OpenRouter capacity is provider-controlled, so fund the OpenRouter account before
 treating the fallback as production reliability rather than configuration only.
 
-For full local voice, place `kokoro-v1.0.int8.onnx` and `voices-v1.0.bin` in the backend working
-directory (`server/` when using the command below). `faster-whisper` downloads `tiny.en` on its
-first successful load. The backend remains healthy if voice models are absent, but voice calls
-will report that the models are unavailable.
+The standard dependency set uses browser speech and does not install Kokoro/ONNX Runtime. For
+optional full local Kokoro voice, install `server\requirements-kokoro.txt`, set
+`VOICE_TTS_MODE=kokoro`, and place `kokoro-v1.0.int8.onnx` plus `voices-v1.0.bin` in the backend
+working directory (`server/` when using the command below). `faster-whisper` downloads `tiny.en`
+on its first successful load.
 
 ### Run
 
@@ -196,15 +198,18 @@ The combined production container can be built with:
 docker compose -f server\docker-compose.yml up --build
 ```
 
-The Docker image downloads the required Whisper/Kokoro assets during its build.
+The default Docker image downloads only the required Whisper asset. To build the optional
+larger-host Kokoro profile, pass `--build-arg INSTALL_KOKORO=true` and configure
+`VOICE_TTS_MODE=kokoro` at runtime.
 
 For Sliplane, deploy `server/Dockerfile` with repository-root build context and expose port 8000.
-That combined image serves the frontend and API on the same origin and bakes in Whisper, a
-quantized Kokoro model, and FFmpeg. The 1 GB deployment profile uses `VOICE_MEMORY_MODE=low`
+That combined image serves the frontend and API on the same origin and bakes in Whisper and
+FFmpeg. It excludes Kokoro, ONNX Runtime, and their model files by default. The 1 GB deployment
+profile uses `VOICE_MEMORY_MODE=low`
 and `VOICE_TTS_MODE=browser`: Whisper loads only for transcription, then the visitor's browser
-speaks Courage's answer without loading a second neural model into the web process. Kokoro is
-still available with `VOICE_TTS_MODE=kokoro` on a larger host and automatically falls back to
-browser speech if synthesis fails or times out. Every STT, agent, and TTS stage has a bounded
+speaks Courage's answer without loading a second neural model into the web process. An image
+built with `INSTALL_KOKORO=true` can use `VOICE_TTS_MODE=kokoro` on a larger host and still falls
+back to browser speech if synthesis fails or times out. Every STT, agent, and TTS stage has a bounded
 deadline and emits timing-only runtime logs. `RAG_MODE=lexical` also keeps sentence-transformers
 and PyTorch out of the production image. `/health` reports voice and TTS mode plus the cache
 backend; confirm one real microphone round after every deployment.

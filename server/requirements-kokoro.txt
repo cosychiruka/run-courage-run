@@ -1,0 +1,6 @@
+# Optional larger-host voice profile. The 1 GB production image intentionally
+# installs requirements.txt only and speaks replies through the browser.
+-r requirements.txt
+kokoro-onnx
+soundfile
+numpy
